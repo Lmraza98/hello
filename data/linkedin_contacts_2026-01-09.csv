@@ -1,0 +1,340 @@
+Company,Name,First_Name,Last_Name,Title,Email,Email_Pattern,Pattern_Confidence,Domain,Domain_Verified
+ALL4,Antonio Aragon,Antonio,Aragon,Global Sales Director,aaragon@all4inc.com,flast,0.9,all4inc.com,Yes
+ALL4,Bruce Armbruster,Bruce,Armbruster,EHS Practice Director,barmbruster@all4inc.com,flast,0.9,all4inc.com,Yes
+ALL4,Chester N.,Chester,N,IT Director,cn@all4inc.com,flast,0.9,all4inc.com,Yes
+ALL4,Dan Dix,Dan,Dix,Technical Director,ddix@all4inc.com,flast,0.9,all4inc.com,Yes
+ALL4,Drue Pounds,Drue,Pounds,Chief Financial Officer,dpounds@all4inc.com,flast,0.9,all4inc.com,Yes
+ALL4,"Heather Horvath, SHRM-SCP",Heather,Horvath,"Director, Human Resources",hhorvath@all4inc.com,flast,0.9,all4inc.com,Yes
+ALL4,Jesus García San Luis,Jesus,San Luis,Innovation Director,jsanluis@all4inc.com,flast,0.9,all4inc.com,Yes
+ALL4,Joseph Sabato,Joseph,Sabato,Technical Director,jsabato@all4inc.com,flast,0.9,all4inc.com,Yes
+ALL4,Kevin Hickey,Kevin,Hickey,Chief Operating Officer,khickey@all4inc.com,flast,0.9,all4inc.com,Yes
+ALL4,Matt Bulley,Matt,Bulley,Chief Financial Officer,mbulley@all4inc.com,flast,0.9,all4inc.com,Yes
+ALL4,Meghan Reese (Barber),Meghan,Reese,EHS Practice Director,mreese@all4inc.com,flast,0.9,all4inc.com,Yes
+ALL4,Scott Kirkpatrick,Scott,Kirkpatrick,Technical Director,skirkpatrick@all4inc.com,flast,0.9,all4inc.com,Yes
+ALL4,Stephanie Taylor,Stephanie,Taylor,Global Director-Digital Solution,staylor@all4inc.com,flast,0.9,all4inc.com,Yes
+ALL4,William Straub,William,Straub,CEO and Principal Consultant,wstraub@all4inc.com,flast,0.9,all4inc.com,Yes
+Access Information Management,Andrea Bertolina,Andrea,Bertolina,"Senior Vice President, North American Sales",abertolina@accesscorp.com,flast,0.84,accesscorp.com,Yes
+Access Information Management,Antonie Katscher,Antonie,Katscher,"VP, Program Management and Operations",akatscher@accesscorp.com,flast,0.84,accesscorp.com,Yes
+Access Information Management,Barry Payne,Barry,Payne,"Vice President, Global Integration Management",bpayne@accesscorp.com,flast,0.84,accesscorp.com,Yes
+Access Information Management,Bradd Bartos,Bradd,Bartos,Senior Vice President Operations,bbartos@accesscorp.com,flast,0.84,accesscorp.com,Yes
+Access Information Management,Gary Lippert,Gary,Lippert,Vice President of Enterprise Applications,glippert@accesscorp.com,flast,0.84,accesscorp.com,Yes
+Access Information Management,Greg Grospitch,Greg,Grospitch,Vice President - Unify Sales and Solutions,ggrospitch@accesscorp.com,flast,0.84,accesscorp.com,Yes
+Access Information Management,"Jennifer Crawford, CRM, CIPM",Jennifer,Cipm,"Director, Solution Engineering & SaaS Pre-Sales",jcipm@accesscorp.com,flast,0.84,accesscorp.com,Yes
+Access Information Management,Jim D.,Jim,D,"VP, Sales Strategy and Transformation",jd@accesscorp.com,flast,0.84,accesscorp.com,Yes
+Access Information Management,Ketan Chaudhry,Ketan,Chaudhry,Senior Vice President of Product Management,kchaudhry@accesscorp.com,flast,0.84,accesscorp.com,Yes
+Access Information Management,Kevin Winter,Kevin,Winter,VP Information Security,kwinter@accesscorp.com,flast,0.84,accesscorp.com,Yes
+Access Information Management,Michael Kortan,Michael,Kortan,"Senior Vice President, Commercial Solutions",mkortan@accesscorp.com,flast,0.84,accesscorp.com,Yes
+Access Information Management,Patricia Krippendorf,Patricia,Krippendorf,VP Global HR Operations & Technology,pkrippendorf@accesscorp.com,flast,0.84,accesscorp.com,Yes
+Access Information Management,Rita Parker,Rita,Parker,Chief Diversity and Inclusion Officer,rparker@accesscorp.com,flast,0.84,accesscorp.com,Yes
+Access Information Management,Ted Dunn,Ted,Dunn,Business Development Director,tdunn@accesscorp.com,flast,0.84,accesscorp.com,Yes
+Access Information Management secondary persona,Chris S.,Chris,S,Chief Operating Officer (COO) - MightyID,cs@accesscorp.com,flast,0.9,accesscorp.com,Yes
+Access Information Management secondary persona,"Kristy Gulsvig, MBA",Kristy,Gulsvig,VP of Marketing,kgulsvig@accesscorp.com,flast,0.9,accesscorp.com,Yes
+Access Information Management secondary persona,Kyle Kuehm,Kyle,Kuehm,Head of Engineering,kkuehm@accesscorp.com,flast,0.9,accesscorp.com,Yes
+Access Information Management secondary persona,Nazy Fouladirad,Nazy,Fouladirad,"President, COO",nfouladirad@accesscorp.com,flast,0.9,accesscorp.com,Yes
+Access Information Management secondary persona,Ray Zadjmool,Ray,Zadjmool,Chief Executive Officer,rzadjmool@accesscorp.com,flast,0.9,accesscorp.com,Yes
+Benchmark Strategies,Anthony Mire-Sluis,Anthony,Mire-Sluis,Senior Vice President Quality,amire-sluis@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,Bettina Bauer,Bettina,Bauer,"Vice President, US HIV",bbauer@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,Christopher Lentz,Christopher,Lentz,"Senior Director, Employee Experience",clentz@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,"Dave James, M.Sc.",Dave,Msc,"Executive Director, Head of U.S. Market Access Strategy, Virology",dmsc@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,Hitesh Bhansari,Hitesh,Bhansari,Digital Strategy & Audience Engagement Lead,hbhansari@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,Ivette Contreras,Ivette,Contreras,"Director, Integrated Supply Planning",icontreras@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,"James Brady, PhD, CHCIO, CDH-E, CISM, CISRC, CISSP, QTE, NACD.DC, FCHIME, FHIMSS",James,Fhimss,"Deputy CISO/Executive Director & Head of Security Architecture, Engineering, and Delivery",jfhimss@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,"James Kotusky, MBA",James,Kotusky,Director-Federal Accounts,jkotusky@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,John Ramirez,John,Ramirez,"Head of Business Strategy and Operations, Regulatory Affairs, Patient Safety, and R&D Quality (RSQ)",jramirez@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,"Julio A. Rodriguez, MBA",Julio,Rodriguez,"Senior Director, Digital Strategy & Customer Experience US Oncology",jrodriguez@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,Justin M Wright,Justin,Wright,"Vice President, Device, Packaging, and Process Development",jwright@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,Lauren Miyashita,Lauren,Miyashita,Senior Director Business Strategy and Operations,lmiyashita@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,Lefteris Grammatas,Lefteris,Grammatas,"Associate Director, Marketing, Digital Strategy & Customer Experience",lgrammatas@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,Shahed Iqbal,Shahed,Iqbal,Executive Director,siqbal@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,"Vadim Yuzhakov, PhD, PMP, CSSBB",Vadim,Cssbb,"Director, Process Engineering, Global Manufacturing Sciences & Technology",vcssbb@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Benchmark Strategies,Veronica J.,Veronica,J,Head of Indirect Procurement,vj@benchmark-strategies.com,flast,0.9,benchmark-strategies.com,Yes
+Brandmint,Brandmint India,Brandmint,India,Managing Director,bindia@brandmint.com,flast,0.9,brandmint.com,Yes
+Brandmint,Louie Maier,Louie,Maier,President,lmaier@brandmint.com,flast,0.9,brandmint.com,Yes
+Brandmint,Michael Le,Michael,Le,Content Director,mle@brandmint.com,flast,0.9,brandmint.com,Yes
+Brandmint,Renee Maisto,Renee,Maisto,Vice President Operations,rmaisto@brandmint.com,flast,0.9,brandmint.com,Yes
+Brandmint,Tim Youngs,Tim,Youngs,Creative Director,tyoungs@brandmint.com,flast,0.9,brandmint.com,Yes
+Charted formerly SquareWorks Consulting,Ashley O'Connell,Ashley,Oconnell,Head of Strategic Growth,ashley.oconnell@charted.com,first.last,0.95,charted.com,Yes
+Charted formerly SquareWorks Consulting,Jeffrey Cavicchi,Jeffrey,Cavicchi,Senior Director of Software Services,jeffrey.cavicchi@charted.com,first.last,0.95,charted.com,Yes
+Charted formerly SquareWorks Consulting,John Yedlicka,John,Yedlicka,Head of Engineering,john.yedlicka@charted.com,first.last,0.95,charted.com,Yes
+Charted formerly SquareWorks Consulting,Liz Bernardo,Liz,Bernardo,Head of Marketing,liz.bernardo@charted.com,first.last,0.95,charted.com,Yes
+Charted formerly SquareWorks Consulting,Michael Goldenberg,Michael,Goldenberg,Vice President Sales and Customer Success,michael.goldenberg@charted.com,first.last,0.95,charted.com,Yes
+Charted formerly SquareWorks Consulting,Seth Duda,Seth,Duda,Director of R&D,seth.duda@charted.com,first.last,0.95,charted.com,Yes
+ClearCompany,"Alyssa Schneider, CLMS",Alyssa,Clms,Director Channel Sales,aclms@clearcompany.com,flast,0.95,clearcompany.com,Yes
+ClearCompany,Barrett Frankel,Barrett,Frankel,"Director of Customer Success, Enterprise",bfrankel@clearcompany.com,flast,0.95,clearcompany.com,Yes
+ClearCompany,Brian Campbell,Brian,Campbell,Chief Revenue Officer,bcampbell@clearcompany.com,flast,0.95,clearcompany.com,Yes
+ClearCompany,Eric Guba,Eric,Guba,"Senior Director, Compensation Management Portfolio",eguba@clearcompany.com,flast,0.95,clearcompany.com,Yes
+ClearCompany,George W.,George,W,"Director, Transformation Programs",gw@clearcompany.com,flast,0.95,clearcompany.com,Yes
+ClearCompany,Gina Cesare,Gina,Cesare,Vice President of Customer Success,gcesare@clearcompany.com,flast,0.95,clearcompany.com,Yes
+ClearCompany,James L.,James,L,Vice President of Finance,jl@clearcompany.com,flast,0.95,clearcompany.com,Yes
+ClearCompany,Jo Tatti,Jo,Tatti,Vice President of Service Operations,jtatti@clearcompany.com,flast,0.95,clearcompany.com,Yes
+ClearCompany,Kaya Adams,Kaya,Adams,VP Growth Marketing,kadams@clearcompany.com,flast,0.95,clearcompany.com,Yes
+ClearCompany,Kimberly Edwards,Kimberly,Edwards,Director of Customer Enablement + Tools,kedwards@clearcompany.com,flast,0.95,clearcompany.com,Yes
+ClearCompany,Melissa Leffler,Melissa,Leffler,Chief Technology Officer,mleffler@clearcompany.com,flast,0.95,clearcompany.com,Yes
+ClearCompany,Ryan Chenoweth,Ryan,Chenoweth,Vice President of Sales,rchenoweth@clearcompany.com,flast,0.95,clearcompany.com,Yes
+ClearCompany,Susanne Bowen,Susanne,Bowen,Board Director,sbowen@clearcompany.com,flast,0.95,clearcompany.com,Yes
+Confident Med Spa,Andrew Dunne,Andrew,Dunne,Chief Executive Officer,adunne@confidentmedspa.com,flast,0.9,confidentmedspa.com,Yes
+Confident Med Spa,Chelsea Mulligan,Chelsea,Mulligan,Director of Marketing,cmulligan@confidentmedspa.com,flast,0.9,confidentmedspa.com,Yes
+ConvenientMD,Aaron Hoeflich,Aaron,Hoeflich,Director of IT Operations & Infrastructure,ahoeflich@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,Allison Baker,Allison,Baker,"Director, Human Resources",abaker@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,Bill Gillis,Bill,Gillis,Chief Information Officer,bgillis@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,Brenda Karibian,Brenda,Karibian,Regional Medical Director,bkaribian@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,"Bridgette Adams, MBA",Bridgette,Adams,Director of Operations,badams@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,"Caitlin Laughton, MSN, RN",Caitlin,Laughton,"Vice President, Clinical and Value-Based Care Operations",claughton@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,Celina Frost,Celina,Frost,Director of Compliance and Radiology,cfrost@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,Jennifer Halvatzes,Jennifer,Halvatzes,Director of Supply Chain & Inventory Control,jhalvatzes@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,Jennifer Harris,Jennifer,Harris,Director of Marketing,jharris@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,Jessica Laughton,Jessica,Laughton,Director of Revenue Integrity,jlaughton@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,Kimberly Caldwell,Kimberly,Caldwell,Maine District Medical Director-Urgent Care,kcaldwell@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,"Matthew R. Reilly, CFA",Matthew,Reilly,Chief Financial Officer,mreilly@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,Michael Schidlovsky,Michael,Schidlovsky,Regional Director of Business and Community Relations,mschidlovsky@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,Ray Wahl,Ray,Wahl,Chief Executive Officer,rwahl@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,Rozalind (.,Rozalind,,Senior Director of Talent Acquisition,r@convenientmd.com,flast,0.96,convenientmd.com,Yes
+ConvenientMD,Stephen Munier,Stephen,Munier,Vice President of Sales,smunier@convenientmd.com,flast,0.96,convenientmd.com,Yes
+Cookson Communications,Matt Cookson,Matt,Cookson,President & CEO,matt@cooksonstrategies.com,first,0.9,cooksonstrategies.com,Yes
+Cookson Communications,Sam Cook,Sam,Cook,Vice President,sam@cooksonstrategies.com,first,0.9,cooksonstrategies.com,Yes
+Coretelligent,Corey Anderson,Corey,Anderson,Director of Client Lifecycle Management,canderson@coretelligent.com,flast,0.8,coretelligent.com,Yes
+Coretelligent,"Daniel Bardwell, PMP, CSM",Daniel,Csm,VP of Platforms,dcsm@coretelligent.com,flast,0.8,coretelligent.com,Yes
+Coretelligent,Erik Herring,Erik,Herring,"Director, PE-Focused IT Risk & Growth",eherring@coretelligent.com,flast,0.8,coretelligent.com,Yes
+Coretelligent,Karen Lalley,Karen,Lalley,Chief People Officer,klalley@coretelligent.com,flast,0.8,coretelligent.com,Yes
+Coretelligent,Laura S.,Laura,S,"Director of Learning, Talent, & Culture",ls@coretelligent.com,flast,0.8,coretelligent.com,Yes
+Coretelligent,Michelle Brockney,Michelle,Brockney,Chief Operating Officer,mbrockney@coretelligent.com,flast,0.8,coretelligent.com,Yes
+Coretelligent,Praveena Varadarajan,Praveena,Varadarajan,Virtual CIO & Vice President of IT Strategy and Innovation,pvaradarajan@coretelligent.com,flast,0.8,coretelligent.com,Yes
+Coretelligent,Reese Davis,Reese,Davis,Vice President of Account Services,rdavis@coretelligent.com,flast,0.8,coretelligent.com,Yes
+Coretelligent,Scott Camara,Scott,Camara,Vice President of Field Services,scamara@coretelligent.com,flast,0.8,coretelligent.com,Yes
+Coretelligent,Sean Murphy,Sean,Murphy,Vice President of Service Delivery,smurphy@coretelligent.com,flast,0.8,coretelligent.com,Yes
+Coretelligent,Sorcha Eastwood,Sorcha,Eastwood,Director Talent Acquisition,seastwood@coretelligent.com,flast,0.8,coretelligent.com,Yes
+Coretelligent,Steven Bay,Steven,Bay,Vice President of Cybersecurity,sbay@coretelligent.com,flast,0.8,coretelligent.com,Yes
+Corinthian Events,Alfie Collison,Alfie,Collison,Senior Business Development Director,alfie.collison@corinthianevents.com,first.last,0.9,corinthianevents.com,Yes
+Corinthian Events,Andy Cooke,Andy,Cooke,Head of Digital Marketing,andy.cooke@corinthianevents.com,first.last,0.9,corinthianevents.com,Yes
+Corinthian Events,Kamran Ahmad FCCA MBA,Kamran,Fcca,Finance Director,kamran.fcca@corinthianevents.com,first.last,0.9,corinthianevents.com,Yes
+Corinthian Events,Lucas Gambel,Lucas,Gambel,Head of New Business,lucas.gambel@corinthianevents.com,first.last,0.9,corinthianevents.com,Yes
+Corinthian Events,Mark Hoskins,Mark,Hoskins,Managing Director,mark.hoskins@corinthianevents.com,first.last,0.9,corinthianevents.com,Yes
+Corinthian Events,Sarah Stina MSc CIPD,Sarah,Cipd,Director of People,sarah.cipd@corinthianevents.com,first.last,0.9,corinthianevents.com,Yes
+Corinthian Events,gavin ocallaghan,Gavin,Ocallaghan,Director,gavin.ocallaghan@corinthianevents.com,first.last,0.9,corinthianevents.com,Yes
+DRB Facility Services,Anita Turner,Anita,Turner,Director of Finance/Accounting,aturner@donerightservices.com,flast,0.9,donerightservices.com,Yes
+DRB Facility Services,Anthony Samuels,Anthony,Samuels,President,asamuels@donerightservices.com,flast,0.9,donerightservices.com,Yes
+DRB Facility Services,Graziella Izquierdo,Graziella,Izquierdo,Area Director of Housekeeping,gizquierdo@donerightservices.com,flast,0.9,donerightservices.com,Yes
+DRB Facility Services,Jonathan Camacho,Jonathan,Camacho,Vice President of Operation,jcamacho@donerightservices.com,flast,0.9,donerightservices.com,Yes
+DRB Facility Services,Jonathan Corbine Howell,Jonathan,Howell,Director of Purchasing and Logistics,jhowell@donerightservices.com,flast,0.9,donerightservices.com,Yes
+DRB Facility Services,Kenneth Martin,Kenneth,Martin,Chief Operating Officer/CFO,kmartin@donerightservices.com,flast,0.9,donerightservices.com,Yes
+Energy Electrical Contractors,Brian Arseneault,Brian,Arseneault,Director of Business Development,barseneault@energyelectricne.com,flast,0.9,energyelectricne.com,Yes
+Energy Electrical Contractors,Mark Potter,Mark,Potter,Director of Service Operations,mpotter@energyelectricne.com,flast,0.9,energyelectricne.com,Yes
+Energy Electrical Contractors,Stephen Brown,Stephen,Brown,Chief Executive Officer,sbrown@energyelectricne.com,flast,0.9,energyelectricne.com,Yes
+Energy Electrical Contractors,Tim Caggiano,Tim,Caggiano,Chief Operating Officer,tcaggiano@energyelectricne.com,flast,0.9,energyelectricne.com,Yes
+FM Architecture,Barry Power,Barry,Power,Corporate Finance Director,barry.power@fmarchitecture.com.au,first.last,0.5,fmarchitecture.com.au,Yes
+FM Architecture,Christian Guetermann,Christian,Guetermann,VP Procurement,christian.guetermann@fmarchitecture.com.au,first.last,0.5,fmarchitecture.com.au,Yes
+FM Architecture,Darren Watkins CEng BEng (Hons),Darren,Beng,Chief Revenue Officer (CRO),darren.beng@fmarchitecture.com.au,first.last,0.5,fmarchitecture.com.au,Yes
+FM Architecture,Daryl Seaton,Daryl,Seaton,Chief Financial Officer,daryl.seaton@fmarchitecture.com.au,first.last,0.5,fmarchitecture.com.au,Yes
+FM Architecture,David Watkins,David,Watkins,Solutions Director,david.watkins@fmarchitecture.com.au,first.last,0.5,fmarchitecture.com.au,Yes
+FM Architecture,Donata Guerrini,Donata,Guerrini,Managing Director Italy,donata.guerrini@fmarchitecture.com.au,first.last,0.5,fmarchitecture.com.au,Yes
+FM Architecture,Kevin Holland,Kevin,Holland,Client Director,kevin.holland@fmarchitecture.com.au,first.last,0.5,fmarchitecture.com.au,Yes
+FM Architecture,Mark Kempson,Mark,Kempson,VP Operations Engineering and Standards,mark.kempson@fmarchitecture.com.au,first.last,0.5,fmarchitecture.com.au,Yes
+FM Architecture,Neil Cresswell,Neil,Cresswell,Vice Chair,neil.cresswell@fmarchitecture.com.au,first.last,0.5,fmarchitecture.com.au,Yes
+FM Architecture,Pauline Walsh,Pauline,Walsh,Non Executive Director,pauline.walsh@fmarchitecture.com.au,first.last,0.5,fmarchitecture.com.au,Yes
+FM Architecture,Peter Miles,Peter,Miles,Vice President of Sales,peter.miles@fmarchitecture.com.au,first.last,0.5,fmarchitecture.com.au,Yes
+FM Architecture,Ramzi CHARIF,Ramzi,Charif,"Vice President Operations, EMEA.",ramzi.charif@fmarchitecture.com.au,first.last,0.5,fmarchitecture.com.au,Yes
+FM Architecture,Simon Ramsell,Simon,Ramsell,"Senior Director, Real Estate Expansion EMEA VIRTUS",simon.ramsell@fmarchitecture.com.au,first.last,0.5,fmarchitecture.com.au,Yes
+FM Architecture,"Theodora Savage, Chartered FCIPD",Theodora,Fcipd,"People Director, UK Operations",theodora.fcipd@fmarchitecture.com.au,first.last,0.5,fmarchitecture.com.au,Yes
+GraVoc,Brian Gravel,Brian,Gravel,Executive Vice President,bgravel@gravoc.com,flast,0.9,gravoc.com,Yes
+GraVoc,"Dan Johnson, IT, ERP, CRM Sales and Consulting",Dan,Consulting,Vice President Business Development,dconsulting@gravoc.com,flast,0.9,gravoc.com,Yes
+GraVoc,Dave Gravel,Dave,Gravel,President,dgravel@gravoc.com,flast,0.9,gravoc.com,Yes
+GraVoc,Joshua Henderson,Joshua,Henderson,Director of Sales -- Information Security,jhenderson@gravoc.com,flast,0.9,gravoc.com,Yes
+GraVoc,Kevin Howes,Kevin,Howes,Director of Software Solutions - F&O,khowes@gravoc.com,flast,0.9,gravoc.com,Yes
+GraVoc,Mike Kannan,Mike,Kannan,Managing Director - Information Security,mkannan@gravoc.com,flast,0.9,gravoc.com,Yes
+GraVoc,Paul Lincoln,Paul,Lincoln,Director - Software Development,plincoln@gravoc.com,flast,0.9,gravoc.com,Yes
+Gray Gray and Gray LLP,Amy Moller,Amy,Moller,"Director, Administration & Operations",amymoller@gggllp.com,firstlast,0.8,gggllp.com,Yes
+Gray Gray and Gray LLP,"Anjali Desai, JD, PCC",Anjali,Pcc,"Director, Coaching",anjalipcc@gggllp.com,firstlast,0.8,gggllp.com,Yes
+Gray Gray and Gray LLP,Charlotte Logullo,Charlotte,Logullo,"Director, Innovative Technology & Research",charlottelogullo@gggllp.com,firstlast,0.8,gggllp.com,Yes
+Gray Gray and Gray LLP,Daljit Doogal,Daljit,Doogal,Chairman and CEO,daljitdoogal@gggllp.com,firstlast,0.8,gggllp.com,Yes
+Gray Gray and Gray LLP,Dana Cichy,Dana,Cichy,Human Resources Director,danacichy@gggllp.com,firstlast,0.8,gggllp.com,Yes
+Gray Gray and Gray LLP,David Crane,David,Crane,"Director, Network Systems & Operations",davidcrane@gggllp.com,firstlast,0.8,gggllp.com,Yes
+Gray Gray and Gray LLP,Jennifer Cafferty Patton,Jennifer,Patton,Chief Operating Officer,jenniferpatton@gggllp.com,firstlast,0.8,gggllp.com,Yes
+Gray Gray and Gray LLP,"Joseph Bollini, CPA",Joseph,Bollini,Director of Finance,josephbollini@gggllp.com,firstlast,0.8,gggllp.com,Yes
+Gray Gray and Gray LLP,Laura Kubon,Laura,Kubon,"Director, Technology Support & Project Management",laurakubon@gggllp.com,firstlast,0.8,gggllp.com,Yes
+Gray Gray and Gray LLP,Lisa Jessup,Lisa,Jessup,Chief Financial Officer,lisajessup@gggllp.com,firstlast,0.8,gggllp.com,Yes
+Gray Gray and Gray LLP,Paul Picciotta,Paul,Picciotta,"Director, Competitive Data and Technology",paulpicciotta@gggllp.com,firstlast,0.8,gggllp.com,Yes
+Gray Gray and Gray LLP,Rick Varju,Rick,Varju,Director of Systems Integration & Support,rickvarju@gggllp.com,firstlast,0.8,gggllp.com,Yes
+Gray Gray and Gray LLP,Sara Durkee,Sara,Durkee,"Regional Director of Administration & Operations, California Region & Salt Lake City, UT",saradurkee@gggllp.com,firstlast,0.8,gggllp.com,Yes
+Gray Gray and Gray LLP,"Tammy Cowser, MBA, PHR",Tammy,Cowser,"Director Of Administration and Operations (Texas, Colorado & Mexico)",tammycowser@gggllp.com,firstlast,0.8,gggllp.com,Yes
+Haley & Aldrich,Alecs Schmidt-Mickunas,Alecs,Schmidt-Mickunas,Director,aschmidt-mickunas@haleyaldrich.com,flast,0.97,haleyaldrich.com,Yes
+Haley & Aldrich,Alice Chambers,Alice,Chambers,"Library Director, writer, and fiber artist",achambers@haleyaldrich.com,flast,0.97,haleyaldrich.com,Yes
+Kaplan Construction,David & Mary Ann Fitzgerald,David,Fitzgerald,Finacial Aid Director,david@kaplanconstruction.com,first,0.7,kaplanconstruction.com,Yes
+Kaplan Construction,Jane Kaplan Peck,Jane,Peck,Chief Operating Officer,jane@kaplanconstruction.com,first,0.7,kaplanconstruction.com,Yes
+Kaplan Construction,Nazim Midal,Nazim,Midal,Co Director,nazim@kaplanconstruction.com,first,0.7,kaplanconstruction.com,Yes
+Kaplan Construction secondary persona,Anja Pannek,Anja,Pannek,Chief Executive Officer,apannek@kaplanconstructs.com,flast,0.9,kaplanconstructs.com,Yes
+Kaplan Construction secondary persona,Dan Walsh,Dan,Walsh,Head Of Education,dwalsh@kaplanconstructs.com,flast,0.9,kaplanconstructs.com,Yes
+Kaplan Construction secondary persona,Doug Daniell,Doug,Daniell,Mortgage Manager Forum President,ddaniell@kaplanconstructs.com,flast,0.9,kaplanconstructs.com,Yes
+Kaplan Construction secondary persona,Melissa Ashcroft,Melissa,Ashcroft,Non Executive Director,mashcroft@kaplanconstructs.com,flast,0.9,kaplanconstructs.com,Yes
+Kaplan Construction secondary persona,Mike Felton,Mike,Felton,Chief Executive Officer,mfelton@kaplanconstructs.com,flast,0.9,kaplanconstructs.com,Yes
+Kaplan Construction secondary persona,Peter Clark,Peter,Clark,Non Executive Director,pclark@kaplanconstructs.com,flast,0.9,kaplanconstructs.com,Yes
+Kaplan Construction secondary persona,Rose De Rossi,Rose,De Rossi,Director,rderossi@kaplanconstructs.com,flast,0.9,kaplanconstructs.com,Yes
+Kaplan Construction secondary persona,Sana Hosseini JP AICD,Sana,Aicd,Non Executive Director,saicd@kaplanconstructs.com,flast,0.9,kaplanconstructs.com,Yes
+Kaplan Construction secondary persona,Vladimír Malčík,Vladimír,Malčík,Director and Chairman of the Audit & Risk Committee of the Board,vmalčík@kaplanconstructs.com,flast,0.9,kaplanconstructs.com,Yes
+Lamacchia Realty,Jackie Louh,Jackie,Louh,Chief Operating Officer,jackie@lamacchiarealty.com,first,0.6,lamacchiarealty.com,Yes
+Lamacchia Realty,John Millen,John,Millen,Vice President of Business Development,john@lamacchiarealty.com,first,0.6,lamacchiarealty.com,Yes
+Lamacchia Realty,Judy Patterson,Judy,Patterson,"Regional Vice President, Realtors Assoc. of Central Mass. & North Central Assoc. of Realtors",judy@lamacchiarealty.com,first,0.6,lamacchiarealty.com,Yes
+Lamacchia Realty,Kim Beaulieu,Kim,Beaulieu,Vice President of Human Resources at Lamacchia Companies,kim@lamacchiarealty.com,first,0.6,lamacchiarealty.com,Yes
+Lamacchia Realty,Sarah Hatch,Sarah,Hatch,Vice President of Relocation,sarah@lamacchiarealty.com,first,0.6,lamacchiarealty.com,Yes
+Lamacchia Realty,"Shane Bronson, CRP, GMS",Shane,Gms,Regional Vice President - Florida,shane@lamacchiarealty.com,first,0.6,lamacchiarealty.com,Yes
+Mainstay Technologies,Jacob Pelletier,Jacob,Pelletier,Director of Service,jpelletier@mstech.com,flast,0.9,mstech.com,Yes
+Mainstay Technologies,Jason Golden,Jason,Golden,Chief Executive Officer,jgolden@mstech.com,flast,0.9,mstech.com,Yes
+Mainstay Technologies,Melissa Abbott,Melissa,Abbott,Director Of Accounting,mabbott@mstech.com,flast,0.9,mstech.com,Yes
+Mainstay Technologies,"Stephanie Buttrick, MBA, PMP",Stephanie,Buttrick,Director of Revenue Operations,sbuttrick@mstech.com,flast,0.9,mstech.com,Yes
+NWN,Alex Gudovich,Alex,Gudovich,Director - Revenue Capture Desk,agudovich@nwnit.com,flast,0.88,nwnit.com,Yes
+NWN,Alvaro Riera,Alvaro,Riera,VP Offerings - UC & Collaboration,ariera@nwnit.com,flast,0.88,nwnit.com,Yes
+NWN,Brent Lazarenko,Brent,Lazarenko,Chief AI Officer & Global Head of Innovation,blazarenko@nwnit.com,flast,0.88,nwnit.com,Yes
+NWN,Chris Methe,Chris,Methe,Vice President of Technology Operations,cmethe@nwnit.com,flast,0.88,nwnit.com,Yes
+NWN,Chris Poe,Chris,Poe,Vice President of Offerings - Intelligent Infrastructure Solutions,cpoe@nwnit.com,flast,0.88,nwnit.com,Yes
+NWN,David Lindquist,David,Lindquist,Senior Vice President of Sales,dlindquist@nwnit.com,flast,0.88,nwnit.com,Yes
+NWN,Jonathan Bunce,Jonathan,Bunce,VP Partnership Organization,jbunce@nwnit.com,flast,0.88,nwnit.com,Yes
+NWN,Kristin L. Scheidmantel,Kristin,Scheidmantel,Senior Vice President Customer Experience,kscheidmantel@nwnit.com,flast,0.88,nwnit.com,Yes
+NWN,Krystina Silva,Krystina,Silva,"Senior Vice President, Operations Strategy & Order Management",ksilva@nwnit.com,flast,0.88,nwnit.com,Yes
+NWN,"Lars Helmle, MBA",Lars,Helmle,Sr. Director of Customer Retention - Revenue Operations,lhelmle@nwnit.com,flast,0.88,nwnit.com,Yes
+NWN,Matt Curran,Matt,Curran,"Senior Vice President, Corporate Development and M&A",mcurran@nwnit.com,flast,0.88,nwnit.com,Yes
+NWN,Noah Asher,Noah,Asher,Chief Financial Officer,nasher@nwnit.com,flast,0.88,nwnit.com,Yes
+NWN,Shannon Ludwig,Shannon,Ludwig,SVP of Sales - SLED EAST,sludwig@nwnit.com,flast,0.88,nwnit.com,Yes
+Nift,Laura Flechas,Laura,Flechas,Ejecutivo,lflechas@nift.com.pk,flast,0.74,nift.com.pk,Yes
+NineTwoThree AI Studio,Andrew Amann,Andrew,Amann,CEO & Co-Founder,andrew@ninetwothree.co,first,0.9,ninetwothree.co,Yes
+NineTwoThree AI Studio,Mariya Leonidova,Mariya,Leonidova,Head of Human Resources,mariya@ninetwothree.co,first,0.9,ninetwothree.co,Yes
+Pro Volt Electrical,Jonathan Rhein,Jonathan,Rhein,Chief Executive Officer,jonathan@provoltelectrical.com,first,0.9,provoltelectrical.com,Yes
+RapDev,Daniel Mooney,Daniel,Mooney,Commercial Director (EMEA & APAC),daniel.mooney@rapdev.io,first.last,0.6,rapdev.io,Yes
+RapDev,Elias Kapetanopoulos,Elias,Kapetanopoulos,Director of Engineering - ServiceNow,elias.kapetanopoulos@rapdev.io,first.last,0.6,rapdev.io,Yes
+RapDev,Jay Barker,Jay,Barker,Director of Engineering,jay.barker@rapdev.io,first.last,0.6,rapdev.io,Yes
+RapDev,John Taylor,John,Taylor,Client Director,john.taylor@rapdev.io,first.last,0.6,rapdev.io,Yes
+RapDev,Ryan Henrich,Ryan,Henrich,"Director of Sales, Security",ryan.henrich@rapdev.io,first.last,0.6,rapdev.io,Yes
+ReVision Energy,Anna Fincke,Anna,Fincke,Vice President Of Commercial Operations,afincke@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+ReVision Energy,Barry Woods,Barry,Woods,Senior Director of eMobility,bwoods@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+ReVision Energy,Benjamin Mayer,Benjamin,Mayer,Director of Solar Champion Initiatives,bmayer@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+ReVision Energy,Bridget Sprague,Bridget,Sprague,Vice President of Marketing,bsprague@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+ReVision Energy,Brie O'Malley,Brie,Omalley,"Director, ReVision Energy Training Center",bomalley@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+ReVision Energy,Fortunat Mueller,Fortunat,Mueller,"Co-Founder, CEO",fmueller@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+ReVision Energy,Jonathan Wheatley,Jonathan,Wheatley,Director Of Technology,jwheatley@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+ReVision Energy,Katie Beane-Lewis,Katie,Beane-Lewis,"Director, People & Culture",kbeane-lewis@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+ReVision Energy,Kelly Kaufmann,Kelly,Kaufmann,Director of Energy Storage,kkaufmann@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+ReVision Energy,Lauren Guite,Lauren,Guite,Director of Digital and Content Marketing,lguite@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+ReVision Energy,Lindsay Gallant,Lindsay,Gallant,Director of Engineering Team,lgallant@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+ReVision Energy,Lindsay Leoni Bourgoine,Lindsay,Bourgoine,"Director, Policy & Government Affairs",lbourgoine@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+ReVision Energy,Nat Haslett,Nat,Haslett,Director of Utility and Regulatory Affairs,nhaslett@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+ReVision Energy,Nate Niles,Nate,Niles,Director of Development,nniles@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+ReVision Energy,Sam Lavallee,Sam,Lavallee,Chief Financial Officer,slavallee@revisionenergy.com,flast,0.9,revisionenergy.com,Yes
+Red River,Kathy Lau,Kathy,Lau,Chief Operating Officer,kathy.lau@redriver.com,first.last,0.98,redriver.com,Yes
+Red River,Marshall Sasse,Marshall,Sasse,President/CEO,marshall.sasse@redriver.com,first.last,0.98,redriver.com,Yes
+Red River,Steven Schuyler,Steven,Schuyler,Director Of Engineering,steven.schuyler@redriver.com,first.last,0.98,redriver.com,Yes
+Red River,Tyler Sasse,Tyler,Sasse,Vice President,tyler.sasse@redriver.com,first.last,0.98,redriver.com,Yes
+SilverTech,Anoop Sandhu,Anoop,Sandhu,Director of Engineering,anoop.sandhu@silvertech.com,first.last,0.9,silvertech.com,Yes
+SilverTech,Chris Crombie,Chris,Crombie,Chief Growth Officer,chris.crombie@silvertech.com,first.last,0.9,silvertech.com,Yes
+SilverTech,Christina Vagi,Christina,Vagi,Director of Strategy,christina.vagi@silvertech.com,first.last,0.9,silvertech.com,Yes
+SilverTech,Erin Presseau,Erin,Presseau,Vice President Marketing,erin.presseau@silvertech.com,first.last,0.9,silvertech.com,Yes
+SilverTech,Jeff McPherson,Jeff,Mcpherson,President,jeff.mcpherson@silvertech.com,first.last,0.9,silvertech.com,Yes
+SilverTech,John Wingate,John,Wingate,Vice President Of Technology,john.wingate@silvertech.com,first.last,0.9,silvertech.com,Yes
+SilverTech,Kyle White,Kyle,White,Director of Project Management,kyle.white@silvertech.com,first.last,0.9,silvertech.com,Yes
+SilverTech,Michael Gatti,Michael,Gatti,Creative Director,michael.gatti@silvertech.com,first.last,0.9,silvertech.com,Yes
+SilverTech,Nina C.,Nina,C,Chief Financial Officer,nina.c@silvertech.com,first.last,0.9,silvertech.com,Yes
+SilverTech,Paul Creme,Paul,Creme,"Senior Vice President, General Counsel",paul.creme@silvertech.com,first.last,0.9,silvertech.com,Yes
+SilverTech,Scott Workman,Scott,Workman,Engineering Architect,scott.workman@silvertech.com,first.last,0.9,silvertech.com,Yes
+SpotOn GPS Fence,Fred C.,Fred,C,President,fred@spotonfence.com,first,0.87,spotonfence.com,Yes
+SpotOn GPS Fence,Stephanie McCaig,Stephanie,Mccaig,Director of Finance,stephanie@spotonfence.com,first,0.87,spotonfence.com,Yes
+SpotOn GPS Fence,Sung Vivathana,Sung,Vivathana,Vice President of Engineering,sung@spotonfence.com,first,0.87,spotonfence.com,Yes
+Springfield Lumber Co.,Joe Musco,Joe,Musco,Principal CEO,joe.musco@springfieldlumber.com,first.last,0.9,springfieldlumber.com,Yes
+Stark Raving Health,Ariana Colozzo-Wells,Ariana,Colozzo-Wells,Director of Content,ariana@starkravingboston.com,first,1.0,starkravingboston.com,Yes
+Stark Raving Health,Leslie D.,Leslie,D,Creative Director,leslie@starkravingboston.com,first,1.0,starkravingboston.com,Yes
+Stark Raving Health,Matthew Stumm,Matthew,Stumm,Founder + President,matthew@starkravingboston.com,first,1.0,starkravingboston.com,Yes
+Stark Raving Health,Michael Coleman,Michael,Coleman,Art Director,michael@starkravingboston.com,first,1.0,starkravingboston.com,Yes
+TG Gallagher,Brian Potter,Brian,Potter,CEO,bpotter@tggallagher.com,flast,0.98,tggallagher.com,Yes
+TG Gallagher,Christopher Evers,Christopher,Evers,Vice President,cevers@tggallagher.com,flast,0.98,tggallagher.com,Yes
+TG Gallagher,Christopher Foley,Christopher,Foley,CFO,cfoley@tggallagher.com,flast,0.98,tggallagher.com,Yes
+TG Gallagher,Dan McCarthy,Dan,Mccarthy,Vice President,dmccarthy@tggallagher.com,flast,0.98,tggallagher.com,Yes
+TG Gallagher,Larry Haite,Larry,Haite,Director of Preconstruction Services,lhaite@tggallagher.com,flast,0.98,tggallagher.com,Yes
+TG Gallagher,"Mike Betts, PE",Mike,Betts,Chief Operating Officer,mbetts@tggallagher.com,flast,0.98,tggallagher.com,Yes
+TG Gallagher,Tom Devine,Tom,Devine,Vice President,tdevine@tggallagher.com,flast,0.98,tggallagher.com,Yes
+TG Gallagher secondary persona,Christian Klaus STEINBAUER,Christian,Steinbauer,Head of Team Renewable Energy I Managing Director,csteinbauer@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Christian Zoller,Christian,Zoller,Managing Director / Subdivision Water,czoller@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Christoph Pell-Weber,Christoph,Pell-Weber,Head of Strategy,cpell-weber@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Dieter Kroismayr,Dieter,Kroismayr,International Project Director,dkroismayr@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Germo Schroebler,Germo,Schroebler,Head of Procurement Standards & Strategies,gschroebler@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Johann Poelzl,Johann,Poelzl,Managing Director Bulgaria and Romania at STRABAG,jpoelzl@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Lee Baldwin MRICS,Lee,Mrics,Commercial Project Director,lmrics@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Lukáš Vacek,Lukáš,Vacek,Vedoucí přípravy,lvacek@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Lutz Hoffmann,Lutz,Hoffmann,Technischer Direktionsleiter / Geschäftsführer,lhoffmann@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Maciej Sobczyk ▹Dyrektor Operacyjny◃,Maciej,Operacyjny,Dyrektor Operacyjny / Finansowy,moperacyjny@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Matthias Steinbach,Matthias,Steinbach,"Head of Application Services & Data Science, Subdivision Manager",msteinbach@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Michal Pristas,Michal,Pristas,Managing Director STRABAG Real Estate SK/ CZ,mpristas@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Oana Frangulea,Oana,Frangulea,Head of Procurement,ofrangulea@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Oliver Schirp,Oliver,Schirp,Leiter Fachbereich Immobilien,oschirp@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Stefan Ebner,Stefan,Ebner,Head of Application Services & Data Science / Subdivision Manager,sebner@tggallagher.com,flast,1.0,tggallagher.com,Yes
+TG Gallagher secondary persona,Stefan Kratochwill,Stefan,Kratochwill,CEO STRABAG SE,skratochwill@tggallagher.com,flast,1.0,tggallagher.com,Yes
+The Stepping Stones Group,Anne Wood,Anne,Wood,Vice President of Client Services,anne@thesteppingstonesgroup.com,first,0.9,thesteppingstonesgroup.com,Yes
+The Stepping Stones Group,Anup Vidyarthy,Anup,Vidyarthy,Chief Information Officer,anup@thesteppingstonesgroup.com,first,0.9,thesteppingstonesgroup.com,Yes
+The Stepping Stones Group,Eddie Rundle,Eddie,Rundle,Regional Market President,eddie@thesteppingstonesgroup.com,first,0.9,thesteppingstonesgroup.com,Yes
+The Stepping Stones Group,Halyna Olsen,Halyna,Olsen,Regional Market President,halyna@thesteppingstonesgroup.com,first,0.9,thesteppingstonesgroup.com,Yes
+The Stepping Stones Group,Jason Sipple,Jason,Sipple,Director of Travel Education & Therapy,jason@thesteppingstonesgroup.com,first,0.9,thesteppingstonesgroup.com,Yes
+The Stepping Stones Group,"Jessica Copeland, PHR",Jessica,Copeland,Director of Operations,jessica@thesteppingstonesgroup.com,first,0.9,thesteppingstonesgroup.com,Yes
+The Stepping Stones Group,Katie White,Katie,White,President of Talent Acquisition,katie@thesteppingstonesgroup.com,first,0.9,thesteppingstonesgroup.com,Yes
+The Stepping Stones Group,Laurie McCloskey,Laurie,Mccloskey,"Senior Vice President, Clinical Operations",laurie@thesteppingstonesgroup.com,first,0.9,thesteppingstonesgroup.com,Yes
+The Stepping Stones Group,Lisa Stacy-Choate,Lisa,Stacy-Choate,Director of K12 Corporate Career Services,lisa@thesteppingstonesgroup.com,first,0.9,thesteppingstonesgroup.com,Yes
+The Stepping Stones Group,Peter Williams,Peter,Williams,Head of Product - AI,peter@thesteppingstonesgroup.com,first,0.9,thesteppingstonesgroup.com,Yes
+The Stepping Stones Group,Robert Parsons,Robert,Parsons,"Senior Vice President, Corporate Initiatives and Post Merger Integration",robert@thesteppingstonesgroup.com,first,0.9,thesteppingstonesgroup.com,Yes
+The Stepping Stones Group,Susan Gannon,Susan,Gannon,Director of Clinical Operations,susan@thesteppingstonesgroup.com,first,0.9,thesteppingstonesgroup.com,Yes
+The Stepping Stones Group,Tim Murphy,Tim,Murphy,Chief Executive Officer,tim@thesteppingstonesgroup.com,first,0.9,thesteppingstonesgroup.com,Yes
+The Stepping Stones Group,"Tim Ulmer, Ph.D.",Tim,Ulmer,Senior Vice President of Growth,tim@thesteppingstonesgroup.com,first,0.9,thesteppingstonesgroup.com,Yes
+Thrive (Thrivenextgen),Brandi Gatlin,Brandi,Gatlin,Vice President of Alliances & Partnerships,bgatlin@thrivenextgen.com,flast,0.9,thrivenextgen.com,Yes
+Thrive (Thrivenextgen),Chris Nichol,Chris,Nichol,VP of Strategic Alliances,cnichol@thrivenextgen.com,flast,0.9,thrivenextgen.com,Yes
+Thrive (Thrivenextgen),Chris Prevoznik,Chris,Prevoznik,Area Vice President & GM,cprevoznik@thrivenextgen.com,flast,0.9,thrivenextgen.com,Yes
+Thrive (Thrivenextgen),Dave Sampson,Dave,Sampson,Vice President of Cyber Risk & Strategy,dsampson@thrivenextgen.com,flast,0.9,thrivenextgen.com,Yes
+Thrive (Thrivenextgen),James Bryan,James,Bryan,"Director, Centralized Services",jbryan@thrivenextgen.com,flast,0.9,thrivenextgen.com,Yes
+Thrive (Thrivenextgen),John Holland,John,Holland,Chief Revenue Officer,jholland@thrivenextgen.com,flast,0.9,thrivenextgen.com,Yes
+Thrive (Thrivenextgen),Kathleen Mauriot,Kathleen,Mauriot,"VP, Global Talent Acquisition",kmauriot@thrivenextgen.com,flast,0.9,thrivenextgen.com,Yes
+Thrive (Thrivenextgen),Kirti Gavri,Kirti,Gavri,Head of Corporate Development,kgavri@thrivenextgen.com,flast,0.9,thrivenextgen.com,Yes
+Thrive (Thrivenextgen),Marion K.,Marion,K,Adjunct Faculty,mk@thrivenextgen.com,flast,0.9,thrivenextgen.com,Yes
+Thrive (Thrivenextgen),Mark Hummel,Mark,Hummel,Client Business Executive - Private Equity Team,mhummel@thrivenextgen.com,flast,0.9,thrivenextgen.com,Yes
+Thrive (Thrivenextgen),Michael Gray,Michael,Gray,Chief Technology Officer,mgray@thrivenextgen.com,flast,0.9,thrivenextgen.com,Yes
+Thrive (Thrivenextgen),Robbie Luethold,Robbie,Luethold,Executive Vice President of Sales,rluethold@thrivenextgen.com,flast,0.9,thrivenextgen.com,Yes
+Thrive (Thrivenextgen),Scott Steele,Scott,Steele,Chief Operating Officer,ssteele@thrivenextgen.com,flast,0.9,thrivenextgen.com,Yes
+Tighe & Bond,Benjamin Levesque,Benjamin,Levesque,Vice President,blevesque@tighebond.com,flast,0.97,tighebond.com,Yes
+Tighe & Bond,"Carolyn Lowe, PE",Carolyn,Lowe,Vice President - Corporate Initiatives and Business Development,clowe@tighebond.com,flast,0.97,tighebond.com,Yes
+Tighe & Bond,David Horowitz,David,Horowitz,Vice President,dhorowitz@tighebond.com,flast,0.97,tighebond.com,Yes
+Tighe & Bond,"Erin Moore, PE, BCEE",Erin,Bcee,Vice President,ebcee@tighebond.com,flast,0.97,tighebond.com,Yes
+Tighe & Bond,Fran Hoey,Fran,Hoey,Chief Strategy Officer (CSO),fhoey@tighebond.com,flast,0.97,tighebond.com,Yes
+Tighe & Bond,"James Laughlan, CPA",James,Laughlan,"SVP, Chief Financial Officer",jlaughlan@tighebond.com,flast,0.97,tighebond.com,Yes
+Tighe & Bond,John Bologna,John,Bologna,Vice President of Business Development,jbologna@tighebond.com,flast,0.97,tighebond.com,Yes
+Tighe & Bond,"Keri Drake, CPSM",Keri,Cpsm,Chief Marketing Officer,kcpsm@tighebond.com,flast,0.97,tighebond.com,Yes
+Tighe & Bond,Kevin Rota,Kevin,Rota,VP of IT,krota@tighebond.com,flast,0.97,tighebond.com,Yes
+Tighe & Bond,Margo Armstrong,Margo,Armstrong,Chief HR Officer and Senior Vice President,marmstrong@tighebond.com,flast,0.97,tighebond.com,Yes
+Tighe & Bond,Matt Abraham,Matt,Abraham,Vice President,mabraham@tighebond.com,flast,0.97,tighebond.com,Yes
+Tighe & Bond,Raymond Talkington,Raymond,Talkington,Vice President,rtalkington@tighebond.com,flast,0.97,tighebond.com,Yes
+Tighe & Bond,"Tiffany Labrie, PE, CDT",Tiffany,Cdt,Senior Vice President,tcdt@tighebond.com,flast,0.97,tighebond.com,Yes
+Tighe & Bond,Wayne Bates,Wayne,Bates,Vice President,wbates@tighebond.com,flast,0.97,tighebond.com,Yes
+Tuvoli,Ashley Madison,Ashley,Madison,Customer Success Director,ashley.madison@tuvoli.com,first.last,0.9,tuvoli.com,Yes
+Tuvoli,"Garret Grajek, CEH, CISSP, CGEIT, CISM",Garret,Cism,Chief Executive Officer,garret.cism@tuvoli.com,first.last,0.9,tuvoli.com,Yes
+Tuvoli,Julia Chun,Julia,Chun,Director of Customer Satisfaction,julia.chun@tuvoli.com,first.last,0.9,tuvoli.com,Yes
+Tuvoli,Kashif M.,Kashif,M,Director of Deployment & Implementation,kashif.m@tuvoli.com,first.last,0.9,tuvoli.com,Yes
+Twelve Points,"Dave Clayman, CEPA®, CMT®, C(k)P®, AIF®, CPWA®",Dave,Cpwa,"Co-Founder and CEO, Wealth Manager",dave@twelvepointswealth.com,first,1.0,twelvepointswealth.com,Yes
+Twelve Points,"Greg Phillips, AIF®, CPFA®, C(k)P®",Greg,P,"Director, Financial Wellness & Employee Education",greg@twelvepointswealth.com,first,1.0,twelvepointswealth.com,Yes
+Uwill,Asini Wijewardane,Asini,Wijewardane,"Managing Director, UK",asini@uwill.com,first,0.9,uwill.com,Yes
+Uwill,Gregory Murphy,Gregory,Murphy,Senior Director - Sales and Business Development,gregory@uwill.com,first,0.9,uwill.com,Yes
+Uwill,James Collins,James,Collins,"Director, Business Development (K12 Independent)",james@uwill.com,first,0.9,uwill.com,Yes
+Uwill,Jillian Wiseman,Jillian,Wiseman,"Vice President, Business Development",jillian@uwill.com,first,0.9,uwill.com,Yes
+Uwill,Joshua L.,Joshua,L,"Vice President, Product Management",joshua@uwill.com,first,0.9,uwill.com,Yes
+Uwill,Karly Bachich,Karly,Bachich,"Senior Director, Business Development",karly@uwill.com,first,0.9,uwill.com,Yes
+Uwill,Kelly Williams Downing,Kelly,Downing,"Vice President, Marketing",kelly@uwill.com,first,0.9,uwill.com,Yes
+Uwill,Lanna Daniels,Lanna,Daniels,Director of Business Development,lanna@uwill.com,first,0.9,uwill.com,Yes
+Uwill,Leonard S.,Leonard,S,Director of Engineering,leonard@uwill.com,first,0.9,uwill.com,Yes
+Uwill,Matt Brand,Matt,Brand,Vice President Of Engineering,matt@uwill.com,first,0.9,uwill.com,Yes
+Uwill,Robin R.,Robin,R,"Vice President, Counselor Success",robin@uwill.com,first,0.9,uwill.com,Yes
+Uwill,Ryan Leer,Ryan,Leer,"Vice President, Customer Success",ryan@uwill.com,first,0.9,uwill.com,Yes
+Uwill,Sam Witt,Sam,Witt,Senior Director Business Development,sam@uwill.com,first,0.9,uwill.com,Yes
+Uwill,Sarah Pauling,Sarah,Pauling,"Vice President, Customer Operations",sarah@uwill.com,first,0.9,uwill.com,Yes
+VideaHealth,Adam Haas,Adam,Haas,Director of Product Design,adam@videa.ai,first,0.9,videa.ai,Yes
+VideaHealth,Adham Abdelrahim,Adham,Abdelrahim,Head of Clinical Operations,adham@videa.ai,first,0.9,videa.ai,Yes
+VideaHealth,Dan Bachiochi,Dan,Bachiochi,Vice President Of Engineering,dan@videa.ai,first,0.9,videa.ai,Yes
+VideaHealth,Dan McCarthy,Dan,Mccarthy,Director of Software Engineering,dan@videa.ai,first,0.9,videa.ai,Yes
+VideaHealth,Dan Pay,Dan,Pay,VP Strategic Partnerships,dan@videa.ai,first,0.9,videa.ai,Yes
+VideaHealth,Jesse Lieman-Sifry,Jesse,Lieman-Sifry,Director of Machine Learning,jesse@videa.ai,first,0.9,videa.ai,Yes
+VideaHealth,Joe Cuccinelli,Joe,Cuccinelli,VP of Product,joe@videa.ai,first,0.9,videa.ai,Yes
+VideaHealth,Kam Ionesian,Kam,Ionesian,Director of Strategic Partnerships,kam@videa.ai,first,0.9,videa.ai,Yes
+VideaHealth,Lotta Lundaas,Lotta,Lundaas,VP of Marketing,lotta@videa.ai,first,0.9,videa.ai,Yes
+VideaHealth,Patricia Setti-LaPerch,Patricia,Setti-Laperch,Director RAQA,patricia@videa.ai,first,0.9,videa.ai,Yes
+VideaHealth,Robert Young,Robert,Young,Director Customer Success and Implementation,robert@videa.ai,first,0.9,videa.ai,Yes
+VideaHealth,Sophie Prach,Sophie,Prach,Head of Account Management,sophie@videa.ai,first,0.9,videa.ai,Yes
+demandDrive,Jacob Spiegel,Jacob,Spiegel,Account Director,jacob.spiegel@demanddrive.com,first.last,0.96,demanddrive.com,Yes
+demandDrive,Tiffany Lyman Otten,Tiffany,Otten,Head of Strategy & Principal,tiffany.otten@demanddrive.com,first.last,0.96,demanddrive.com,Yes

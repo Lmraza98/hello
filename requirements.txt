@@ -1,0 +1,28 @@
+# Web scraping & rendering
+playwright==1.49.0
+requests==2.32.3
+beautifulsoup4==4.12.3
+lxml==5.3.0
+readability-lxml==0.8.1
+
+# Data extraction
+extruct==0.17.0
+
+# LLM
+openai==1.58.1
+
+# Database (sqlite3 is built-in)
+
+# Utilities
+python-dotenv==1.0.1
+pydantic==2.10.3
+tenacity==9.0.0
+aiohttp==3.11.11
+
+# CLI & Scheduling
+typer==0.15.1
+rich==13.9.4
+
+# Email validation
+dnspython==2.6.1
+

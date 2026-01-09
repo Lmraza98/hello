@@ -1,0 +1,49 @@
+# Environment
+.env
+venv/
+.venv/
+
+# Data (contains sensitive info)
+data/outreach.db
+data/salesforce_auth.json
+data/pages/
+data/screenshots/
+data/reports/
+
+# Keep structure but ignore contents
+!data/seed_urls.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+
