@@ -1,5 +1,3 @@
-// API client for LinkedIn Scraper backend
-
 const API_BASE = '/api';
 
 export type Stats = {
@@ -17,6 +15,7 @@ export type Company = {
   vertical: string | null;
   target_reason: string | null;
   wedge: string | null;
+  status: string | null;
 }
 
 export type Contact = {
@@ -31,58 +30,61 @@ export type Contact = {
   scraped_at: string | null;
 }
 
-export type ScrapeStatus = {
+export type PipelineStatus = {
   running: boolean;
-  progress: number;
-  total: number;
-  current_company: string | null;
-  results: {
-    success: number;
-    failed: number;
-    contacts: number;
-  };
+  output: { time: string; text: string }[];
+  started_at: string | null;
 }
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(API_BASE + url, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
   });
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status}`);
-  }
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
 
 export const api = {
-  // Stats
   getStats: () => fetchJson<Stats>('/stats'),
   
-  // Companies
   getCompanies: (tier?: string) => 
     fetchJson<Company[]>(`/companies${tier ? `?tier=${tier}` : ''}`),
+  
+  addCompany: (company: Partial<Company>) =>
+    fetchJson<Company>('/companies', { method: 'POST', body: JSON.stringify(company) }),
+  
+  updateCompany: (company: Company) =>
+    fetchJson<Company>(`/companies/${company.id}`, { method: 'PUT', body: JSON.stringify(company) }),
+  
+  deleteCompany: (id: number) =>
+    fetchJson<{ deleted: boolean }>(`/companies/${id}`, { method: 'DELETE' }),
+  
+  resetCompanies: () =>
+    fetchJson<{ reset: boolean }>('/companies/reset', { method: 'POST' }),
+  
+  skipPendingCompanies: () =>
+    fetchJson<{ skipped: number }>('/companies/skip-pending', { method: 'POST' }),
+  
+  clearPendingCompanies: () =>
+    fetchJson<{ deleted: number }>('/companies/pending', { method: 'DELETE' }),
+  
+  getPendingCount: () =>
+    fetchJson<{ pending: number }>('/companies/pending-count'),
   
   importCompanies: async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    const res = await fetch(API_BASE + '/companies/import', {
-      method: 'POST',
-      body: formData,
-    });
+    const res = await fetch(API_BASE + '/companies/import', { method: 'POST', body: formData });
     return res.json();
   },
   
-  // Contacts
   getContacts: (params?: { company?: string; has_email?: boolean; today_only?: boolean }) => {
-    const searchParams = new URLSearchParams();
-    if (params?.company) searchParams.set('company', params.company);
-    if (params?.has_email !== undefined) searchParams.set('has_email', String(params.has_email));
-    if (params?.today_only) searchParams.set('today_only', 'true');
-    const query = searchParams.toString();
-    return fetchJson<Contact[]>(`/contacts${query ? `?${query}` : ''}`);
+    const sp = new URLSearchParams();
+    if (params?.company) sp.set('company', params.company);
+    if (params?.has_email !== undefined) sp.set('has_email', String(params.has_email));
+    if (params?.today_only) sp.set('today_only', 'true');
+    return fetchJson<Contact[]>(`/contacts${sp.toString() ? `?${sp}` : ''}`);
   },
   
   exportContacts: (todayOnly = false) => {
@@ -92,16 +94,14 @@ export const api = {
   clearContacts: (todayOnly = false) =>
     fetchJson<{ deleted: number }>(`/contacts?today_only=${todayOnly}`, { method: 'DELETE' }),
   
-  // Scraping
-  getScrapeStatus: () => fetchJson<ScrapeStatus>('/scrape/status'),
+  getPipelineStatus: () => fetchJson<PipelineStatus>('/pipeline/status'),
   
-  startScrape: (tier?: string, maxContacts = 25, workers = 3) =>
-    fetchJson<{ message: string }>('/scrape/start', {
-      method: 'POST',
-      body: JSON.stringify({ tier, max_contacts: maxContacts, workers }),
-    }),
+  startPipeline: (tier?: string, maxContacts = 25) =>
+    fetchJson<{ started: boolean }>(`/pipeline/start?max_contacts=${maxContacts}${tier ? `&tier=${tier}` : ''}`, { method: 'POST' }),
   
-  discoverEmails: () =>
-    fetchJson<{ message: string }>('/emails/discover', { method: 'POST' }),
+  stopPipeline: () =>
+    fetchJson<{ stopped: boolean }>('/pipeline/stop', { method: 'POST' }),
+  
+  runEmailDiscovery: () =>
+    fetchJson<{ started: boolean }>('/pipeline/emails', { method: 'POST' }),
 };
-

@@ -11,6 +11,11 @@ extruct==0.17.0
 # LLM
 openai==1.58.1
 
+# API Server
+fastapi==0.115.0
+uvicorn==0.32.0
+python-multipart==0.0.12
+
 # Database (sqlite3 is built-in)
 
 # Utilities
@@ -25,4 +30,10 @@ rich==13.9.4
 
 # Email validation
 dnspython==2.6.1
+
+# Desktop App
+pywebview==5.3.2
+
+# Packaging (dev only)
+pyinstaller==6.11.0
 

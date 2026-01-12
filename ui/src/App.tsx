@@ -5,7 +5,10 @@ import {
   Building2, 
   Users, 
   Settings,
-  Zap
+  Zap,
+  Minus,
+  Maximize2,
+  X
 } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
@@ -24,6 +27,7 @@ type Page = 'dashboard' | 'companies' | 'contacts';
 
 function AppContent() {
   const [page, setPage] = useState<Page>('dashboard');
+  const pywebview = (window as any).pywebview;
 
   const navItems = [
     { id: 'dashboard' as Page, label: 'Dashboard', icon: LayoutDashboard },
@@ -32,17 +36,39 @@ function AppContent() {
   ];
 
   return (
-    <div className="min-h-screen flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-surface border-r border-border flex flex-col">
+    <div className="h-screen flex overflow-hidden">
+      {/* Window controls - top right corner */}
+      <div className="fixed top-0 right-0 z-50 flex">
+        <button 
+          onClick={() => pywebview?.api?.minimize?.()}
+          className="w-10 h-8 flex items-center justify-center hover:bg-white/10"
+        >
+          <Minus className="w-3 h-3 text-text-dim" />
+        </button>
+        <button 
+          onClick={() => pywebview?.api?.maximize?.()}
+          className="w-10 h-8 flex items-center justify-center hover:bg-white/10"
+        >
+          <Maximize2 className="w-3 h-3 text-text-dim" />
+        </button>
+        <button 
+          onClick={() => pywebview?.api?.close?.() || window.close()}
+          className="w-10 h-8 flex items-center justify-center hover:bg-red-500 group"
+        >
+          <X className="w-3 h-3 text-text-dim group-hover:text-white" />
+        </button>
+      </div>
+
+      {/* Sidebar - Fixed */}
+      <aside className="w-64 bg-surface border-r border-border flex flex-col shrink-0">
         {/* Logo */}
-        <div className="h-16 flex items-center gap-3 px-5 border-b border-border">
-          <div className="w-9 h-9 rounded-lg bg-accent flex items-center justify-center">
-            <Zap className="w-5 h-5 text-white" />
+        <div className="h-14 flex items-center gap-3 px-5 border-b border-border shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
+            <Zap className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h1 className="font-semibold text-text">Lead Engine</h1>
-            <p className="text-xs text-text-dim">LinkedIn Scraper</p>
+            <h1 className="font-semibold text-text text-sm">Hello</h1>
+            <p className="text-xs text-text-dim">Lead Engine</p>
           </div>
         </div>
 
@@ -77,8 +103,8 @@ function AppContent() {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 bg-bg overflow-auto">
+      {/* Main Content - Scrollable */}
+      <main className="flex-1 bg-bg overflow-y-auto">
         {page === 'dashboard' && <Dashboard />}
         {page === 'companies' && <Companies />}
         {page === 'contacts' && <Contacts />}

@@ -1,11 +1,10 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../api';
 import type { Contact } from '../api';
 import { 
   Search,
   Users,
-  Mail,
   Download,
   Filter,
   CheckCircle,
@@ -64,7 +63,6 @@ export default function Contacts() {
   const [search, setSearch] = useState('');
   const [hasEmail, setHasEmail] = useState<boolean | undefined>(undefined);
   const [todayOnly, setTodayOnly] = useState(false);
-  const queryClient = useQueryClient();
 
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ['contacts', hasEmail, todayOnly],
@@ -191,7 +189,7 @@ export default function Contacts() {
                     <th className="text-left px-5 py-2 text-xs font-medium text-text-dim uppercase tracking-wider">Name</th>
                     <th className="text-left px-5 py-2 text-xs font-medium text-text-dim uppercase tracking-wider">Title</th>
                     <th className="text-left px-5 py-2 text-xs font-medium text-text-dim uppercase tracking-wider">Email</th>
-                    <th className="text-left px-5 py-2 text-xs font-medium text-text-dim uppercase tracking-wider w-20">Actions</th>
+                    <th className="text-left px-5 py-2 text-xs font-medium text-text-dim uppercase tracking-wider">LinkedIn</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-subtle">
@@ -207,16 +205,22 @@ export default function Contacts() {
                         <EmailBadge email={contact.email} pattern={contact.email_pattern} />
                       </td>
                       <td className="px-5 py-3">
-                        {contact.linkedin_url && (
-                          <a
-                            href={contact.linkedin_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 hover:bg-surface-hover rounded transition-colors inline-flex"
-                            title="View on LinkedIn"
-                          >
-                            <ExternalLink className="w-4 h-4 text-text-dim" />
-                          </a>
+                        {contact.linkedin_url ? (
+                          contact.linkedin_url.includes('/in/') ? (
+                            <a
+                              href={contact.linkedin_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1.5 text-accent hover:text-accent-hover text-sm transition-colors"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              {contact.linkedin_url.split('/in/')[1]?.split('/')[0] || 'Profile'}
+                            </a>
+                          ) : (
+                            <span className="text-text-dim text-sm">Sales Nav only</span>
+                          )
+                        ) : (
+                          <span className="text-text-dim text-sm">—</span>
                         )}
                       </td>
                     </tr>

@@ -286,18 +286,20 @@ def generate_email(name: str, pattern: str, domain: str) -> str:
     return ''
 
 
-def process_linkedin_contacts_with_patterns(output_path: str = None, today_only: bool = False) -> Dict:
+def process_linkedin_contacts_with_patterns(output_path: str = None, today_only: bool = False, workers: int = 5) -> Dict:
     """
     Process LinkedIn contacts: discover patterns and generate emails.
     
     Args:
         output_path: Path for output CSV
         today_only: If True, only process contacts scraped today
+        workers: Number of parallel workers for pattern discovery
     
     Returns summary of processing.
     """
     import csv
     from datetime import datetime
+    from concurrent.futures import ThreadPoolExecutor, as_completed
     import database as db
     
     if output_path is None:
@@ -332,10 +334,10 @@ def process_linkedin_contacts_with_patterns(output_path: str = None, today_only:
         print(f"[EmailDiscoverer] No contacts found{' for today' if today_only else ''}")
         return {'contacts': 0, 'companies': 0, 'output_path': output_path, 'patterns': {}}
     
-    print(f"[EmailDiscoverer] Processing {len(companies)} companies...")
+    print(f"[EmailDiscoverer] Processing {len(companies)} companies with {workers} parallel workers...")
     
-    # Discover pattern AND domain for each company
-    patterns = {}
+    # Prepare company data for parallel processing
+    company_data = []
     for row in companies:
         company = row['company']
         domain_slug = row['domain']
@@ -346,18 +348,53 @@ def process_linkedin_contacts_with_patterns(output_path: str = None, today_only:
         else:
             domain_hint = domain_slug
         
-        if company not in patterns:
-            result = discover_email_pattern(company, domain_hint)
-            patterns[company] = {
-                'pattern': result['pattern'],
-                'domain': result['domain'],  # Use discovered domain
-                'domain_discovered': result.get('domain_discovered', False),
-                'confidence': result['confidence']
-            }
+        company_data.append((company, domain_hint))
+    
+    # Discover patterns in parallel
+    patterns = {}
+    completed = 0
+    
+    import time
+    import threading
+    rate_limit_lock = threading.Lock()
+    last_request_time = [0.0]  # Use list to allow mutation in nested function
+    
+    def discover_for_company(args):
+        company, domain_hint = args
+        # Rate limiting: ensure minimum 300ms between OpenAI calls
+        with rate_limit_lock:
+            elapsed = time.time() - last_request_time[0]
+            if elapsed < 0.3:
+                time.sleep(0.3 - elapsed)
+            last_request_time[0] = time.time()
+        return company, discover_email_pattern(company, domain_hint)
+    
+    # Use fewer workers to avoid rate limits (max 3 concurrent API calls)
+    actual_workers = min(workers, 3)
+    print(f"[EmailDiscoverer] Using {actual_workers} workers (rate-limited)")
+    
+    with ThreadPoolExecutor(max_workers=actual_workers) as executor:
+        futures = {executor.submit(discover_for_company, cd): cd for cd in company_data}
+        
+        for future in as_completed(futures):
+            try:
+                company, result = future.result()
+                patterns[company] = {
+                    'pattern': result['pattern'],
+                    'domain': result['domain'],
+                    'domain_discovered': result.get('domain_discovered', False),
+                    'confidence': result['confidence']
+                }
+            except Exception as e:
+                print(f"[EmailDiscoverer] Error: {e}")
+            completed += 1
+            if completed % 5 == 0:
+                print(f"[EmailDiscoverer] Progress: {completed}/{len(companies)} companies")
     
     # Get all contacts and generate emails
     cursor.execute(f'''
         SELECT 
+            id,
             COALESCE(company_name, domain) as company,
             domain,
             name,
@@ -369,7 +406,8 @@ def process_linkedin_contacts_with_patterns(output_path: str = None, today_only:
     ''')
     contacts = cursor.fetchall()
     
-    # Write to CSV
+    # Write to CSV AND update database
+    emails_generated = 0
     with open(output_path, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow([
@@ -378,6 +416,7 @@ def process_linkedin_contacts_with_patterns(output_path: str = None, today_only:
         ])
         
         for contact in contacts:
+            contact_id = contact['id']
             company = contact['company']
             name = contact['name']
             
@@ -398,6 +437,15 @@ def process_linkedin_contacts_with_patterns(output_path: str = None, today_only:
             
             email = generate_email(name, pattern_info['pattern'], domain)
             
+            # Update the database with generated email
+            if email:
+                cursor.execute('''
+                    UPDATE linkedin_contacts 
+                    SET email_generated = ?, email_pattern = ?
+                    WHERE id = ?
+                ''', (email, pattern_info['pattern'], contact_id))
+                emails_generated += 1
+            
             writer.writerow([
                 company,
                 name,
@@ -410,6 +458,10 @@ def process_linkedin_contacts_with_patterns(output_path: str = None, today_only:
                 domain,
                 'Yes' if domain_verified else 'No'
             ])
+    
+    # Commit the database updates
+    conn.commit()
+    print(f"[EmailDiscoverer] Updated {emails_generated} contacts with generated emails in database")
     
     print(f"\n[EmailDiscoverer] Exported {len(contacts)} contacts to {output_path}")
     print(f"[EmailDiscoverer] Discovered patterns for {len(patterns)} companies")

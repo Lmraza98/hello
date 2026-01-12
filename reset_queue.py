@@ -9,3 +9,4 @@ print(f"Cleared {c.rowcount} pending items from send queue")
 conn.close()
 
 
+

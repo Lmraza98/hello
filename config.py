@@ -61,7 +61,7 @@ LLM_CALLS_PER_DAY_CAP = 200  # Hard cap to stay under budget
 
 # Parallel processing
 NUM_BROWSER_WORKERS = 30     # Salesforce workers (can handle higher volume)
-LINKEDIN_WORKERS = 3         # LinkedIn workers (keep LOW to avoid rate limits!)
+LINKEDIN_WORKERS = 2         # LinkedIn workers (2-3 is usually safe)
 HEADLESS_MODE = False        # Set True for background operation (after auth)
 AUTH_TIMEOUT_MINUTES = 15    # How long to wait for Salesforce login
 LINKEDIN_TIMEOUT_MINUTES = 15  # How long to wait for LinkedIn login
