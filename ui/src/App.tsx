@@ -8,11 +8,15 @@ import {
   Zap,
   Minus,
   Maximize2,
-  X
+  X,
+  Mail
 } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
 import Contacts from './pages/Contacts';
+import Email from './pages/Email';
+import { NotificationProvider } from './contexts/NotificationContext';
+import { NotificationContainer } from './components/NotificationContainer';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +27,7 @@ const queryClient = new QueryClient({
   },
 });
 
-type Page = 'dashboard' | 'companies' | 'contacts';
+type Page = 'dashboard' | 'companies' | 'contacts' | 'email';
 
 function AppContent() {
   const [page, setPage] = useState<Page>('dashboard');
@@ -33,10 +37,12 @@ function AppContent() {
     { id: 'dashboard' as Page, label: 'Dashboard', icon: LayoutDashboard },
     { id: 'companies' as Page, label: 'Companies', icon: Building2 },
     { id: 'contacts' as Page, label: 'Contacts', icon: Users },
+    { id: 'email' as Page, label: 'Email', icon: Mail },
   ];
 
   return (
     <div className="h-screen flex overflow-hidden">
+      <NotificationContainer />
       {/* Window controls - top right corner */}
       <div className="fixed top-0 right-0 z-50 flex">
         <button 
@@ -108,6 +114,7 @@ function AppContent() {
         {page === 'dashboard' && <Dashboard />}
         {page === 'companies' && <Companies />}
         {page === 'contacts' && <Contacts />}
+        {page === 'email' && <Email />}
       </main>
     </div>
   );
@@ -116,7 +123,9 @@ function AppContent() {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppContent />
+      <NotificationProvider>
+        <AppContent />
+      </NotificationProvider>
     </QueryClientProvider>
   );
 }

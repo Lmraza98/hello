@@ -7,3 +7,4 @@ with db.get_db() as conn:
     print(f"Reset {count} companies to 'pending' status")
 
 
+

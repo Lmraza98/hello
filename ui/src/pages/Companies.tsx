@@ -35,13 +35,18 @@ function StatusBadge({ status }: { status: string | null }) {
     pending: 'bg-warning/10 text-warning border-warning/30',
     processing: 'bg-accent/10 text-accent border-accent/30',
     completed: 'bg-success/10 text-success border-success/30',
+    scraped: 'bg-success/10 text-success border-success/30', // Legacy: map to completed
+    no_results: 'bg-error/10 text-error border-error/30',
+    error: 'bg-error/10 text-error border-error/30',
+    skipped: 'bg-surface-hover text-text-muted border-border',
   };
 
   const s = status || 'pending';
+  const displayStatus = s === 'scraped' ? 'completed' : s;
   
   return (
     <span className={`px-2 py-0.5 text-xs font-medium rounded border ${statusColors[s] || statusColors.pending}`}>
-      {s}
+      {displayStatus}
     </span>
   );
 }
@@ -124,7 +129,7 @@ function EditableRow({
 
   if (!isEditing) {
     return (
-      <tr className={`hover:bg-surface-hover transition-colors group ${company.status === 'completed' ? 'opacity-60' : ''}`}>
+      <tr className={`hover:bg-surface-hover transition-colors group ${(company.status === 'completed' || company.status === 'scraped') ? 'opacity-60' : ''}`}>
         <td className="px-4 py-3">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-surface-hover flex items-center justify-center">

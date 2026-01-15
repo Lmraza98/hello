@@ -26,14 +26,42 @@ export type Contact = {
   title: string | null;
   email: string | null;
   email_pattern: string | null;
+  email_confidence: number | null;
+  email_verified: boolean;
+  phone: string | null;
+  phone_source: string | null;
+  phone_confidence: number | null;
+  phone_links: string[] | null;
   linkedin_url: string | null;
+  salesforce_status: string | null;
+  salesforce_uploaded_at: string | null;
+  salesforce_upload_batch: string | null;
   scraped_at: string | null;
+  vertical: string | null;
 }
 
 export type PipelineStatus = {
   running: boolean;
   output: { time: string; text: string }[];
   started_at: string | null;
+}
+
+export type EmailCampaign = {
+  id: number;
+  name: string;
+  description: string | null;
+  num_emails: number;
+  days_between_emails: number;
+  status: string;
+  created_at: string;
+}
+
+export type EmailCampaignStats = {
+  total_contacts: number;
+  active: number;
+  completed: number;
+  total_sent: number;
+  failed: number;
 }
 
 async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
@@ -104,4 +132,23 @@ export const api = {
   
   runEmailDiscovery: () =>
     fetchJson<{ started: boolean }>('/pipeline/emails', { method: 'POST' }),
+  
+  runPhoneDiscovery: (workers = 10, todayOnly = false) =>
+    fetchJson<{ started: boolean }>(`/pipeline/phones?workers=${workers}&today_only=${todayOnly}`, { method: 'POST' }),
+  
+  // Email campaign endpoints
+  getEmailCampaigns: (status?: string) =>
+    fetchJson<EmailCampaign[]>(`/emails/campaigns${status ? `?status=${status}` : ''}`),
+  
+  getEmailCampaign: (id: number) =>
+    fetchJson<EmailCampaign & { stats: EmailCampaignStats }>(`/emails/campaigns/${id}`),
+  
+  enrollInCampaign: (campaignId: number, contactIds: number[]) =>
+    fetchJson<{ enrolled: number; skipped: number }>(`/emails/campaigns/${campaignId}/enroll`, {
+      method: 'POST',
+      body: JSON.stringify({ contact_ids: contactIds })
+    }),
+  
+  getCampaignContacts: (campaignId: number) =>
+    fetchJson<Array<{ contact_id: number; contact_name: string; email: string; title: string; company_name: string }>>(`/emails/campaigns/${campaignId}/contacts`),
 };

@@ -4,7 +4,7 @@ Opens multiple LinkedIn browser windows to find profiles in parallel.
 """
 import asyncio
 import database as db
-from services.linkedin_scraper import update_contact_linkedin_url
+from services.linkedin import update_contact_linkedin_url
 from playwright.async_api import async_playwright
 from urllib.parse import quote
 import re
@@ -473,6 +473,7 @@ async def run_parallel_finder(batch_size: int, num_workers: int):
     """Run parallel LinkedIn profile finding."""
     
     # Get contacts that need URLs (skip ones that already have /in/ URLs)
+    # Process in reverse order (newest first)
     with db.get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -481,6 +482,7 @@ async def run_parallel_finder(batch_size: int, num_workers: int):
             WHERE (linkedin_url IS NULL 
                OR linkedin_url = ''
                OR linkedin_url NOT LIKE '%/in/%')
+            ORDER BY id DESC
             LIMIT ?
         """, (batch_size * 2,))  # Get more to filter
         

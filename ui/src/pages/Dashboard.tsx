@@ -12,7 +12,8 @@ import {
   Play,
   Square,
   Terminal,
-  Loader2
+  Loader2,
+  Phone
 } from 'lucide-react';
 
 function ConnectionStatus() {
@@ -207,6 +208,16 @@ export default function Dashboard() {
     }
   });
 
+  const emailDiscoveryMutation = useMutation({
+    mutationFn: api.runEmailDiscovery,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pipeline-status'] })
+  });
+
+  const phoneDiscoveryMutation = useMutation({
+    mutationFn: () => api.runPhoneDiscovery(10, false),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['pipeline-status'] })
+  });
+
   const isRunning = pipelineStatus?.running || false;
   const pending = pendingCount?.pending ?? 0;
 
@@ -354,6 +365,29 @@ export default function Dashboard() {
               </div>
             </div>
             <LiveContacts />
+          </div>
+
+          {/* Discovery Actions */}
+          <div className="bg-surface border border-border rounded-xl p-5 mt-4">
+            <h2 className="font-semibold text-text mb-4">Discovery Tools</h2>
+            <div className="flex gap-3">
+              <button
+                onClick={() => emailDiscoveryMutation.mutate()}
+                disabled={emailDiscoveryMutation.isPending || isRunning}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent/10 text-accent border border-accent/20 rounded-lg font-medium hover:bg-accent/20 disabled:opacity-50"
+              >
+                {emailDiscoveryMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                Discover Emails
+              </button>
+              <button
+                onClick={() => phoneDiscoveryMutation.mutate()}
+                disabled={phoneDiscoveryMutation.isPending || isRunning}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-accent/10 text-accent border border-accent/20 rounded-lg font-medium hover:bg-accent/20 disabled:opacity-50"
+              >
+                {phoneDiscoveryMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Phone className="w-4 h-4" />}
+                Discover Phones
+              </button>
+            </div>
           </div>
         </div>
       </div>

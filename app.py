@@ -36,7 +36,7 @@ def start_server():
             server_ready.set()
         
         config = uvicorn.Config(
-            "api:app",
+            "api.main:app",
             host="127.0.0.1",
             port=SERVER_PORT,
             log_level="warning",

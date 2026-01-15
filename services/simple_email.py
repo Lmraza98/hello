@@ -135,3 +135,4 @@ def bulk_generate(contacts: List[Dict]) -> Dict:
 
 
 
+

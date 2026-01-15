@@ -29,7 +29,9 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")  # Cost-effective for extraction
 LLM_MODEL_SMART = os.getenv("LLM_MODEL_SMART", "gpt-4o")  # For complex reasoning
 
-# Web Search (Tavily - get free key at https://tavily.com)
+# Web Search (SearXNG - self-hosted search engine)
+SEARXNG_URL = os.getenv("SEARXNG_URL", "http://localhost:8080")
+# Legacy Tavily support (if you want to use Tavily instead)
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
 LLM_MAX_INPUT_TOKENS = 800  # Aggressive trim
 LLM_MAX_OUTPUT_TOKENS = 500  # Need enough for full JSON schema
@@ -84,4 +86,9 @@ OPT_OUT_LINE = "Reply 'unsubscribe' to opt out of future messages."
 # Sender info (customize in .env)
 SENDER_NAME = os.getenv("SENDER_NAME", "Your Name")
 VALUE_PROP = os.getenv("VALUE_PROP", "streamline their outreach")
+
+# Phone Discovery APIs
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+# PhoneInfoga is CLI-based, no API key needed
 

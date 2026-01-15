@@ -4,7 +4,7 @@ Finds LinkedIn URLs for contacts that don't have real /in/ URLs.
 """
 import asyncio
 import database as db
-from services.linkedin_scraper import LinkedInProfileFinder, update_contact_linkedin_url
+from services.linkedin import LinkedInProfileFinder, update_contact_linkedin_url
 
 
 async def test_profile_finder():
