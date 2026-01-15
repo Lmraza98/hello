@@ -15,11 +15,8 @@ import {
   XCircle,
   ChevronRight,
   ChevronDown,
-  Eye,
   FileText,
   Loader2,
-  BarChart3,
-  Calendar,
   ArrowRight,
   Upload
 } from 'lucide-react';
@@ -382,27 +379,10 @@ function CampaignModal({
   const [description, setDescription] = useState(campaign?.description || '');
   const [numEmails, setNumEmails] = useState(campaign?.num_emails || 3);
   const [daysBetween, setDaysBetween] = useState(campaign?.days_between_emails || 3);
-  const [templates, setTemplates] = useState<Array<{ subject: string; body: string }>>([]);
   const [activeStep, setActiveStep] = useState(1);
-
-  // Initialize templates
-  useState(() => {
-    if (campaign?.templates) {
-      setTemplates(campaign.templates.map(t => ({ subject: t.subject_template, body: t.body_template })));
-    } else {
-      setTemplates(Array(numEmails).fill({ subject: '', body: '' }));
-    }
-  });
 
   const updateNumEmails = (n: number) => {
     setNumEmails(n);
-    setTemplates(prev => {
-      const newTemplates = [...prev];
-      while (newTemplates.length < n) {
-        newTemplates.push({ subject: '', body: '' });
-      }
-      return newTemplates.slice(0, n);
-    });
     if (activeStep > n) setActiveStep(n);
   };
 
@@ -720,7 +700,7 @@ export default function Email() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<EmailCampaign | null>(null);
   const [editingTemplates, setEditingTemplates] = useState<EmailCampaign | null>(null);
-  const [sendingCampaignId, setSendingCampaignId] = useState<number | null>(null);
+  const [_sendingCampaignId, setSendingCampaignId] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const { addNotification } = useNotificationContext();
 
