@@ -24,6 +24,7 @@ import sys
 
 from cli.commands import init, scrape, emails, status, phones, collect, backfill
 from cli.commands.phone_database import setup_phone_database_commands
+from cli.commands.db import setup_db_commands
 
 
 def main():
@@ -110,6 +111,9 @@ Examples:
     
     # Setup all phone database commands
     setup_phone_database_commands(subparsers)
+    
+    # Setup database utility commands
+    setup_db_commands(subparsers)
     
     args = parser.parse_args()
     
