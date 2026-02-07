@@ -529,7 +529,7 @@ async def bulk_send_email(request: BulkActionRequest):
         # Get campaign if provided
         campaign = None
         if campaign_id:
-            campaign = db.get_campaign(campaign_id)
+            campaign = db.get_email_campaign(campaign_id)
         
         # Generate emails and send via Salesforce
         from services.email_generator import generate_email_with_gpt4o

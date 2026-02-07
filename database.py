@@ -183,84 +183,6 @@ def init_database():
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_llm_usage_date ON llm_usage(date)")
         
-        # Deduplication tracking
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS dedupe_log (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                email TEXT,
-                domain TEXT,
-                person_name TEXT,
-                first_seen_candidate_id INTEGER,
-                duplicate_candidate_ids TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_dedupe_email ON dedupe_log(email) WHERE email IS NOT NULL")
-        
-        # Campaigns table - user-defined email campaigns
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS campaigns (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                description TEXT,
-                subject_template TEXT,
-                body_template TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_campaigns_title ON campaigns(title)")
-        
-        # Workflows table - user-defined workflow definitions
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS workflows (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                description TEXT,
-                workflow_json TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_workflows_name ON workflows(name)")
-        
-        # Workflow executions table - tracks workflow runs
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS workflow_executions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                workflow_id INTEGER NOT NULL,
-                status TEXT DEFAULT 'pending',
-                selected_lead_ids TEXT,
-                started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                completed_at TIMESTAMP,
-                error_message TEXT,
-                FOREIGN KEY (workflow_id) REFERENCES workflows(id)
-            )
-        """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_workflow_executions_workflow ON workflow_executions(workflow_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_workflow_executions_status ON workflow_executions(status)")
-        
-        # Lead actions table - tracks actions applied to leads
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS lead_actions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                contact_id INTEGER NOT NULL,
-                workflow_execution_id INTEGER,
-                action_type TEXT NOT NULL,
-                action_status TEXT DEFAULT 'pending',
-                action_details TEXT,
-                sf_record_url TEXT,
-                linkedin_request_sent INTEGER DEFAULT 0,
-                email_sent INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (workflow_execution_id) REFERENCES workflow_executions(id)
-            )
-        """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_lead_actions_contact ON lead_actions(contact_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_lead_actions_execution ON lead_actions(workflow_execution_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_lead_actions_type ON lead_actions(action_type)")
-        
         # LinkedIn contacts table - scraped contacts
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS linkedin_contacts (
@@ -298,32 +220,6 @@ def init_database():
                 cursor.execute(f"ALTER TABLE linkedin_contacts ADD COLUMN {col_name} {col_type}")
             except sqlite3.OperationalError:
                 pass  # Column already exists
-        
-        # Messages table - tracks messages sent, tied to campaigns
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                campaign_id INTEGER NOT NULL,
-                contact_id INTEGER NOT NULL,
-                lead_action_id INTEGER,
-                subject TEXT NOT NULL,
-                body TEXT NOT NULL,
-                message_type TEXT DEFAULT 'email',
-                sent_at TIMESTAMP,
-                status TEXT DEFAULT 'pending',
-                response_received INTEGER DEFAULT 0,
-                response_text TEXT,
-                open_count INTEGER DEFAULT 0,
-                click_count INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (campaign_id) REFERENCES campaigns(id),
-                FOREIGN KEY (lead_action_id) REFERENCES lead_actions(id)
-            )
-        """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_campaign ON messages(campaign_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_contact ON messages(contact_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_status ON messages(status)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_sent_at ON messages(sent_at)")
         
         # Email campaigns table - multi-step email sequences
         cursor.execute("""
@@ -400,6 +296,55 @@ def init_database():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sent_emails_contact ON sent_emails(contact_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sent_emails_sent_at ON sent_emails(sent_at)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sent_emails_status ON sent_emails(status)")
+        
+        # Migration: Add review/tracking columns to sent_emails
+        sent_email_new_columns = [
+            ('review_status', "TEXT DEFAULT 'draft'"),
+            ('scheduled_send_time', 'TIMESTAMP'),
+            ('rendered_subject', 'TEXT'),
+            ('rendered_body', 'TEXT'),
+            ('opened', 'INTEGER DEFAULT 0'),
+            ('open_count', 'INTEGER DEFAULT 0'),
+            ('first_opened_at', 'TIMESTAMP'),
+            ('replied', 'INTEGER DEFAULT 0'),
+            ('replied_at', 'TIMESTAMP'),
+            ('last_tracked_at', 'TIMESTAMP'),
+            ('approved_at', 'TIMESTAMP'),
+            ('approved_by', "TEXT DEFAULT 'user'"),
+        ]
+        for col_name, col_type in sent_email_new_columns:
+            try:
+                cursor.execute(f"ALTER TABLE sent_emails ADD COLUMN {col_name} {col_type}")
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+        
+        # Add index for review queue queries
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_sent_emails_review_status ON sent_emails(review_status)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_sent_emails_scheduled ON sent_emails(scheduled_send_time)")
+        
+        # System config table — key-value settings
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS system_config (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Insert default config values
+        default_configs = [
+            ('daily_send_cap', '20'),
+            ('send_window_start', '08:00'),
+            ('send_window_end', '17:00'),
+            ('min_minutes_between_sends', '20'),
+            ('tracking_poll_interval_minutes', '90'),
+            ('tracking_lookback_days', '14'),
+        ]
+        for key, value in default_configs:
+            cursor.execute(
+                "INSERT OR IGNORE INTO system_config (key, value) VALUES (?, ?)",
+                (key, value)
+            )
 
 
 # ============ Target Operations ============
@@ -898,348 +843,6 @@ def can_make_llm_call() -> bool:
     return usage['calls'] < config.LLM_CALLS_PER_DAY_CAP
 
 
-# ============ Campaign Operations ============
-
-def create_campaign(title: str, description: str = None, subject_template: str = None, body_template: str = None) -> int:
-    """Create a new campaign. Returns the campaign ID."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO campaigns (title, description, subject_template, body_template)
-            VALUES (?, ?, ?, ?)
-        """, (title, description, subject_template, body_template))
-        return cursor.lastrowid
-
-
-def get_campaigns() -> List[Dict]:
-    """Get all campaigns."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM campaigns ORDER BY created_at DESC")
-        return [dict(row) for row in cursor.fetchall()]
-
-
-def get_campaign(campaign_id: int) -> Optional[Dict]:
-    """Get a single campaign by ID."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM campaigns WHERE id = ?", (campaign_id,))
-        row = cursor.fetchone()
-        return dict(row) if row else None
-
-
-def update_campaign(campaign_id: int, title: str = None, description: str = None, 
-                   subject_template: str = None, body_template: str = None):
-    """Update a campaign."""
-    updates = []
-    params = []
-    
-    if title is not None:
-        updates.append("title = ?")
-        params.append(title)
-    if description is not None:
-        updates.append("description = ?")
-        params.append(description)
-    if subject_template is not None:
-        updates.append("subject_template = ?")
-        params.append(subject_template)
-    if body_template is not None:
-        updates.append("body_template = ?")
-        params.append(body_template)
-    
-    if not updates:
-        return
-    
-    updates.append("updated_at = CURRENT_TIMESTAMP")
-    params.append(campaign_id)
-    
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(f"""
-            UPDATE campaigns SET {', '.join(updates)}
-            WHERE id = ?
-        """, params)
-
-
-def delete_campaign(campaign_id: int):
-    """Delete a campaign."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM campaigns WHERE id = ?", (campaign_id,))
-
-
-# ============ Workflow Operations ============
-
-def create_workflow(name: str, description: str = None, workflow_json: str = None) -> int:
-    """Create a new workflow. Returns the workflow ID."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO workflows (name, description, workflow_json)
-            VALUES (?, ?, ?)
-        """, (name, description, workflow_json or '{}'))
-        return cursor.lastrowid
-
-
-def get_workflows() -> List[Dict]:
-    """Get all workflows."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM workflows ORDER BY created_at DESC")
-        return [dict(row) for row in cursor.fetchall()]
-
-
-def get_workflow(workflow_id: int) -> Optional[Dict]:
-    """Get a single workflow by ID."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM workflows WHERE id = ?", (workflow_id,))
-        row = cursor.fetchone()
-        return dict(row) if row else None
-
-
-def update_workflow(workflow_id: int, name: str = None, description: str = None, workflow_json: str = None):
-    """Update a workflow."""
-    updates = []
-    params = []
-    
-    if name is not None:
-        updates.append("name = ?")
-        params.append(name)
-    if description is not None:
-        updates.append("description = ?")
-        params.append(description)
-    if workflow_json is not None:
-        updates.append("workflow_json = ?")
-        params.append(workflow_json)
-    
-    if not updates:
-        return
-    
-    updates.append("updated_at = CURRENT_TIMESTAMP")
-    params.append(workflow_id)
-    
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(f"""
-            UPDATE workflows SET {', '.join(updates)}
-            WHERE id = ?
-        """, params)
-
-
-def delete_workflow(workflow_id: int):
-    """Delete a workflow."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM workflows WHERE id = ?", (workflow_id,))
-
-
-# ============ Workflow Execution Operations ============
-
-def create_workflow_execution(workflow_id: int, selected_lead_ids: List[int] = None) -> int:
-    """Create a new workflow execution. Returns the execution ID."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        lead_ids_json = json.dumps(selected_lead_ids or [])
-        cursor.execute("""
-            INSERT INTO workflow_executions (workflow_id, selected_lead_ids)
-            VALUES (?, ?)
-        """, (workflow_id, lead_ids_json))
-        return cursor.lastrowid
-
-
-def get_workflow_execution(execution_id: int) -> Optional[Dict]:
-    """Get a workflow execution by ID."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM workflow_executions WHERE id = ?", (execution_id,))
-        row = cursor.fetchone()
-        if row:
-            result = dict(row)
-            if result.get('selected_lead_ids'):
-                result['selected_lead_ids'] = json.loads(result['selected_lead_ids'])
-            return result
-        return None
-
-
-def update_workflow_execution_status(execution_id: int, status: str, error_message: str = None):
-    """Update workflow execution status."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        if status == 'completed':
-            cursor.execute("""
-                UPDATE workflow_executions 
-                SET status = ?, completed_at = CURRENT_TIMESTAMP, error_message = ?
-                WHERE id = ?
-            """, (status, error_message, execution_id))
-        else:
-            cursor.execute("""
-                UPDATE workflow_executions 
-                SET status = ?, error_message = ?
-                WHERE id = ?
-            """, (status, error_message, execution_id))
-
-
-# ============ Lead Action Operations ============
-
-def create_lead_action(contact_id: int, workflow_execution_id: int = None, 
-                      action_type: str = None, action_details: str = None) -> int:
-    """Create a lead action. Returns the action ID."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO lead_actions (contact_id, workflow_execution_id, action_type, action_details)
-            VALUES (?, ?, ?, ?)
-        """, (contact_id, workflow_execution_id, action_type, action_details))
-        return cursor.lastrowid
-
-
-def update_lead_action(action_id: int, action_status: str = None, action_details: str = None,
-                      sf_record_url: str = None, linkedin_request_sent: bool = None, 
-                      email_sent: bool = None):
-    """Update a lead action."""
-    updates = []
-    params = []
-    
-    if action_status is not None:
-        updates.append("action_status = ?")
-        params.append(action_status)
-    if action_details is not None:
-        updates.append("action_details = ?")
-        params.append(action_details)
-    if sf_record_url is not None:
-        updates.append("sf_record_url = ?")
-        params.append(sf_record_url)
-    if linkedin_request_sent is not None:
-        updates.append("linkedin_request_sent = ?")
-        params.append(1 if linkedin_request_sent else 0)
-    if email_sent is not None:
-        updates.append("email_sent = ?")
-        params.append(1 if email_sent else 0)
-    
-    if not updates:
-        return
-    
-    updates.append("updated_at = CURRENT_TIMESTAMP")
-    params.append(action_id)
-    
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(f"""
-            UPDATE lead_actions SET {', '.join(updates)}
-            WHERE id = ?
-        """, params)
-
-
-def get_lead_actions(contact_id: int = None, workflow_execution_id: int = None) -> List[Dict]:
-    """Get lead actions, optionally filtered by contact or execution."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        if contact_id:
-            cursor.execute("SELECT * FROM lead_actions WHERE contact_id = ? ORDER BY created_at DESC", (contact_id,))
-        elif workflow_execution_id:
-            cursor.execute("SELECT * FROM lead_actions WHERE workflow_execution_id = ? ORDER BY created_at DESC", (workflow_execution_id,))
-        else:
-            cursor.execute("SELECT * FROM lead_actions ORDER BY created_at DESC")
-        return [dict(row) for row in cursor.fetchall()]
-
-
-# ============ Message Operations ============
-
-def create_message(campaign_id: int, contact_id: int, lead_action_id: int = None,
-                  subject: str = None, body: str = None, message_type: str = 'email') -> int:
-    """Create a message record. Returns the message ID."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO messages (campaign_id, contact_id, lead_action_id, subject, body, message_type)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (campaign_id, contact_id, lead_action_id, subject, body, message_type))
-        return cursor.lastrowid
-
-
-def update_message_status(message_id: int, status: str = None, sent_at: str = None):
-    """Update message status."""
-    updates = []
-    params = []
-    
-    if status is not None:
-        updates.append("status = ?")
-        params.append(status)
-    if sent_at is not None:
-        updates.append("sent_at = ?")
-        params.append(sent_at)
-    
-    if not updates:
-        return
-    
-    params.append(message_id)
-    
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(f"""
-            UPDATE messages SET {', '.join(updates)}
-            WHERE id = ?
-        """, params)
-
-
-def get_messages(campaign_id: int = None, contact_id: int = None) -> List[Dict]:
-    """Get messages, optionally filtered by campaign or contact."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        if campaign_id:
-            cursor.execute("SELECT * FROM messages WHERE campaign_id = ? ORDER BY created_at DESC", (campaign_id,))
-        elif contact_id:
-            cursor.execute("SELECT * FROM messages WHERE contact_id = ? ORDER BY created_at DESC", (contact_id,))
-        else:
-            cursor.execute("SELECT * FROM messages ORDER BY created_at DESC")
-        return [dict(row) for row in cursor.fetchall()]
-
-
-def get_campaign_stats(campaign_id: int) -> Dict:
-    """Get statistics for a campaign."""
-    with get_db() as conn:
-        cursor = conn.cursor()
-        
-        # Total messages
-        cursor.execute("SELECT COUNT(*) as total FROM messages WHERE campaign_id = ?", (campaign_id,))
-        total = cursor.fetchone()['total']
-        
-        # Sent messages
-        cursor.execute("SELECT COUNT(*) as sent FROM messages WHERE campaign_id = ? AND status = 'sent'", (campaign_id,))
-        sent = cursor.fetchone()['sent']
-        
-        # Pending messages
-        cursor.execute("SELECT COUNT(*) as pending FROM messages WHERE campaign_id = ? AND status = 'pending'", (campaign_id,))
-        pending = cursor.fetchone()['pending']
-        
-        # Responses
-        cursor.execute("SELECT COUNT(*) as responses FROM messages WHERE campaign_id = ? AND response_received = 1", (campaign_id,))
-        responses = cursor.fetchone()['responses']
-        
-        # Opens
-        cursor.execute("SELECT SUM(open_count) as opens FROM messages WHERE campaign_id = ?", (campaign_id,))
-        opens_row = cursor.fetchone()
-        opens = opens_row['opens'] or 0
-        
-        # Clicks
-        cursor.execute("SELECT SUM(click_count) as clicks FROM messages WHERE campaign_id = ?", (campaign_id,))
-        clicks_row = cursor.fetchone()
-        clicks = clicks_row['clicks'] or 0
-        
-        return {
-            'total': total,
-            'sent': sent,
-            'pending': pending,
-            'responses': responses,
-            'opens': opens,
-            'clicks': clicks,
-            'response_rate': (responses / sent * 100) if sent > 0 else 0,
-            'open_rate': (opens / sent * 100) if sent > 0 else 0,
-            'click_rate': (clicks / sent * 100) if sent > 0 else 0
-        }
-
-
 # ============ Email Campaign Operations ============
 
 def create_email_campaign(
@@ -1634,6 +1237,385 @@ def get_email_campaign_stats(campaign_id: int = None) -> Dict:
                 'total_sent': total_sent,
                 'sent_today': sent_today
             }
+
+
+# ============ System Config Operations ============
+
+def get_config(key: str, default: str = None) -> str:
+    """Get a system config value."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT value FROM system_config WHERE key = ?", (key,))
+        row = cursor.fetchone()
+        return row['value'] if row else default
+
+
+def set_config(key: str, value: str):
+    """Set a system config value."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO system_config (key, value, updated_at)
+            VALUES (?, ?, CURRENT_TIMESTAMP)
+        """, (key, value))
+
+
+def get_all_config() -> Dict:
+    """Get all system config values as a dict."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT key, value FROM system_config")
+        return {row['key']: row['value'] for row in cursor.fetchall()}
+
+
+# ============ Review Queue Operations ============
+
+def get_review_queue(limit: int = 50) -> List[Dict]:
+    """Get emails pending review (review_status = 'ready_for_review').
+    Joins with linkedin_contacts and email_campaigns for display data."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                se.*,
+                lc.name as contact_name,
+                lc.company_name,
+                lc.title as contact_title,
+                lc.email_generated as contact_email,
+                ec.name as campaign_name,
+                ec.num_emails
+            FROM sent_emails se
+            JOIN linkedin_contacts lc ON se.contact_id = lc.id
+            JOIN email_campaigns ec ON se.campaign_id = ec.id
+            WHERE se.review_status = 'ready_for_review'
+            ORDER BY se.id ASC
+            LIMIT ?
+        """, (limit,))
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def approve_email(sent_email_id: int, edited_subject: str = None, edited_body: str = None):
+    """Approve a draft email. Optionally update subject/body if user edited.
+    Sets review_status = 'approved', approved_at = now.
+    Assigns scheduled_send_time based on config and existing schedule."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        
+        updates = ["review_status = 'approved'", "approved_at = CURRENT_TIMESTAMP"]
+        params = []
+        
+        if edited_subject is not None:
+            updates.append("rendered_subject = ?")
+            params.append(edited_subject)
+        if edited_body is not None:
+            updates.append("rendered_body = ?")
+            params.append(edited_body)
+        
+        # Calculate scheduled send time
+        send_time = _calculate_next_send_time(cursor)
+        updates.append("scheduled_send_time = ?")
+        params.append(send_time)
+        
+        params.append(sent_email_id)
+        
+        cursor.execute(f"""
+            UPDATE sent_emails SET {', '.join(updates)}
+            WHERE id = ?
+        """, params)
+
+
+def reject_email(sent_email_id: int, reason: str = None):
+    """Reject a draft. Sets review_status = 'rejected'."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE sent_emails 
+            SET review_status = 'rejected', error_message = ?
+            WHERE id = ?
+        """, (reason, sent_email_id))
+
+
+def approve_all_emails(sent_email_ids: List[int]):
+    """Bulk approve. Each gets a unique scheduled_send_time spread across the send window."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        
+        # Get existing scheduled times for today
+        existing_times = _get_existing_scheduled_times(cursor)
+        send_times = calculate_send_times(len(sent_email_ids), existing_times)
+        
+        for i, email_id in enumerate(sent_email_ids):
+            send_time = send_times[i] if i < len(send_times) else send_times[-1] if send_times else None
+            cursor.execute("""
+                UPDATE sent_emails 
+                SET review_status = 'approved', 
+                    approved_at = CURRENT_TIMESTAMP,
+                    scheduled_send_time = ?
+                WHERE id = ?
+            """, (send_time, email_id))
+
+
+def get_scheduled_emails(limit: int = 10) -> List[Dict]:
+    """Get approved emails where scheduled_send_time <= now and review_status = 'approved'.
+    These are ready for the Salesforce bot to send."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                se.*,
+                lc.name as contact_name,
+                lc.company_name,
+                lc.title as contact_title,
+                lc.email_generated as contact_email,
+                ec.name as campaign_name,
+                ec.num_emails,
+                ec.days_between_emails,
+                cc.id as campaign_contact_id
+            FROM sent_emails se
+            JOIN linkedin_contacts lc ON se.contact_id = lc.id
+            JOIN email_campaigns ec ON se.campaign_id = ec.id
+            JOIN campaign_contacts cc ON se.campaign_contact_id = cc.id
+            WHERE se.review_status = 'approved'
+            AND se.scheduled_send_time <= datetime('now')
+            ORDER BY se.scheduled_send_time ASC
+            LIMIT ?
+        """, (limit,))
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def mark_email_sent(sent_email_id: int, sf_lead_url: str = None):
+    """Called after successful Salesforce send. Sets review_status = 'sent', sent_at = now."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE sent_emails 
+            SET review_status = 'sent', 
+                status = 'sent',
+                sent_at = CURRENT_TIMESTAMP,
+                sf_lead_url = COALESCE(?, sf_lead_url)
+            WHERE id = ?
+        """, (sf_lead_url, sent_email_id))
+
+
+def mark_email_failed(sent_email_id: int, error_message: str = None):
+    """Called after a failed Salesforce send attempt."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE sent_emails 
+            SET review_status = 'failed', 
+                status = 'failed',
+                error_message = ?
+            WHERE id = ?
+        """, (error_message, sent_email_id))
+
+
+# ============ Tracking Operations ============
+
+def get_emails_needing_tracking(lookback_days: int = 14) -> List[Dict]:
+    """Get sent emails from the last N days that haven't been tracked recently.
+    Orders by last_tracked_at ASC so the oldest-tracked get checked first."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                se.*,
+                lc.name as contact_name,
+                lc.company_name
+            FROM sent_emails se
+            JOIN linkedin_contacts lc ON se.contact_id = lc.id
+            WHERE se.review_status = 'sent'
+            AND se.sent_at >= datetime('now', ?)
+            AND (se.last_tracked_at IS NULL OR se.last_tracked_at < datetime('now', '-1 hour'))
+            ORDER BY se.last_tracked_at ASC NULLS FIRST
+        """, (f'-{lookback_days} days',))
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def update_email_tracking(sent_email_id: int, opened: bool = None, open_count: int = None, replied: bool = None):
+    """Update tracking data from Salesforce polling. Sets last_tracked_at = now."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        
+        updates = ["last_tracked_at = CURRENT_TIMESTAMP"]
+        params = []
+        
+        if opened is not None:
+            updates.append("opened = ?")
+            params.append(1 if opened else 0)
+            if opened:
+                updates.append("first_opened_at = COALESCE(first_opened_at, CURRENT_TIMESTAMP)")
+        if open_count is not None:
+            updates.append("open_count = ?")
+            params.append(open_count)
+        if replied is not None:
+            updates.append("replied = ?")
+            params.append(1 if replied else 0)
+            if replied:
+                updates.append("replied_at = COALESCE(replied_at, CURRENT_TIMESTAMP)")
+        
+        params.append(sent_email_id)
+        
+        cursor.execute(f"""
+            UPDATE sent_emails SET {', '.join(updates)}
+            WHERE id = ?
+        """, params)
+
+
+def get_todays_draft_count() -> int:
+    """Count how many drafts have been created today. Used to enforce daily cap."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT COUNT(*) as count FROM sent_emails
+            WHERE DATE(sent_at) = DATE('now')
+            AND review_status IN ('draft', 'ready_for_review', 'approved', 'scheduled', 'sent')
+        """)
+        return cursor.fetchone()['count']
+
+
+def get_tracking_stats(days: int = 7) -> Dict:
+    """Get aggregate tracking stats for the dashboard."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_sent,
+                SUM(CASE WHEN opened = 1 THEN 1 ELSE 0 END) as total_opened,
+                SUM(CASE WHEN replied = 1 THEN 1 ELSE 0 END) as total_replied,
+                AVG(open_count) as avg_open_count
+            FROM sent_emails
+            WHERE review_status = 'sent'
+            AND sent_at >= datetime('now', ?)
+        """, (f'-{days} days',))
+        row = cursor.fetchone()
+        if row:
+            total = row['total_sent'] or 0
+            opened = row['total_opened'] or 0
+            replied = row['total_replied'] or 0
+            return {
+                'total_sent': total,
+                'total_opened': opened,
+                'total_replied': replied,
+                'open_rate': round((opened / total * 100), 1) if total > 0 else 0,
+                'reply_rate': round((replied / total * 100), 1) if total > 0 else 0,
+                'avg_open_count': round(row['avg_open_count'] or 0, 1)
+            }
+        return {'total_sent': 0, 'total_opened': 0, 'total_replied': 0, 'open_rate': 0, 'reply_rate': 0, 'avg_open_count': 0}
+
+
+def get_campaign_tracking_stats(campaign_id: int) -> Dict:
+    """Get tracking stats for a specific campaign."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_sent,
+                SUM(CASE WHEN opened = 1 THEN 1 ELSE 0 END) as total_opened,
+                SUM(CASE WHEN replied = 1 THEN 1 ELSE 0 END) as total_replied
+            FROM sent_emails
+            WHERE campaign_id = ?
+            AND review_status = 'sent'
+        """, (campaign_id,))
+        row = cursor.fetchone()
+        if row:
+            total = row['total_sent'] or 0
+            opened = row['total_opened'] or 0
+            replied = row['total_replied'] or 0
+            return {
+                'total_sent': total,
+                'total_opened': opened,
+                'total_replied': replied,
+                'open_rate': round((opened / total * 100), 1) if total > 0 else 0,
+                'reply_rate': round((replied / total * 100), 1) if total > 0 else 0,
+            }
+        return {'total_sent': 0, 'total_opened': 0, 'total_replied': 0, 'open_rate': 0, 'reply_rate': 0}
+
+
+# ============ Send Time Calculation Helpers ============
+
+def _get_existing_scheduled_times(cursor) -> List[str]:
+    """Get all scheduled send times for today."""
+    cursor.execute("""
+        SELECT scheduled_send_time FROM sent_emails
+        WHERE DATE(scheduled_send_time) = DATE('now')
+        AND review_status IN ('approved', 'sent')
+        ORDER BY scheduled_send_time
+    """)
+    return [row['scheduled_send_time'] for row in cursor.fetchall()]
+
+
+def _calculate_next_send_time(cursor) -> str:
+    """Calculate the next available send time for a single email."""
+    existing = _get_existing_scheduled_times(cursor)
+    times = calculate_send_times(1, existing)
+    return times[0] if times else datetime.now().isoformat()
+
+
+def calculate_send_times(count: int, existing_times: List[str] = None) -> List[str]:
+    """Calculate evenly-spaced send times within the configured window.
+    Avoids conflicts with already-scheduled times.
+    Returns list of ISO timestamp strings."""
+    from datetime import timedelta
+    
+    # Get config
+    window_start = get_config('send_window_start', '08:00')
+    window_end = get_config('send_window_end', '17:00')
+    min_gap = int(get_config('min_minutes_between_sends', '20'))
+    
+    today = datetime.now().date()
+    start_hour, start_min = map(int, window_start.split(':'))
+    end_hour, end_min = map(int, window_end.split(':'))
+    
+    window_start_dt = datetime(today.year, today.month, today.day, start_hour, start_min)
+    window_end_dt = datetime(today.year, today.month, today.day, end_hour, end_min)
+    
+    now = datetime.now()
+    
+    # If we're past today's window, schedule for tomorrow
+    if now >= window_end_dt:
+        tomorrow = today + timedelta(days=1)
+        window_start_dt = datetime(tomorrow.year, tomorrow.month, tomorrow.day, start_hour, start_min)
+        window_end_dt = datetime(tomorrow.year, tomorrow.month, tomorrow.day, end_hour, end_min)
+    
+    # Start from now if within the window, otherwise from window start
+    effective_start = max(now, window_start_dt)
+    
+    # Parse existing times
+    taken_times = []
+    if existing_times:
+        for t in existing_times:
+            try:
+                taken_times.append(datetime.fromisoformat(t))
+            except (ValueError, TypeError):
+                pass
+    
+    # Generate send times
+    result = []
+    current = effective_start
+    
+    for _ in range(count):
+        # Find next available slot
+        while current < window_end_dt:
+            conflict = False
+            for taken in taken_times:
+                if abs((current - taken).total_seconds()) < min_gap * 60:
+                    conflict = True
+                    break
+            if not conflict:
+                break
+            current += timedelta(minutes=1)
+        
+        if current >= window_end_dt:
+            # Overflow to next day
+            next_day = current.date() + timedelta(days=1)
+            current = datetime(next_day.year, next_day.month, next_day.day, start_hour, start_min)
+        
+        result.append(current.isoformat())
+        taken_times.append(current)
+        current += timedelta(minutes=min_gap)
+    
+    return result
 
 
 # Initialize database when module is imported

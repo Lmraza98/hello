@@ -32,4 +32,3 @@ class Stats(BaseModel):
     total_contacts: int
     contacts_with_email: int
     contacts_today: int
-

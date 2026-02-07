@@ -2,6 +2,9 @@
 FastAPI backend for LinkedIn Scraper UI.
 Run scraping directly from the browser.
 """
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
@@ -12,9 +15,69 @@ import config
 import database as db
 
 # Import routes
-from api.routes import companies, contacts, stats, pipeline, workflows, emails
+from api.routes import companies, contacts, stats, pipeline, emails
 
-app = FastAPI(title="LinkedIn Scraper API", version="1.0.0")
+
+# ============================================
+# Scheduler setup (APScheduler)
+# ============================================
+scheduler = None
+
+def _setup_scheduler():
+    """Initialize the background scheduler for email automation."""
+    global scheduler
+    try:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from apscheduler.triggers.cron import CronTrigger
+        from apscheduler.triggers.interval import IntervalTrigger
+        
+        scheduler = AsyncIOScheduler()
+        
+        # Prepare daily batch at 7:00 AM
+        async def _prepare_batch():
+            try:
+                from services.email_preparer import prepare_daily_batch
+                result = await prepare_daily_batch()
+                print(f"[Scheduler] Daily batch: {result.get('message', '')}")
+            except Exception as e:
+                print(f"[Scheduler] Batch preparation error: {e}")
+        
+        scheduler.add_job(_prepare_batch, CronTrigger(hour=7, minute=0), id='daily_batch')
+        
+        # Poll Salesforce tracking every 90 minutes during business hours (8am-5pm)
+        async def _poll_tracking():
+            try:
+                from services.salesforce_tracker import poll_salesforce_tracking
+                result = await poll_salesforce_tracking()
+                print(f"[Scheduler] Tracking poll: {result.get('message', '')}")
+            except Exception as e:
+                print(f"[Scheduler] Tracking poll error: {e}")
+        
+        scheduler.add_job(
+            _poll_tracking,
+            IntervalTrigger(minutes=90),
+            id='tracking_poll'
+        )
+        
+        scheduler.start()
+        print("[Scheduler] Background scheduler started")
+        
+    except ImportError:
+        print("[Scheduler] APScheduler not installed — background jobs disabled.")
+        print("[Scheduler] Install with: pip install apscheduler")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan: start scheduler on startup, stop on shutdown."""
+    _setup_scheduler()
+    yield
+    if scheduler:
+        scheduler.shutdown(wait=False)
+        print("[Scheduler] Background scheduler stopped")
+
+
+app = FastAPI(title="LinkedIn Scraper API", version="1.0.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -67,7 +130,6 @@ app.include_router(companies.router)
 app.include_router(contacts.router)
 app.include_router(stats.router)
 app.include_router(pipeline.router)
-app.include_router(workflows.router)
 app.include_router(emails.router)
 
 # ============================================

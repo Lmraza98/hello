@@ -1,422 +1,398 @@
-import { useState, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../api';
-import type { Company } from '../api';
-import { 
-  Upload, 
-  Search,
-  Building2,
-  Plus,
-  Trash2,
-  Edit3,
-  Check,
-  X,
-  RotateCcw
-} from 'lucide-react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getExpandedRowModel,
+  getSortedRowModel,
+  flexRender,
+  type ColumnFiltersState,
+  type SortingState,
+  type ExpandedState,
+} from '@tanstack/react-table';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { useIsMobile } from '../hooks/useIsMobile';
+import { useCompanies } from '../hooks/useCompanies';
+import { AddCompanyModal } from '../components/companies/AddCompanyModal';
+import { CompanyDetail } from '../components/companies/CompanyDetail';
+import { CompaniesFilterPanel } from '../components/companies/CompaniesFilterPanel';
+import { CompanyCard } from '../components/companies/CompanyCard';
+import { SearchToolbar } from '../components/shared/SearchToolbar';
+import { PageHeader } from '../components/shared/PageHeader';
+import { EmptyState } from '../components/shared/EmptyState';
+import { LoadingSpinner } from '../components/shared/LoadingSpinner';
+import { ConfirmDialog } from '../components/shared/ConfirmDialog';
+import { createCompanyColumns } from '../components/companies/tableColumns';
+import { Upload, Building2, Plus, RotateCcw, X } from 'lucide-react';
 
-function TierBadge({ tier }: { tier: string | null }) {
-  if (!tier) return null;
-  
-  const colors: Record<string, string> = {
-    A: 'bg-tier-a/10 text-tier-a border-tier-a/30',
-    B: 'bg-tier-b/10 text-tier-b border-tier-b/30',
-    C: 'bg-tier-c/10 text-tier-c border-tier-c/30',
-  };
+/* ── Constants ─────────────────────────── */
 
-  return (
-    <span className={`px-2 py-0.5 text-xs font-medium rounded border ${colors[tier] || 'bg-surface-hover text-text-muted border-border'}`}>
-      {tier}
-    </span>
-  );
-}
+const ROW_HEIGHT = 52;
+const EXPANDED_HEIGHT = 160;
 
-function StatusBadge({ status }: { status: string | null }) {
-  const statusColors: Record<string, string> = {
-    pending: 'bg-warning/10 text-warning border-warning/30',
-    processing: 'bg-accent/10 text-accent border-accent/30',
-    completed: 'bg-success/10 text-success border-success/30',
-    scraped: 'bg-success/10 text-success border-success/30', // Legacy: map to completed
-    no_results: 'bg-error/10 text-error border-error/30',
-    error: 'bg-error/10 text-error border-error/30',
-    skipped: 'bg-surface-hover text-text-muted border-border',
-  };
+/* ── Main Component ────────────────────────────────────── */
 
-  const s = status || 'pending';
-  const displayStatus = s === 'scraped' ? 'completed' : s;
-  
-  return (
-    <span className={`px-2 py-0.5 text-xs font-medium rounded border ${statusColors[s] || statusColors.pending}`}>
-      {displayStatus}
-    </span>
-  );
-}
+export default function Companies({ openAddModal, onModalOpened }: { openAddModal?: boolean; onModalOpened?: () => void }) {
+  const isMobile = useIsMobile();
+  const {
+    companies,
+    companiesLoading: isLoading,
+    addCompany,
+    deleteCompany,
+    resetCompanies,
+    importCompanies,
+  } = useCompanies();
 
-function AddCompanyRow({ onAdd, onCancel }: { onAdd: (company: Partial<Company>) => void; onCancel: () => void }) {
-  const [data, setData] = useState({
-    company_name: '',
-    tier: 'A',
-    vertical: '',
-    target_reason: '',
-    wedge: ''
-  });
-
-  return (
-    <tr className="bg-accent/5">
-      <td className="px-4 py-2">
-        <input
-          type="text"
-          placeholder="Company name..."
-          value={data.company_name}
-          onChange={(e) => setData({ ...data, company_name: e.target.value })}
-          className="w-full px-2 py-1 bg-surface border border-border rounded text-sm text-text"
-          autoFocus
-        />
-      </td>
-      <td className="px-4 py-2">
-        <select
-          value={data.tier}
-          onChange={(e) => setData({ ...data, tier: e.target.value })}
-          className="px-2 py-1 bg-surface border border-border rounded text-sm text-text"
-        >
-          <option value="A">A</option>
-          <option value="B">B</option>
-          <option value="C">C</option>
-        </select>
-      </td>
-      <td className="px-4 py-2 text-xs text-text-muted">
-        New
-      </td>
-      <td className="px-4 py-2">
-        <input
-          type="text"
-          placeholder="Vertical..."
-          value={data.vertical}
-          onChange={(e) => setData({ ...data, vertical: e.target.value })}
-          className="w-full px-2 py-1 bg-surface border border-border rounded text-sm text-text"
-        />
-      </td>
-      <td className="px-4 py-2">
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => data.company_name && onAdd(data)}
-            className="p-1.5 bg-success/10 text-success rounded hover:bg-success/20"
-          >
-            <Check className="w-4 h-4" />
-          </button>
-          <button
-            onClick={onCancel}
-            className="p-1.5 bg-error/10 text-error rounded hover:bg-error/20"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </td>
-    </tr>
-  );
-}
-
-function EditableRow({ 
-  company, 
-  onSave, 
-  onDelete,
-}: { 
-  company: Company; 
-  onSave: (company: Company) => void;
-  onDelete: (id: number) => void;
-}) {
-  const [data, setData] = useState(company);
-  const [isEditing, setIsEditing] = useState(false);
-
-  if (!isEditing) {
-    return (
-      <tr className={`hover:bg-surface-hover transition-colors group ${(company.status === 'completed' || company.status === 'scraped') ? 'opacity-60' : ''}`}>
-        <td className="px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-surface-hover flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-text-muted" />
-            </div>
-            <span className="font-medium text-text">{company.company_name}</span>
-          </div>
-        </td>
-        <td className="px-4 py-3">
-          <TierBadge tier={company.tier} />
-        </td>
-        <td className="px-4 py-3">
-          <StatusBadge status={company.status} />
-        </td>
-        <td className="px-4 py-3 text-sm text-text-muted max-w-[200px] truncate">
-          {company.vertical || '—'}
-        </td>
-        <td className="px-4 py-3">
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={() => setIsEditing(true)}
-              className="p-1.5 hover:bg-surface-hover rounded text-text-muted hover:text-text"
-              title="Edit"
-            >
-              <Edit3 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => company.id && onDelete(company.id)}
-              className="p-1.5 hover:bg-error/10 rounded text-text-muted hover:text-error"
-              title="Delete"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        </td>
-      </tr>
-    );
-  }
-
-  return (
-    <tr className="bg-accent/5">
-      <td className="px-4 py-2">
-        <input
-          type="text"
-          value={data.company_name}
-          onChange={(e) => setData({ ...data, company_name: e.target.value })}
-          className="w-full px-2 py-1 bg-surface border border-border rounded text-sm text-text"
-        />
-      </td>
-      <td className="px-4 py-2">
-        <select
-          value={data.tier || 'A'}
-          onChange={(e) => setData({ ...data, tier: e.target.value })}
-          className="px-2 py-1 bg-surface border border-border rounded text-sm text-text"
-        >
-          <option value="A">A</option>
-          <option value="B">B</option>
-          <option value="C">C</option>
-        </select>
-      </td>
-      <td className="px-4 py-2">
-        <StatusBadge status={data.status} />
-      </td>
-      <td className="px-4 py-2">
-        <input
-          type="text"
-          value={data.vertical || ''}
-          onChange={(e) => setData({ ...data, vertical: e.target.value })}
-          className="w-full px-2 py-1 bg-surface border border-border rounded text-sm text-text"
-        />
-      </td>
-      <td className="px-4 py-2">
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => { onSave(data); setIsEditing(false); }}
-            className="p-1.5 bg-success/10 text-success rounded hover:bg-success/20"
-          >
-            <Check className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => { setData(company); setIsEditing(false); }}
-            className="p-1.5 bg-error/10 text-error rounded hover:bg-error/20"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </td>
-    </tr>
-  );
-}
-
-export default function Companies() {
-  const [tierFilter, setTierFilter] = useState<string>('');
-  const [search, setSearch] = useState('');
-  const [isAdding, setIsAdding] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [expanded, setExpanded] = useState<ExpandedState>({});
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const queryClient = useQueryClient();
+  const filterRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const { data: companies = [], isLoading } = useQuery({
-    queryKey: ['companies', tierFilter],
-    queryFn: () => api.getCompanies(tierFilter || undefined),
-  });
-
-  const addMutation = useMutation({
-    mutationFn: api.addCompany,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
-      setIsAdding(false);
+  useEffect(() => {
+    if (openAddModal) {
+      setShowAddModal(true);
+      onModalOpened?.();
     }
-  });
+  }, [openAddModal, onModalOpened]);
 
-  const updateMutation = useMutation({
-    mutationFn: api.updateCompany,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) setShowFilters(false);
     }
-  });
+    if (showFilters && !isMobile) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showFilters, isMobile]);
 
-  const deleteMutation = useMutation({
-    mutationFn: api.deleteCompany,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
-    }
-  });
+  /* ── Columns ── */
 
-  const resetMutation = useMutation({
-    mutationFn: api.resetCompanies,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
-    }
-  });
-
-  const filteredCompanies = companies.filter(c => 
-    !search || c.company_name.toLowerCase().includes(search.toLowerCase())
+  const columns = useMemo(
+    () => createCompanyColumns((id, name) => {
+      setConfirmDelete({ id, name });
+    }),
+    []
   );
+
+  /* ── Table ── */
+
+  const table = useReactTable({
+    data: companies,
+    columns,
+    state: { globalFilter, columnFilters, sorting, expanded, rowSelection },
+    onGlobalFilterChange: setGlobalFilter,
+    onColumnFiltersChange: setColumnFilters,
+    onSortingChange: setSorting,
+    onExpandedChange: setExpanded,
+    onRowSelectionChange: setRowSelection,
+    getRowId: (row) => String(row.id),
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+    globalFilterFn: (row, _id, filterValue) =>
+      row.original.company_name.toLowerCase().includes(filterValue.toLowerCase()),
+  });
+
+  const { rows } = table.getRowModel();
+  const filteredCount = table.getFilteredRowModel().rows.length;
+  const selectedCount = Object.keys(rowSelection).length;
+  const activeFilterCount = columnFilters.length;
+
+  /* ── Virtualizer ── */
+
+  const rowVirtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollContainerRef.current,
+    estimateSize: useCallback(
+      (index: number) => rows[index]?.getIsExpanded() ? ROW_HEIGHT + EXPANDED_HEIGHT : ROW_HEIGHT,
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [rows, expanded],
+    ),
+    overscan: 20,
+  });
+
+  // Re-measure all rows when expanded state changes
+  useEffect(() => {
+    rowVirtualizer.measure();
+  }, [expanded, rowVirtualizer]);
+
+  /* ── File import ── */
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     try {
-      const result = await api.importCompanies(file);
+      const result = await importCompanies(file);
       alert(`Imported ${result.imported} companies`);
-      queryClient.invalidateQueries({ queryKey: ['companies'] });
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
-    } catch (err) {
+    } catch {
       alert('Import failed');
     }
-    
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  /* ── Column widths for synced header/body ── */
+
+  const colWidths = table.getHeaderGroups()[0]?.headers.map((h) =>
+    h.column.id === 'company_name' ? undefined : h.getSize()
+  ) ?? [];
+
+  const colGroup = !isMobile ? (
+    <colgroup>
+      {table.getHeaderGroups()[0]?.headers.map((h, i) => (
+        <col key={h.id} style={{ width: colWidths[i] ? `${colWidths[i]}px` : undefined }} />
+      ))}
+    </colgroup>
+  ) : null;
+
+  /* ── Render ── */
+
   return (
-    <div className="p-8">
+    <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-text mb-1">Target Companies</h1>
-          <p className="text-text-muted">{companies.length} companies loaded</p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              if (confirm('Reset all companies to pending status?')) {
-                resetMutation.mutate();
+      <div className="sticky top-0 z-10 bg-bg pb-3 md:pb-4">
+        <div className="pt-5 px-4 md:pt-8 md:px-8">
+          <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
+          <PageHeader
+            title="Companies"
+            subtitle={`${companies.length} companies${filteredCount !== companies.length ? ` · ${filteredCount} shown` : ''}`}
+            desktopActions={
+              <>
+                <button
+                  onClick={() => setShowResetConfirm(true)}
+                  className="flex items-center gap-2 px-4 py-2 border border-border text-text-muted rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors"
+                >
+                  <RotateCcw className="w-4 h-4" /> Reset All
+                </button>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 border border-border text-text rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> Add
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition-colors"
+                >
+                  <Upload className="w-4 h-4" /> Import CSV
+                </button>
+              </>
+            }
+            mobileActions={
+              <>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"
+                >
+                  <Upload className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="p-2 border border-border text-text rounded-lg hover:bg-surface-hover transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </>
+            }
+          />
+
+          {/* Toolbar */}
+          <div ref={filterRef}>
+            <SearchToolbar
+              allSelected={table.getIsAllRowsSelected()}
+              onToggleSelectAll={table.getToggleAllRowsSelectedHandler()}
+              displayCount={selectedCount > 0 ? selectedCount : filteredCount}
+              globalFilter={globalFilter}
+              onGlobalFilterChange={setGlobalFilter}
+              activeFilterCount={activeFilterCount}
+              showFilters={showFilters && !isMobile}
+              onToggleFilters={() => setShowFilters((v) => !v)}
+              filterPanelContent={
+                <CompaniesFilterPanel
+                  columnFilters={columnFilters}
+                  setColumnFilters={setColumnFilters}
+                  companies={companies}
+                  onClose={() => setShowFilters(false)}
+                  isMobile={false}
+                />
               }
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-surface border border-border text-text-muted rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Reset All
-          </button>
-          <button
-            onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-surface border border-border text-text rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Add
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition-colors"
-          >
-            <Upload className="w-4 h-4" />
-            Import CSV
-          </button>
-        </div>
-      </div>
+            />
+          </div>
 
-      {/* Filters */}
-      <div className="flex items-center gap-4 mb-6">
-        {/* Search */}
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-dim" />
-          <input
-            type="text"
-            placeholder="Search companies..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-surface border border-border rounded-lg text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent"
-          />
-        </div>
-
-        {/* Tier Filter */}
-        <div className="flex items-center gap-2">
-          {['', 'A', 'B', 'C'].map((tier) => (
-            <button
-              key={tier}
-              onClick={() => setTierFilter(tier)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                tierFilter === tier
-                  ? 'bg-accent text-white'
-                  : 'bg-surface border border-border text-text-muted hover:text-text'
-              }`}
-            >
-              {tier || 'All'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Table */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : (
-        <div className="bg-surface border border-border rounded-xl overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Company</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider w-20">Tier</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider w-28">Status</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Vertical</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider w-24">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border-subtle">
-              {isAdding && (
-                <AddCompanyRow 
-                  onAdd={(data) => addMutation.mutate(data)}
-                  onCancel={() => setIsAdding(false)}
-                />
-              )}
-              {filteredCompanies.map((company) => (
-                <EditableRow 
-                  key={company.id} 
-                  company={company}
-                  onSave={(data) => updateMutation.mutate(data)}
-                  onDelete={(id) => {
-                    if (confirm(`Delete ${company.company_name}?`)) {
-                      deleteMutation.mutate(id);
-                    }
-                  }}
-                />
+          {/* Filter pills — scrollable on mobile */}
+          {activeFilterCount > 0 && (
+            <div className="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar">
+              {columnFilters.map((f) => (
+                <span key={f.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[11px] font-medium whitespace-nowrap shrink-0">
+                  {f.id}: {String(f.value)}
+                  <button onClick={() => setColumnFilters((prev) => prev.filter((cf) => cf.id !== f.id))} className="hover:text-accent/70">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
               ))}
-              {filteredCompanies.length === 0 && !isAdding && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-text-muted">
-                    <Building2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p>No companies found</p>
-                    <button 
-                      onClick={() => setIsAdding(true)}
-                      className="mt-2 text-accent hover:underline text-sm"
-                    >
-                      Add your first company
-                    </button>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            </div>
+          )}
         </div>
+      </div>
+
+      {/* Mobile filter bottom sheet */}
+      {showFilters && isMobile && (
+        <CompaniesFilterPanel
+          columnFilters={columnFilters}
+          setColumnFilters={setColumnFilters}
+          companies={companies}
+          onClose={() => setShowFilters(false)}
+          isMobile
+        />
       )}
+
+      {/* Virtualized Table / List */}
+      <div className="flex-1 min-h-0 px-4 md:px-8 pb-4 md:pb-8">
+        {isLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <div className="bg-surface border border-border rounded-lg overflow-hidden flex flex-col h-full">
+            {/* Desktop: fixed thead — ONLY on desktop */}
+            {!isMobile && (
+              <div className="shrink-0">
+                <table className="w-full" style={{ tableLayout: 'fixed' }}>
+                  {colGroup}
+                  <thead>
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <tr key={headerGroup.id} className="border-b border-border bg-surface-hover/50">
+                        {headerGroup.headers.map((header) => (
+                          <th key={header.id}
+                            className="text-left px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">
+                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                          </th>
+                        ))}
+                      </tr>
+                    ))}
+                  </thead>
+                </table>
+              </div>
+            )}
+
+            {/* Scrollable virtualized body */}
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+              {rows.length === 0 ? (
+                <EmptyState
+                  icon={Building2}
+                  title="No companies found"
+                  description="Try adjusting your filters or add a new company"
+                  action={{ label: 'Add Company', icon: Plus, onClick: () => setShowAddModal(true) }}
+                />
+              ) : (
+                <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
+                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                    const row = rows[virtualRow.index];
+                    const isExpanded = row.getIsExpanded();
+                    const company = row.original;
+
+                    return (
+                      <div
+                        key={row.id}
+                        data-index={virtualRow.index}
+                        ref={rowVirtualizer.measureElement}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          transform: `translateY(${virtualRow.start}px)`,
+                        }}
+                      >
+                        {isMobile ? (
+                          /* ── Mobile: Card layout ── */
+                          <CompanyCard
+                            company={company}
+                            isSelected={row.getIsSelected()}
+                            isExpanded={isExpanded}
+                            onToggleSelect={() => row.toggleSelected()}
+                            onToggleExpand={() => row.toggleExpanded()}
+                          />
+                        ) : (
+                          /* ── Desktop: Table row ── */
+                          <table className="w-full" style={{ tableLayout: 'fixed' }}>
+                            {colGroup}
+                            <tbody>
+                              <tr
+                                className="hover:bg-surface-hover/60 transition-colors cursor-pointer group border-b border-border-subtle"
+                                onClick={(e) => {
+                                  if ((e.target as HTMLElement).closest('button, input[type="checkbox"]')) return;
+                                  row.toggleExpanded();
+                                }}
+                              >
+                                {row.getVisibleCells().map((cell) => (
+                                  <td key={cell.id} className="px-4 py-3.5">
+                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                  </td>
+                                ))}
+                              </tr>
+                              {isExpanded && (
+                                <tr className="bg-surface-hover/30 border-b border-border-subtle">
+                                  <td colSpan={row.getVisibleCells().length} className="p-0">
+                                    <div className="px-6 py-4 overflow-x-auto">
+                                      <CompanyDetail company={company} />
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showAddModal && (
+        <AddCompanyModal
+          onAdd={(data) => {
+            addCompany.mutate(data, {
+              onSuccess: () => setShowAddModal(false),
+            });
+          }}
+          onClose={() => setShowAddModal(false)}
+        />
+      )}
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title={`Delete ${confirmDelete?.name ?? 'company'}?`}
+        message="This company and its data will be permanently removed."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => {
+          if (confirmDelete) deleteCompany.mutate(confirmDelete.id);
+          setConfirmDelete(null);
+        }}
+        onCancel={() => setConfirmDelete(null)}
+      />
+
+      <ConfirmDialog
+        open={showResetConfirm}
+        title="Reset all companies?"
+        message="This will reset every company back to pending status."
+        confirmLabel="Reset All"
+        variant="danger"
+        onConfirm={() => {
+          resetCompanies.mutate();
+          setShowResetConfirm(false);
+        }}
+        onCancel={() => setShowResetConfirm(false)}
+      />
     </div>
   );
 }

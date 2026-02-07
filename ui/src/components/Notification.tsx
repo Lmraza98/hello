@@ -35,11 +35,11 @@ export function NotificationToast({ notification, onDismiss }: NotificationProps
   };
 
   const colors = {
-    success: 'bg-success/10 border-success/30 text-success',
-    error: 'bg-error/10 border-error/30 text-error',
-    warning: 'bg-warning/10 border-warning/30 text-warning',
-    info: 'bg-accent/10 border-accent/30 text-accent',
-    loading: 'bg-accent/10 border-accent/30 text-accent',
+    success: 'bg-green-50 border-green-200 text-green-700',
+    error: 'bg-red-50 border-red-200 text-red-700',
+    warning: 'bg-amber-50 border-amber-200 text-amber-700',
+    info: 'bg-indigo-50 border-indigo-200 text-indigo-700',
+    loading: 'bg-indigo-50 border-indigo-200 text-indigo-700',
   };
 
   const Icon = icons[notification.type];

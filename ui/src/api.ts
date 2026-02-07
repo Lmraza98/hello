@@ -122,6 +122,9 @@ export const api = {
   clearContacts: (todayOnly = false) =>
     fetchJson<{ deleted: number }>(`/contacts?today_only=${todayOnly}`, { method: 'DELETE' }),
   
+  addContact: (contact: Partial<Contact>) =>
+    fetchJson<Contact>('/contacts', { method: 'POST', body: JSON.stringify(contact) }),
+  
   getPipelineStatus: () => fetchJson<PipelineStatus>('/pipeline/status'),
   
   startPipeline: (tier?: string, maxContacts = 25) =>

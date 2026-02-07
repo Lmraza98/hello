@@ -1,54 +1,18 @@
 Tier,Company,Vertical,Why this is a good Zco target,Zco wedge
-A,Hypertherm,Manufacturing,Process-heavy industrial org with continuous ops improvement needs,Plant-floor mobile apps + MES/ERP integrations
-A,Freudenberg-NOK,Manufacturing,Manufacturing workflows and quality systems benefit from custom tooling,Ops dashboards + quality workflow apps + integrations
-A,Albany International,Manufacturing,Multi-site operations with supply chain and production complexity,Internal ops tooling + reporting + integrations
-A,Velcro Companies,Manufacturing,Global operations with product and supply chain coordination needs,Internal workflow automation + integrations
-A,Standex International,Manufacturing,Multi-division industrial company with varied systems and reporting needs,Division-level internal apps + data integration
-A,Omron Microscan Systems,Industrial Tech,Field, support, and customer enablement workflows are integration-heavy,Customer/support portals + internal tooling
-A,TE SubCom,Telecom/Infrastructure,Project logistics and asset-heavy operations need workflow visibility,Project tracking apps + workflow automation
-A,Service Credit Union,Credit Union,Regulated org with member experience pressure and legacy workflows,Member portal enhancements + back-office workflow apps
-A,Bellwether Community Credit Union,Credit Union,Member-facing digital expectations plus compliance-driven internal processes,Member tools + internal workflow automation
-A,St. Mary's Bank,Bank/Credit Union,Legacy modernization pressure and process-heavy operations,Internal workflow apps + integrations
-A,Merrimack County Savings Bank,Bank,Regulated and process-heavy with modernization initiatives,Customer portals + internal tooling + integrations
-A,Salem Five Bank,Bank,Digital initiatives and customer-facing workflows with compliance constraints,Portal modernization + workflow automation
-A,Middlesex Savings Bank,Bank,Regulated environment with integration-heavy back office systems,Internal tooling + integrations
-A,Needham Bank,Bank,Modernization needs and operational efficiency focus,Workflow automation + customer portal enhancements
-A,Safety Insurance,Insurance,Claims and servicing workflows are process-heavy and integration-driven,Claims workflow tooling + customer/agent portals
-A,Arbella Insurance,Insurance,Digital servicing and claims ops benefit from custom workflow automation,Portals + internal workflow apps
-A,The Hanover Insurance Group,Insurance,Complex underwriting and claims processes with data integration needs,Workflow automation + integrations
-A,MAPFRE Insurance,Insurance,Customer servicing plus operational workflows that benefit from custom tooling,Portals + workflow automation
-A,UniFirst,B2B Services,Route and service operations with field workflows,Field mobile apps + scheduling + integrations
-A,Clean Harbors,Environmental Services,Field ops, dispatch, compliance reporting workflows,Field service apps + workflow automation
-A,Consigli Construction,Construction,Project-heavy workflows with many stakeholders and systems,Project portals + mobile field apps + integrations
-A,Columbia Construction,Construction,Client communication and project execution workflows can be digitized,Project portals + mobile field tools
-B,BAE Systems,Aerospace/Defense,Regulated programs with secure internal workflow needs,Secure internal apps + workflow automation
-B,Lindt & Sprüngli USA,CPG/Food,Supply chain and operations coordination with reporting needs,Ops tooling + logistics integrations
-B,Timberland (VF),Retail/Consumer,Omnichannel and internal operations tooling needs,Internal workflow apps + integrations
-B,Southern New Hampshire University,Education,Large digital footprint with process-heavy student and admin workflows,Portals + internal workflow automation
-B,Dartmouth Health,Healthcare,Complex operational workflows and integrations across systems,Patient and staff portals + integrations
-B,Eversource Energy,Utilities,Regulated utility with customer and field workflows,Customer portals + field service apps
-B,State Street,Financial Services,Large-scale regulated workflows with internal tooling demand,Internal workflow automation (target specific units)
-B,New Balance,Consumer/Retail,Ecommerce and operations complexity with continuous optimization,Mobile experiences + internal tooling
-B,TJX Companies,Retail,High-volume operations with internal workflow needs,Internal workflow apps + integrations
-B,Toast,Fintech/SaaS,Partner and ops tooling in a fast-scaling platform ecosystem,Partner tools + workflow automation
-B,MathWorks,Software,Enterprise customer workflows and internal operations tooling needs,Customer portals + internal tooling
-B,PTC,Industrial Software,Enterprise workflows and integration-heavy processes,Customer/partner portals + integrations
-B,Rapid7,Cybersecurity,SaaS operations and customer experience tooling needs,Internal tools + customer portals
-B,InterSystems,Healthcare IT,Integration-heavy ecosystem with workflow complexity,Portals + workflow apps + integrations
-B,Formlabs,Hardware/Manufacturing,Support, customer enablement, and ops tooling needs,Customer portals + internal tooling
-B,ezCater,Marketplace/B2B,Order, vendor, and customer workflows benefit from automation,Workflow tooling + integrations
-B,Flywire,Fintech,Payments ops with compliance and integration requirements,Internal workflow tools + integrations
-B,Brightcove,Media/Software,Platform operations and customer tooling needs,Customer portals + internal tooling
-B,Klaviyo,MarTech,Scaling SaaS with integration-heavy customer lifecycle workflows,Internal tooling + integrations
-B,DataRobot,AI/Software,Enterprise enablement workflows and internal ops tooling needs,Portals + internal tools + integrations
-C,Staples,Retail/B2B Commerce,Very large org; harder entry but big internal tooling needs,Targeted internal workflow app engagement
-C,Wayfair,Ecommerce/Logistics,Very large org with complex logistics systems,Target specific ops workflow + integrations
-C,HubSpot,SaaS/MarTech,Very large product org; vendor entry requires narrow wedge,Internal tooling for a specific team + integrations
-C,Akamai Technologies,Internet/Cloud,Large enterprise with mature engineering; entry needs tight scope,Internal workflow automation for a specific org
-C,DraftKings,Consumer/Tech,Large-scale org; best as a targeted project wedge,Specific internal ops tool or partner workflow app
-C,Moderna,Biotech,Large regulated enterprise; procurement cycles are heavy,Targeted workflow tooling + integrations
-C,Vertex Pharmaceuticals,Biopharma,Large regulated enterprise with complex data/workflows,Targeted internal tools + workflow automation
-C,Teradyne,Semiconductor/Robotics,Large industrial enterprise; best via a specific division or workflow,Ops apps + dashboards + integrations
-C,Merchants Fleet,Fleet/Transportation,Mid-to-large org with operations + customer portals,Customer/partner portals + internal workflow apps
-C,Freudenberg-NOK (Alt Division Focus),Manufacturing,Division-level initiatives can be easier to land than enterprise-wide,Single-plant workflow tooling + integration pilot
-
+1,Panduit,Electrical + network infrastructure solutions,Large SKU catalog + channel/distributor motion creates quoting/configuration + digital self-serve needs,Product configurator + distributor portal + quote workflow
+1,Vertiv,Critical digital infrastructure (power/cooling/racks),Complex deployments + service lifecycle (install/maintain) benefit from better customer + field tooling,Field service mobile app + customer portal + monitoring/service workflows
+1,Rittal GmbH & Co. KG,Industrial + IT enclosures/infrastructure,Highly configurable enclosure systems typically create friction in spec-to-quote and partner ordering,CPQ/configurator + CAD/BOM automation + partner quoting portal
+1,Schneider Electric,Energy management + automation (incl. data center infrastructure),Massive installed base + accessory ecosystem makes portals, renewals, and support workflows high leverage,Asset/warranty portal + renewals + install/service documentation hub
+1,nVent HOFFMAN,Enclosures + electrical protection,Spec-driven buying and compliance documentation create strong demand for guided selection + submittals,Spec builder + compliance/submittal generator + rep/distributor workflow
+1,Legrand,Electrical + digital building infrastructure (incl. data center),Channel-heavy selling + frequent bundles makes product selection and ordering workflows valuable,Distributor ordering portal + bundle/compatibility recommender + quote requests
+1,Eaton,Intelligent power management (incl. data center power),Commissioning/monitoring + service contracts benefit from unified customer and internal workflows,Install/commissioning tooling + monitoring portal + service ticket automation
+1,Siemon,High-performance network connectivity (data centers + smart buildings),Project BOMs + standards-driven purchasing benefit from design-to-BOM and submittal automation,Design-to-BOM tool + submittal package generator + contractor portal
+2,Tripp Lite,Power protection + racks/PDUs + connectivity,High-volume product selection + post-purchase support (warranty/RMA) can be made more self-serve,Product selection wizard + warranty/RMA portal + support workflow automation
+2,Belden Inc.,Connectivity solutions (industrial/networking),Engineering-led buyers need faster design, documentation, and purchasing accuracy,Design-to-BOM tooling + partner portal + documentation/search experience overhaul
+2,Hubbell Incorporated,Utility + electrical solutions,Large portfolio + distributor networks often means fragmented digital experiences,Unified distributor portal + cross-catalog search + quote workflow
+2,Great Lakes Data Racks & Cabinets,Data center racks/cabinets + industrial enclosures,Build-to-order/custom requirements make guided design + quoting + lead-time visibility valuable,Configurator + quote builder + order/production status portal
+2,Upsite Technologies,Data center airflow management,Assessment/ROI-driven selling benefits from calculators, reporting, and customer-facing portals,Assessment + ROI tools + customer reporting dashboard + lead-to-project workflow
+2,Subzero Engineering,Data center containment + infrastructure solutions,Custom projects require tight coordination, documentation, and install tracking,Project portal + installation tracking + as-built documentation workflows
+2,POLARGY,Data center containment + white space solutions,Retrofit/custom deployments benefit from faster quoting and clearer delivery/install coordination,Quote builder + delivery/install scheduling + customer comms automation
+3,Tate,Raised access floors + airflow management,Project-based selling with contractors/GCs creates submittal, scheduling, and lifecycle workflow needs,Contractor portal + submittals/RFIs workflow + delivery scheduling tools
+3,Maysteel Industries LLC,Custom metal enclosures (fabrication),Made-to-order manufacturing is sensitive to quoting accuracy + production visibility,CPQ + production visibility portal + exception/QA workflow dashboards

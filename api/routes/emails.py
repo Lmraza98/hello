@@ -1,10 +1,11 @@
 """
 Email campaign management API endpoints.
+Includes campaign CRUD, review queue, tracking, and config.
 """
 import asyncio
 import subprocess
 import sys
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from pydantic import BaseModel
@@ -417,7 +418,165 @@ def get_campaign_stats(campaign_id: int):
     if not campaign:
         raise HTTPException(status_code=404, detail="Campaign not found")
     
-    return db.get_email_campaign_stats(campaign_id)
+    stats = db.get_email_campaign_stats(campaign_id)
+    tracking = db.get_campaign_tracking_stats(campaign_id)
+    stats.update(tracking)
+    return stats
+
+
+# ============ Review Queue Endpoints ============
+
+class EmailApproveRequest(BaseModel):
+    subject: Optional[str] = None
+    body: Optional[str] = None
+
+class BulkApproveRequest(BaseModel):
+    email_ids: List[int]
+
+
+@router.get("/review-queue")
+def get_review_queue():
+    """Get all emails pending review."""
+    return db.get_review_queue()
+
+
+@router.post("/review-queue/{email_id}/approve")
+def approve_email(email_id: int, data: Optional[EmailApproveRequest] = None):
+    """Approve a single email. Body can include edited subject/body."""
+    db.approve_email(
+        email_id,
+        edited_subject=data.subject if data else None,
+        edited_body=data.body if data else None
+    )
+    return {"success": True}
+
+
+@router.post("/review-queue/{email_id}/reject")
+def reject_email(email_id: int):
+    """Reject a single email."""
+    db.reject_email(email_id)
+    return {"success": True}
+
+
+@router.post("/review-queue/approve-all")
+def approve_all(data: BulkApproveRequest):
+    """Bulk approve emails."""
+    db.approve_all_emails(data.email_ids)
+    return {"success": True, "approved": len(data.email_ids)}
+
+
+@router.post("/prepare-batch")
+async def prepare_batch():
+    """Manually trigger daily batch preparation."""
+    from services.email_preparer import prepare_daily_batch
+    result = await prepare_daily_batch()
+    return result
+
+
+# ============ Tracking Endpoints ============
+
+@router.get("/tracking-status")
+def get_tracking_status(days: int = 7):
+    """Get recent tracking data for dashboard display."""
+    return db.get_tracking_stats(days=days)
+
+
+@router.post("/poll-tracking")
+async def poll_tracking():
+    """Manually trigger Salesforce tracking poll."""
+    from services.salesforce_tracker import poll_salesforce_tracking
+    result = await poll_salesforce_tracking()
+    return result
+
+
+# ============ Scheduled Emails Endpoints ============
+
+@router.get("/scheduled")
+def get_scheduled():
+    """Get approved emails with scheduled send times."""
+    return db.get_scheduled_emails(limit=50)
+
+
+@router.post("/process-scheduled")
+async def process_scheduled():
+    """Process scheduled emails that are due for sending.
+    Launches Salesforce automation for approved+due emails."""
+    try:
+        emails = db.get_scheduled_emails(limit=10)
+        if not emails:
+            return {'success': True, 'message': 'No emails due for sending', 'processed': 0}
+        
+        # Launch the sender in a separate process
+        script_content = f'''
+import asyncio
+import sys
+sys.path.insert(0, r"{config.BASE_DIR}")
+
+from services.salesforce_email_sender import process_approved_emails
+
+print("="*60)
+print("SALESFORCE SCHEDULED SENDER")
+print("="*60)
+print("Emails to process: {len(emails)}")
+print("="*60)
+
+try:
+    result = asyncio.run(process_approved_emails(limit={len(emails)}))
+    import json
+    print("\\n" + "="*60)
+    print("RESULTS:", json.dumps(result, indent=2))
+    print("="*60)
+except Exception as e:
+    import traceback
+    print("\\n" + "="*60)
+    print("ERROR:", str(e))
+    print(traceback.format_exc())
+    print("="*60)
+
+input("\\nPress ENTER to close...")
+'''
+        script_path = config.DATA_DIR / "run_scheduled_sender.py"
+        with open(script_path, 'w') as f:
+            f.write(script_content)
+        
+        subprocess.Popen(
+            [sys.executable, str(script_path)],
+            creationflags=subprocess.CREATE_NEW_CONSOLE,
+            cwd=str(config.BASE_DIR)
+        )
+        
+        return {
+            'success': True,
+            'message': f'Launched sender for {len(emails)} scheduled emails',
+            'count': len(emails)
+        }
+    except Exception as e:
+        import traceback
+        return {'success': False, 'error': str(e), 'traceback': traceback.format_exc()}
+
+
+# ============ Config Endpoints ============
+
+@router.get("/config")
+def get_email_config():
+    """Get all email system config values."""
+    return db.get_all_config()
+
+
+@router.put("/config")
+def update_email_config(data: dict):
+    """Update config values (daily cap, send window, etc.)."""
+    allowed_keys = {
+        'daily_send_cap', 'send_window_start', 'send_window_end',
+        'min_minutes_between_sends', 'tracking_poll_interval_minutes',
+        'tracking_lookback_days'
+    }
+    updated = []
+    for key, value in data.items():
+        if key in allowed_keys:
+            db.set_config(key, str(value))
+            updated.append(key)
+    return {"success": True, "updated": updated}
 
 
 # ============ Generate Preview Endpoint ============
