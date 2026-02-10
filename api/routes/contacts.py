@@ -20,6 +20,10 @@ class BulkActionRequest(BaseModel):
     campaign_id: Optional[int] = None
 
 
+class SalesforceUrlRequest(BaseModel):
+    salesforce_url: str
+
+
 @router.get("")
 def get_contacts(company: Optional[str] = None, has_email: Optional[bool] = None, today_only: bool = False):
     try:
@@ -31,6 +35,7 @@ def get_contacts(company: Optional[str] = None, has_email: Optional[bool] = None
         columns = [row[1] for row in cursor.fetchall()]
         has_phone = 'phone' in columns
         has_salesforce = 'salesforce_status' in columns
+        has_salesforce_url = 'salesforce_url' in columns
         has_phone_links = 'phone_links' in columns
         has_salesforce_uploaded_at = 'salesforce_uploaded_at' in columns
         has_salesforce_upload_batch = 'salesforce_upload_batch' in columns
@@ -53,6 +58,8 @@ def get_contacts(company: Optional[str] = None, has_email: Optional[bool] = None
                 select_fields.append("lc.phone_links")
         if has_salesforce:
             select_fields.append("lc.salesforce_status")
+        if has_salesforce_url:
+            select_fields.append("lc.salesforce_url")
         if has_salesforce_uploaded_at:
             select_fields.append("lc.salesforce_uploaded_at")
         if has_salesforce_upload_batch:
@@ -132,10 +139,16 @@ def get_contacts(company: Optional[str] = None, has_email: Optional[bool] = None
                 contact["phone_links"] = None
             
             if has_salesforce:
-                contact["salesforce_status"] = r[idx] if len(r) > idx and r[idx] else 'pending'
+                contact["salesforce_status"] = r[idx] if len(r) > idx and r[idx] else None
                 idx += 1
             else:
-                contact["salesforce_status"] = 'pending'
+                contact["salesforce_status"] = None
+            
+            if has_salesforce_url:
+                contact["salesforce_url"] = r[idx] if len(r) > idx and r[idx] else None
+                idx += 1
+            else:
+                contact["salesforce_url"] = None
             
             if has_salesforce_uploaded_at:
                 contact["salesforce_uploaded_at"] = str(r[idx]) if len(r) > idx and r[idx] else None
@@ -323,6 +336,156 @@ async def salesforce_auth_session():
             'error': str(e),
             'traceback': traceback.format_exc()
         }
+
+
+@router.post("")
+async def add_contact(contact: dict):
+    """Add a single contact manually."""
+    import re
+    
+    name = contact.get('name', '').strip()
+    company_name = contact.get('company_name', '').strip()
+    
+    if not name or not company_name:
+        raise HTTPException(status_code=400, detail="name and company_name are required")
+    
+    # Generate a domain slug from company name if not provided
+    domain = contact.get('domain')
+    if not domain and company_name:
+        domain = re.sub(r'[^\w\s-]', '', company_name.lower())
+        domain = re.sub(r'[\s_]+', '-', domain).strip('-')
+    
+    salesforce_url = contact.get('salesforce_url', '').strip() or None
+    # If salesforce_url is provided, the lead is already in Salesforce
+    salesforce_status = 'uploaded' if salesforce_url else None
+    
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO linkedin_contacts 
+            (company_name, domain, name, title, email_generated, linkedin_url, phone, salesforce_url, salesforce_status, scraped_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        """, (
+            company_name,
+            domain,
+            name,
+            contact.get('title', '').strip() or None,
+            contact.get('email', '').strip() or None,
+            contact.get('linkedin_url', '').strip() or None,
+            contact.get('phone', '').strip() or None,
+            salesforce_url,
+            salesforce_status,
+        ))
+        new_id = cursor.lastrowid
+    
+    return {
+        "id": new_id,
+        "company_name": company_name,
+        "domain": domain,
+        "name": name,
+        "title": contact.get('title'),
+        "email": contact.get('email'),
+        "linkedin_url": contact.get('linkedin_url'),
+        "salesforce_url": salesforce_url,
+        "salesforce_status": salesforce_status,
+    }
+
+
+@router.get("/{contact_id}")
+def get_contact(contact_id: int):
+    """Get a single contact by id (for chat polling)."""
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM linkedin_contacts WHERE id = ?", (contact_id,))
+        row = cursor.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Contact not found")
+        r = dict(row)
+        return {
+            "id": r.get("id"),
+            "company_name": r.get("company_name") or "",
+            "domain": r.get("domain"),
+            "name": r.get("name"),
+            "title": r.get("title"),
+            "email": r.get("email_generated"),
+            "email_pattern": r.get("email_pattern"),
+            "email_confidence": r.get("email_confidence"),
+            "email_verified": bool(r.get("email_verified")) if r.get("email_verified") is not None else False,
+            "phone": r.get("phone"),
+            "phone_source": r.get("phone_source"),
+            "phone_confidence": r.get("phone_confidence"),
+            "phone_links": None,
+            "linkedin_url": r.get("linkedin_url"),
+            "salesforce_url": r.get("salesforce_url"),
+            "salesforce_status": r.get("salesforce_status"),
+            "salesforce_uploaded_at": str(r.get("salesforce_uploaded_at")) if r.get("salesforce_uploaded_at") else None,
+            "salesforce_upload_batch": r.get("salesforce_upload_batch"),
+            "scraped_at": str(r.get("scraped_at")) if r.get("scraped_at") else None,
+            "vertical": None,
+        }
+
+
+@router.post("/{contact_id}/salesforce-url")
+def save_salesforce_url(contact_id: int, body: SalesforceUrlRequest):
+    url = (body.salesforce_url or "").strip()
+    if "lightning.force.com" not in url or "/lightning/r/Lead/" not in url:
+        raise HTTPException(status_code=400, detail="Invalid Salesforce Lead URL")
+
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE linkedin_contacts SET salesforce_url = ?, salesforce_status = 'uploaded' WHERE id = ?",
+            (url, contact_id),
+        )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Contact not found")
+
+    return {"success": True, "salesforce_url": url}
+
+
+@router.post("/{contact_id}/salesforce-skip")
+def skip_salesforce(contact_id: int):
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE linkedin_contacts SET salesforce_status = 'skipped' WHERE id = ?",
+            (contact_id,),
+        )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Contact not found")
+    return {"success": True}
+
+
+@router.post("/{contact_id}/salesforce-search")
+def search_salesforce(contact_id: int):
+    # Mark queued immediately.
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE linkedin_contacts SET salesforce_status = 'queued' WHERE id = ?",
+            (contact_id,),
+        )
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Contact not found")
+
+        cursor.execute("SELECT name FROM linkedin_contacts WHERE id = ?", (contact_id,))
+        row = cursor.fetchone()
+        name = (row[0] if isinstance(row, (list, tuple)) else row["name"]) if row else None
+
+    # Best-effort enqueue.
+    enqueue_salesforce_lookup(contact_id, name or "")
+    return {"success": True, "queued": True, "busy": is_browser_busy()}
+
+
+@router.delete("/{contact_id}")
+def delete_contact(contact_id: int):
+    """Delete a single contact by ID."""
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM linkedin_contacts WHERE id = ?", (contact_id,))
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Contact not found")
+        return {"deleted": True}
 
 
 @router.delete("")
@@ -588,6 +751,34 @@ async def bulk_send_email(request: BulkActionRequest):
     except Exception as e:
         import traceback
         return {'success': False, 'error': str(e), 'traceback': traceback.format_exc()}
+
+
+@router.post("/bulk-actions/delete")
+async def bulk_delete_contacts(request: BulkActionRequest):
+    """Delete multiple contacts by their IDs."""
+    contact_ids = request.contact_ids
+    try:
+        if not contact_ids:
+            return {'success': False, 'error': 'No contact IDs provided'}
+        
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        placeholders = ','.join(['?'] * len(contact_ids))
+        cursor.execute(f"DELETE FROM linkedin_contacts WHERE id IN ({placeholders})", contact_ids)
+        deleted_count = cursor.rowcount
+        conn.commit()
+        conn.close()
+        
+        return {
+            'success': True,
+            'deleted': deleted_count,
+            'message': f'Deleted {deleted_count} contact(s)'
+        }
+    except Exception as e:
+        import traceback
+        error_msg = str(e)
+        print(f"Error in bulk_delete_contacts: {error_msg}\n{traceback.format_exc()}")
+        return {'success': False, 'error': error_msg}
 
 
 @router.post("/bulk-actions/collect-phone")

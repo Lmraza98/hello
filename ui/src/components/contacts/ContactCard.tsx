@@ -1,4 +1,4 @@
-import { Building2, CheckCircle, XCircle } from 'lucide-react';
+import { Building2, CheckCircle, Cloud, ExternalLink, XCircle } from 'lucide-react';
 import type { Contact } from '../../api';
 import { MobileCard } from '../shared/MobileCard';
 import { ContactDetail } from './ContactDetail';
@@ -30,6 +30,19 @@ export function ContactCard({
       <div className="flex items-center justify-between gap-2 mb-0.5">
         <span className="font-medium text-text text-sm truncate">{contact.name}</span>
         <div className="flex items-center gap-1.5 shrink-0">
+          {contact.salesforce_url ? (
+            <a
+              href={contact.salesforce_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-md border border-border bg-bg px-1.5 py-0.5 text-[10px] text-text-muted hover:bg-surface-hover hover:text-text"
+              title="Open in Salesforce"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Cloud className="h-3 w-3 text-blue-600" />
+              In SF <ExternalLink className="h-3 w-3" />
+            </a>
+          ) : null}
           {contact.email ? (
             <CheckCircle className="w-3.5 h-3.5 text-success" />
           ) : (

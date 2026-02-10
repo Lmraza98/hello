@@ -20,6 +20,7 @@ import Contacts from './pages/Contacts';
 import Email from './pages/Email';
 import { NotificationProvider } from './contexts/NotificationContext';
 import { NotificationContainer } from './components/NotificationContainer';
+import { SettingsModal } from './components/settings/SettingsModal';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +38,7 @@ function AppContent() {
   const [page, setPage] = useState<Page>('dashboard');
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [addModalTarget, setAddModalTarget] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const quickAddRef = useRef<HTMLDivElement>(null);
   const pywebview = (window as any).pywebview;
 
@@ -82,6 +84,7 @@ function AppContent() {
   return (
     <div className="h-screen flex flex-col md:flex-row overflow-hidden">
       <NotificationContainer />
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
 
       {/* Window controls — desktop only */}
       {!isMobile && (
@@ -174,10 +177,13 @@ function AppContent() {
 
           {/* Footer */}
           <div className="p-4 border-t border-border">
-            <div className="flex items-center gap-2 text-xs text-text-dim">
+            <button
+              onClick={() => setShowSettings(true)}
+              className="flex items-center gap-2 text-xs text-text-dim hover:text-text transition-colors"
+            >
               <Settings className="w-4 h-4" />
-              <span>v1.0.0</span>
-            </div>
+              <span>Settings</span>
+            </button>
           </div>
         </aside>
       )}

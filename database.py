@@ -67,6 +67,8 @@ def init_database():
             ('vertical', 'TEXT'),
             ('target_reason', 'TEXT'),
             ('wedge', 'TEXT'),
+            ('vetted_at', 'TIMESTAMP'),
+            ('icp_fit_score', 'INTEGER'),
         ]
         for col_name, col_type in new_columns:
             try:
@@ -201,6 +203,7 @@ def init_database():
                 phone_confidence INTEGER,
                 phone_links TEXT,
                 salesforce_status TEXT DEFAULT 'pending',
+                salesforce_url TEXT,
                 salesforce_uploaded_at TIMESTAMP,
                 salesforce_upload_batch TEXT,
                 scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -212,6 +215,7 @@ def init_database():
         
         # Migration: Add salesforce tracking columns to existing databases
         sf_columns = [
+            ('salesforce_url', 'TEXT'),
             ('salesforce_uploaded_at', 'TIMESTAMP'),
             ('salesforce_upload_batch', 'TEXT'),
         ]
@@ -311,6 +315,8 @@ def init_database():
             ('last_tracked_at', 'TIMESTAMP'),
             ('approved_at', 'TIMESTAMP'),
             ('approved_by', "TEXT DEFAULT 'user'"),
+            ('meeting_booked', 'INTEGER DEFAULT 0'),
+            ('meeting_booked_at', 'TIMESTAMP'),
         ]
         for col_name, col_type in sent_email_new_columns:
             try:
@@ -318,9 +324,44 @@ def init_database():
             except sqlite3.OperationalError:
                 pass  # Column already exists
         
+        # Migration: Add Outlook message tracking columns to sent_emails
+        outlook_columns = [
+            ('outlook_message_id', 'TEXT'),
+            ('outlook_conversation_id', 'TEXT'),
+            ('outlook_internet_message_id', 'TEXT'),
+        ]
+        for col_name, col_type in outlook_columns:
+            try:
+                cursor.execute(f"ALTER TABLE sent_emails ADD COLUMN {col_name} {col_type}")
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+        
+        # Email replies table — stores actual reply content from Outlook
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS email_replies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sent_email_id INTEGER NOT NULL,
+                campaign_contact_id INTEGER NOT NULL,
+                contact_id INTEGER NOT NULL,
+                outlook_message_id TEXT,
+                from_address TEXT,
+                subject TEXT,
+                body_preview TEXT,
+                received_at TIMESTAMP,
+                detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (sent_email_id) REFERENCES sent_emails(id),
+                FOREIGN KEY (campaign_contact_id) REFERENCES campaign_contacts(id),
+                FOREIGN KEY (contact_id) REFERENCES linkedin_contacts(id)
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_replies_sent_email ON email_replies(sent_email_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_replies_contact ON email_replies(contact_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_replies_received ON email_replies(received_at)")
+        
         # Add index for review queue queries
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sent_emails_review_status ON sent_emails(review_status)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sent_emails_scheduled ON sent_emails(scheduled_send_time)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_sent_emails_conversation ON sent_emails(outlook_conversation_id)")
         
         # System config table — key-value settings
         cursor.execute("""
@@ -1124,17 +1165,19 @@ def log_sent_email(
     error_message: str = None,
     screenshot_path: str = None
 ) -> int:
-    """Log a sent email."""
+    """Log a sent email. Sets both status and review_status to 'sent' for reply tracking."""
     with get_db() as conn:
         cursor = conn.cursor()
+        # Set review_status='sent' if status='sent' so reply monitoring works
+        review_status = 'sent' if status == 'sent' else 'failed'
         cursor.execute("""
             INSERT INTO sent_emails (
                 campaign_id, campaign_contact_id, contact_id, step_number,
-                subject, body, sf_lead_url, status, error_message, screenshot_path
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                subject, body, sf_lead_url, status, review_status, sent_at, error_message, screenshot_path
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?)
         """, (
             campaign_id, campaign_contact_id, contact_id, step_number,
-            subject, body, sf_lead_url, status, error_message, screenshot_path
+            subject, body, sf_lead_url, status, review_status, error_message, screenshot_path
         ))
         return cursor.lastrowid
 
@@ -1383,6 +1426,177 @@ def get_scheduled_emails(limit: int = 10) -> List[Dict]:
         return [dict(row) for row in cursor.fetchall()]
 
 
+def get_all_scheduled_emails(campaign_id: int = None, limit: int = 200) -> List[Dict]:
+    """Get ALL approved emails with future scheduled_send_time (not yet sent).
+    Used for the Scheduled tab UI."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        query = """
+            SELECT 
+                se.id, se.campaign_id, se.contact_id, se.step_number,
+                se.subject, se.body, se.rendered_subject, se.rendered_body,
+                se.review_status, se.scheduled_send_time, se.status,
+                se.opened, se.open_count, se.first_opened_at,
+                se.replied, se.replied_at,
+                lc.name as contact_name,
+                lc.company_name,
+                lc.title as contact_title,
+                lc.email_generated as contact_email,
+                lc.linkedin_url as contact_linkedin,
+                ec.name as campaign_name,
+                ec.num_emails,
+                ec.days_between_emails,
+                cc.id as campaign_contact_id
+            FROM sent_emails se
+            JOIN linkedin_contacts lc ON se.contact_id = lc.id
+            JOIN email_campaigns ec ON se.campaign_id = ec.id
+            JOIN campaign_contacts cc ON se.campaign_contact_id = cc.id
+            WHERE se.review_status = 'approved'
+            AND (se.status IS NULL OR se.status = 'draft' OR se.status = 'pending')
+            AND se.scheduled_send_time IS NOT NULL
+        """
+        params = []
+        if campaign_id:
+            query += " AND se.campaign_id = ?"
+            params.append(campaign_id)
+        
+        query += " ORDER BY se.scheduled_send_time ASC LIMIT ?"
+        params.append(limit)
+        
+        cursor.execute(query, params)
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def reschedule_email(sent_email_id: int, new_send_time: str):
+    """Reschedule a single email to a new send time."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE sent_emails 
+            SET scheduled_send_time = ?
+            WHERE id = ? AND review_status = 'approved'
+        """, (new_send_time, sent_email_id))
+        return cursor.rowcount > 0
+
+
+def reorder_scheduled_emails(email_ids: List[int], start_time: str = None):
+    """Reorder scheduled emails. Assigns new send times with 1-minute spacing
+    starting from the given time (or the earliest existing time)."""
+    from datetime import timedelta
+    
+    with get_db() as conn:
+        cursor = conn.cursor()
+        
+        if not start_time:
+            # Use the earliest scheduled time from the provided emails
+            placeholders = ','.join(['?'] * len(email_ids))
+            cursor.execute(f"""
+                SELECT MIN(scheduled_send_time) as earliest 
+                FROM sent_emails 
+                WHERE id IN ({placeholders})
+            """, email_ids)
+            row = cursor.fetchone()
+            start_time = row['earliest'] if row and row['earliest'] else datetime.now().isoformat()
+        
+        base_time = datetime.fromisoformat(start_time)
+        
+        for i, email_id in enumerate(email_ids):
+            new_time = base_time + timedelta(minutes=i)
+            cursor.execute("""
+                UPDATE sent_emails 
+                SET scheduled_send_time = ?
+                WHERE id = ? AND review_status = 'approved'
+            """, (new_time.isoformat(), email_id))
+        
+        return True
+
+
+def get_email_detail(sent_email_id: int) -> Optional[Dict]:
+    """Get detailed info for a single scheduled/sent email including sequence history."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                se.*, 
+                lc.name as contact_name,
+                lc.company_name,
+                lc.title as contact_title,
+                lc.email_generated as contact_email,
+                lc.linkedin_url as contact_linkedin,
+                ec.name as campaign_name,
+                ec.num_emails,
+                ec.days_between_emails,
+                cc.id as campaign_contact_id,
+                cc.current_step,
+                cc.status as enrollment_status
+            FROM sent_emails se
+            JOIN linkedin_contacts lc ON se.contact_id = lc.id
+            JOIN email_campaigns ec ON se.campaign_id = ec.id
+            JOIN campaign_contacts cc ON se.campaign_contact_id = cc.id
+            WHERE se.id = ?
+        """, (sent_email_id,))
+        email = cursor.fetchone()
+        if not email:
+            return None
+        
+        result = dict(email)
+        
+        # Get all emails in the same sequence (same contact + campaign)
+        cursor.execute("""
+            SELECT id, step_number, subject, rendered_subject, status, review_status,
+                   sent_at, scheduled_send_time, opened, open_count, replied, replied_at
+            FROM sent_emails
+            WHERE contact_id = ? AND campaign_id = ?
+            ORDER BY step_number ASC
+        """, (result['contact_id'], result['campaign_id']))
+        result['sequence_emails'] = [dict(row) for row in cursor.fetchall()]
+        
+        return result
+
+
+def get_campaign_scheduled_summary() -> List[Dict]:
+    """Get per-campaign summary of scheduled and pending-review counts,
+    including the next contact name and last activity timestamp."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                ec.id as campaign_id,
+                ec.name as campaign_name,
+                ec.status as campaign_status,
+                COUNT(CASE WHEN se.review_status = 'approved' AND se.scheduled_send_time IS NOT NULL 
+                      AND (se.status IS NULL OR se.status IN ('draft','pending')) THEN 1 END) as scheduled_count,
+                COUNT(CASE WHEN se.review_status = 'draft' THEN 1 END) as pending_review_count,
+                MIN(CASE WHEN se.review_status = 'approved' AND se.scheduled_send_time IS NOT NULL 
+                    AND (se.status IS NULL OR se.status IN ('draft','pending')) 
+                    THEN se.scheduled_send_time END) as next_send_time,
+                MAX(se.sent_at) as last_sent_at
+            FROM email_campaigns ec
+            LEFT JOIN sent_emails se ON se.campaign_id = ec.id
+            GROUP BY ec.id
+        """)
+        results = [dict(row) for row in cursor.fetchall()]
+        
+        # For each campaign with a next_send_time, look up the contact name
+        for r in results:
+            if r.get('next_send_time'):
+                cursor.execute("""
+                    SELECT lc.name as next_contact_name
+                    FROM sent_emails se
+                    JOIN linkedin_contacts lc ON se.contact_id = lc.id
+                    WHERE se.campaign_id = ? 
+                    AND se.scheduled_send_time = ?
+                    AND se.review_status = 'approved'
+                    LIMIT 1
+                """, (r['campaign_id'], r['next_send_time']))
+                row = cursor.fetchone()
+                r['next_contact_name'] = row['next_contact_name'] if row else None
+            else:
+                r['next_contact_name'] = None
+        
+        return results
+
+
 def mark_email_sent(sent_email_id: int, sf_lead_url: str = None):
     """Called after successful Salesforce send. Sets review_status = 'sent', sent_at = now."""
     with get_db() as conn:
@@ -1532,6 +1746,184 @@ def get_campaign_tracking_stats(campaign_id: int) -> Dict:
         return {'total_sent': 0, 'total_opened': 0, 'total_replied': 0, 'open_rate': 0, 'reply_rate': 0}
 
 
+def get_daily_email_stats(days: int = 30) -> List[Dict]:
+    """Get daily sent/opened/replied counts for the last N days."""
+    from datetime import timedelta
+
+    end_date = datetime.now().date()
+    start_date = end_date - timedelta(days=days - 1)
+    all_dates: Dict[str, Dict[str, int]] = {}
+
+    current = start_date
+    while current <= end_date:
+        key = current.isoformat()
+        all_dates[key] = {"date": key, "sent": 0, "viewed": 0, "responded": 0}
+        current += timedelta(days=1)
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT DATE(sent_at) as day, COUNT(*) as count
+            FROM sent_emails
+            WHERE review_status = 'sent'
+            AND sent_at >= date('now', ?)
+            GROUP BY day
+        """, (f'-{days - 1} days',))
+        for row in cursor.fetchall():
+            day = row['day']
+            if day in all_dates:
+                all_dates[day]["sent"] = row['count'] or 0
+
+        cursor.execute("""
+            SELECT DATE(first_opened_at) as day, COUNT(*) as count
+            FROM sent_emails
+            WHERE review_status = 'sent'
+            AND first_opened_at IS NOT NULL
+            AND first_opened_at >= date('now', ?)
+            GROUP BY day
+        """, (f'-{days - 1} days',))
+        for row in cursor.fetchall():
+            day = row['day']
+            if day in all_dates:
+                all_dates[day]["viewed"] = row['count'] or 0
+
+        cursor.execute("""
+            SELECT DATE(replied_at) as day, COUNT(*) as count
+            FROM sent_emails
+            WHERE review_status = 'sent'
+            AND replied_at IS NOT NULL
+            AND replied_at >= date('now', ?)
+            GROUP BY day
+        """, (f'-{days - 1} days',))
+        for row in cursor.fetchall():
+            day = row['day']
+            if day in all_dates:
+                all_dates[day]["responded"] = row['count'] or 0
+
+    return [all_dates[d] for d in sorted(all_dates.keys())]
+
+
+def get_active_conversations_count(days: int = 30) -> int:
+    """Count unique contacts with replies in the last N days."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT COUNT(DISTINCT contact_id) as count
+            FROM sent_emails
+            WHERE review_status = 'sent'
+            AND replied = 1
+            AND replied_at >= datetime('now', ?)
+        """, (f'-{days} days',))
+        row = cursor.fetchone()
+        return row['count'] if row else 0
+
+
+def get_meeting_booking_rate(days: int = 30) -> Dict:
+    """Get meeting booking rate from sent emails in the last N days."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT
+                COUNT(*) as total_sent,
+                SUM(CASE WHEN meeting_booked = 1 THEN 1 ELSE 0 END) as total_meetings
+            FROM sent_emails
+            WHERE review_status = 'sent'
+            AND sent_at >= datetime('now', ?)
+        """, (f'-{days} days',))
+        row = cursor.fetchone()
+        total = row['total_sent'] or 0
+        meetings = row['total_meetings'] or 0
+        rate = round((meetings / total * 100), 1) if total > 0 else 0
+        return {"total_sent": total, "total_meetings": meetings, "meeting_rate": rate}
+
+
+def _get_best_campaign_by_vertical(cursor, days: int) -> Optional[Dict]:
+    cursor.execute("""
+        SELECT
+            ec.id as campaign_id,
+            ec.name as campaign_name,
+            t.vertical as segment_value,
+            COUNT(*) as total_sent,
+            SUM(CASE WHEN se.replied = 1 THEN 1 ELSE 0 END) as total_replied
+        FROM sent_emails se
+        JOIN email_campaigns ec ON se.campaign_id = ec.id
+        JOIN linkedin_contacts lc ON se.contact_id = lc.id
+        LEFT JOIN targets t ON lc.domain = t.domain
+        WHERE se.review_status = 'sent'
+        AND se.sent_at >= datetime('now', ?)
+        AND t.vertical IS NOT NULL
+        AND t.vertical != ''
+        GROUP BY ec.id, t.vertical
+        ORDER BY (CAST(total_replied AS FLOAT) / NULLIF(COUNT(*), 0)) DESC, COUNT(*) DESC
+        LIMIT 1
+    """, (f'-{days} days',))
+    row = cursor.fetchone()
+    if not row:
+        return None
+    total = row['total_sent'] or 0
+    replied = row['total_replied'] or 0
+    return {
+        "campaign_id": row['campaign_id'],
+        "campaign_name": row['campaign_name'],
+        "segment_type": "vertical",
+        "segment_value": row['segment_value'],
+        "total_sent": total,
+        "total_replied": replied,
+        "reply_rate": round((replied / total * 100), 1) if total > 0 else 0,
+    }
+
+
+def _get_best_campaign_by_title(cursor, days: int) -> Optional[Dict]:
+    cursor.execute("""
+        SELECT
+            ec.id as campaign_id,
+            ec.name as campaign_name,
+            lc.title as segment_value,
+            COUNT(*) as total_sent,
+            SUM(CASE WHEN se.replied = 1 THEN 1 ELSE 0 END) as total_replied
+        FROM sent_emails se
+        JOIN email_campaigns ec ON se.campaign_id = ec.id
+        JOIN linkedin_contacts lc ON se.contact_id = lc.id
+        WHERE se.review_status = 'sent'
+        AND se.sent_at >= datetime('now', ?)
+        AND lc.title IS NOT NULL
+        AND lc.title != ''
+        GROUP BY ec.id, lc.title
+        ORDER BY (CAST(total_replied AS FLOAT) / NULLIF(COUNT(*), 0)) DESC, COUNT(*) DESC
+        LIMIT 1
+    """, (f'-{days} days',))
+    row = cursor.fetchone()
+    if not row:
+        return None
+    total = row['total_sent'] or 0
+    replied = row['total_replied'] or 0
+    return {
+        "campaign_id": row['campaign_id'],
+        "campaign_name": row['campaign_name'],
+        "segment_type": "title",
+        "segment_value": row['segment_value'],
+        "total_sent": total,
+        "total_replied": replied,
+        "reply_rate": round((replied / total * 100), 1) if total > 0 else 0,
+    }
+
+
+def get_best_campaign_segment(days: int = 30) -> Optional[Dict]:
+    """Return best-performing campaign segment by reply rate (vertical or title)."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        by_vertical = _get_best_campaign_by_vertical(cursor, days)
+        by_title = _get_best_campaign_by_title(cursor, days)
+
+    if by_vertical and by_title:
+        if by_vertical["reply_rate"] == by_title["reply_rate"]:
+            return by_vertical if by_vertical["total_sent"] >= by_title["total_sent"] else by_title
+        return by_vertical if by_vertical["reply_rate"] > by_title["reply_rate"] else by_title
+
+    return by_vertical or by_title
+
+
 # ============ Send Time Calculation Helpers ============
 
 def _get_existing_scheduled_times(cursor) -> List[str]:
@@ -1616,6 +2008,257 @@ def calculate_send_times(count: int, existing_times: List[str] = None) -> List[s
         current += timedelta(minutes=min_gap)
     
     return result
+
+
+# ============ Outlook Reply Tracking Operations ============
+
+def update_sent_email_outlook_ids(
+    sent_email_id: int,
+    outlook_message_id: str = None,
+    outlook_conversation_id: str = None,
+    outlook_internet_message_id: str = None,
+):
+    """Store Outlook message/conversation IDs after an email is sent."""
+    updates = []
+    params = []
+    if outlook_message_id is not None:
+        updates.append("outlook_message_id = ?")
+        params.append(outlook_message_id)
+    if outlook_conversation_id is not None:
+        updates.append("outlook_conversation_id = ?")
+        params.append(outlook_conversation_id)
+    if outlook_internet_message_id is not None:
+        updates.append("outlook_internet_message_id = ?")
+        params.append(outlook_internet_message_id)
+    if not updates:
+        return
+    params.append(sent_email_id)
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"""
+            UPDATE sent_emails SET {', '.join(updates)}
+            WHERE id = ?
+        """, params)
+
+
+def get_sent_emails_with_outlook_ids(lookback_days: int = 30) -> List[Dict]:
+    """Get sent emails that have Outlook conversation IDs, for reply matching."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                se.id, se.campaign_id, se.campaign_contact_id, se.contact_id,
+                se.subject, se.rendered_subject,
+                se.outlook_message_id, se.outlook_conversation_id,
+                se.outlook_internet_message_id, se.replied, se.replied_at,
+                lc.name as contact_name, lc.email_generated as contact_email,
+                lc.company_name
+            FROM sent_emails se
+            JOIN linkedin_contacts lc ON se.contact_id = lc.id
+            WHERE se.review_status = 'sent'
+            AND se.replied = 0
+            AND se.sent_at >= datetime('now', ?)
+            AND (se.outlook_conversation_id IS NOT NULL 
+                 OR se.outlook_internet_message_id IS NOT NULL)
+        """, (f'-{lookback_days} days',))
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def get_sent_emails_for_reply_matching(lookback_days: int = 30) -> List[Dict]:
+    """Get ALL sent emails (with or without Outlook IDs) for subject/sender matching."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                se.id, se.campaign_id, se.campaign_contact_id, se.contact_id,
+                se.subject, se.rendered_subject,
+                se.outlook_message_id, se.outlook_conversation_id,
+                se.outlook_internet_message_id, se.replied,
+                lc.name as contact_name, lc.email_generated as contact_email,
+                lc.company_name
+            FROM sent_emails se
+            JOIN linkedin_contacts lc ON se.contact_id = lc.id
+            WHERE se.review_status = 'sent'
+            AND se.replied = 0
+            AND se.sent_at >= datetime('now', ?)
+        """, (f'-{lookback_days} days',))
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def log_email_reply(
+    sent_email_id: int,
+    campaign_contact_id: int,
+    contact_id: int,
+    outlook_message_id: str = None,
+    from_address: str = None,
+    subject: str = None,
+    body_preview: str = None,
+    received_at: str = None,
+) -> int:
+    """Log a detected reply and update tracking flags."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        # Insert the reply record
+        cursor.execute("""
+            INSERT INTO email_replies (
+                sent_email_id, campaign_contact_id, contact_id,
+                outlook_message_id, from_address, subject, body_preview, received_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            sent_email_id, campaign_contact_id, contact_id,
+            outlook_message_id, from_address, subject, body_preview, received_at,
+        ))
+        reply_id = cursor.lastrowid
+
+        # Mark the sent email as replied
+        cursor.execute("""
+            UPDATE sent_emails
+            SET replied = 1,
+                replied_at = COALESCE(replied_at, ?)
+            WHERE id = ?
+        """, (received_at or datetime.now().isoformat(), sent_email_id))
+
+        # Pause the campaign contact (stop further emails)
+        cursor.execute("""
+            UPDATE campaign_contacts
+            SET status = 'replied'
+            WHERE id = ?
+        """, (campaign_contact_id,))
+
+        return reply_id
+
+
+def get_email_replies(
+    contact_id: int = None,
+    campaign_id: int = None,
+    limit: int = 50,
+) -> List[Dict]:
+    """Get email replies with contact/campaign info."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        query = """
+            SELECT
+                er.*,
+                lc.name as contact_name,
+                lc.company_name,
+                lc.email_generated as contact_email,
+                ec.name as campaign_name,
+                se.rendered_subject as original_subject
+            FROM email_replies er
+            JOIN linkedin_contacts lc ON er.contact_id = lc.id
+            JOIN sent_emails se ON er.sent_email_id = se.id
+            JOIN email_campaigns ec ON se.campaign_id = ec.id
+            WHERE 1=1
+        """
+        params = []
+        if contact_id:
+            query += " AND er.contact_id = ?"
+            params.append(contact_id)
+        if campaign_id:
+            query += " AND se.campaign_id = ?"
+            params.append(campaign_id)
+        query += " ORDER BY er.received_at DESC LIMIT ?"
+        params.append(limit)
+        cursor.execute(query, params)
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def get_active_conversations(days: int = 30, limit: int = 50) -> List[Dict]:
+    """Get contacts who replied recently — 'active conversations' for dashboard."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        # Add handled column if it doesn't exist yet
+        try:
+            cursor.execute("ALTER TABLE email_replies ADD COLUMN handled INTEGER DEFAULT 0")
+        except Exception:
+            pass
+        cursor.execute("""
+            SELECT
+                er.id as reply_id,
+                er.contact_id,
+                er.subject as reply_subject,
+                er.body_preview,
+                er.received_at,
+                lc.name as contact_name,
+                lc.company_name,
+                lc.email_generated as contact_email,
+                lc.title as contact_title,
+                ec.name as campaign_name,
+                se.rendered_subject as original_subject
+            FROM email_replies er
+            JOIN linkedin_contacts lc ON er.contact_id = lc.id
+            JOIN sent_emails se ON er.sent_email_id = se.id
+            JOIN email_campaigns ec ON se.campaign_id = ec.id
+            WHERE er.received_at >= datetime('now', ?)
+            AND COALESCE(er.handled, 0) = 0
+            ORDER BY er.received_at DESC
+            LIMIT ?
+        """, (f'-{days} days', limit))
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def mark_conversation_handled(reply_id: int) -> bool:
+    """Mark a conversation (reply) as handled. Returns True if successful."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        # Add handled column if it doesn't exist
+        try:
+            cursor.execute("ALTER TABLE email_replies ADD COLUMN handled INTEGER DEFAULT 0")
+        except Exception:
+            pass  # Column already exists
+
+        cursor.execute("""
+            UPDATE email_replies SET handled = 1 WHERE id = ?
+        """, (reply_id,))
+        return cursor.rowcount > 0
+
+
+def get_conversation_thread(contact_id: int, limit: int = 20) -> List[Dict]:
+    """Get the full conversation thread for a contact — sent emails + replies."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        # Get all sent emails to this contact
+        cursor.execute("""
+            SELECT
+                'sent' as msg_type,
+                se.id,
+                se.rendered_subject as subject,
+                se.rendered_body as body,
+                se.sent_at as timestamp,
+                ec.name as campaign_name,
+                se.step_number
+            FROM sent_emails se
+            JOIN email_campaigns ec ON se.campaign_id = ec.id
+            WHERE se.contact_id = ?
+            AND se.review_status = 'sent'
+            ORDER BY se.sent_at DESC
+            LIMIT ?
+        """, (contact_id, limit))
+        sent = [dict(row) for row in cursor.fetchall()]
+
+        # Get all replies from this contact
+        cursor.execute("""
+            SELECT
+                'reply' as msg_type,
+                er.id,
+                er.subject,
+                er.body_preview as body,
+                er.received_at as timestamp,
+                ec.name as campaign_name,
+                se.step_number
+            FROM email_replies er
+            JOIN sent_emails se ON er.sent_email_id = se.id
+            JOIN email_campaigns ec ON se.campaign_id = ec.id
+            WHERE er.contact_id = ?
+            ORDER BY er.received_at DESC
+            LIMIT ?
+        """, (contact_id, limit))
+        replies = [dict(row) for row in cursor.fetchall()]
+
+        # Merge and sort chronologically
+        thread = sent + replies
+        thread.sort(key=lambda m: m.get('timestamp') or '', reverse=False)
+        return thread
 
 
 # Initialize database when module is imported

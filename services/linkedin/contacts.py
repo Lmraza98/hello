@@ -7,7 +7,6 @@ from typing import List, Dict
 
 import database as db
 
-
 def save_linkedin_contacts(company_name: str, employees: List[Dict], domain: str = None):
     """
     Save scraped LinkedIn contacts to database.
@@ -116,4 +115,3 @@ def update_contact_linkedin_url(contact_id: int, linkedin_url: str):
 
 # Initialize table on import
 init_linkedin_table()
-

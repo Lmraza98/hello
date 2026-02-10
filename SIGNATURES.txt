@@ -1,0 +1,3322 @@
+﻿# SIGNATURES EXPORT
+# Generated: 02/09/2026 21:38:52
+# Project: C:\Users\lmraz\Hello
+# Files: 167
+#
+# Shows: class/def/function declarations with line numbers
+# ========================================================
+
+=== api\main.py (6.5 KB) ===
+  L34: def _setup_scheduler()
+      L45: async def _prepare_batch()
+      L56: async def _poll_tracking()
+      L71: async def _poll_outlook_replies()
+  @asynccontextmanager
+  L100: async def lifespan(app: FastAPI)
+  @app.get("/", response_class=HTMLResponse)
+      L178: async def serve_frontend()
+  @app.get("/{path:path}")
+      L182: async def serve_spa(path: str)
+
+=== api\models.py (0.9 KB) ===
+  L7: class Company(BaseModel)
+  L17: class Contact(BaseModel)
+  L31: class Stats(BaseModel)
+
+=== api\routes\browser_stream.py (2.6 KB) ===
+  L18: def set_active_browser_page(page: Any | None) -> None
+  L23: def get_active_browser_page() -> Any | None
+  L27: async def broadcast_event(event_type: str, payload: dict[str, Any] | None = None) -> None
+  @router.websocket("/ws/browser-stream")
+  L45: async def browser_stream(websocket: WebSocket)
+
+=== api\routes\companies.py (6.5 KB) ===
+  @router.get("")
+  L21: def get_companies(tier: Optional[str] = None)
+  @router.post("")
+  L47: def add_company(company: Company)
+  @router.put("/{company_id}")
+  L60: def update_company(company_id: int, company: Company)
+  @router.delete("/{company_id}")
+  L71: def delete_company(company_id: int)
+  @router.post("/bulk-delete")
+  L78: def bulk_delete_companies(company_ids: list[int])
+  @router.post("/import")
+  L100: async def import_companies(file: UploadFile = File(...))
+  @router.post("/reset")
+  L123: def reset_companies()
+  @router.post("/skip-pending")
+  L131: def skip_pending_companies()
+  @router.delete("/pending")
+  L141: def clear_pending_companies()
+  @router.get("/pending-count")
+  L151: def get_pending_count()
+  L160: class CompanyCollectionRequest(BaseModel)
+  @router.post("/collect")
+  L167: async def collect_companies(request: CompanyCollectionRequest, background_tasks: BackgroundTasks)
+
+=== api\routes\contacts.py (43 KB) ===
+  L19: class BulkActionRequest(BaseModel)
+  L24: class SalesforceUrlRequest(BaseModel)
+  @router.get("")
+  L29: def get_contacts(company: Optional[str] = None, has_email: Optional[bool] = None, today_only: bool = False)
+  @router.get("/export")
+  L178: def export_contacts(today_only: bool = False, with_email_only: bool = False)
+  @router.get("/salesforce-csv/{filename}")
+  L245: def download_salesforce_csv(filename: str)
+  @router.post("/salesforce-auth")
+  L254: async def salesforce_auth_session()
+  @router.post("")
+  L343: async def add_contact(contact: dict)
+  @router.get("/{contact_id}")
+  L396: def get_contact(contact_id: int)
+  @router.post("/{contact_id}/salesforce-url")
+  L430: def save_salesforce_url(contact_id: int, body: SalesforceUrlRequest)
+  @router.post("/{contact_id}/salesforce-skip")
+  L448: def skip_salesforce(contact_id: int)
+  @router.post("/{contact_id}/salesforce-search")
+  L461: def search_salesforce(contact_id: int)
+  @router.delete("/{contact_id}")
+  L482: def delete_contact(contact_id: int)
+  @router.delete("")
+  L493: def clear_contacts(today_only: bool = False)
+  @router.post("/bulk-actions/salesforce-upload")
+  L504: async def bulk_upload_to_salesforce(request: BulkActionRequest)
+  @router.post("/bulk-actions/linkedin-request")
+  L634: async def bulk_linkedin_request(request: BulkActionRequest)
+  @router.post("/bulk-actions/send-email")
+  L665: async def bulk_send_email(request: BulkActionRequest)
+  @router.post("/bulk-actions/delete")
+  L758: async def bulk_delete_contacts(request: BulkActionRequest)
+  @router.post("/bulk-actions/collect-phone")
+  L786: async def bulk_collect_phone(request: BulkActionRequest)
+
+=== api\routes\emails.py (33.8 KB) ===
+  L21: class EmailCampaignCreate(BaseModel)
+  L28: class EmailCampaignUpdate(BaseModel)
+  L36: class EmailTemplateCreate(BaseModel)
+  L42: class EnrollContactsRequest(BaseModel)
+  L46: class SendEmailsRequest(BaseModel)
+  @router.get("/campaigns")
+  L55: def get_campaigns(status: Optional[str] = None)
+  @router.post("/campaigns")
+  L68: def create_campaign(data: EmailCampaignCreate)
+  @router.get("/campaigns/{campaign_id}")
+  L80: def get_campaign(campaign_id: int)
+  @router.put("/campaigns/{campaign_id}")
+  L92: def update_campaign(campaign_id: int, data: EmailCampaignUpdate)
+  @router.delete("/campaigns/{campaign_id}")
+  L111: def delete_campaign(campaign_id: int)
+  @router.post("/campaigns/{campaign_id}/activate")
+  L122: def activate_campaign(campaign_id: int)
+  @router.post("/campaigns/{campaign_id}/pause")
+  L141: def pause_campaign(campaign_id: int)
+  @router.get("/campaigns/{campaign_id}/templates")
+  L154: def get_templates(campaign_id: int)
+  @router.post("/campaigns/{campaign_id}/templates")
+  L164: def save_template(campaign_id: int, data: EmailTemplateCreate)
+  @router.post("/campaigns/{campaign_id}/templates/bulk")
+  L187: def save_templates_bulk(campaign_id: int, templates: List[EmailTemplateCreate])
+  @router.get("/campaigns/{campaign_id}/contacts")
+  L210: def get_campaign_contacts(campaign_id: int, status: Optional[str] = None)
+  @router.post("/campaigns/{campaign_id}/enroll")
+  L220: def enroll_contacts(campaign_id: int, data: EnrollContactsRequest)
+  @router.delete("/campaigns/{campaign_id}/contacts/{campaign_contact_id}")
+  L231: def remove_contact(campaign_id: int, campaign_contact_id: int)
+  @router.post("/send")
+  L240: async def send_campaign_emails(data: SendEmailsRequest, background_tasks: BackgroundTasks)
+  @router.get("/queue")
+  L384: def get_email_queue(campaign_id: Optional[int] = None, limit: int = 50)
+  @router.get("/sent")
+  L393: def get_sent_emails( campaign_id: Optional[int] = None, contact_id: Optional[int] = None, limit: int = 100 )
+  @router.get("/stats")
+  L409: def get_email_stats()
+  @router.get("/dashboard-metrics")
+  L415: def get_dashboard_metrics(days: int = 30, active_days: int = 30)
+  @router.get("/campaigns/{campaign_id}/stats")
+  L446: def get_campaign_stats(campaign_id: int)
+  L460: class EmailApproveRequest(BaseModel)
+  L464: class BulkApproveRequest(BaseModel)
+  @router.get("/review-queue")
+  L469: def get_review_queue()
+  @router.post("/review-queue/{email_id}/approve")
+  L475: def approve_email(email_id: int, data: Optional[EmailApproveRequest] = None)
+  @router.post("/review-queue/{email_id}/reject")
+  L486: def reject_email(email_id: int)
+  @router.post("/review-queue/approve-all")
+  L493: def approve_all(data: BulkApproveRequest)
+  @router.post("/prepare-batch")
+  L500: async def prepare_batch()
+  @router.get("/tracking-status")
+  L510: def get_tracking_status(days: int = 7)
+  @router.post("/poll-tracking")
+  L516: async def poll_tracking()
+  @router.get("/scheduled")
+  L526: def get_scheduled()
+  @router.get("/scheduled-emails")
+  L532: def get_all_scheduled(campaign_id: Optional[int] = None, limit: int = 200)
+  @router.get("/scheduled-emails/{email_id}")
+  L538: def get_email_detail(email_id: int)
+  @router.get("/campaign-schedule-summary")
+  L547: def get_campaign_schedule_summary()
+  L552: class RescheduleRequest(BaseModel)
+  @router.put("/scheduled-emails/{email_id}/reschedule")
+  L557: def reschedule_email(email_id: int, data: RescheduleRequest)
+  L565: class ReorderRequest(BaseModel)
+  @router.put("/scheduled-emails/reorder")
+  L571: def reorder_emails(data: ReorderRequest)
+  @router.post("/scheduled-emails/{email_id}/send-now")
+  L578: async def send_email_now(email_id: int)
+  @router.post("/process-scheduled")
+  L650: async def process_scheduled()
+  @router.get("/config")
+  L710: def get_email_config()
+  @router.put("/config")
+  L716: def update_email_config(data: dict)
+  @router.post("/campaigns/{campaign_id}/salesforce-upload")
+  L734: async def upload_campaign_to_salesforce(campaign_id: int)
+  @router.get("/outlook/auth-status")
+  L877: def get_outlook_auth_status()
+  @router.post("/outlook/auth")
+  L889: def start_outlook_auth()
+  @router.post("/outlook/logout")
+  L903: def outlook_logout()
+  @router.post("/outlook/poll-replies")
+  L914: async def poll_outlook_replies_endpoint(minutes_back: int = 15)
+  @router.get("/replies")
+  L928: def get_replies(contact_id: Optional[int] = None, campaign_id: Optional[int] = None, limit: int = 50)
+  @router.get("/active-conversations")
+  L934: def get_active_conversations_endpoint(days: int = 30, limit: int = 50)
+  @router.post("/conversations/{reply_id}/mark-handled")
+  L940: def mark_conversation_handled(reply_id: int)
+  @router.get("/conversations/{contact_id}/thread")
+  L949: def get_conversation_thread(contact_id: int, limit: int = 20)
+  @router.post("/preview")
+  L966: async def preview_email(campaign_id: int, contact_id: int, step_number: int = 1)
+
+=== api\routes\pipeline.py (7.4 KB) ===
+  L26: def run_pipeline_thread(tier: Optional[str], max_contacts: int)
+  @router.get("/status")
+  L79: def get_pipeline_status()
+  @router.post("/start")
+  L89: def start_pipeline(tier: Optional[str] = None, max_contacts: int = 25)
+  @router.post("/stop")
+  L113: def stop_pipeline()
+  @router.post("/emails")
+  L122: def run_email_discovery(workers: int = 5)
+      L135: def run()
+  @router.post("/phones")
+  L180: def run_phone_discovery(workers: int = 10, today_only: bool = False)
+      L195: def run()
+
+=== api\routes\salesforce.py (4.2 KB) ===
+  L26: class CredentialsInput(BaseModel)
+  L31: class CredentialsResponse(BaseModel)
+  L36: class AuthStatusResponse(BaseModel)
+  L42: class ReauthResponse(BaseModel)
+  @router.post("/credentials", response_model=CredentialsResponse)
+  L49: async def save_salesforce_credentials(data: CredentialsInput)
+  @router.get("/auth-status", response_model=AuthStatusResponse)
+  L66: async def get_salesforce_auth_status()
+  @router.delete("/credentials", response_model=CredentialsResponse)
+  L108: async def delete_salesforce_credentials()
+  @router.post("/reauth", response_model=ReauthResponse)
+  L119: async def trigger_salesforce_reauth()
+
+=== api\routes\salesnav.py (4.9 KB) ===
+  L19: class SalesNavSearchRequest(BaseModel)
+  L26: def _norm(value: str) -> str
+  L29: def _abs_linkedin_url(url: Optional[str]) -> Optional[str]
+  L44: def _people_search_url(keyword: str) -> str
+  @router.post("/search")
+  L49: async def salesnav_person_search(request: SalesNavSearchRequest)
+
+=== api\routes\stats.py (1.4 KB) ===
+  @router.get("")
+  L13: def get_stats()
+
+=== app.py (2.7 KB) ===
+  L22: def start_server()
+      L35: def on_startup()
+  L55: def wait_for_server(timeout=15)
+  L71: def main()
+      L98: def minimize()
+      L100: def maximize()
+      L102: def close()
+
+=== build.py (3.5 KB) ===
+  L20: def run_cmd(cmd, cwd=None)
+  L29: def build_frontend()
+  L48: def install_dependencies()
+  L58: def build_exe()
+  L80: def create_installer_files()
+  L100: def main()
+
+=== cli\commands\backfill.py (6.9 KB) ===
+  L9: def cmd_backfill_linkedin_urls(args)
+  L65: async def _backfill_urls(companies: dict)
+  L169: def _names_match(name1: str, name2: str) -> bool
+
+=== cli\commands\collect.py (2.5 KB) ===
+  L8: def cmd_collect_companies(args)
+
+=== cli\commands\db.py (3.9 KB) ===
+  L8: def cmd_reset_queue(args)
+  L19: def cmd_reset_company_status(args)
+  L28: def cmd_reset_salesforce(args)
+  L45: def cmd_clear_contacts(args)
+  L69: def cmd_db_stats(args)
+  L105: def setup_db_commands(subparsers)
+
+=== cli\commands\emails.py (1.4 KB) ===
+  L8: def cmd_discover_emails(args)
+
+=== cli\commands\init.py (0.3 KB) ===
+  L8: def cmd_init(args)
+
+=== cli\commands\phone_database.py (17.9 KB) ===
+  L24: def cmd_build_phone_database(args)
+  L121: def cmd_phone_database_stats(args)
+  L171: def cmd_lookup_phone(args)
+  L193: def cmd_reverse_lookup(args)
+  L245: def cmd_search_name(args)
+  L268: def cmd_export_phones(args)
+  L283: def cmd_batch_reverse_lookup(args)
+  L326: def cmd_show_names(args)
+  L351: def setup_phone_database_commands(subparsers)
+
+=== cli\commands\phones.py (1.3 KB) ===
+  L9: def cmd_discover_phones(args)
+
+=== cli\commands\scrape.py (18 KB) ===
+  L10: def cmd_scrape_and_enrich(args)
+  L49: async def _scrape_companies_parallel_with_email(companies: list, max_contacts: int, num_workers: int = 2)
+      L259: def process_email_for_company(company_name: str, domain: str)
+      L318: async def linkedin_worker_task(worker)
+
+=== cli\commands\status.py (1.3 KB) ===
+  L7: def cmd_status(args)
+
+=== cli\main.py (5.5 KB) ===
+  L30: def main()
+
+=== cli\utils.py (0.9 KB) ===
+  L6: def calculate_grid_positions(num_windows: int, screen_width: int = 1920, screen_height: int = 1080)
+
+=== daily_email_sender.py (2.9 KB) ===
+  L39: async def main()
+
+=== database.py (83.2 KB) ===
+  L16: def get_connection() -> sqlite3.Connection
+  @contextmanager
+  L24: def get_db()
+  L37: def init_database()
+  L391: def add_target( company_name: str, domain: str = None, tier: str = None, vertical: str = None, target_reason: str = None, wedge: str = None, source_url: str = None, source: str = None, notes: str = None ) -> int
+  L441: def get_pending_targets(limit: int = 100) -> List[Dict]
+  L454: def update_target_status(domain: str = None, company_name: str = None, status: str = None)
+  L484: def validate_and_fix_target_status(company_name: str)
+  L519: def validate_all_target_statuses()
+  L567: def add_page(domain: str, url: str, page_type: str = None) -> int
+  L581: def update_page_content( url: str, text_path: str = None, html_path: str = None, meta_json: dict = None, emails_found: List[str] = None, phones_found: List[str] = None, internal_links: List[dict] = None, fetch_status: str = "fetched" )
+  L617: def get_pages_for_domain(domain: str) -> List[Dict]
+  L625: def get_unfetched_pages(limit: int = 50) -> List[Dict]
+  L639: def add_candidate( domain: str, company_name: str = None, company_info: str = None, contacts: List[dict] = None, fit_score: float = None, contact_quality_score: float = None, evidence_score: float = None, confidence: float = None, fit_reason: str ...
+  L700: def get_candidates_for_sending(limit: int = 250, min_score: float = 0.5) -> List[Dict]
+  L721: def add_to_send_queue( candidate_id: int, contact_name: str, contact_email: str, contact_title: str, planned_subject: str, planned_body: str, personalization: str = None, priority: int = 0, scheduled_date: str = None ) -> int
+  L757: def get_pending_sends(limit: int = 250, date: str = None) -> List[Dict]
+  L777: def update_send_queue_status(send_id: int, status: str, sf_record_url: str = None)
+  L787: def mark_do_not_send(send_id: int, reason: str)
+  L799: def log_send_result( send_queue_id: int, result: str, sf_record_url: str = None, sf_activity_id: str = None, details: str = None, screenshot_path: str = None )
+  L817: def get_daily_send_stats(date: str = None) -> Dict
+  L841: def log_llm_usage( domain: str, call_type: str, input_tokens: int, output_tokens: int )
+  L859: def get_daily_llm_usage(date: str = None) -> Dict
+  L879: def can_make_llm_call() -> bool
+  L887: def create_email_campaign( name: str, description: str = None, num_emails: int = 3, days_between_emails: int = 3 ) -> int
+  L903: def get_email_campaigns(status: str = None) -> List[Dict]
+  L914: def get_email_campaign(campaign_id: int) -> Optional[Dict]
+  L935: def update_email_campaign( campaign_id: int, name: str = None, description: str = None, num_emails: int = None, days_between_emails: int = None, status: str = None )
+  L977: def delete_email_campaign(campaign_id: int)
+  L986: def save_email_template( campaign_id: int, step_number: int, subject_template: str, body_template: str ) -> int
+  L1003: def get_email_templates(campaign_id: int) -> List[Dict]
+  L1017: def enroll_contacts_in_campaign(campaign_id: int, contact_ids: List[int]) -> Dict
+  L1044: def get_campaign_contacts(campaign_id: int, status: str = None) -> List[Dict]
+  L1072: def get_contacts_ready_for_email(campaign_id: int = None, limit: int = 50) -> List[Dict]
+  L1108: def update_campaign_contact( campaign_contact_id: int, current_step: int = None, status: str = None, sf_lead_url: str = None, next_email_at: str = None )
+  L1145: def remove_contact_from_campaign(campaign_contact_id: int)
+  L1154: def log_sent_email( campaign_id: int, campaign_contact_id: int, contact_id: int, step_number: int, subject: str, body: str, sf_lead_url: str = None, status: str = 'sent', error_message: str = None, screenshot_path: str = None ) -> int
+  L1183: def get_sent_emails( campaign_id: int = None, contact_id: int = None, limit: int = 100 ) -> List[Dict]
+  L1218: def get_email_campaign_stats(campaign_id: int = None) -> Dict
+  L1285: def get_config(key: str, default: str = None) -> str
+  L1294: def set_config(key: str, value: str)
+  L1304: def get_all_config() -> Dict
+  L1314: def get_review_queue(limit: int = 50) -> List[Dict]
+  L1338: def approve_email(sent_email_id: int, edited_subject: str = None, edited_body: str = None)
+  L1368: def reject_email(sent_email_id: int, reason: str = None)
+  L1379: def approve_all_emails(sent_email_ids: List[int])
+  L1399: def get_scheduled_emails(limit: int = 10) -> List[Dict]
+  L1427: def get_all_scheduled_emails(campaign_id: int = None, limit: int = 200) -> List[Dict]
+  L1468: def reschedule_email(sent_email_id: int, new_send_time: str)
+  L1480: def reorder_scheduled_emails(email_ids: List[int], start_time: str = None)
+  L1512: def get_email_detail(sent_email_id: int) -> Optional[Dict]
+  L1555: def get_campaign_scheduled_summary() -> List[Dict]
+  L1598: def mark_email_sent(sent_email_id: int, sf_lead_url: str = None)
+  L1612: def mark_email_failed(sent_email_id: int, error_message: str = None)
+  L1627: def get_emails_needing_tracking(lookback_days: int = 14) -> List[Dict]
+  L1647: def update_email_tracking(sent_email_id: int, opened: bool = None, open_count: int = None, replied: bool = None)
+  L1677: def get_todays_draft_count() -> int
+  L1689: def get_tracking_stats(days: int = 7) -> Dict
+  L1719: def get_campaign_tracking_stats(campaign_id: int) -> Dict
+  L1747: def get_daily_email_stats(days: int = 30) -> List[Dict]
+  L1805: def get_active_conversations_count(days: int = 30) -> int
+  L1820: def get_meeting_booking_rate(days: int = 30) -> Dict
+  L1839: def _get_best_campaign_by_vertical(cursor, days: int) -> Optional[Dict]
+  L1875: def _get_best_campaign_by_title(cursor, days: int) -> Optional[Dict]
+  L1910: def get_best_campaign_segment(days: int = 30) -> Optional[Dict]
+  L1927: def _get_existing_scheduled_times(cursor) -> List[str]
+  L1938: def _calculate_next_send_time(cursor) -> str
+  L1945: def calculate_send_times(count: int, existing_times: List[str] = None) -> List[str]
+  L2013: def update_sent_email_outlook_ids( sent_email_id: int, outlook_message_id: str = None, outlook_conversation_id: str = None, outlook_internet_message_id: str = None, )
+  L2042: def get_sent_emails_with_outlook_ids(lookback_days: int = 30) -> List[Dict]
+  L2065: def get_sent_emails_for_reply_matching(lookback_days: int = 30) -> List[Dict]
+  L2086: def log_email_reply( sent_email_id: int, campaign_contact_id: int, contact_id: int, outlook_message_id: str = None, from_address: str = None, subject: str = None, body_preview: str = None, received_at: str = None, ) -> int
+  L2129: def get_email_replies( contact_id: int = None, campaign_id: int = None, limit: int = 50, ) -> List[Dict]
+  L2164: def get_active_conversations(days: int = 30, limit: int = 50) -> List[Dict]
+  L2198: def mark_conversation_handled(reply_id: int) -> bool
+  L2214: def get_conversation_thread(contact_id: int, limit: int = 20) -> List[Dict]
+
+=== salesforce_upload.py (12.7 KB) ===
+  L12: def get_latest_csv()
+  L20: def main()
+
+=== services\company_collector.py (7.3 KB) ===
+  L14: class CompanyCollector
+      L26: def __init__(self)
+      L30: async def collect_companies( self, query: str, max_companies: int = 100, headless: bool = False, save_to_db: bool = True ) -> Dict
+      L103: def _save_companies_to_db(self, companies: List[Dict], source_query: str) -> int
+  L177: async def collect_companies_from_query( query: str, max_companies: int = 100, headless: bool = False, save_to_db: bool = True ) -> Dict
+
+=== services\crawler.py (19.5 KB) ===
+  L57: def extract_emails(text: str) -> List[str]
+  L63: def extract_phones(text: str) -> List[str]
+  L69: def is_personal_email(email: str) -> bool
+  L100: def get_email_with_context(html: str, email: str, context_chars: int = 200) -> str
+  L113: def extract_internal_links(html: str, base_url: str) -> List[Dict]
+  L161: def get_contact_page_urls(base_url: str, internal_links: List[Dict]) -> List[str]
+  L186: def extract_readable_content(html: str) -> Tuple[str, str]
+  L210: def extract_metadata(html: str, url: str) -> Dict
+  L254: def fetch_page_simple(url: str) -> Optional[str]
+  L274: async def fetch_page_rendered(url: str, browser_context) -> Optional[str]
+  L291: def needs_js_rendering(html: str) -> bool
+  L316: def get_path_hash(url: str) -> str
+  L322: def save_page_content(domain: str, url: str, html: str, text: str, meta: Dict) -> Tuple[str, str, str]
+  L345: def process_single_page(domain: str, url: str, html: str) -> Dict
+  L399: def crawl_domain(domain: str, homepage_url: str = None) -> Dict
+  L491: def crawl_pending_targets(limit: int = 50) -> List[Dict]
+  L517: def import_target_companies(csv_path: str) -> int
+  L609: def import_seed_urls(csv_path: str) -> int
+
+=== services\email_discoverer.py (16.5 KB) ===
+  L17: def search_company_emails(company_name: str, domain: str = None) -> Dict
+  L73: def analyze_pattern_with_llm(company_name: str, domain: str, search_results: Dict) -> Dict
+  L180: def discover_email_pattern(company_name: str, domain_hint: str = None) -> Dict
+  L239: def generate_email(name: str, pattern: str, domain: str) -> str
+  L289: def process_linkedin_contacts_with_patterns(output_path: str = None, today_only: bool = False, workers: int = 5) -> Dict
+      L362: def discover_for_company(args)
+
+=== services\email_generator.py (7.2 KB) ===
+  L12: def generate_email_with_gpt4o(campaign: Dict, contact: Dict) -> Tuple[str, str]
+  L152: def _generate_from_template(subject_template: str, body_template: str, contact: Dict, company_name: str) -> Tuple[str, str]
+
+=== services\email_pattern.py (10.1 KB) ===
+  L35: def parse_name(full_name: str) -> Tuple[str, str, str, str]
+  L47: def generate_email_variants(name: str, domain: str) -> List[str]
+  L74: async def search_google_for_emails(domain: str, page: Page) -> List[str]
+  L110: def analyze_email_pattern(emails: List[str], domain: str) -> Optional[str]
+  L148: async def discover_pattern_with_llm(domain: str, sample_emails: List[str]) -> Optional[str]
+  L202: async def discover_email_pattern(domain: str) -> Dict
+  L255: def generate_email_for_contact(name: str, domain: str, pattern: str = None) -> str
+  L280: def save_email_pattern(domain: str, pattern: str, confidence: float, sample_emails: List[str])
+  L291: def get_email_pattern(domain: str) -> Optional[Dict]
+  L309: def init_patterns_table()
+
+=== services\email_preparer.py (5.6 KB) ===
+  L16: async def prepare_daily_batch() -> Dict
+
+=== services\graph_auth.py (7.2 KB) ===
+  L25: def _get_token_cache() -> msal.SerializableTokenCache
+      L40: def _save_cache()
+  L51: def _save_cache_now()
+  L61: def _get_app() -> msal.PublicClientApplication
+  L76: def get_access_token(interactive: bool = False) -> Optional[str]
+  L107: def _run_device_flow_thread(flow: Dict)
+  L137: def initiate_auth() -> Dict
+  L193: def is_authenticated() -> bool
+  L198: def is_auth_in_progress() -> bool
+  L203: def get_auth_status() -> Dict
+  L225: def logout()
+
+=== services\linkedin\contacts.py (4.1 KB) ===
+  L11: def save_linkedin_contacts(company_name: str, employees: List[Dict], domain: str = None)
+  L36: def get_linkedin_contacts(company_name: str = None, domain: str = None) -> List[Dict]
+  L65: def init_linkedin_table()
+  L106: def update_contact_linkedin_url(contact_id: int, linkedin_url: str)
+
+=== services\linkedin\profile_finder.py (16.7 KB) ===
+  L13: class LinkedInProfileFinder
+      L19: def __init__(self)
+      L26: async def start(self, headless: bool = False)
+      L53: async def stop(self)
+      L71: async def _check_auth(self) -> bool
+      L96: async def wait_for_login(self, timeout_minutes: int = 5) -> bool
+      L130: async def find_profile_url(self, name: str, company: str) -> Optional[str]
+      L187: async def _browser_search_profile(self, name: str, company: str) -> Optional[str]
+      L227: async def _verify_profile(self, link_element, name: str, company: str) -> Optional[str]
+      L307: def _find_profile_with_llm_sync(self, name: str, company: str) -> Optional[str]
+      L431: async def _find_profile_with_llm(self, name: str, company: str) -> Optional[str]
+
+=== services\linkedin\scraper.py (136.4 KB) ===
+  L20: class SalesNavigatorScraper
+      L25: def __init__(self)
+      L32: async def start(self, headless: bool = False)
+      L82: async def stop(self)
+      L108: async def _check_auth(self) -> bool
+      L139: async def wait_for_login(self, timeout_minutes: int = None) -> bool
+      L185: async def reset_search_state(self)
+      L203: async def search_company(self, company_name: str) -> Optional[str]
+      L286: async def click_decision_makers(self) -> bool
+      L332: async def get_company_employees( self, company_url: str, max_employees: int = 20, title_filter: str = None ) -> List[Dict]
+      L458: async def scrape_company_contacts( self, company_name: str, domain: str, max_contacts: int = 10, extract_public_urls: bool = False ) -> Dict
+      L533: async def scrape_current_results(self, max_employees: int = 50) -> List[Dict]
+      L652: async def navigate_to_account_search(self)
+      L682: async def build_search_url(self, filters: Dict) -> Optional[str]
+      L879: async def _get_location_id_from_dropdown(self, location: str) -> Optional[str]
+      L1040: async def _get_filter_id_from_url(self, filter_type: str, filter_value: str) -> Optional[str]
+      L1086: async def _get_filter_id(self, filter_type: str, filter_value: str) -> Optional[str]
+      L1187: async def apply_filters(self, filters: Dict)
+      L1266: async def _apply_industry_filter(self, industry: str)
+      L1342: async def _apply_location_filter(self, location: str)
+      L1470: async def _apply_headcount_filter(self, headcount_range: str)
+      L1515: async def _apply_revenue_filter(self, revenue_range: str)
+      L1559: async def scrape_company_results(self, max_companies: int = 100) -> List[Dict]
+      L1667: async def extract_company(i: int) -> Optional[Dict]
+      L2058: async def search_companies_with_filters( self, filters: Dict, max_companies: int = 100 ) -> List[Dict]
+      L2085: async def extract_public_linkedin_url(self, card, name: str = None) -> Optional[str]
+      L2306: def _abs_salesnav_url(self, url: Optional[str]) -> Optional[str]
+      L2318: def _extract_public_url_from_html(self, html: str) -> Optional[str]
+      L2346: async def _copy_public_url_from_lead_page( self, sales_nav_url: Optional[str], name: str = None ) -> Optional[str]
+      L2615: async def scrape_current_results_with_public_urls( self, max_employees: int = 50, extract_public_urls: bool = True ) -> List[Dict]
+  L2756: async def enrich_leads_with_public_urls( leads: List[Dict], company_name: str, use_tavily_fallback: bool = False ) -> List[Dict]
+  L2824: async def _try_url_generation(name: str) -> Optional[str]
+  L2871: async def _tavily_search_profile(name: str, company: str) -> Optional[str]
+  L2915: async def scrape_linkedin_for_domain(domain: str, company_name: str = None) -> Dict
+
+=== services\name_normalizer.py (13.2 KB) ===
+  @dataclass
+  L49: class NormalizedName
+      L61: def full_name(self) -> str
+      L70: def to_dict(self) -> Dict
+  L85: def _remove_credentials(name: str) -> str
+  L136: def _is_particle(word: str) -> bool
+  L141: def _extract_last_name_with_particles(words: list) -> Tuple[str, int]
+  L174: def normalize_name(raw_name: str) -> NormalizedName
+  L293: def generate_email_prefix( name: NormalizedName, pattern: str = '{first}.{last}' ) -> Optional[str]
+  L336: def parse_name_for_email(full_name: str) -> Tuple[str, str, str, str]
+  L354: def clean_name_for_salesforce(raw_name: str) -> Dict[str, str]
+
+=== services\outlook_reply_monitor.py (13.4 KB) ===
+  L29: async def _graph_get(session: aiohttp.ClientSession, url: str, token: str) -> Optional[Dict]
+  L45: async def _get_user_email(session: aiohttp.ClientSession, token: str) -> Optional[str]
+  L53: async def _fetch_recent_inbox_messages( session: aiohttp.ClientSession, token: str, minutes_back: int = 15, top: int = 50, ) -> List[Dict]
+  L79: def _extract_in_reply_to(message: Dict) -> Optional[str]
+  L90: def _normalize_subject(subject: str) -> str
+  L101: def _match_message_to_sent_email( message: Dict, sent_emails: List[Dict], emails_by_conversation: Dict[str, List[Dict]], emails_by_internet_msg_id: Dict[str, List[Dict]], ) -> Optional[Dict]
+  L165: async def poll_outlook_replies(minutes_back: int = 15) -> Dict
+
+=== services\pattern_tester.py (6.8 KB) ===
+  L9: def get_test_candidates() -> List[Dict]
+  L47: def generate_test_emails(name: str, domain: str) -> List[Dict]
+  L78: def create_test_queue() -> List[Dict]
+  L103: def get_test_email_body(name: str, company: str) -> str
+  L116: def print_test_summary(test_queue: List[Dict])
+  L133: async def check_bounce_status_salesforce(page, email: str) -> Dict
+  L179: def determine_winning_pattern(test_results: List[Dict]) -> Dict[str, str]
+
+=== services\phone_database\builder.py (17 KB) ===
+  L34: class PhoneDatabaseBuilder
+      L41: def __init__( self, db_path: str = None, max_workers: int = 4, # Lower default for Docker overhead use_twilio: bool = False, twilio_limit: int = 900, request_delay: float = 0.5 # Delay between requests (rate limiting) )
+      L78: async def build_for_area_codes( self, area_codes: List[str], max_per_area: int = 10000, target_names: List[str] = None, save_interval: int = 100, start_offset: int = 0 # Resume from this number ) -> Dict
+      L143: async def validate_one(phone: str)
+      L263: async def reverse_lookup_batch( self, phones: List[str], save_to_db: bool = True ) -> List[Dict]
+      L285: async def lookup_one(phone: str)
+  L309: async def bulk_validate_phones_parallel( phone_generator: Generator[str, None, None], max_workers: int = 8, batch_size: int = 1000, use_twilio: bool = False, use_phoneinfoga: bool = True, twilio_limit: int = 900 ) -> List[Dict]
+      L337: async def validate_phone(phone: str)
+  L391: async def build_phone_database_for_region( area_codes: List[str], output_db_path: str = None, max_per_area: int = 10000, max_workers: int = 4, # Lower default for Docker use_twilio: bool = False, twilio_limit: int = 900, request_delay: float = 0.5...
+  L433: async def reverse_lookup_phones( phones: List[str], db_path: str = None, max_workers: int = 8, save_to_db: bool = True ) -> List[Dict]
+
+=== services\phone_database\database.py (18.1 KB) ===
+  L24: class PhoneDatabase
+      L27: def __init__(self, db_path: str = None)
+      L41: def _init_database(self)
+      L96: def _normalize_phone(self, phone: str) -> Tuple[str, str, str, str]
+      L119: def _normalize_name(self, name: str) -> str
+      L125: def lookup(self, phone: str) -> Optional[Dict]
+      L152: def search_by_name(self, name: str, limit: int = 10, min_confidence: float = 0.5) -> List[Dict]
+      L226: def search_by_area_code(self, area_code: str, limit: int = 100, only_with_names: bool = False) -> List[Dict]
+      L257: def insert(self, phone_data: Dict) -> bool
+      L316: def insert_batch(self, phone_data_list: List[Dict]) -> int
+      L376: def get_stats(self) -> Dict
+      L452: def get_numbers_with_names(self, limit: int = 100, min_confidence: float = 0.6) -> List[Dict]
+      L479: def export_csv(self, output_path: str, include_only_names: bool = False) -> int
+  L520: def lookup_phone_in_database(phone: str, db_path: str = None) -> Optional[Dict]
+  L535: def search_name_in_database(name: str, db_path: str = None, limit: int = 10) -> List[Dict]
+
+=== services\phone_database\generator.py (4.3 KB) ===
+  L11: def generate_phone_numbers_for_area_code(area_code: str, limit: int = None) -> Generator[str, None, None]
+  L44: def generate_phone_numbers_for_region( area_codes: List[str], max_per_area: int = None ) -> Generator[str, None, None]
+  L64: def get_us_area_codes_by_region() -> Dict[str, List[str]]
+  L111: def get_all_us_area_codes() -> List[str]
+
+=== services\phone_database\validator.py (23.8 KB) ===
+  L47: def is_valid_name(name: str) -> bool
+  L75: def clean_name(name: str) -> str
+  L101: def extract_name_from_text(text: str) -> Optional[str]
+  L124: async def validate_phone_via_twilio(phone: str) -> Optional[Dict]
+  L184: async def enrich_phone_via_phoneinfoga_cli(phone: str) -> Optional[Dict]
+  L265: def _parse_phoneinfoga_json(data: dict, phone: str) -> Dict
+  L351: def _parse_phoneinfoga_stdout(stdout: str, phone: str) -> Dict
+  L444: async def enrich_phone_via_web_directories(phone: str) -> Optional[Dict]
+  L514: async def enrich_phone_via_phoneinfoga(phone: str) -> Optional[Dict]
+  L550: async def validate_and_enrich_phone( phone: str, existing_data: Dict = None, use_twilio: bool = False, target_name: str = None ) -> Dict
+  L633: async def reverse_lookup_phone(phone: str) -> Optional[Dict]
+  L660: async def batch_reverse_lookup(phones: List[str], max_workers: int = 4) -> List[Dict]
+      L674: async def lookup_one(phone: str)
+
+=== services\phone_discoverer.py (42 KB) ===
+  L37: def normalize_phone(phone: str) -> str
+  L48: def extract_phones_with_context(text: str, name: str = None) -> List[Dict]
+  L108: def _init_searxng_semaphore()
+  L115: async def search_with_searxng(query: str, max_results: int = 10) -> Dict
+  L192: async def search_with_tavily(query: str, max_results: int = 10) -> Dict
+  L197: def extract_phones_from_url(url: str) -> List[str]
+  L211: async def find_phone_from_crawled_pages(name: str, company: str, domain: str) -> Optional[Dict]
+  L408: async def find_phone_via_email_association(name: str, email: str, company: str) -> Optional[Dict]
+  L473: async def find_phone_via_conference_pages(name: str, company: str) -> Optional[Dict]
+  L499: async def find_phone_via_press_releases(name: str, company: str) -> Optional[Dict]
+  L525: async def find_phone_via_industry_directories(name: str, company: str, industry: str = None) -> Optional[Dict]
+  L556: async def find_phone_via_google_patterns(name: str, company: str) -> Optional[Dict]
+  L590: async def find_phone_via_social_proof(name: str, company: str) -> Optional[Dict]
+  L619: async def find_phone_from_linkedin(name: str, company: str, linkedin_url: str = None) -> Optional[Dict]
+  L638: async def find_phone_via_llm_analysis(name: str, company: str, domain: str, search_results: List[Dict]) -> Optional[Dict]
+  L702: def generate_email_variations(name: str, domain: str) -> List[str]
+  L741: async def find_phone_from_company_website(name: str, company: str, email_domain: str = None) -> Optional[Dict]
+  L815: async def find_phone_by_name_in_all_pages(name: str, company: str) -> Optional[Dict]
+  L870: async def discover_phone_parallel( name: str, company: str, domain: str, email: str = None, linkedin_url: str = None, industry: str = None ) -> Optional[Dict]
+  L891: async def discover_phones_for_contacts( contacts: List[Dict], max_workers: int = 10 ) -> Dict
+      L908: async def discover_with_limit(contact)
+  L1007: async def process_linkedin_contacts_for_phones(today_only: bool = False, max_workers: int = 10) -> Dict
+      L1094: async def test()
+
+=== services\salesforce_auth_manager.py (19.6 KB) ===
+  L34: class SalesforceAuthStatus(Enum)
+  L57: def _is_bot_alive(bot: SalesforceBot) -> bool
+  L71: async def _kill_bot(bot: SalesforceBot) -> None
+  L85: async def get_shared_bot() -> Optional[SalesforceBot]
+  L127: async def stop_shared_bot() -> None
+  L139: async def get_auth_status() -> SalesforceAuthStatus
+  L162: def _check_storage_state_health() -> SalesforceAuthStatus
+  L205: def is_reauth_in_progress() -> bool
+  L212: async def trigger_reauth() -> bool
+  L337: async def _autofill_login(bot: SalesforceBot, username: str, password: str) -> bool
+  L426: async def _wait_for_auth_completion(bot: SalesforceBot, timeout_minutes: int = 5) -> bool
+  L489: async def start_session_health_worker() -> None
+  L501: async def stop_session_health_worker() -> None
+  L520: async def _session_health_loop() -> None
+
+=== services\salesforce_bot.py (30.4 KB) ===
+  L20: class SalesforceBot
+      L31: def __init__(self)
+      L40: async def start(self, headless: bool = False, allow_manual_login: bool = True)
+      L77: async def stop(self)
+      L94: async def _check_auth(self) -> bool
+      L135: async def _try_autofill_login(self) -> bool
+  @staticmethod
+      L233: def _resolve_base_url(storage_path: Path) -> Optional[str]
+      L255: async def find_lead_url_by_name(self, full_name: str) -> Optional[str]
+      L312: async def wait_for_manual_login(self, timeout_minutes: int = 15)
+      L355: async def _capture_failure(self, send_id: int, step: str, error: str) -> str
+      L370: async def search_for_record(self, email: str, company: str = None) -> Optional[Dict]
+      L408: async def create_or_update_lead( self, first_name: str = None, last_name: str = None, company: str = None, title: str = None, email: str = None, website: str = None, description: str = None, lead_source: str = "Web Research" ) -> Optional[str]
+      L484: async def send_email_from_record( self, subject: str, body: str, to_email: str = None, review_mode: bool = False ) -> bool
+      L539: async def verify_email_in_timeline(self, subject: str) -> bool
+      L546: async def process_send_item(self, item: Dict, review_mode: bool = False) -> Dict
+      L660: async def process_send_queue(self, limit: int = None, review_mode: bool = False) -> Dict
+  L726: async def run_salesforce_bot( limit: int = None, headless: bool = False, review_mode: bool = False ) -> Dict
+
+=== services\salesforce_bulk_import.py (9.9 KB) ===
+  L16: class SalesforceBulkImporter
+      L19: def __init__(self)
+      L25: async def start(self, headless: bool = False)
+      L49: async def stop(self)
+      L57: async def _check_auth(self) -> bool
+      L80: async def bulk_import_leads(self, contacts: List[Dict]) -> Dict
+  L234: async def bulk_import_to_salesforce(contacts: List[Dict], headless: bool = False) -> Dict
+
+=== services\salesforce_credentials.py (4.5 KB) ===
+  L25: class SalesforceCredentials(TypedDict)
+  L34: def _get_machine_key() -> bytes
+  L75: def _get_fernet() -> Optional["Fernet"]
+  L84: def save_credentials(username: str, password: str) -> bool
+  L116: def get_credentials() -> Optional[SalesforceCredentials]
+  L145: def clear_credentials() -> bool
+  L162: def credentials_configured() -> bool
+
+=== services\salesforce_email_sender.py (21.2 KB) ===
+  L14: async def run_campaign_email_sender( campaign_id: int = None, limit: int = None, headless: bool = False, review_mode: bool = True, template_name: str = "Footer", batch_size: int = 20 # Process in batches of 20 tabs at a time ) -> Dict
+      L130: async def process_one_tab(task_idx, task)
+  L297: async def process_approved_emails( limit: int = 10, headless: bool = False, template_name: str = "Footer", batch_size: int = 20 ) -> Dict
+      L347: async def process_one_tab(task_idx, email)
+
+=== services\salesforce_lookup_queue.py (8.8 KB) ===
+  @dataclass(frozen=True)
+  L27: class SalesforceLookupJob
+  L38: def enqueue_salesforce_lookup(contact_id: int, name: str) -> None
+  L63: def is_browser_busy() -> bool
+  L67: async def start_salesforce_lookup_worker() -> None
+  L77: async def stop_salesforce_lookup_worker() -> None
+  L91: async def _worker_loop() -> None
+  L109: def _requeue(contact_id: int) -> None
+  L119: async def _process_job(job: SalesforceLookupJob) -> None
+
+=== services\salesforce_pages.py (24.1 KB) ===
+  L10: class SalesforceBasePage
+      L13: def __init__(self, page: Page)
+      L17: async def wait_for_lightning_ready(self)
+      L27: async def get_toast_message(self) -> Optional[str]
+      L36: async def wait_for_toast(self, expected_text: str = None, timeout: int = 10000) -> bool
+      L48: async def dismiss_toast(self)
+      L57: async def capture_screenshot(self, path: str)
+      L61: async def get_current_url(self) -> str
+  L66: class GlobalSearch(SalesforceBasePage)
+      L69: async def search(self, query: str) -> bool
+      L154: async def get_search_results(self) -> list
+      L175: async def get_record_url_by_name(self, name: str) -> str | None
+      L209: async def click_result_by_text(self, text: str) -> bool
+  L240: class LeadPage(SalesforceBasePage)
+      L243: async def is_lead_page(self) -> bool
+      L248: async def create_new_lead(self) -> bool
+      L287: async def fill_lead_form( self, first_name: str = None, last_name: str = None, company: str = None, title: str = None, email: str = None, website: str = None, lead_source: str = None, description: str = None ) -> bool
+      L304: async def fill_field(label: str, value: str, required: bool = False)
+      L385: async def save_lead(self) -> Optional[str]
+      L430: async def get_lead_id_from_url(self) -> Optional[str]
+  L439: class ContactPage(SalesforceBasePage)
+      L442: async def is_contact_page(self) -> bool
+  L448: class EmailComposer(SalesforceBasePage)
+      L451: async def open_email_composer(self) -> bool
+      L503: async def fill_email( self, to: str = None, subject: str = None, body: str = None ) -> bool
+      L566: async def send_email(self, skip_click: bool = False) -> bool
+      L607: async def cancel_email(self)
+  L616: class ActivityTimeline(SalesforceBasePage)
+      L619: async def get_recent_activities(self, limit: int = 5) -> list
+      L632: async def verify_email_sent(self, subject: str) -> bool
+
+=== services\salesforce_sender.py (38.3 KB) ===
+  L22: class SalesforceSender
+      L28: def __init__(self)
+      L35: async def start(self, headless: bool = False)
+      L130: async def stop(self)
+      L147: async def open_tabs(self, count: int)
+      L154: async def find_lead(self, page: Page, email: str, name: str, company: str) -> Optional[str]
+      L403: async def navigate_to_lead(self, page: Page, lead_url: str) -> bool
+      L411: async def click_send_email(self, page: Page) -> bool
+      L485: async def select_template(self, page: Page, template_name: str) -> bool
+      L530: async def fill_email_body(self, page: Page, subject: str, body: str, sign_off: str = "Best,") -> bool
+      L607: async def send_email(self, page: Page) -> bool
+      L648: async def process_contact( self, page: Page, contact: Dict, template_name: str, subject: str = None, body: str = None, auto_send: bool = False ) -> Dict
+      L758: async def process_contacts_parallel( self, contacts: List[Dict], template_name: str ) -> Dict
+  L802: async def run_salesforce_sender( campaign_id: int = None, template_name: str = None, limit: int = 10, headless: bool = False ) -> Dict
+  L864: async def test_browser()
+  L894: async def test_email_flow(lead_url: str = None)
+
+=== services\salesforce_tracker.py (6.1 KB) ===
+  L16: async def poll_salesforce_tracking() -> Dict
+
+=== services\salesnav_filter_parser.py (6.3 KB) ===
+  L11: class SalesNavFilterParser
+      L33: def __init__(self)
+      L38: def parse_query(self, query: str) -> Dict
+      L113: def _validate_filters(self, filters: Dict) -> Dict
+  L136: def parse_salesnav_query(query: str) -> Dict
+
+=== tests\run_profile_finder.py (18.9 KB) ===
+  L19: def find_profile_with_tavily(name: str, company: str) -> str | None
+  L122: def find_profile_with_google(name: str, company: str) -> str | None
+  L170: def get_screen_size()
+  L180: def calculate_grid_positions(num_windows: int)
+  L205: async def verify_profile(page, name: str, company: str) -> str | None
+  L243: async def search_and_find_profile(page, name: str, company: str) -> str | None
+  L332: async def worker_task(worker_id: int, queue: asyncio.Queue, results: dict, results_lock: asyncio.Lock, rate_lock: asyncio.Lock, playwright, position: tuple)
+  L472: async def run_parallel_finder(batch_size: int, num_workers: int)
+
+=== tests\test_profile_finder.py (2.8 KB) ===
+  L10: async def test_profile_finder()
+
+=== tests\test_sf_email.py (6.4 KB) ===
+  L22: async def test_with_contact()
+  L160: async def test_browser_only()
+
+=== ui\src\api.ts (12.7 KB) ===
+  L3: export type Stats 
+  L10: export type Company 
+  L21: export type Contact 
+  L46: export type CreateContactInput 
+  L52: export type PipelineStatus 
+  L58: export type EmailCampaign 
+  L68: export type EmailCampaignStats 
+  L76: export type EmailDailyStat 
+  L83: export type BestCampaignMetric 
+  L93: export type ReplyPreview 
+  L107: export type OutlookAuthStatus 
+  L116: export type SalesforceAuthStatus 
+  L122: export type EmailDashboardMetrics 
+  L132: export type ThreadMessage 
+  L142: export type ConversationThread 
+  L154: export type ScheduledEmailPreview 
+  L166: export type GeneratedEmail 
+  L175: async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> 
+  L184: export const api = 
+
+=== ui\src\api\emailApi.ts (10.8 KB) ===
+  L16: export const emailApi = 
+
+=== ui\src\App.tsx (9.2 KB) ===
+  L34: type Page 
+  L36: function AppContent() 
+  L43: const pywebview = (window as any).pywebview;
+  L52: const handler = (e: MouseEvent) => 
+  L61: const handleQuickAdd = (type: string) => 
+  L75: const clearAddModal = () => setAddModalTarget(null);
+  L226: export default function App() 
+
+=== ui\src\components\chat\BrowserViewer.tsx (5.3 KB) ===
+  L11: interface BrowserViewerProps 
+  L17: type ViewerStatus 
+  L19: export function BrowserViewer(
+  L142: function resolveBrowserStreamUrl(): string 
+
+=== ui\src\components\chat\ChatContainer.tsx (1.8 KB) ===
+  L7: interface ChatContainerProps 
+  L17: export function ChatContainer(
+
+=== ui\src\components\chat\ChatInput.tsx (1.8 KB) ===
+  L4: interface ChatInputProps 
+  L10: export function ChatInput(
+  L17: const submit = () => 
+  L26: const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => 
+
+=== ui\src\components\chat\ChatMessage.tsx (15.6 KB) ===
+  L14: interface ChatMessageProps 
+  L28: export function ChatMessage(
+  L234: function BotBubble(
+  L254: function StatusBlock(
+  L291: function renderBoldText(content: string) 
+  L301: function ensureProtocol(url: string): string 
+  L320: function SalesforceUrlPrompt(
+  L340: const validateSalesforceLeadUrl = (value: string) => 
+
+=== ui\src\components\chat\TypingIndicator.tsx (0.5 KB) ===
+  L1: export function TypingIndicator() 
+
+=== ui\src\components\companies\AddCompanyModal.tsx (3.6 KB) ===
+  L5: type AddCompanyModalProps 
+  L10: export function AddCompanyModal(
+
+=== ui\src\components\companies\CompaniesFilterPanel.tsx (3.4 KB) ===
+  L6: type CompaniesFilterPanelProps 
+  L14: export function CompaniesFilterPanel(
+  L21: const tierValue = (columnFilters.find((f) => f.id === 'tier')?.value as string) ?? '';
+  L22: const statusValue = (columnFilters.find((f) => f.id === 'status')?.value as string) ?? '';
+  L23: const verticalValue = (columnFilters.find((f) => f.id === 'vertical')?.value as string) ?? '';
+  L34: const setFilter = (id: string, value: string) => 
+
+=== ui\src\components\companies\CompanyCard.tsx (1.5 KB) ===
+  L8: type CompanyCardProps 
+  L16: export function CompanyCard(
+
+=== ui\src\components\companies\CompanyDetail.tsx (2.8 KB) ===
+  L6: type CompanyDetailProps 
+  L10: export function CompanyDetail(
+
+=== ui\src\components\companies\StatusBadge.tsx (0.6 KB) ===
+  L13: export function StatusBadge(
+
+=== ui\src\components\companies\tableColumns.tsx (4.2 KB) ===
+  L9: function SortableHeader(
+  L25: export function createCompanyColumns(onDelete: (id: number, name: string) => void) 
+
+=== ui\src\components\companies\TierBadge.tsx (0.3 KB) ===
+  L9: export function TierBadge(
+
+=== ui\src\components\contacts\AddContactModal.tsx (6.2 KB) ===
+  L5: type AddContactModalProps 
+  L11: export function AddContactModal(
+  L24: const handleCompanyChange = (value: string) => 
+
+=== ui\src\components\contacts\BulkActionsBar.tsx (3.6 KB) ===
+  L3: type BulkActionsBarProps 
+  L14: export function BulkActionsBar(
+
+=== ui\src\components\contacts\CampaignEnrollmentModal.tsx (2.6 KB) ===
+  L5: type CampaignEnrollmentModalProps 
+  L13: export function CampaignEnrollmentModal(
+
+=== ui\src\components\contacts\ContactCard.tsx (2.2 KB) ===
+  L7: type ContactCardProps 
+  L15: export function ContactCard(
+
+=== ui\src\components\contacts\ContactDetail.tsx (5.6 KB) ===
+  L6: type ContactDetailProps 
+  L10: export function ContactDetail(
+  L13: const copyToClipboard = (text: string, field: string) => 
+
+=== ui\src\components\contacts\FilterPanel.tsx (5.4 KB) ===
+  L6: type FilterPanelProps 
+  L17: export function FilterPanel(
+  L27: const getFilterValue = (id: string) => (columnFilters.find((f) => f.id === id)?.value as string) ?? '';
+  L34: const setFilter = (id: string, value: string) => 
+
+=== ui\src\components\contacts\SalesforceStatusBadge.tsx (0.7 KB) ===
+  L14: export function SalesforceStatusBadge(
+
+=== ui\src\components\contacts\tableColumns.tsx (5 KB) ===
+  L8: function SortableHeader(
+  L24: export function createContactColumns(onDelete: (id: number, name: string) => void) 
+  L139: export const contactColumns = createContactColumns(() => 
+
+=== ui\src\components\dashboard\ActiveConversationsCard.tsx (4.1 KB) ===
+  L14: export interface ActiveConversationsCardProps 
+  L26: export function ActiveConversationsCard(
+
+=== ui\src\components\dashboard\CollapsibleSection.tsx (2.5 KB) ===
+  L4: type CollapsibleSectionProps 
+  L14: export function CollapsibleSection(
+
+=== ui\src\components\dashboard\ConnectionStatus.tsx (1.1 KB) ===
+  L5: export function ConnectionStatus() 
+
+=== ui\src\components\dashboard\ConversationCard.tsx (4.2 KB) ===
+  L5: type ConversationCardProps 
+  L12: function timeAgo(dateStr: string): string 
+  L25: export function ConversationCard(
+
+=== ui\src\components\dashboard\ConversationPanel.tsx (8 KB) ===
+  L5: type ConversationPanelProps 
+  L11: function formatTime(dateStr: string | null): string 
+  L24: export function ConversationPanel(
+  L50: const handleClose = () => 
+  L171: function MessageBubble(
+
+=== ui\src\components\dashboard\DashboardAccordion.tsx (4.9 KB) ===
+  L4: export interface AccordionSection 
+  L13: export interface DashboardAccordionProps 
+  L25: export function DashboardAccordion(
+  L39: const handleToggleWrapper = () => 
+
+=== ui\src\components\dashboard\LiveContacts.tsx (2.4 KB) ===
+  L4: type LiveContactsProps 
+  L8: export function LiveContacts(
+
+=== ui\src\components\dashboard\MetricPill.tsx (0.9 KB) ===
+  L1: export interface MetricPillProps 
+  L9: export function MetricPill(
+
+=== ui\src\components\dashboard\MiniLineChart.tsx (6.1 KB) ===
+  L3: export interface DailyPoint 
+  L10: type MiniLineChartProps 
+  L14: export function MiniLineChart(
+  L32: const yScale = (v: number) => padT + innerH - (v / maxVal) * innerH;
+  L33: const xScale = (i: number) => padL + (data.length === 1 ? innerW / 2 : i * xStep);
+  L35: const makePath = (key: keyof DailyPoint) =>
+
+=== ui\src\components\dashboard\MiniMetric.tsx (1.4 KB) ===
+  L3: type MiniMetricProps 
+  L13: export function MiniMetric(
+
+=== ui\src\components\dashboard\OutlookAuthBanner.tsx (3.7 KB) ===
+  L11: export interface OutlookAuthBannerProps 
+  L23: export function OutlookAuthBanner(
+
+=== ui\src\components\dashboard\RecentActivity.tsx (0.9 KB) ===
+  L1: type ActivityLine 
+  L6: type RecentActivityProps 
+  L10: export function RecentActivity(
+
+=== ui\src\components\dashboard\ScheduledSendRow.tsx (1.8 KB) ===
+  L3: export interface ScheduledSendRowProps 
+  L7: export function ScheduledSendRow(
+
+=== ui\src\components\dashboard\ScheduledSendsCard.tsx (1.9 KB) ===
+  L5: export interface ScheduledSendsCardProps 
+  L10: export function ScheduledSendsCard(
+
+=== ui\src\components\dashboard\StatCard.tsx (0.9 KB) ===
+  L1: type StatCardProps 
+  L8: export function StatCard(
+
+=== ui\src\components\dashboard\TerminalOutput.tsx (1.6 KB) ===
+  L3: type TerminalLine 
+  L8: type TerminalOutputProps 
+  L12: export function TerminalOutput(
+
+=== ui\src\components\dashboard\Toast.tsx (1.8 KB) ===
+  L4: export type ToastMessage 
+  L10: type ToastProps 
+  L15: export function ToastContainer(
+  L25: function ToastItem(
+
+=== ui\src\components\DataTable.tsx (1.9 KB) ===
+  L4: export interface ColumnDef<T> 
+  L11: interface DataTableProps<T> 
+  L21: export function DataTable<T extends 
+
+=== ui\src\components\email\CampaignCard.tsx (14.1 KB) ===
+  L8: type CampaignCardProps 
+  L21: function formatNextSend(dateStr: string): string 
+  L34: function formatCountdown(dateStr: string): string | null 
+  L45: function formatLastActivity(dateStr: string | null): string 
+  L61: export function CampaignCard(
+  L78: const handler = (e: MouseEvent) => 
+
+=== ui\src\components\email\CampaignModal.tsx (5 KB) ===
+  L6: type CampaignModalProps 
+  L12: export function CampaignModal(
+  L19: const updateNumEmails = (n: number) => 
+
+=== ui\src\components\email\CampaignsView.tsx (15 KB) ===
+  L8: type CampaignsViewProps 
+  L23: type StatusFilter 
+  L24: type SortOption 
+  L26: function sortCampaigns(
+  L70: function SectionHeader(
+  L104: export function CampaignsView(
+  L144: const handler = (e: KeyboardEvent) => 
+
+=== ui\src\components\email\EmailDetailModal.tsx (9.7 KB) ===
+  L6: type EmailDetailModalProps 
+  L13: function formatDateTime(dateStr: string | null): string 
+  L23: export function EmailDetailModal(
+
+=== ui\src\components\email\NextScheduledSends.tsx (6.8 KB) ===
+  L5: type NextScheduledSendsProps 
+  L13: function formatTime(dateStr: string): string 
+  L17: function formatCountdown(dateStr: string): string 
+  L28: export function NextScheduledSends(
+
+=== ui\src\components\email\QueueView.tsx (6.2 KB) ===
+  L5: type QueueViewProps 
+  L12: export function QueueView(
+
+=== ui\src\components\email\ReviewQueueView.tsx (8.6 KB) ===
+  L5: type ReviewQueueViewProps 
+  L18: export function ReviewQueueView(
+
+=== ui\src\components\email\ScheduledView.tsx (14.5 KB) ===
+  L4: type DragEndEvent
+  L11: type ScheduledViewProps 
+  L23: type DateGroup 
+  L29: function groupByDate(emails: ScheduledEmail[]): DateGroup[] 
+  L68: function formatTime(dateStr: string): string 
+  L74: function SortableEmailRow(
+  L170: export function ScheduledView(
+  L208: const handleDragEnd = (event: DragEndEvent) => 
+
+=== ui\src\components\email\SendNowConfirm.tsx (3.5 KB) ===
+  L4: type SendNowConfirmProps 
+  L11: export function SendNowConfirm(
+
+=== ui\src\components\email\SentEmailsList.tsx (5.4 KB) ===
+  L5: type SentEmailsListProps 
+  L9: export function SentEmailsList(
+
+=== ui\src\components\email\SettingsPanel.tsx (3.3 KB) ===
+  L3: type SettingsPanelProps 
+  L8: export function SettingsPanel(
+
+=== ui\src\components\email\TemplateEditorModal.tsx (4.4 KB) ===
+  L5: type TemplateEditorModalProps 
+  L11: export function TemplateEditorModal(
+  L25: const stepTabs = (
+
+=== ui\src\components\Notification.tsx (2.2 KB) ===
+  L4: export type NotificationType 
+  L6: export interface Notification 
+  L14: interface NotificationProps 
+  L19: export function NotificationToast(
+
+=== ui\src\components\NotificationContainer.tsx (0.6 KB) ===
+  L4: export function NotificationContainer() 
+
+=== ui\src\components\settings\SettingsModal.tsx (10.2 KB) ===
+  L6: type SettingsModalProps 
+  L11: export function SettingsModal(
+  L29: const loadSalesforceStatus = async () => 
+  L44: const handleSaveCredentials = async () => 
+  L65: const handleDeleteCredentials = async () => 
+  L86: const handleTestConnection = async () => 
+  L108: const renderAuthStatusBadge = () => 
+
+=== ui\src\components\shared\Badge.tsx (1.1 KB) ===
+  L13: export type BadgeProps 
+  L24: export function Badge(
+
+=== ui\src\components\shared\BaseModal.tsx (2.8 KB) ===
+  L19: export type BaseModalProps 
+  L34: export function BaseModal(
+  L43: const handleEsc = (e: KeyboardEvent) => 
+
+=== ui\src\components\shared\ConfirmDialog.tsx (2.5 KB) ===
+  L21: export type ConfirmDialogProps 
+  L40: export function ConfirmDialog(
+
+=== ui\src\components\shared\EmptyState.tsx (1.5 KB) ===
+  L14: export type EmptyStateProps 
+  L29: export function EmptyState(
+
+=== ui\src\components\shared\FilterPanelWrapper.tsx (2.4 KB) ===
+  L22: export type FilterPanelWrapperProps 
+  L35: export function FilterPanelWrapper(
+  L42: const header = (
+  L58: const body = (
+
+=== ui\src\components\shared\LoadingSpinner.tsx (0.9 KB) ===
+  L13: export type LoadingSpinnerProps 
+  L20: export function LoadingSpinner(
+
+=== ui\src\components\shared\MobileCard.tsx (2.2 KB) ===
+  L21: export type MobileCardProps 
+  L36: export function MobileCard(
+
+=== ui\src\components\shared\PageHeader.tsx (1.5 KB) ===
+  L14: export type PageHeaderProps 
+  L25: export function PageHeader(
+
+=== ui\src\components\shared\SearchToolbar.tsx (3.8 KB) ===
+  L22: export type SearchToolbarProps 
+  L45: export function SearchToolbar(
+
+=== ui\src\contexts\NotificationContext.tsx (1.1 KB) ===
+  L6: interface NotificationContextType 
+  L15: export function NotificationProvider(
+  L25: export function useNotificationContext() 
+
+=== ui\src\hooks\useChat.ts (12.3 KB) ===
+  L7: function createId() 
+  L20: export function useChat(options?: 
+  L216: const poll = async () => 
+
+=== ui\src\hooks\useCompanies.ts (2.5 KB) ===
+  L6: export function useCompanies() 
+  L54: const importCompanies = async (file: File) => 
+
+=== ui\src\hooks\useContacts.ts (5.5 KB) ===
+  L6: export function useContacts() 
+  L26: const getCampaignContacts = (campaignId: string) => useQuery(
+
+=== ui\src\hooks\useDashboard.ts (4.5 KB) ===
+  L5: export type OutlookAuthFlow 
+  L11: export function useDashboard() 
+  L71: const clearTodaysContacts = async () => 
+
+=== ui\src\hooks\useDerivedDashboardData.ts (1.3 KB) ===
+  L5: export interface DerivedDashboardData 
+  L15: export function useDerivedDashboardData(
+
+=== ui\src\hooks\useEmailCampaigns.ts (9.2 KB) ===
+  L6: export function useEmailCampaigns() 
+
+=== ui\src\hooks\useIsMobile.tsx (0.6 KB) ===
+  L3: export function useIsMobile(breakpoint = 768) 
+  L10: const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+
+=== ui\src\hooks\useNotifications.ts (0.9 KB) ===
+  L4: export function useNotifications() 
+
+=== ui\src\hooks\useToasts.ts (0.6 KB) ===
+  L4: export function useToasts() 
+
+=== ui\src\pages\Companies.tsx (17.4 KB) ===
+  L9: type ColumnFiltersState,
+  L10: type SortingState,
+  L11: type ExpandedState,
+  L35: export default function Companies(
+  L69: function handleClick(e: MouseEvent) 
+  L131: const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => 
+  L145: const handleBulkDelete = () => 
+  L150: const confirmBulkDelete = () => 
+
+=== ui\src\pages\Contacts.tsx (22.5 KB) ===
+  L9: type ColumnFiltersState,
+  L10: type SortingState,
+  L11: type ExpandedState,
+  L41: export default function Contacts(
+  L89: function handleClick(e: MouseEvent) 
+  L183: const handleBulkSalesforceUpload = async () => 
+  L230: const handleBulkAction = (action: string, loadingKey: string, title: string) => 
+  L242: const handleEnrollInCampaign = (campaignId: number) => 
+  L252: const handleBulkDelete = () => 
+  L257: const confirmBulkDelete = () => 
+
+=== ui\src\pages\Dashboard.tsx (10.1 KB) ===
+  L35: export default function Dashboard() 
+
+=== ui\src\pages\Email.tsx (11.2 KB) ===
+  L20: export default function Email(
+  L66: const handleCreateCampaign = (data: Partial<EmailCampaign>) => 
+  L71: const handleSaveTemplates = (templates: Array<
+  L78: const handleUploadToSalesforce = (campaignId: number) => 
+  L100: const handleReschedule = (email: ScheduledEmail) => 
+  L117: const handleReorder = (emailIds: number[], startTime?: string) => 
+
+=== ui\src\pages\Workflows.tsx (24 KB) ===
+  L15: type WorkflowStep 
+  L22: type WorkflowData 
+  L31: export default function Workflows() 
+  L115: const handleAddStep = (type: WorkflowStep['type']) => 
+  L127: const handleRemoveStep = (stepId: string) => 
+  L131: const handleSaveWorkflow = () => 
+  L149: const handleLoadWorkflow = (workflow: any) => 
+  L422: function CampaignsManager(
+  L478: const resetForm = () => 
+  L485: const handleLoadCampaign = (campaign: any) => 
+  L493: const handleSave = () => 
+
+=== ui\src\services\intentParser.ts (2.8 KB) ===
+  L3: export function parseIntent(message: string): ParsedIntent 
+
+=== ui\src\services\workflowEngine.ts (6.8 KB) ===
+  L16: export interface EngineResult 
+  L24: export async function processMessage(
+  L50: export async function processAction(
+  L64: function createWorkflow(
+  L97: async function runWorkflow(workflow: Workflow): Promise<EngineResult> 
+  L176: async function resumeWorkflow(
+
+=== ui\src\services\workflows\campaignList.ts (2 KB) ===
+  L5: export function createCampaignListWorkflow(): Workflow 
+
+=== ui\src\services\workflows\contactLookup.ts (9.4 KB) ===
+  L5: export function createContactLookupWorkflow(
+
+=== ui\src\services\workflows\contactOutreach.ts (14.6 KB) ===
+  L10: type CampaignForChat 
+  L15: export function createContactOutreachWorkflow(
+  L209: const activeCampaigns = (campaigns as CampaignForChat[] | undefined || []).filter(
+
+=== ui\src\services\workflows\conversationList.ts (2 KB) ===
+  L8: export function createConversationListWorkflow(recentReplies: any[]): Workflow 
+
+=== ui\src\services\workflows\help.ts (1.3 KB) ===
+  L4: export function createHelpWorkflow(): Workflow 
+
+=== ui\src\services\workflows\helpers.ts (1 KB) ===
+  L5: export function msgId(): string 
+  L9: export function textMsg(content: string): ChatMessage 
+  L19: export function statusMsg(
+  L33: export function buttonsMsg(
+
+=== ui\src\services\workflows\statusCheck.ts (1.9 KB) ===
+  L5: export function createStatusCheckWorkflow(): Workflow 
+
+=== ui\src\types\chat.ts (3.5 KB) ===
+  L3: export type ChatMessage 
+  L13: interface BaseMessage 
+  L19: export interface TextMessage extends BaseMessage 
+  L24: export interface ActionButtonsMessage extends BaseMessage 
+  L31: export interface ActionButton 
+  L37: export interface StatusMessage extends BaseMessage 
+  L44: export interface SalesforceUrlPromptMessage extends BaseMessage 
+  L53: export interface ContactCardMessage extends BaseMessage 
+  L68: export interface EmailPreviewMessage extends BaseMessage 
+  L82: export interface CampaignListMessage extends BaseMessage 
+  L96: export interface ConversationCardMessage extends BaseMessage 
+  L112: export interface ParsedIntent 
+  L119: export type IntentType 
+  L136: export interface Workflow 
+  L146: export interface WorkflowStep 
+  L156: export interface StepResult 
+
+=== ui\src\types\email.ts (3.6 KB) ===
+  L1: export type EmailCampaign 
+  L13: export type EmailTemplate 
+  L21: export type CampaignStats 
+  L31: export type CampaignContact 
+  L43: export type SentEmail 
+  L68: export type ReviewQueueItem 
+  L86: export type EmailConfig 
+  L95: export type GlobalStats 
+  L103: export type ScheduledEmail 
+  L131: export type EmailDetail 
+  L150: export type CampaignScheduleSummary 
+
+=== venv\Lib\site-packages\playwright\driver\package\types\protocol.d.ts (678.6 KB) ===
+  L2: type binary 
+  L8: export type AXNodeId 
+  L12: export type AXValueType 
+  L16: export type AXValueSourceType 
+  L20: export type AXValueNativeSourceType 
+  L24: export interface AXValueSource 
+  L62: export interface AXRelatedNode 
+  L76: export interface AXProperty 
+  L89: export interface AXValue 
+  L115: export type AXPropertyName 
+  L119: export interface AXNode 
+  L178: export type loadCompletePayload 
+  L187: export type nodesUpdatedPayload 
+  L197: export type disableParameters 
+  L199: export type disableReturnValue 
+  L205: export type enableParameters 
+  L207: export type enableReturnValue 
+  L212: export type getPartialAXTreeParameters 
+  L230: export type getPartialAXTreeReturnValue 
+  L240: export type getFullAXTreeParameters 
+  L252: export type getFullAXTreeReturnValue 
+  L259: export type getRootAXNodeParameters 
+  L266: export type getRootAXNodeReturnValue 
+  L273: export type getAXNodeAndAncestorsParameters 
+  L287: export type getAXNodeAndAncestorsReturnValue 
+  L294: export type getChildAXNodesParameters 
+  L302: export type getChildAXNodesReturnValue 
+  L312: export type queryAXTreeParameters 
+  L334: export type queryAXTreeReturnValue 
+  L347: export interface Animation 
+  L400: export interface ViewOrScrollTimeline 
+  L429: export interface AnimationEffect 
+  L477: export interface KeyframesRule 
+  L490: export interface KeyframeStyle 
+  L504: export type animationCanceledPayload 
+  L513: export type animationCreatedPayload 
+  L522: export type animationStartedPayload 
+  L531: export type animationUpdatedPayload 
+  L541: export type disableParameters 
+  L543: export type disableReturnValue 
+  L548: export type enableParameters 
+  L550: export type enableReturnValue 
+  L555: export type getCurrentTimeParameters 
+  L561: export type getCurrentTimeReturnValue 
+  L570: export type getPlaybackRateParameters 
+  L572: export type getPlaybackRateReturnValue 
+  L581: export type releaseAnimationsParameters 
+  L587: export type releaseAnimationsReturnValue 
+  L592: export type resolveAnimationParameters 
+  L598: export type resolveAnimationReturnValue 
+  L607: export type seekAnimationsParameters 
+  L617: export type seekAnimationsReturnValue 
+  L622: export type setPausedParameters 
+  L632: export type setPausedReturnValue 
+  L637: export type setPlaybackRateParameters 
+  L643: export type setPlaybackRateReturnValue 
+  L648: export type setTimingParameters 
+  L662: export type setTimingReturnValue 
+  L673: export interface AffectedCookie 
+  L684: export interface AffectedRequest 
+  L694: export interface AffectedFrame 
+  L697: export type CookieExclusionReason 
+  L698: export type CookieWarningReason 
+  L699: export type CookieOperation 
+  L705: export interface CookieIssueDetails 
+  L725: export type MixedContentResolutionStatus 
+  L726: export type MixedContentResourceType 
+  L727: export interface MixedContentIssueDetails 
+  L761: export type BlockedByResponseReason 
+  L767: export interface BlockedByResponseIssueDetails 
+  L773: export type HeavyAdResolutionStatus 
+  L774: export type HeavyAdReason 
+  L775: export interface HeavyAdIssueDetails 
+  L789: export type ContentSecurityPolicyViolationType 
+  L790: export interface SourceCodeLocation 
+  L796: export interface ContentSecurityPolicyIssueDetails 
+  L811: export type SharedArrayBufferIssueType 
+  L816: export interface SharedArrayBufferIssueDetails 
+  L821: export interface LowTextContrastIssueDetails 
+  L834: export interface CorsIssueDetails 
+  L843: export type AttributionReportingIssueType 
+  L844: export type SharedDictionaryError 
+  L849: export interface AttributionReportingIssueDetails 
+  L859: export interface QuirksModeIssueDetails 
+  L870: export interface NavigatorUserAgentIssueDetails 
+  L874: export interface SharedDictionaryIssueDetails 
+  L878: export type GenericIssueErrorType 
+  L882: export interface GenericIssueDetails 
+  L896: export interface DeprecationIssueDetails 
+  L911: export interface BounceTrackingIssueDetails 
+  L921: export interface CookieDeprecationMetadataIssueDetails 
+  L927: export type ClientHintIssueReason 
+  L928: export interface FederatedAuthRequestIssueDetails 
+  L937: export type FederatedAuthRequestIssueReason 
+  L938: export interface FederatedAuthUserInfoRequestIssueDetails 
+  L946: export type FederatedAuthUserInfoRequestIssueReason 
+  L951: export interface ClientHintIssueDetails 
+  L955: export interface FailedRequestInfo 
+  L966: export type StyleSheetLoadingIssueReason 
+  L970: export interface StylesheetLoadingIssueDetails 
+  L984: export type PropertyRuleIssueReason 
+  L989: export interface PropertyRuleIssueDetails 
+  L1008: export type InspectorIssueCode 
+  L1014: export interface InspectorIssueDetails 
+  L1041: export type IssueId 
+  L1045: export interface InspectorIssue 
+  L1055: export type issueAddedPayload 
+  L1063: export type getEncodedResponseParameters 
+  L1081: export type getEncodedResponseReturnValue 
+  L1098: export type disableParameters 
+  L1100: export type disableReturnValue 
+  L1106: export type enableParameters 
+  L1108: export type enableReturnValue 
+  L1114: export type checkContrastParameters 
+  L1120: export type checkContrastReturnValue 
+  L1126: export type checkFormsIssuesParameters 
+  L1128: export type checkFormsIssuesReturnValue 
+  L1140: export type StorageArea 
+  L1150: export type loadUnpackedParameters 
+  L1156: export type loadUnpackedReturnValue 
+  L1166: export type getStorageItemsParameters 
+  L1180: export type getStorageItemsReturnValue 
+  L1186: export type removeStorageItemsParameters 
+  L1200: export type removeStorageItemsReturnValue 
+  L1205: export type clearStorageItemsParameters 
+  L1215: export type clearStorageItemsReturnValue 
+  L1221: export type setStorageItemsParameters 
+  L1235: export type setStorageItemsReturnValue 
+  L1243: export interface CreditCard 
+  L1265: export interface AddressField 
+  L1278: export interface AddressFields 
+  L1281: export interface Address 
+  L1296: export interface AddressUI 
+  L1305: export type FillingStrategy 
+  L1306: export interface FilledField 
+  L1344: export type addressFormFilledPayload 
+  L1360: export type triggerParameters 
+  L1374: export type triggerReturnValue 
+  L1379: export type setAddressesParameters 
+  L1382: export type setAddressesReturnValue 
+  L1387: export type disableParameters 
+  L1389: export type disableReturnValue 
+  L1394: export type enableParameters 
+  L1396: export type enableReturnValue 
+  L1409: export type ServiceName 
+  L1413: export interface EventMetadata 
+  L1417: export interface BackgroundServiceEvent 
+  L1455: export type recordingStateChangedPayload 
+  L1463: export type backgroundServiceEventReceivedPayload 
+  L1470: export type startObservingParameters 
+  L1473: export type startObservingReturnValue 
+  L1478: export type stopObservingParameters 
+  L1481: export type stopObservingReturnValue 
+  L1486: export type setRecordingParameters 
+  L1490: export type setRecordingReturnValue 
+  L1495: export type clearEventsParameters 
+  L1498: export type clearEventsReturnValue 
+  L1506: export type BrowserContextID 
+  L1507: export type WindowID 
+  L1511: export type WindowState 
+  L1515: export interface Bounds 
+  L1537: export type PermissionType 
+  L1538: export type PermissionSetting 
+  L1543: export interface PermissionDescriptor 
+  L1574: export type BrowserCommandId 
+  L1578: export interface Bucket 
+  L1595: export interface Histogram 
+  L1617: export type downloadWillBeginPayload 
+  L1638: export type downloadProgressPayload 
+  L1660: export type setPermissionParameters 
+  L1678: export type setPermissionReturnValue 
+  L1683: export type grantPermissionsParameters 
+  L1694: export type grantPermissionsReturnValue 
+  L1699: export type resetPermissionsParameters 
+  L1705: export type resetPermissionsReturnValue 
+  L1710: export type setDownloadBehaviorParameters 
+  L1731: export type setDownloadBehaviorReturnValue 
+  L1736: export type cancelDownloadParameters 
+  L1746: export type cancelDownloadReturnValue 
+  L1751: export type closeParameters 
+  L1753: export type closeReturnValue 
+  L1758: export type crashParameters 
+  L1760: export type crashReturnValue 
+  L1765: export type crashGpuProcessParameters 
+  L1767: export type crashGpuProcessReturnValue 
+  L1772: export type getVersionParameters 
+  L1774: export type getVersionReturnValue 
+  L1800: export type getBrowserCommandLineParameters 
+  L1802: export type getBrowserCommandLineReturnValue 
+  L1811: export type getHistogramsParameters 
+  L1823: export type getHistogramsReturnValue 
+  L1832: export type getHistogramParameters 
+  L1842: export type getHistogramReturnValue 
+  L1851: export type getWindowBoundsParameters 
+  L1857: export type getWindowBoundsReturnValue 
+  L1867: export type getWindowForTargetParameters 
+  L1873: export type getWindowForTargetReturnValue 
+  L1887: export type setWindowBoundsParameters 
+  L1898: export type setWindowBoundsReturnValue 
+  L1903: export type setDockTileParameters 
+  L1910: export type setDockTileReturnValue 
+  L1915: export type executeBrowserCommandParameters 
+  L1918: export type executeBrowserCommandReturnValue 
+  L1924: export type addPrivacySandboxEnrollmentOverrideParameters 
+  L1927: export type addPrivacySandboxEnrollmentOverrideReturnValue 
+  L1940: export type StyleSheetId 
+  L1946: export type StyleSheetOrigin 
+  L1950: export interface PseudoElementMatches 
+  L1967: export interface InheritedStyleEntry 
+  L1980: export interface InheritedPseudoElementMatches 
+  L1989: export interface RuleMatch 
+  L2002: export interface Value 
+  L2020: export interface Specificity 
+  L2038: export interface SelectorList 
+  L2051: export interface CSSStyleSheetHeader 
+  L2135: export interface CSSRule 
+  L2191: export type CSSRuleType 
+  L2195: export interface RuleUsage 
+  L2217: export interface SourceRange 
+  L2235: export interface ShorthandEntry 
+  L2249: export interface CSSComputedStyleProperty 
+  L2262: export interface CSSStyle 
+  L2288: export interface CSSProperty 
+  L2330: export interface CSSMedia 
+  L2363: export interface MediaQuery 
+  L2376: export interface MediaQueryExpression 
+  L2401: export interface CSSContainerQuery 
+  L2431: export interface CSSSupports 
+  L2453: export interface CSSScope 
+  L2471: export interface CSSLayer 
+  L2489: export interface CSSLayerData 
+  L2507: export interface PlatformFontUsage 
+  L2528: export interface FontVariationAxis 
+  L2554: export interface FontFace 
+  L2599: export interface CSSTryRule 
+  L2617: export interface CSSPositionTryRule 
+  L2640: export interface CSSKeyframesRule 
+  L2653: export interface CSSPropertyRegistration 
+  L2662: export interface CSSFontPaletteValuesRule 
+  L2684: export interface CSSPropertyRule 
+  L2706: export interface CSSKeyframeRule 
+  L2728: export interface StyleDeclarationEdit 
+  L2747: export type fontsUpdatedPayload 
+  L2757: export type mediaQueryResultChangedPayload 
+  L2761: export type styleSheetAddedPayload 
+  L2770: export type styleSheetChangedPayload 
+  L2776: export type styleSheetRemovedPayload 
+  L2787: export type addRuleParameters 
+  L2807: export type addRuleReturnValue 
+  L2816: export type collectClassNamesParameters 
+  L2819: export type collectClassNamesReturnValue 
+  L2828: export type createStyleSheetParameters 
+  L2834: export type createStyleSheetReturnValue 
+  L2843: export type disableParameters 
+  L2845: export type disableReturnValue 
+  L2851: export type enableParameters 
+  L2853: export type enableReturnValue 
+  L2859: export type forcePseudoStateParameters 
+  L2869: export type forcePseudoStateReturnValue 
+  L2871: export type getBackgroundColorsParameters 
+  L2877: export type getBackgroundColorsReturnValue 
+  L2899: export type getComputedStyleForNodeParameters 
+  L2902: export type getComputedStyleForNodeReturnValue 
+  L2912: export type getInlineStylesForNodeParameters 
+  L2915: export type getInlineStylesForNodeReturnValue 
+  L2928: export type getMatchedStylesForNodeParameters 
+  L2931: export type getMatchedStylesForNodeReturnValue 
+  L2989: export type getMediaQueriesParameters 
+  L2991: export type getMediaQueriesReturnValue 
+  L2998: export type getPlatformFontsForNodeParameters 
+  L3001: export type getPlatformFontsForNodeReturnValue 
+  L3010: export type getStyleSheetTextParameters 
+  L3013: export type getStyleSheetTextReturnValue 
+  L3025: export type getLayersForNodeParameters 
+  L3028: export type getLayersForNodeReturnValue 
+  L3035: export type getLocationForSelectorParameters 
+  L3039: export type getLocationForSelectorReturnValue 
+  L3050: export type trackComputedStyleUpdatesParameters 
+  L3053: export type trackComputedStyleUpdatesReturnValue 
+  L3058: export type takeComputedStyleUpdatesParameters 
+  L3060: export type takeComputedStyleUpdatesReturnValue 
+  L3070: export type setEffectivePropertyValueForNodeParameters 
+  L3078: export type setEffectivePropertyValueForNodeReturnValue 
+  L3083: export type setPropertyRulePropertyNameParameters 
+  L3088: export type setPropertyRulePropertyNameReturnValue 
+  L3097: export type setKeyframeKeyParameters 
+  L3102: export type setKeyframeKeyReturnValue 
+  L3111: export type setMediaTextParameters 
+  L3116: export type setMediaTextReturnValue 
+  L3125: export type setContainerQueryTextParameters 
+  L3130: export type setContainerQueryTextReturnValue 
+  L3139: export type setSupportsTextParameters 
+  L3144: export type setSupportsTextReturnValue 
+  L3153: export type setScopeTextParameters 
+  L3158: export type setScopeTextReturnValue 
+  L3167: export type setRuleSelectorParameters 
+  L3172: export type setRuleSelectorReturnValue 
+  L3181: export type setStyleSheetTextParameters 
+  L3185: export type setStyleSheetTextReturnValue 
+  L3194: export type setStyleTextsParameters 
+  L3203: export type setStyleTextsReturnValue 
+  L3212: export type startRuleUsageTrackingParameters 
+  L3214: export type startRuleUsageTrackingReturnValue 
+  L3220: export type stopRuleUsageTrackingParameters 
+  L3222: export type stopRuleUsageTrackingReturnValue 
+  L3229: export type takeCoverageDeltaParameters 
+  L3231: export type takeCoverageDeltaReturnValue 
+  L3241: export type setLocalFontsEnabledParameters 
+  L3247: export type setLocalFontsEnabledReturnValue 
+  L3255: export type CacheId 
+  L3259: export type CachedResponseType 
+  L3263: export interface DataEntry 
+  L3300: export interface Cache 
+  L3322: export interface Header 
+  L3329: export interface CachedResponse 
+  L3340: export type deleteCacheParameters 
+  L3346: export type deleteCacheReturnValue 
+  L3351: export type deleteEntryParameters 
+  L3361: export type deleteEntryReturnValue 
+  L3366: export type requestCacheNamesParameters 
+  L3381: export type requestCacheNamesReturnValue 
+  L3390: export type requestCachedResponseParameters 
+  L3404: export type requestCachedResponseReturnValue 
+  L3413: export type requestEntriesParameters 
+  L3431: export type requestEntriesReturnValue 
+  L3449: export interface Sink 
+  L3463: export type sinksUpdatedPayload 
+  L3470: export type issueUpdatedPayload 
+  L3481: export type enableParameters 
+  L3484: export type enableReturnValue 
+  L3489: export type disableParameters 
+  L3491: export type disableReturnValue 
+  L3497: export type setSinkToUseParameters 
+  L3500: export type setSinkToUseReturnValue 
+  L3505: export type startDesktopMirroringParameters 
+  L3508: export type startDesktopMirroringReturnValue 
+  L3513: export type startTabMirroringParameters 
+  L3516: export type startTabMirroringReturnValue 
+  L3521: export type stopCastingParameters 
+  L3524: export type stopCastingReturnValue 
+  L3541: export type NodeId 
+  L3546: export type BackendNodeId 
+  L3550: export interface BackendNode 
+  L3564: export type PseudoType 
+  L3568: export type ShadowRootType 
+  L3572: export type CompatibilityMode 
+  L3576: export type PhysicalAxes 
+  L3580: export type LogicalAxes 
+  L3584: export type ScrollOrientation 
+  L3589: export interface Node 
+  L3718: export interface DetachedElementInfo 
+  L3725: export interface RGBA 
+  L3746: export type Quad 
+  L3750: export interface BoxModel 
+  L3783: export interface ShapeOutsideInfo 
+  L3800: export interface Rect 
+  L3818: export interface CSSComputedStyleProperty 
+  L3832: export type attributeModifiedPayload 
+  L3849: export type attributeRemovedPayload 
+  L3862: export type characterDataModifiedPayload 
+  L3875: export type childNodeCountUpdatedPayload 
+  L3888: export type childNodeInsertedPayload 
+  L3905: export type childNodeRemovedPayload 
+  L3918: export type distributedNodesUpdatedPayload 
+  L3931: export type documentUpdatedPayload 
+  L3935: export type inlineStyleInvalidatedPayload 
+  L3944: export type pseudoElementAddedPayload 
+  L3957: export type topLayerElementsUpdatedPayload 
+  L3961: export type scrollableFlagUpdatedPayload 
+  L3974: export type pseudoElementRemovedPayload 
+  L3988: export type setChildNodesPayload 
+  L4001: export type shadowRootPoppedPayload 
+  L4014: export type shadowRootPushedPayload 
+  L4028: export type collectClassNamesFromSubtreeParameters 
+  L4034: export type collectClassNamesFromSubtreeReturnValue 
+  L4044: export type copyToParameters 
+  L4059: export type copyToReturnValue 
+  L4069: export type describeNodeParameters 
+  L4093: export type describeNodeReturnValue 
+  L4104: export type scrollIntoViewIfNeededParameters 
+  L4123: export type scrollIntoViewIfNeededReturnValue 
+  L4128: export type disableParameters 
+  L4130: export type disableReturnValue 
+  L4136: export type discardSearchResultsParameters 
+  L4142: export type discardSearchResultsReturnValue 
+  L4147: export type enableParameters 
+  L4153: export type enableReturnValue 
+  L4158: export type focusParameters 
+  L4172: export type focusReturnValue 
+  L4177: export type getAttributesParameters 
+  L4183: export type getAttributesReturnValue 
+  L4192: export type getBoxModelParameters 
+  L4206: export type getBoxModelReturnValue 
+  L4216: export type getContentQuadsParameters 
+  L4230: export type getContentQuadsReturnValue 
+  L4240: export type getDocumentParameters 
+  L4252: export type getDocumentReturnValue 
+  L4263: export type getFlattenedDocumentParameters 
+  L4275: export type getFlattenedDocumentReturnValue 
+  L4284: export type getNodesForSubtreeByStyleParameters 
+  L4299: export type getNodesForSubtreeByStyleReturnValue 
+  L4309: export type getNodeForLocationParameters 
+  L4327: export type getNodeForLocationReturnValue 
+  L4344: export type getOuterHTMLParameters 
+  L4358: export type getOuterHTMLReturnValue 
+  L4367: export type getRelayoutBoundaryParameters 
+  L4373: export type getRelayoutBoundaryReturnValue 
+  L4383: export type getSearchResultsParameters 
+  L4397: export type getSearchResultsReturnValue 
+  L4406: export type hideHighlightParameters 
+  L4408: export type hideHighlightReturnValue 
+  L4413: export type highlightNodeParameters 
+  L4415: export type highlightNodeReturnValue 
+  L4420: export type highlightRectParameters 
+  L4422: export type highlightRectReturnValue 
+  L4427: export type markUndoableStateParameters 
+  L4429: export type markUndoableStateReturnValue 
+  L4434: export type moveToParameters 
+  L4449: export type moveToReturnValue 
+  L4459: export type performSearchParameters 
+  L4469: export type performSearchReturnValue 
+  L4482: export type pushNodeByPathToFrontendParameters 
+  L4488: export type pushNodeByPathToFrontendReturnValue 
+  L4497: export type pushNodesByBackendIdsToFrontendParameters 
+  L4503: export type pushNodesByBackendIdsToFrontendReturnValue 
+  L4513: export type querySelectorParameters 
+  L4523: export type querySelectorReturnValue 
+  L4532: export type querySelectorAllParameters 
+  L4542: export type querySelectorAllReturnValue 
+  L4553: export type getTopLayerElementsParameters 
+  L4555: export type getTopLayerElementsReturnValue 
+  L4564: export type getElementByRelationParameters 
+  L4574: export type getElementByRelationReturnValue 
+  L4583: export type redoParameters 
+  L4585: export type redoReturnValue 
+  L4590: export type removeAttributeParameters 
+  L4600: export type removeAttributeReturnValue 
+  L4605: export type removeNodeParameters 
+  L4611: export type removeNodeReturnValue 
+  L4618: export type requestChildNodesParameters 
+  L4634: export type requestChildNodesReturnValue 
+  L4641: export type requestNodeParameters 
+  L4647: export type requestNodeReturnValue 
+  L4656: export type resolveNodeParameters 
+  L4674: export type resolveNodeReturnValue 
+  L4683: export type setAttributeValueParameters 
+  L4697: export type setAttributeValueReturnValue 
+  L4703: export type setAttributesAsTextParameters 
+  L4718: export type setAttributesAsTextReturnValue 
+  L4723: export type setFileInputFilesParameters 
+  L4741: export type setFileInputFilesReturnValue 
+  L4746: export type setNodeStackTracesEnabledParameters 
+  L4752: export type setNodeStackTracesEnabledReturnValue 
+  L4757: export type getNodeStackTracesParameters 
+  L4763: export type getNodeStackTracesReturnValue 
+  L4773: export type getFileInfoParameters 
+  L4779: export type getFileInfoReturnValue 
+  L4785: export type getDetachedDomNodesParameters 
+  L4787: export type getDetachedDomNodesReturnValue 
+  L4797: export type setInspectedNodeParameters 
+  L4803: export type setInspectedNodeReturnValue 
+  L4808: export type setNodeNameParameters 
+  L4818: export type setNodeNameReturnValue 
+  L4827: export type setNodeValueParameters 
+  L4837: export type setNodeValueReturnValue 
+  L4842: export type setOuterHTMLParameters 
+  L4852: export type setOuterHTMLReturnValue 
+  L4857: export type undoParameters 
+  L4859: export type undoReturnValue 
+  L4864: export type getFrameOwnerParameters 
+  L4867: export type getFrameOwnerReturnValue 
+  L4883: export type getContainerForNodeParameters 
+  L4889: export type getContainerForNodeReturnValue 
+  L4899: export type getQueryingDescendantsForContainerParameters 
+  L4905: export type getQueryingDescendantsForContainerReturnValue 
+  L4915: export type getAnchorElementParameters 
+  L4928: export type getAnchorElementReturnValue 
+  L4944: export type DOMBreakpointType 
+  L4948: export type CSPViolationType 
+  L4952: export interface EventListener 
+  L4999: export type getEventListenersParameters 
+  L5015: export type getEventListenersReturnValue 
+  L5024: export type removeDOMBreakpointParameters 
+  L5034: export type removeDOMBreakpointReturnValue 
+  L5039: export type removeEventListenerBreakpointParameters 
+  L5049: export type removeEventListenerBreakpointReturnValue 
+  L5054: export type removeInstrumentationBreakpointParameters 
+  L5060: export type removeInstrumentationBreakpointReturnValue 
+  L5065: export type removeXHRBreakpointParameters 
+  L5071: export type removeXHRBreakpointReturnValue 
+  L5076: export type setBreakOnCSPViolationParameters 
+  L5082: export type setBreakOnCSPViolationReturnValue 
+  L5087: export type setDOMBreakpointParameters 
+  L5097: export type setDOMBreakpointReturnValue 
+  L5102: export type setEventListenerBreakpointParameters 
+  L5113: export type setEventListenerBreakpointReturnValue 
+  L5118: export type setInstrumentationBreakpointParameters 
+  L5124: export type setInstrumentationBreakpointReturnValue 
+  L5129: export type setXHRBreakpointParameters 
+  L5135: export type setXHRBreakpointReturnValue 
+  L5150: export type setInstrumentationBreakpointParameters 
+  L5156: export type setInstrumentationBreakpointReturnValue 
+  L5161: export type removeInstrumentationBreakpointParameters 
+  L5167: export type removeInstrumentationBreakpointReturnValue 
+  L5172: export type disableParameters 
+  L5174: export type disableReturnValue 
+  L5185: export interface DOMNode 
+  L5306: export interface InlineTextBox 
+  L5325: export interface LayoutTreeNode 
+  L5360: export interface ComputedStyle 
+  L5369: export interface NameValue 
+  L5382: export type StringIndex 
+  L5386: export type ArrayOfStrings 
+  L5390: export interface RareStringData 
+  L5394: export interface RareBooleanData 
+  L5397: export interface RareIntegerData 
+  L5401: export type Rectangle 
+  L5405: export interface DocumentSnapshot 
+  L5470: export interface NodeTreeSnapshot 
+  L5546: export interface LayoutTreeSnapshot 
+  L5598: export interface TextBoxSnapshot 
+  L5623: export type disableParameters 
+  L5625: export type disableReturnValue 
+  L5630: export type enableParameters 
+  L5632: export type enableReturnValue 
+  L5640: export type getSnapshotParameters 
+  L5658: export type getSnapshotReturnValue 
+  L5678: export type captureSnapshotParameters 
+  L5704: export type captureSnapshotReturnValue 
+  L5720: export type SerializedStorageKey 
+  L5724: export interface StorageId 
+  L5741: export type Item 
+  L5743: export type domStorageItemAddedPayload 
+  L5748: export type domStorageItemRemovedPayload 
+  L5752: export type domStorageItemUpdatedPayload 
+  L5758: export type domStorageItemsClearedPayload 
+  L5762: export type clearParameters 
+  L5765: export type clearReturnValue 
+  L5770: export type disableParameters 
+  L5772: export type disableReturnValue 
+  L5777: export type enableParameters 
+  L5779: export type enableReturnValue 
+  L5781: export type getDOMStorageItemsParameters 
+  L5784: export type getDOMStorageItemsReturnValue 
+  L5787: export type removeDOMStorageItemParameters 
+  L5791: export type removeDOMStorageItemReturnValue 
+  L5793: export type setDOMStorageItemParameters 
+  L5798: export type setDOMStorageItemReturnValue 
+  L5806: export type DatabaseId 
+  L5810: export interface Database 
+  L5831: export interface Error 
+  L5842: export type addDatabasePayload 
+  L5849: export type disableParameters 
+  L5851: export type disableReturnValue 
+  L5856: export type enableParameters 
+  L5858: export type enableReturnValue 
+  L5860: export type executeSQLParameters 
+  L5864: export type executeSQLReturnValue 
+  L5869: export type getDatabaseTableNamesParameters 
+  L5872: export type getDatabaseTableNamesReturnValue 
+  L5883: export type clearDeviceOrientationOverrideParameters 
+  L5885: export type clearDeviceOrientationOverrideReturnValue 
+  L5890: export type setDeviceOrientationOverrideParameters 
+  L5904: export type setDeviceOrientationOverrideReturnValue 
+  L5915: export interface ScreenOrientation 
+  L5925: export interface DisplayFeature 
+  L5942: export interface DevicePosture 
+  L5948: export interface MediaFeature 
+  L5958: export type VirtualTimePolicy 
+  L5962: export interface UserAgentBrandVersion 
+  L5970: export interface UserAgentMetadata 
+  L5992: export type SensorType 
+  L5993: export interface SensorMetadata 
+  L5998: export interface SensorReadingSingle 
+  L6001: export interface SensorReadingXYZ 
+  L6006: export interface SensorReadingQuaternion 
+  L6012: export interface SensorReading 
+  L6017: export type PressureSource 
+  L6018: export type PressureState 
+  L6019: export interface PressureMetadata 
+  L6025: export type DisabledImageType 
+  L6030: export type virtualTimeBudgetExpiredPayload 
+  L6035: export type canEmulateParameters 
+  L6037: export type canEmulateReturnValue 
+  L6046: export type clearDeviceMetricsOverrideParameters 
+  L6048: export type clearDeviceMetricsOverrideReturnValue 
+  L6053: export type clearGeolocationOverrideParameters 
+  L6055: export type clearGeolocationOverrideReturnValue 
+  L6060: export type resetPageScaleFactorParameters 
+  L6062: export type resetPageScaleFactorReturnValue 
+  L6067: export type setFocusEmulationEnabledParameters 
+  L6073: export type setFocusEmulationEnabledReturnValue 
+  L6078: export type setAutoDarkModeOverrideParameters 
+  L6085: export type setAutoDarkModeOverrideReturnValue 
+  L6090: export type setCPUThrottlingRateParameters 
+  L6096: export type setCPUThrottlingRateReturnValue 
+  L6102: export type setDefaultBackgroundColorOverrideParameters 
+  L6109: export type setDefaultBackgroundColorOverrideReturnValue 
+  L6116: export type setDeviceMetricsOverrideParameters 
+  L6179: export type setDeviceMetricsOverrideReturnValue 
+  L6185: export type setDevicePostureOverrideParameters 
+  L6188: export type setDevicePostureOverrideReturnValue 
+  L6196: export type clearDevicePostureOverrideParameters 
+  L6198: export type clearDevicePostureOverrideReturnValue 
+  L6200: export type setScrollbarsHiddenParameters 
+  L6206: export type setScrollbarsHiddenReturnValue 
+  L6208: export type setDocumentCookieDisabledParameters 
+  L6214: export type setDocumentCookieDisabledReturnValue 
+  L6216: export type setEmitTouchEventsForMouseParameters 
+  L6226: export type setEmitTouchEventsForMouseReturnValue 
+  L6231: export type setEmulatedMediaParameters 
+  L6241: export type setEmulatedMediaReturnValue 
+  L6246: export type setEmulatedVisionDeficiencyParameters 
+  L6253: export type setEmulatedVisionDeficiencyReturnValue 
+  L6259: export type setGeolocationOverrideParameters 
+  L6273: export type setGeolocationOverrideReturnValue 
+  L6275: export type getOverriddenSensorInformationParameters 
+  L6278: export type getOverriddenSensorInformationReturnValue 
+  L6288: export type setSensorOverrideEnabledParameters 
+  L6293: export type setSensorOverrideEnabledReturnValue 
+  L6299: export type setSensorOverrideReadingsParameters 
+  L6303: export type setSensorOverrideReadingsReturnValue 
+  L6311: export type setPressureSourceOverrideEnabledParameters 
+  L6316: export type setPressureSourceOverrideEnabledReturnValue 
+  L6323: export type setPressureStateOverrideParameters 
+  L6327: export type setPressureStateOverrideReturnValue 
+  L6332: export type setIdleOverrideParameters 
+  L6342: export type setIdleOverrideReturnValue 
+  L6347: export type clearIdleOverrideParameters 
+  L6349: export type clearIdleOverrideReturnValue 
+  L6354: export type setNavigatorOverridesParameters 
+  L6360: export type setNavigatorOverridesReturnValue 
+  L6365: export type setPageScaleFactorParameters 
+  L6371: export type setPageScaleFactorReturnValue 
+  L6376: export type setScriptExecutionDisabledParameters 
+  L6382: export type setScriptExecutionDisabledReturnValue 
+  L6387: export type setTouchEmulationEnabledParameters 
+  L6397: export type setTouchEmulationEnabledReturnValue 
+  L6403: export type setVirtualTimePolicyParameters 
+  L6420: export type setVirtualTimePolicyReturnValue 
+  L6429: export type setLocaleOverrideParameters 
+  L6436: export type setLocaleOverrideReturnValue 
+  L6441: export type setTimezoneOverrideParameters 
+  L6449: export type setTimezoneOverrideReturnValue 
+  L6456: export type setVisibleSizeParameters 
+  L6466: export type setVisibleSizeReturnValue 
+  L6468: export type setDisabledImageTypesParameters 
+  L6474: export type setDisabledImageTypesReturnValue 
+  L6476: export type setHardwareConcurrencyOverrideParameters 
+  L6482: export type setHardwareConcurrencyOverrideReturnValue 
+  L6488: export type setUserAgentOverrideParameters 
+  L6506: export type setUserAgentOverrideReturnValue 
+  L6511: export type setAutomationOverrideParameters 
+  L6517: export type setAutomationOverrideReturnValue 
+  L6528: export interface ScreenshotParams 
+  L6550: export type beginFrameParameters 
+  L6574: export type beginFrameReturnValue 
+  L6588: export type disableParameters 
+  L6590: export type disableReturnValue 
+  L6595: export type enableParameters 
+  L6597: export type enableReturnValue 
+  L6609: export type StreamHandle 
+  L6615: export type closeParameters 
+  L6621: export type closeReturnValue 
+  L6626: export type readParameters 
+  L6641: export type readReturnValue 
+  L6658: export type resolveBlobParameters 
+  L6664: export type resolveBlobReturnValue 
+  L6673: export interface File 
+  L6685: export interface Directory 
+  L6693: export interface BucketFileSystemLocator 
+  L6709: export type getDirectoryParameters 
+  L6712: export type getDirectoryReturnValue 
+  L6724: export interface DatabaseWithObjectStores 
+  L6742: export interface ObjectStore 
+  L6763: export interface ObjectStoreIndex 
+  L6784: export interface Key 
+  L6809: export interface KeyRange 
+  L6830: export interface DataEntry 
+  L6847: export interface KeyPath 
+  L6866: export type clearObjectStoreParameters 
+  L6889: export type clearObjectStoreReturnValue 
+  L6894: export type deleteDatabaseParameters 
+  L6913: export type deleteDatabaseReturnValue 
+  L6918: export type deleteObjectStoreEntriesParameters 
+  L6939: export type deleteObjectStoreEntriesReturnValue 
+  L6944: export type disableParameters 
+  L6946: export type disableReturnValue 
+  L6951: export type enableParameters 
+  L6953: export type enableReturnValue 
+  L6958: export type requestDataParameters 
+  L6997: export type requestDataReturnValue 
+  L7010: export type getMetadataParameters 
+  L7033: export type getMetadataReturnValue 
+  L7048: export type requestDatabaseParameters 
+  L7067: export type requestDatabaseReturnValue 
+  L7076: export type requestDatabaseNamesParameters 
+  L7091: export type requestDatabaseNamesReturnValue 
+  L7100: export interface TouchPoint 
+  L7147: export type GestureSourceType 
+  L7148: export type MouseButton 
+  L7152: export type TimeSinceEpoch 
+  L7153: export interface DragDataItem 
+  L7173: export interface DragData 
+  L7189: export type dragInterceptedPayload 
+  L7196: export type dispatchDragEventParameters 
+  L7217: export type dispatchDragEventReturnValue 
+  L7222: export type dispatchKeyEventParameters 
+  L7291: export type dispatchKeyEventReturnValue 
+  L7297: export type insertTextParameters 
+  L7303: export type insertTextReturnValue 
+  L7310: export type imeSetCompositionParameters 
+  L7332: export type imeSetCompositionReturnValue 
+  L7337: export type dispatchMouseEventParameters 
+  L7406: export type dispatchMouseEventReturnValue 
+  L7411: export type dispatchTouchEventParameters 
+  L7433: export type dispatchTouchEventReturnValue 
+  L7438: export type cancelDraggingParameters 
+  L7440: export type cancelDraggingReturnValue 
+  L7445: export type emulateTouchFromMouseEventParameters 
+  L7484: export type emulateTouchFromMouseEventReturnValue 
+  L7489: export type setIgnoreInputEventsParameters 
+  L7495: export type setIgnoreInputEventsReturnValue 
+  L7501: export type setInterceptDragsParameters 
+  L7504: export type setInterceptDragsReturnValue 
+  L7509: export type synthesizePinchGestureParameters 
+  L7532: export type synthesizePinchGestureReturnValue 
+  L7537: export type synthesizeScrollGestureParameters 
+  L7590: export type synthesizeScrollGestureReturnValue 
+  L7595: export type synthesizeTapGestureParameters 
+  L7618: export type synthesizeTapGestureReturnValue 
+  L7627: export type detachedPayload 
+  L7636: export type targetCrashedPayload 
+  L7640: export type targetReloadedAfterCrashPayload 
+  L7645: export type disableParameters 
+  L7647: export type disableReturnValue 
+  L7652: export type enableParameters 
+  L7654: export type enableReturnValue 
+  L7662: export type LayerId 
+  L7666: export type SnapshotId 
+  L7670: export interface ScrollRect 
+  L7683: export interface StickyPositionConstraint 
+  L7704: export interface PictureTile 
+  L7721: export interface Layer 
+  L7791: export type PaintProfile 
+  L7793: export type layerPaintedPayload 
+  L7803: export type layerTreeDidChangePayload 
+  L7813: export type compositingReasonsParameters 
+  L7819: export type compositingReasonsReturnValue 
+  L7832: export type disableParameters 
+  L7834: export type disableReturnValue 
+  L7839: export type enableParameters 
+  L7841: export type enableReturnValue 
+  L7846: export type loadSnapshotParameters 
+  L7852: export type loadSnapshotReturnValue 
+  L7861: export type makeSnapshotParameters 
+  L7867: export type makeSnapshotReturnValue 
+  L7873: export type profileSnapshotParameters 
+  L7891: export type profileSnapshotReturnValue 
+  L7900: export type releaseSnapshotParameters 
+  L7906: export type releaseSnapshotReturnValue 
+  L7911: export type replaySnapshotParameters 
+  L7929: export type replaySnapshotReturnValue 
+  L7938: export type snapshotCommandLogParameters 
+  L7944: export type snapshotCommandLogReturnValue 
+  L7959: export interface LogEntry 
+  L8005: export interface ViolationSetting 
+  L8019: export type entryAddedPayload 
+  L8029: export type clearParameters 
+  L8031: export type clearReturnValue 
+  L8036: export type disableParameters 
+  L8038: export type disableReturnValue 
+  L8044: export type enableParameters 
+  L8046: export type enableReturnValue 
+  L8051: export type startViolationsReportParameters 
+  L8057: export type startViolationsReportReturnValue 
+  L8062: export type stopViolationsReportParameters 
+  L8064: export type stopViolationsReportReturnValue 
+  L8072: export type PressureLevel 
+  L8076: export interface SamplingProfileNode 
+  L8093: export interface SamplingProfile 
+  L8100: export interface Module 
+  L8122: export interface DOMCounter 
+  L8138: export type getDOMCountersParameters 
+  L8140: export type getDOMCountersReturnValue 
+  L8148: export type getDOMCountersForLeakDetectionParameters 
+  L8150: export type getDOMCountersForLeakDetectionReturnValue 
+  L8160: export type prepareForLeakDetectionParameters 
+  L8162: export type prepareForLeakDetectionReturnValue 
+  L8167: export type forciblyPurgeJavaScriptMemoryParameters 
+  L8169: export type forciblyPurgeJavaScriptMemoryReturnValue 
+  L8174: export type setPressureNotificationsSuppressedParameters 
+  L8180: export type setPressureNotificationsSuppressedReturnValue 
+  L8185: export type simulatePressureNotificationParameters 
+  L8191: export type simulatePressureNotificationReturnValue 
+  L8196: export type startSamplingParameters 
+  L8206: export type startSamplingReturnValue 
+  L8211: export type stopSamplingParameters 
+  L8213: export type stopSamplingReturnValue 
+  L8219: export type getAllTimeSamplingProfileParameters 
+  L8221: export type getAllTimeSamplingProfileReturnValue 
+  L8228: export type getBrowserSamplingProfileParameters 
+  L8230: export type getBrowserSamplingProfileReturnValue 
+  L8237: export type getSamplingProfileParameters 
+  L8239: export type getSamplingProfileReturnValue 
+  L8252: export type ResourceType 
+  L8256: export type LoaderId 
+  L8260: export type RequestId 
+  L8264: export type InterceptionId 
+  L8268: export type ErrorReason 
+  L8272: export type TimeSinceEpoch 
+  L8276: export type MonotonicTime 
+  L8280: export type Headers 
+  L8284: export type ConnectionType 
+  L8289: export type CookieSameSite 
+  L8294: export type CookiePriority 
+  L8300: export type CookieSourceScheme 
+  L8304: export interface ResourceTiming 
+  L8394: export type ResourcePriority 
+  L8398: export interface PostDataEntry 
+  L8404: export interface Request 
+  L8464: export interface SignedCertificateTimestamp 
+  L8502: export interface SecurityDetails 
+  L8569: export type CertificateTransparencyCompliance 
+  L8573: export type BlockedReason 
+  L8577: export type CorsError 
+  L8578: export interface CorsErrorStatus 
+  L8585: export type ServiceWorkerResponseSource 
+  L8591: export interface TrustTokenParams 
+  L8604: export type TrustTokenOperationType 
+  L8608: export type AlternateProtocolUsage 
+  L8612: export type ServiceWorkerRouterSource 
+  L8613: export interface ServiceWorkerRouterInfo 
+  L8632: export interface Response 
+  L8748: export interface WebSocketRequest 
+  L8757: export interface WebSocketResponse 
+  L8786: export interface WebSocketFrame 
+  L8805: export interface CachedResource 
+  L8826: export interface Initiator 
+  L8858: export interface CookiePartitionKey 
+  L8872: export interface Cookie 
+  L8943: export type SetCookieBlockedReason 
+  L8947: export type CookieBlockedReason 
+  L8951: export type CookieExemptionReason 
+  L8955: export interface BlockedSetCookieWithReason 
+  L8976: export interface ExemptedSetCookieWithReason 
+  L8994: export interface AssociatedCookie 
+  L9012: export interface CookieParam 
+  L9076: export interface AuthChallenge 
+  L9097: export interface AuthChallengeResponse 
+  L9119: export type InterceptionStage 
+  L9123: export interface RequestPattern 
+  L9142: export interface SignedExchangeSignature 
+  L9184: export interface SignedExchangeHeader 
+  L9209: export type SignedExchangeErrorField 
+  L9213: export interface SignedExchangeError 
+  L9230: export interface SignedExchangeInfo 
+  L9251: export type ContentEncoding 
+  L9252: export type PrivateNetworkRequestPolicy 
+  L9253: export type IPAddressSpace 
+  L9254: export interface ConnectTiming 
+  L9262: export interface ClientSecurityState 
+  L9267: export type CrossOriginOpenerPolicyValue 
+  L9268: export interface CrossOriginOpenerPolicyStatus 
+  L9274: export type CrossOriginEmbedderPolicyValue 
+  L9275: export interface CrossOriginEmbedderPolicyStatus 
+  L9281: export type ContentSecurityPolicySource 
+  L9282: export interface ContentSecurityPolicyStatus 
+  L9287: export interface SecurityIsolationStatus 
+  L9295: export type ReportStatus 
+  L9296: export type ReportId 
+  L9300: export interface ReportingApiReport 
+  L9329: export interface ReportingApiEndpoint 
+  L9342: export interface LoadNetworkResourcePageResult 
+  L9363: export interface LoadNetworkResourceOptions 
+  L9371: export type dataReceivedPayload 
+  L9396: export type eventSourceMessageReceivedPayload 
+  L9421: export type loadingFailedPayload 
+  L9454: export type loadingFinishedPayload 
+  L9473: export type requestInterceptedPayload 
+  L9531: export type requestServedFromCachePayload 
+  L9540: export type requestWillBeSentPayload 
+  L9595: export type resourceChangedPriorityPayload 
+  L9612: export type signedExchangeReceivedPayload 
+  L9625: export type responseReceivedPayload 
+  L9659: export type webSocketClosedPayload 
+  L9672: export type webSocketCreatedPayload 
+  L9689: export type webSocketFrameErrorPayload 
+  L9706: export type webSocketFrameReceivedPayload 
+  L9723: export type webSocketFrameSentPayload 
+  L9740: export type webSocketHandshakeResponseReceivedPayload 
+  L9757: export type webSocketWillSendHandshakeRequestPayload 
+  L9778: export type webTransportCreatedPayload 
+  L9799: export type webTransportConnectionEstablishedPayload 
+  L9812: export type webTransportClosedPayload 
+  L9828: export type requestWillBeSentExtraInfoPayload 
+  L9860: export type responseReceivedExtraInfoPayload 
+  L9911: export type responseReceivedEarlyHintsPayload 
+  L9927: export type trustTokenOperationDonePayload 
+  L9953: export type policyUpdatedPayload 
+  L9958: export type subresourceWebBundleMetadataReceivedPayload 
+  L9971: export type subresourceWebBundleMetadataErrorPayload 
+  L9985: export type subresourceWebBundleInnerResponseParsedPayload 
+  L10004: export type subresourceWebBundleInnerResponseErrorPayload 
+  L10028: export type reportingApiReportAddedPayload 
+  L10031: export type reportingApiReportUpdatedPayload 
+  L10034: export type reportingApiEndpointsChangedForOriginPayload 
+  L10045: export type setAcceptedEncodingsParameters 
+  L10051: export type setAcceptedEncodingsReturnValue 
+  L10056: export type clearAcceptedEncodingsOverrideParameters 
+  L10058: export type clearAcceptedEncodingsOverrideReturnValue 
+  L10063: export type canClearBrowserCacheParameters 
+  L10065: export type canClearBrowserCacheReturnValue 
+  L10074: export type canClearBrowserCookiesParameters 
+  L10076: export type canClearBrowserCookiesReturnValue 
+  L10085: export type canEmulateNetworkConditionsParameters 
+  L10087: export type canEmulateNetworkConditionsReturnValue 
+  L10096: export type clearBrowserCacheParameters 
+  L10098: export type clearBrowserCacheReturnValue 
+  L10103: export type clearBrowserCookiesParameters 
+  L10105: export type clearBrowserCookiesReturnValue 
+  L10114: export type continueInterceptedRequestParameters 
+  L10151: export type continueInterceptedRequestReturnValue 
+  L10156: export type deleteCookiesParameters 
+  L10180: export type deleteCookiesReturnValue 
+  L10185: export type disableParameters 
+  L10187: export type disableReturnValue 
+  L10192: export type emulateNetworkConditionsParameters 
+  L10226: export type emulateNetworkConditionsReturnValue 
+  L10231: export type enableParameters 
+  L10245: export type enableReturnValue 
+  L10252: export type getAllCookiesParameters 
+  L10254: export type getAllCookiesReturnValue 
+  L10263: export type getCertificateParameters 
+  L10269: export type getCertificateReturnValue 
+  L10276: export type getCookiesParameters 
+  L10284: export type getCookiesReturnValue 
+  L10293: export type getResponseBodyParameters 
+  L10299: export type getResponseBodyReturnValue 
+  L10312: export type getRequestPostDataParameters 
+  L10318: export type getRequestPostDataReturnValue 
+  L10327: export type getResponseBodyForInterceptionParameters 
+  L10333: export type getResponseBodyForInterceptionReturnValue 
+  L10349: export type takeResponseBodyForInterceptionAsStreamParameters 
+  L10352: export type takeResponseBodyForInterceptionAsStreamReturnValue 
+  L10360: export type replayXHRParameters 
+  L10366: export type replayXHRReturnValue 
+  L10371: export type searchInResponseBodyParameters 
+  L10389: export type searchInResponseBodyReturnValue 
+  L10398: export type setBlockedURLsParameters 
+  L10404: export type setBlockedURLsReturnValue 
+  L10409: export type setBypassServiceWorkerParameters 
+  L10415: export type setBypassServiceWorkerReturnValue 
+  L10420: export type setCacheDisabledParameters 
+  L10426: export type setCacheDisabledReturnValue 
+  L10431: export type setCookieParameters 
+  L10492: export type setCookieReturnValue 
+  L10501: export type setCookiesParameters 
+  L10507: export type setCookiesReturnValue 
+  L10512: export type setExtraHTTPHeadersParameters 
+  L10518: export type setExtraHTTPHeadersReturnValue 
+  L10523: export type setAttachDebugStackParameters 
+  L10529: export type setAttachDebugStackReturnValue 
+  L10535: export type setRequestInterceptionParameters 
+  L10542: export type setRequestInterceptionReturnValue 
+  L10547: export type setUserAgentOverrideParameters 
+  L10565: export type setUserAgentOverrideReturnValue 
+  L10571: export type streamResourceContentParameters 
+  L10577: export type streamResourceContentReturnValue 
+  L10586: export type getSecurityIsolationStatusParameters 
+  L10592: export type getSecurityIsolationStatusReturnValue 
+  L10599: export type enableReportingApiParameters 
+  L10605: export type enableReportingApiReturnValue 
+  L10610: export type loadNetworkResourceParameters 
+  L10625: export type loadNetworkResourceReturnValue 
+  L10637: export interface SourceOrderConfig 
+  L10650: export interface GridHighlightConfig 
+  L10735: export interface FlexContainerHighlightConfig 
+  L10772: export interface FlexItemHighlightConfig 
+  L10789: export interface LineStyle 
+  L10802: export interface BoxStyle 
+  L10812: export type ContrastAlgorithm 
+  L10816: export interface HighlightConfig 
+  L10894: export type ColorFormat 
+  L10898: export interface GridNodeHighlightConfig 
+  L10908: export interface FlexNodeHighlightConfig 
+  L10918: export interface ScrollSnapContainerHighlightConfig 
+  L10936: export interface ScrollSnapHighlightConfig 
+  L10949: export interface HingeConfig 
+  L10966: export interface WindowControlsOverlayConfig 
+  L10980: export interface ContainerQueryHighlightConfig 
+  L10990: export interface ContainerQueryContainerHighlightConfig 
+  L11000: export interface IsolatedElementHighlightConfig 
+  L11010: export interface IsolationModeHighlightConfig 
+  L11024: export type InspectMode 
+  L11030: export type inspectNodeRequestedPayload 
+  L11039: export type nodeHighlightRequestedPayload 
+  L11045: export type screenshotRequestedPayload 
+  L11054: export type inspectModeCanceledPayload 
+  L11059: export type disableParameters 
+  L11061: export type disableReturnValue 
+  L11066: export type enableParameters 
+  L11068: export type enableReturnValue 
+  L11073: export type getHighlightObjectForTestParameters 
+  L11095: export type getHighlightObjectForTestReturnValue 
+  L11104: export type getGridHighlightObjectsForTestParameters 
+  L11110: export type getGridHighlightObjectsForTestReturnValue 
+  L11119: export type getSourceOrderHighlightObjectForTestParameters 
+  L11125: export type getSourceOrderHighlightObjectForTestReturnValue 
+  L11134: export type hideHighlightParameters 
+  L11136: export type hideHighlightReturnValue 
+  L11144: export type highlightFrameParameters 
+  L11158: export type highlightFrameReturnValue 
+  L11164: export type highlightNodeParameters 
+  L11186: export type highlightNodeReturnValue 
+  L11191: export type highlightQuadParameters 
+  L11205: export type highlightQuadReturnValue 
+  L11210: export type highlightRectParameters 
+  L11236: export type highlightRectReturnValue 
+  L11242: export type highlightSourceOrderParameters 
+  L11260: export type highlightSourceOrderReturnValue 
+  L11266: export type setInspectModeParameters 
+  L11277: export type setInspectModeReturnValue 
+  L11282: export type setShowAdHighlightsParameters 
+  L11288: export type setShowAdHighlightsReturnValue 
+  L11290: export type setPausedInDebuggerMessageParameters 
+  L11296: export type setPausedInDebuggerMessageReturnValue 
+  L11301: export type setShowDebugBordersParameters 
+  L11307: export type setShowDebugBordersReturnValue 
+  L11312: export type setShowFPSCounterParameters 
+  L11318: export type setShowFPSCounterReturnValue 
+  L11323: export type setShowGridOverlaysParameters 
+  L11329: export type setShowGridOverlaysReturnValue 
+  L11331: export type setShowFlexOverlaysParameters 
+  L11337: export type setShowFlexOverlaysReturnValue 
+  L11339: export type setShowScrollSnapOverlaysParameters 
+  L11345: export type setShowScrollSnapOverlaysReturnValue 
+  L11347: export type setShowContainerQueryOverlaysParameters 
+  L11353: export type setShowContainerQueryOverlaysReturnValue 
+  L11358: export type setShowPaintRectsParameters 
+  L11364: export type setShowPaintRectsReturnValue 
+  L11369: export type setShowLayoutShiftRegionsParameters 
+  L11375: export type setShowLayoutShiftRegionsReturnValue 
+  L11380: export type setShowScrollBottleneckRectsParameters 
+  L11386: export type setShowScrollBottleneckRectsReturnValue 
+  L11391: export type setShowHitTestBordersParameters 
+  L11397: export type setShowHitTestBordersReturnValue 
+  L11402: export type setShowWebVitalsParameters 
+  L11405: export type setShowWebVitalsReturnValue 
+  L11410: export type setShowViewportSizeOnResizeParameters 
+  L11416: export type setShowViewportSizeOnResizeReturnValue 
+  L11421: export type setShowHingeParameters 
+  L11427: export type setShowHingeReturnValue 
+  L11432: export type setShowIsolatedElementsParameters 
+  L11438: export type setShowIsolatedElementsReturnValue 
+  L11443: export type setShowWindowControlsOverlayParameters 
+  L11449: export type setShowWindowControlsOverlayReturnValue 
+  L11460: export type FrameId 
+  L11464: export type AdFrameType 
+  L11465: export type AdFrameExplanation 
+  L11469: export interface AdFrameStatus 
+  L11477: export interface AdScriptId 
+  L11491: export type SecureContextType 
+  L11495: export type CrossOriginIsolatedContextType 
+  L11496: export type GatedAPIFeatures 
+  L11501: export type PermissionsPolicyFeature 
+  L11505: export type PermissionsPolicyBlockReason 
+  L11506: export interface PermissionsPolicyBlockLocator 
+  L11510: export interface PermissionsPolicyFeatureState 
+  L11519: export type OriginTrialTokenStatus 
+  L11523: export type OriginTrialStatus 
+  L11524: export type OriginTrialUsageRestriction 
+  L11525: export interface OriginTrialToken 
+  L11533: export interface OriginTrialTokenWithStatus 
+  L11542: export interface OriginTrial 
+  L11550: export interface Frame 
+  L11614: export interface FrameResource 
+  L11647: export interface FrameResourceTree 
+  L11664: export interface FrameTree 
+  L11677: export type ScriptIdentifier 
+  L11681: export type TransitionType 
+  L11685: export interface NavigationEntry 
+  L11710: export interface ScreencastFrameMetadata 
+  L11743: export type DialogType 
+  L11747: export interface AppManifestError 
+  L11768: export interface AppManifestParsedProperties 
+  L11777: export interface LayoutViewport 
+  L11798: export interface VisualViewport 
+  L11835: export interface Viewport 
+  L11860: export interface FontFamilies 
+  L11893: export interface ScriptFontFamilies 
+  L11906: export interface FontSizes 
+  L11916: export type ClientNavigationReason 
+  L11917: export type ClientNavigationDisposition 
+  L11918: export interface InstallabilityErrorArgument 
+  L11931: export interface InstallabilityError 
+  L11944: export type ReferrerPolicy 
+  L11948: export interface CompilationCacheParams 
+  L11959: export interface FileFilter 
+  L11963: export interface FileHandler 
+  L11980: export interface ImageResource 
+  L11989: export interface LaunchHandler 
+  L11992: export interface ProtocolHandler 
+  L11996: export interface RelatedApplication 
+  L12000: export interface ScopeExtension 
+  L12008: export interface Screenshot 
+  L12013: export interface ShareTarget 
+  L12025: export interface Shortcut 
+  L12029: export interface WebAppManifest 
+  L12081: export type AutoResponseMode 
+  L12085: export type NavigationType 
+  L12089: export type BackForwardCacheNotRestoredReason 
+  L12093: export type BackForwardCacheNotRestoredReasonType 
+  L12094: export interface BackForwardCacheBlockingDetails 
+  L12112: export interface BackForwardCacheNotRestoredExplanation 
+  L12129: export interface BackForwardCacheNotRestoredExplanationTree 
+  L12144: export type domContentEventFiredPayload 
+  L12150: export type fileChooserOpenedPayload 
+  L12167: export type frameAttachedPayload 
+  L12184: export type frameClearedScheduledNavigationPayload 
+  L12193: export type frameDetachedPayload 
+  L12204: export type frameSubtreeWillBeDetachedPayload 
+  L12213: export type frameNavigatedPayload 
+  L12223: export type documentOpenedPayload 
+  L12229: export type frameResizedPayload 
+  L12234: export type frameRequestedNavigationPayload 
+  L12255: export type frameScheduledNavigationPayload 
+  L12277: export type frameStartedLoadingPayload 
+  L12286: export type frameStoppedLoadingPayload 
+  L12296: export type downloadWillBeginPayload 
+  L12318: export type downloadProgressPayload 
+  L12339: export type interstitialHiddenPayload 
+  L12343: export type interstitialShownPayload 
+  L12348: export type javascriptDialogClosedPayload 
+  L12362: export type javascriptDialogOpeningPayload 
+  L12389: export type lifecycleEventPayload 
+  L12407: export type backForwardCacheNotUsedPayload 
+  L12425: export type loadEventFiredPayload 
+  L12431: export type navigatedWithinDocumentPayload 
+  L12448: export type screencastFramePayload 
+  L12465: export type screencastVisibilityChangedPayload 
+  L12475: export type windowOpenPayload 
+  L12497: export type compilationCacheProducedPayload 
+  L12508: export type addScriptToEvaluateOnLoadParameters 
+  L12511: export type addScriptToEvaluateOnLoadReturnValue 
+  L12520: export type addScriptToEvaluateOnNewDocumentParameters 
+  L12539: export type addScriptToEvaluateOnNewDocumentReturnValue 
+  L12548: export type bringToFrontParameters 
+  L12550: export type bringToFrontReturnValue 
+  L12555: export type captureScreenshotParameters 
+  L12581: export type captureScreenshotReturnValue 
+  L12591: export type captureSnapshotParameters 
+  L12597: export type captureSnapshotReturnValue 
+  L12606: export type clearDeviceMetricsOverrideParameters 
+  L12608: export type clearDeviceMetricsOverrideReturnValue 
+  L12613: export type clearDeviceOrientationOverrideParameters 
+  L12615: export type clearDeviceOrientationOverrideReturnValue 
+  L12620: export type clearGeolocationOverrideParameters 
+  L12622: export type clearGeolocationOverrideReturnValue 
+  L12627: export type createIsolatedWorldParameters 
+  L12642: export type createIsolatedWorldReturnValue 
+  L12651: export type deleteCookieParameters 
+  L12661: export type deleteCookieReturnValue 
+  L12666: export type disableParameters 
+  L12668: export type disableReturnValue 
+  L12673: export type enableParameters 
+  L12675: export type enableReturnValue 
+  L12684: export type getAppManifestParameters 
+  L12687: export type getAppManifestReturnValue 
+  L12703: export type getInstallabilityErrorsParameters 
+  L12705: export type getInstallabilityErrorsReturnValue 
+  L12711: export type getManifestIconsParameters 
+  L12713: export type getManifestIconsReturnValue 
+  L12720: export type getAppIdParameters 
+  L12722: export type getAppIdReturnValue 
+  L12732: export type getAdScriptIdParameters 
+  L12735: export type getAdScriptIdReturnValue 
+  L12745: export type getFrameTreeParameters 
+  L12747: export type getFrameTreeReturnValue 
+  L12756: export type getLayoutMetricsParameters 
+  L12758: export type getLayoutMetricsReturnValue 
+  L12787: export type getNavigationHistoryParameters 
+  L12789: export type getNavigationHistoryReturnValue 
+  L12802: export type resetNavigationHistoryParameters 
+  L12804: export type resetNavigationHistoryReturnValue 
+  L12809: export type getResourceContentParameters 
+  L12819: export type getResourceContentReturnValue 
+  L12832: export type getResourceTreeParameters 
+  L12834: export type getResourceTreeReturnValue 
+  L12843: export type handleJavaScriptDialogParameters 
+  L12854: export type handleJavaScriptDialogReturnValue 
+  L12859: export type navigateParameters 
+  L12881: export type navigateReturnValue 
+  L12899: export type navigateToHistoryEntryParameters 
+  L12905: export type navigateToHistoryEntryReturnValue 
+  L12910: export type printToPDFParameters 
+  L12996: export type printToPDFReturnValue 
+  L13009: export type reloadParameters 
+  L13026: export type reloadReturnValue 
+  L13031: export type removeScriptToEvaluateOnLoadParameters 
+  L13034: export type removeScriptToEvaluateOnLoadReturnValue 
+  L13039: export type removeScriptToEvaluateOnNewDocumentParameters 
+  L13042: export type removeScriptToEvaluateOnNewDocumentReturnValue 
+  L13047: export type screencastFrameAckParameters 
+  L13053: export type screencastFrameAckReturnValue 
+  L13058: export type searchInResourceParameters 
+  L13080: export type searchInResourceReturnValue 
+  L13089: export type setAdBlockingEnabledParameters 
+  L13095: export type setAdBlockingEnabledReturnValue 
+  L13100: export type setBypassCSPParameters 
+  L13106: export type setBypassCSPReturnValue 
+  L13111: export type getPermissionsPolicyStateParameters 
+  L13114: export type getPermissionsPolicyStateReturnValue 
+  L13120: export type getOriginTrialsParameters 
+  L13123: export type getOriginTrialsReturnValue 
+  L13131: export type setDeviceMetricsOverrideParameters 
+  L13182: export type setDeviceMetricsOverrideReturnValue 
+  L13187: export type setDeviceOrientationOverrideParameters 
+  L13201: export type setDeviceOrientationOverrideReturnValue 
+  L13206: export type setFontFamiliesParameters 
+  L13216: export type setFontFamiliesReturnValue 
+  L13221: export type setFontSizesParameters 
+  L13227: export type setFontSizesReturnValue 
+  L13232: export type setDocumentContentParameters 
+  L13242: export type setDocumentContentReturnValue 
+  L13247: export type setDownloadBehaviorParameters 
+  L13258: export type setDownloadBehaviorReturnValue 
+  L13264: export type setGeolocationOverrideParameters 
+  L13278: export type setGeolocationOverrideReturnValue 
+  L13283: export type setLifecycleEventsEnabledParameters 
+  L13289: export type setLifecycleEventsEnabledReturnValue 
+  L13294: export type setTouchEmulationEnabledParameters 
+  L13304: export type setTouchEmulationEnabledReturnValue 
+  L13309: export type startScreencastParameters 
+  L13331: export type startScreencastReturnValue 
+  L13336: export type stopLoadingParameters 
+  L13338: export type stopLoadingReturnValue 
+  L13343: export type crashParameters 
+  L13345: export type crashReturnValue 
+  L13350: export type closeParameters 
+  L13352: export type closeReturnValue 
+  L13359: export type setWebLifecycleStateParameters 
+  L13365: export type setWebLifecycleStateReturnValue 
+  L13370: export type stopScreencastParameters 
+  L13372: export type stopScreencastReturnValue 
+  L13382: export type produceCompilationCacheParameters 
+  L13385: export type produceCompilationCacheReturnValue 
+  L13391: export type addCompilationCacheParameters 
+  L13398: export type addCompilationCacheReturnValue 
+  L13403: export type clearCompilationCacheParameters 
+  L13405: export type clearCompilationCacheReturnValue 
+  L13411: export type setSPCTransactionModeParameters 
+  L13414: export type setSPCTransactionModeReturnValue 
+  L13420: export type setRPHRegistrationModeParameters 
+  L13423: export type setRPHRegistrationModeReturnValue 
+  L13428: export type generateTestReportParameters 
+  L13438: export type generateTestReportReturnValue 
+  L13443: export type waitForDebuggerParameters 
+  L13445: export type waitForDebuggerReturnValue 
+  L13452: export type setInterceptFileChooserDialogParameters 
+  L13455: export type setInterceptFileChooserDialogReturnValue 
+  L13466: export type setPrerenderingAllowedParameters 
+  L13469: export type setPrerenderingAllowedReturnValue 
+  L13477: export interface Metric 
+  L13491: export type metricsPayload 
+  L13505: export type disableParameters 
+  L13507: export type disableReturnValue 
+  L13512: export type enableParameters 
+  L13518: export type enableReturnValue 
+  L13525: export type setTimeDomainParameters 
+  L13531: export type setTimeDomainReturnValue 
+  L13536: export type getMetricsParameters 
+  L13538: export type getMetricsReturnValue 
+  L13554: export interface LargestContentfulPaint 
+  L13571: export interface LayoutShiftAttribution 
+  L13579: export interface LayoutShift 
+  L13588: export interface TimelineEvent 
+  L13617: export type timelineEventAddedPayload 
+  L13625: export type enableParameters 
+  L13635: export type enableReturnValue 
+  L13646: export type CertificateId 
+  L13651: export type MixedContentType 
+  L13655: export type SecurityState 
+  L13659: export interface CertificateSecurityState 
+  L13733: export type SafetyTipStatus 
+  L13734: export interface SafetyTipInfo 
+  L13747: export interface VisibleSecurityState 
+  L13768: export interface SecurityStateExplanation 
+  L13801: export interface InsecureContentStatus 
+  L13835: export type CertificateErrorAction 
+  L13843: export type certificateErrorPayload 
+  L13860: export type visibleSecurityStateChangedPayload 
+  L13869: export type securityStateChangedPayload 
+  L13896: export type disableParameters 
+  L13898: export type disableReturnValue 
+  L13903: export type enableParameters 
+  L13905: export type enableReturnValue 
+  L13910: export type setIgnoreCertificateErrorsParameters 
+  L13916: export type setIgnoreCertificateErrorsReturnValue 
+  L13921: export type handleCertificateErrorParameters 
+  L13931: export type handleCertificateErrorReturnValue 
+  L13937: export type setOverrideCertificateErrorsParameters 
+  L13943: export type setOverrideCertificateErrorsReturnValue 
+  L13948: export type RegistrationID 
+  L13952: export interface ServiceWorkerRegistration 
+  L13957: export type ServiceWorkerVersionRunningStatus 
+  L13958: export type ServiceWorkerVersionStatus 
+  L13962: export interface ServiceWorkerVersion 
+  L13984: export interface ServiceWorkerErrorMessage 
+  L13993: export type workerErrorReportedPayload 
+  L13996: export type workerRegistrationUpdatedPayload 
+  L13999: export type workerVersionUpdatedPayload 
+  L14003: export type deliverPushMessageParameters 
+  L14008: export type deliverPushMessageReturnValue 
+  L14010: export type disableParameters 
+  L14012: export type disableReturnValue 
+  L14014: export type dispatchSyncEventParameters 
+  L14020: export type dispatchSyncEventReturnValue 
+  L14022: export type dispatchPeriodicSyncEventParameters 
+  L14027: export type dispatchPeriodicSyncEventReturnValue 
+  L14029: export type enableParameters 
+  L14031: export type enableReturnValue 
+  L14033: export type inspectWorkerParameters 
+  L14036: export type inspectWorkerReturnValue 
+  L14038: export type setForceUpdateOnPageLoadParameters 
+  L14041: export type setForceUpdateOnPageLoadReturnValue 
+  L14043: export type skipWaitingParameters 
+  L14046: export type skipWaitingReturnValue 
+  L14048: export type startWorkerParameters 
+  L14051: export type startWorkerReturnValue 
+  L14053: export type stopAllWorkersParameters 
+  L14055: export type stopAllWorkersReturnValue 
+  L14057: export type stopWorkerParameters 
+  L14060: export type stopWorkerReturnValue 
+  L14062: export type unregisterParameters 
+  L14065: export type unregisterReturnValue 
+  L14067: export type updateRegistrationParameters 
+  L14070: export type updateRegistrationReturnValue 
+  L14075: export type SerializedStorageKey 
+  L14079: export type StorageType 
+  L14083: export interface UsageForType 
+  L14097: export interface TrustTokens 
+  L14104: export type InterestGroupAuctionId 
+  L14108: export type InterestGroupAccessType 
+  L14112: export type InterestGroupAuctionEventType 
+  L14116: export type InterestGroupAuctionFetchType 
+  L14120: export type SharedStorageAccessType 
+  L14124: export interface SharedStorageEntry 
+  L14131: export interface SharedStorageMetadata 
+  L14153: export interface SharedStorageReportingMetadata 
+  L14160: export interface SharedStorageUrlWithMetadata 
+  L14174: export interface SharedStorageAccessParams 
+  L14229: export type StorageBucketsDurability 
+  L14230: export interface StorageBucket 
+  L14237: export interface StorageBucketInfo 
+  L14248: export type AttributionReportingSourceType 
+  L14249: export type UnsignedInt64AsBase10 
+  L14250: export type UnsignedInt128AsBase16 
+  L14251: export type SignedInt64AsBase10 
+  L14252: export interface AttributionReportingFilterDataEntry 
+  L14256: export interface AttributionReportingFilterConfig 
+  L14263: export interface AttributionReportingFilterPair 
+  L14267: export interface AttributionReportingAggregationKeysEntry 
+  L14271: export interface AttributionReportingEventReportWindows 
+  L14281: export interface AttributionReportingTriggerSpec 
+  L14289: export type AttributionReportingTriggerDataMatching 
+  L14290: export interface AttributionReportingAggregatableDebugReportingData 
+  L14299: export interface AttributionReportingAggregatableDebugReportingConfig 
+  L14309: export interface AttributionScopesData 
+  L14318: export interface AttributionReportingSourceRegistration 
+  L14343: export type AttributionReportingSourceRegistrationResult 
+  L14344: export type AttributionReportingSourceRegistrationTimeConfig 
+  L14345: export interface AttributionReportingAggregatableValueDictEntry 
+  L14354: export interface AttributionReportingAggregatableValueEntry 
+  L14358: export interface AttributionReportingEventTriggerData 
+  L14364: export interface AttributionReportingAggregatableTriggerData 
+  L14369: export interface AttributionReportingAggregatableDedupKey 
+  L14373: export interface AttributionReportingTriggerRegistration 
+  L14388: export type AttributionReportingEventLevelResult 
+  L14389: export type AttributionReportingAggregatableResult 
+  L14393: export interface RelatedWebsiteSet 
+  L14411: export type cacheStorageContentUpdatedPayload 
+  L14432: export type cacheStorageListUpdatedPayload 
+  L14449: export type indexedDBContentUpdatedPayload 
+  L14474: export type indexedDBListUpdatedPayload 
+  L14492: export type interestGroupAccessedPayload 
+  L14516: export type interestGroupAuctionEventOccurredPayload 
+  L14535: export type interestGroupAuctionNetworkRequestCreatedPayload 
+  L14549: export type sharedStorageAccessedPayload 
+  L14572: export type storageBucketCreatedOrUpdatedPayload 
+  L14575: export type storageBucketDeletedPayload 
+  L14578: export type attributionReportingSourceRegisteredPayload 
+  L14582: export type attributionReportingTriggerRegisteredPayload 
+  L14591: export type getStorageKeyForFrameParameters 
+  L14594: export type getStorageKeyForFrameReturnValue 
+  L14600: export type clearDataForOriginParameters 
+  L14610: export type clearDataForOriginReturnValue 
+  L14615: export type clearDataForStorageKeyParameters 
+  L14625: export type clearDataForStorageKeyReturnValue 
+  L14630: export type getCookiesParameters 
+  L14636: export type getCookiesReturnValue 
+  L14645: export type setCookiesParameters 
+  L14655: export type setCookiesReturnValue 
+  L14660: export type clearCookiesParameters 
+  L14666: export type clearCookiesReturnValue 
+  L14671: export type getUsageAndQuotaParameters 
+  L14677: export type getUsageAndQuotaReturnValue 
+  L14698: export type overrideQuotaForOriginParameters 
+  L14714: export type overrideQuotaForOriginReturnValue 
+  L14719: export type trackCacheStorageForOriginParameters 
+  L14725: export type trackCacheStorageForOriginReturnValue 
+  L14730: export type trackCacheStorageForStorageKeyParameters 
+  L14736: export type trackCacheStorageForStorageKeyReturnValue 
+  L14741: export type trackIndexedDBForOriginParameters 
+  L14747: export type trackIndexedDBForOriginReturnValue 
+  L14752: export type trackIndexedDBForStorageKeyParameters 
+  L14758: export type trackIndexedDBForStorageKeyReturnValue 
+  L14763: export type untrackCacheStorageForOriginParameters 
+  L14769: export type untrackCacheStorageForOriginReturnValue 
+  L14774: export type untrackCacheStorageForStorageKeyParameters 
+  L14780: export type untrackCacheStorageForStorageKeyReturnValue 
+  L14785: export type untrackIndexedDBForOriginParameters 
+  L14791: export type untrackIndexedDBForOriginReturnValue 
+  L14796: export type untrackIndexedDBForStorageKeyParameters 
+  L14802: export type untrackIndexedDBForStorageKeyReturnValue 
+  L14808: export type getTrustTokensParameters 
+  L14810: export type getTrustTokensReturnValue 
+  L14817: export type clearTrustTokensParameters 
+  L14820: export type clearTrustTokensReturnValue 
+  L14829: export type getInterestGroupDetailsParameters 
+  L14833: export type getInterestGroupDetailsReturnValue 
+  L14845: export type setInterestGroupTrackingParameters 
+  L14848: export type setInterestGroupTrackingReturnValue 
+  L14854: export type setInterestGroupAuctionTrackingParameters 
+  L14857: export type setInterestGroupAuctionTrackingReturnValue 
+  L14862: export type getSharedStorageMetadataParameters 
+  L14865: export type getSharedStorageMetadataReturnValue 
+  L14871: export type getSharedStorageEntriesParameters 
+  L14874: export type getSharedStorageEntriesReturnValue 
+  L14880: export type setSharedStorageEntryParameters 
+  L14890: export type setSharedStorageEntryReturnValue 
+  L14895: export type deleteSharedStorageEntryParameters 
+  L14899: export type deleteSharedStorageEntryReturnValue 
+  L14904: export type clearSharedStorageEntriesParameters 
+  L14907: export type clearSharedStorageEntriesReturnValue 
+  L14912: export type resetSharedStorageBudgetParameters 
+  L14915: export type resetSharedStorageBudgetReturnValue 
+  L14920: export type setSharedStorageTrackingParameters 
+  L14923: export type setSharedStorageTrackingReturnValue 
+  L14928: export type setStorageBucketTrackingParameters 
+  L14932: export type setStorageBucketTrackingReturnValue 
+  L14937: export type deleteStorageBucketParameters 
+  L14940: export type deleteStorageBucketReturnValue 
+  L14945: export type runBounceTrackingMitigationsParameters 
+  L14947: export type runBounceTrackingMitigationsReturnValue 
+  L14953: export type setAttributionReportingLocalTestingModeParameters 
+  L14959: export type setAttributionReportingLocalTestingModeReturnValue 
+  L14964: export type setAttributionReportingTrackingParameters 
+  L14967: export type setAttributionReportingTrackingReturnValue 
+  L14973: export type sendPendingAttributionReportsParameters 
+  L14975: export type sendPendingAttributionReportsReturnValue 
+  L14985: export type getRelatedWebsiteSetsParameters 
+  L14987: export type getRelatedWebsiteSetsReturnValue 
+  L14999: export interface GPUDevice 
+  L15036: export interface Size 
+  L15050: export interface VideoDecodeAcceleratorCapability 
+  L15068: export interface VideoEncodeAcceleratorCapability 
+  L15088: export type SubsamplingFormat 
+  L15092: export type ImageType 
+  L15097: export interface ImageDecodeAcceleratorCapability 
+  L15118: export interface GPUInfo 
+  L15151: export interface ProcessInfo 
+  L15171: export type getInfoParameters 
+  L15173: export type getInfoReturnValue 
+  L15197: export type getFeatureStateParameters 
+  L15200: export type getFeatureStateReturnValue 
+  L15206: export type getProcessInfoParameters 
+  L15208: export type getProcessInfoReturnValue 
+  L15220: export type TargetID 
+  L15224: export type SessionID 
+  L15225: export interface TargetInfo 
+  L15259: export interface FilterEntry 
+  L15277: export type TargetFilter 
+  L15278: export interface RemoteLocation 
+  L15286: export type attachedToTargetPayload 
+  L15298: export type detachedFromTargetPayload 
+  L15312: export type receivedMessageFromTargetPayload 
+  L15326: export type targetCreatedPayload 
+  L15332: export type targetDestroyedPayload 
+  L15338: export type targetCrashedPayload 
+  L15353: export type targetInfoChangedPayload 
+  L15360: export type activateTargetParameters 
+  L15363: export type activateTargetReturnValue 
+  L15368: export type attachToTargetParameters 
+  L15377: export type attachToTargetReturnValue 
+  L15386: export type attachToBrowserTargetParameters 
+  L15388: export type attachToBrowserTargetReturnValue 
+  L15397: export type closeTargetParameters 
+  L15400: export type closeTargetReturnValue 
+  L15416: export type exposeDevToolsProtocolParameters 
+  L15423: export type exposeDevToolsProtocolReturnValue 
+  L15429: export type createBrowserContextParameters 
+  L15448: export type createBrowserContextReturnValue 
+  L15457: export type getBrowserContextsParameters 
+  L15459: export type getBrowserContextsReturnValue 
+  L15468: export type createTargetParameters 
+  L15504: export type createTargetReturnValue 
+  L15513: export type detachFromTargetParameters 
+  L15523: export type detachFromTargetReturnValue 
+  L15529: export type disposeBrowserContextParameters 
+  L15532: export type disposeBrowserContextReturnValue 
+  L15537: export type getTargetInfoParameters 
+  L15540: export type getTargetInfoReturnValue 
+  L15546: export type getTargetsParameters 
+  L15554: export type getTargetsReturnValue 
+  L15565: export type sendMessageToTargetParameters 
+  L15576: export type sendMessageToTargetReturnValue 
+  L15585: export type setAutoAttachParameters 
+  L15606: export type setAutoAttachReturnValue 
+  L15615: export type autoAttachRelatedParameters 
+  L15627: export type autoAttachRelatedReturnValue 
+  L15633: export type setDiscoverTargetsParameters 
+  L15644: export type setDiscoverTargetsReturnValue 
+  L15650: export type setRemoteLocationsParameters 
+  L15656: export type setRemoteLocationsReturnValue 
+  L15668: export type acceptedPayload 
+  L15682: export type bindParameters 
+  L15688: export type bindReturnValue 
+  L15693: export type unbindParameters 
+  L15699: export type unbindReturnValue 
+  L15707: export type MemoryDumpConfig 
+  L15708: export interface TraceConfig 
+  L15751: export type StreamFormat 
+  L15755: export type StreamCompression 
+  L15761: export type MemoryDumpLevelOfDetail 
+  L15769: export type TracingBackend 
+  L15771: export type bufferUsagePayload 
+  L15791: export type dataCollectedPayload 
+  L15798: export type tracingCompletePayload 
+  L15821: export type endParameters 
+  L15823: export type endReturnValue 
+  L15828: export type getCategoriesParameters 
+  L15830: export type getCategoriesReturnValue 
+  L15839: export type recordClockSyncMarkerParameters 
+  L15845: export type recordClockSyncMarkerReturnValue 
+  L15850: export type requestMemoryDumpParameters 
+  L15860: export type requestMemoryDumpReturnValue 
+  L15873: export type startParameters 
+  L15913: export type startReturnValue 
+  L15924: export type RequestId 
+  L15930: export type RequestStage 
+  L15931: export interface RequestPattern 
+  L15949: export interface HeaderEntry 
+  L15956: export interface AuthChallenge 
+  L15977: export interface AuthChallengeResponse 
+  L16009: export type requestPausedPayload 
+  L16057: export type authRequiredPayload 
+  L16085: export type disableParameters 
+  L16087: export type disableReturnValue 
+  L16093: export type enableParameters 
+  L16106: export type enableReturnValue 
+  L16111: export type failRequestParameters 
+  L16121: export type failRequestReturnValue 
+  L16126: export type fulfillRequestParameters 
+  L16158: export type fulfillRequestReturnValue 
+  L16163: export type continueRequestParameters 
+  L16191: export type continueRequestReturnValue 
+  L16196: export type continueWithAuthParameters 
+  L16206: export type continueWithAuthReturnValue 
+  L16213: export type continueResponseParameters 
+  L16239: export type continueResponseReturnValue 
+  L16253: export type getResponseBodyParameters 
+  L16259: export type getResponseBodyReturnValue 
+  L16281: export type takeResponseBodyAsStreamParameters 
+  L16284: export type takeResponseBodyAsStreamReturnValue 
+  L16297: export type GraphObjectId 
+  L16301: export type ContextType 
+  L16305: export type ContextState 
+  L16309: export type NodeType 
+  L16313: export type ChannelCountMode 
+  L16317: export type ChannelInterpretation 
+  L16321: export type ParamType 
+  L16325: export type AutomationRate 
+  L16329: export interface ContextRealtimeData 
+  L16352: export interface BaseAudioContext 
+  L16373: export interface AudioListener 
+  L16380: export interface AudioNode 
+  L16393: export interface AudioParam 
+  L16407: export type contextCreatedPayload 
+  L16413: export type contextWillBeDestroyedPayload 
+  L16419: export type contextChangedPayload 
+  L16425: export type audioListenerCreatedPayload 
+  L16431: export type audioListenerWillBeDestroyedPayload 
+  L16438: export type audioNodeCreatedPayload 
+  L16444: export type audioNodeWillBeDestroyedPayload 
+  L16451: export type audioParamCreatedPayload 
+  L16457: export type audioParamWillBeDestroyedPayload 
+  L16465: export type nodesConnectedPayload 
+  L16475: export type nodesDisconnectedPayload 
+  L16485: export type nodeParamConnectedPayload 
+  L16494: export type nodeParamDisconnectedPayload 
+  L16504: export type enableParameters 
+  L16506: export type enableReturnValue 
+  L16511: export type disableParameters 
+  L16513: export type disableReturnValue 
+  L16518: export type getRealtimeDataParameters 
+  L16521: export type getRealtimeDataReturnValue 
+  L16531: export type AuthenticatorId 
+  L16532: export type AuthenticatorProtocol 
+  L16533: export type Ctap2Version 
+  L16534: export type AuthenticatorTransport 
+  L16535: export interface VirtualAuthenticatorOptions 
+  L16597: export interface Credential 
+  L16653: export type credentialAddedPayload 
+  L16661: export type credentialDeletedPayload 
+  L16669: export type credentialUpdatedPayload 
+  L16676: export type credentialAssertedPayload 
+  L16685: export type enableParameters 
+  L16695: export type enableReturnValue 
+  L16700: export type disableParameters 
+  L16702: export type disableReturnValue 
+  L16707: export type addVirtualAuthenticatorParameters 
+  L16710: export type addVirtualAuthenticatorReturnValue 
+  L16716: export type setResponseOverrideBitsParameters 
+  L16734: export type setResponseOverrideBitsReturnValue 
+  L16739: export type removeVirtualAuthenticatorParameters 
+  L16742: export type removeVirtualAuthenticatorReturnValue 
+  L16747: export type addCredentialParameters 
+  L16751: export type addCredentialReturnValue 
+  L16757: export type getCredentialParameters 
+  L16761: export type getCredentialReturnValue 
+  L16767: export type getCredentialsParameters 
+  L16770: export type getCredentialsReturnValue 
+  L16776: export type removeCredentialParameters 
+  L16780: export type removeCredentialReturnValue 
+  L16785: export type clearCredentialsParameters 
+  L16788: export type clearCredentialsReturnValue 
+  L16794: export type setUserVerifiedParameters 
+  L16798: export type setUserVerifiedReturnValue 
+  L16804: export type setAutomaticPresenceSimulationParameters 
+  L16808: export type setAutomaticPresenceSimulationReturnValue 
+  L16814: export type setCredentialPropertiesParameters 
+  L16820: export type setCredentialPropertiesReturnValue 
+  L16831: export type PlayerId 
+  L16832: export type Timestamp 
+  L16837: export interface PlayerMessage 
+  L16855: export interface PlayerProperty 
+  L16862: export interface PlayerEvent 
+  L16870: export interface PlayerErrorSourceLocation 
+  L16877: export interface PlayerError 
+  L16903: export type playerPropertiesChangedPayload 
+  L16911: export type playerEventsAddedPayload 
+  L16918: export type playerMessagesLoggedPayload 
+  L16925: export type playerErrorsRaisedPayload 
+  L16934: export type playersCreatedPayload 
+  L16941: export type enableParameters 
+  L16943: export type enableReturnValue 
+  L16948: export type disableParameters 
+  L16950: export type disableReturnValue 
+  L16958: export type RequestId 
+  L16962: export type DeviceId 
+  L16966: export interface PromptDevice 
+  L16978: export type deviceRequestPromptedPayload 
+  L16986: export type enableParameters 
+  L16988: export type enableReturnValue 
+  L16993: export type disableParameters 
+  L16995: export type disableReturnValue 
+  L17000: export type selectPromptParameters 
+  L17004: export type selectPromptReturnValue 
+  L17009: export type cancelPromptParameters 
+  L17012: export type cancelPromptReturnValue 
+  L17020: export type RuleSetId 
+  L17024: export interface RuleSet 
+  L17065: export type RuleSetErrorType 
+  L17071: export type SpeculationAction 
+  L17076: export type SpeculationTargetHint 
+  L17085: export interface PreloadingAttemptKey 
+  L17098: export interface PreloadingAttemptSource 
+  L17106: export type PrerenderFinalStatus 
+  L17111: export type PreloadingStatus 
+  L17116: export type PrefetchStatus 
+  L17120: export interface PrerenderMismatchedHeaders 
+  L17129: export type ruleSetUpdatedPayload 
+  L17132: export type ruleSetRemovedPayload 
+  L17138: export type preloadEnabledStateUpdatedPayload 
+  L17148: export type prefetchStatusUpdatedPayload 
+  L17162: export type prerenderStatusUpdatedPayload 
+  L17176: export type preloadingAttemptSourcesUpdatedPayload 
+  L17181: export type enableParameters 
+  L17183: export type enableReturnValue 
+  L17185: export type disableParameters 
+  L17187: export type disableReturnValue 
+  L17199: export type LoginState 
+  L17203: export type DialogType 
+  L17207: export type DialogButton 
+  L17211: export type AccountUrlType 
+  L17215: export interface Account 
+  L17231: export type dialogShownPayload 
+  L17246: export type dialogClosedPayload 
+  L17250: export type enableParameters 
+  L17258: export type enableReturnValue 
+  L17260: export type disableParameters 
+  L17262: export type disableReturnValue 
+  L17264: export type selectAccountParameters 
+  L17268: export type selectAccountReturnValue 
+  L17270: export type clickDialogButtonParameters 
+  L17274: export type clickDialogButtonReturnValue 
+  L17276: export type openUrlParameters 
+  L17281: export type openUrlReturnValue 
+  L17283: export type dismissDialogParameters 
+  L17287: export type dismissDialogReturnValue 
+  L17293: export type resetCooldownParameters 
+  L17295: export type resetCooldownReturnValue 
+  L17307: export interface FileHandlerAccept 
+  L17315: export interface FileHandler 
+  L17323: export type DisplayMode 
+  L17329: export type getOsAppStateParameters 
+  L17337: export type getOsAppStateReturnValue 
+  L17353: export type installParameters 
+  L17361: export type installReturnValue 
+  L17366: export type uninstallParameters 
+  L17369: export type uninstallReturnValue 
+  L17376: export type launchParameters 
+  L17380: export type launchReturnValue 
+  L17401: export type launchFilesInAppParameters 
+  L17405: export type launchFilesInAppReturnValue 
+  L17416: export type openCurrentPageInAppParameters 
+  L17419: export type openCurrentPageInAppReturnValue 
+  L17432: export type changeAppUserSettingsParameters 
+  L17450: export type changeAppUserSettingsReturnValue 
+  L17462: export type CentralState 
+  L17466: export interface ManufacturerData 
+  L17481: export interface ScanRecord 
+  L17501: export interface ScanEntry 
+  L17511: export type enableParameters 
+  L17517: export type enableReturnValue 
+  L17522: export type disableParameters 
+  L17524: export type disableReturnValue 
+  L17530: export type simulatePreconnectedPeripheralParameters 
+  L17536: export type simulatePreconnectedPeripheralReturnValue 
+  L17542: export type simulateAdvertisementParameters 
+  L17545: export type simulateAdvertisementReturnValue 
+  L17556: export interface ConsoleMessage 
+  L17586: export type messageAddedPayload 
+  L17596: export type clearMessagesParameters 
+  L17598: export type clearMessagesReturnValue 
+  L17603: export type disableParameters 
+  L17605: export type disableReturnValue 
+  L17611: export type enableParameters 
+  L17613: export type enableReturnValue 
+  L17625: export type BreakpointId 
+  L17629: export type CallFrameId 
+  L17633: export interface Location 
+  L17650: export interface ScriptPosition 
+  L17657: export interface LocationRange 
+  L17665: export interface CallFrame 
+  L17711: export interface Scope 
+  L17735: export interface SearchMatch 
+  L17745: export interface BreakLocation 
+  L17760: export interface WasmDisassemblyChunk 
+  L17773: export type ScriptLanguage 
+  L17777: export interface DebugSymbols 
+  L17791: export type breakpointResolvedPayload 
+  L17804: export type pausedPayload 
+  L17837: export type resumedPayload 
+  L17841: export type scriptFailedToParsePayload 
+  L17915: export type scriptParsedPayload 
+  L17997: export type continueToLocationParameters 
+  L18004: export type continueToLocationReturnValue 
+  L18009: export type disableParameters 
+  L18011: export type disableReturnValue 
+  L18017: export type enableParameters 
+  L18024: export type enableReturnValue 
+  L18033: export type evaluateOnCallFrameParameters 
+  L18074: export type evaluateOnCallFrameReturnValue 
+  L18088: export type getPossibleBreakpointsParameters 
+  L18103: export type getPossibleBreakpointsReturnValue 
+  L18112: export type getScriptSourceParameters 
+  L18118: export type getScriptSourceReturnValue 
+  L18128: export type disassembleWasmModuleParameters 
+  L18134: export type disassembleWasmModuleReturnValue 
+  L18160: export type nextWasmDisassemblyChunkParameters 
+  L18163: export type nextWasmDisassemblyChunkReturnValue 
+  L18172: export type getWasmBytecodeParameters 
+  L18178: export type getWasmBytecodeReturnValue 
+  L18187: export type getStackTraceParameters 
+  L18190: export type getStackTraceReturnValue 
+  L18196: export type pauseParameters 
+  L18198: export type pauseReturnValue 
+  L18200: export type pauseOnAsyncCallParameters 
+  L18206: export type pauseOnAsyncCallReturnValue 
+  L18211: export type removeBreakpointParameters 
+  L18214: export type removeBreakpointReturnValue 
+  L18231: export type restartFrameParameters 
+  L18242: export type restartFrameReturnValue 
+  L18259: export type resumeParameters 
+  L18269: export type resumeReturnValue 
+  L18274: export type searchInContentParameters 
+  L18292: export type searchInContentReturnValue 
+  L18301: export type setAsyncCallStackDepthParameters 
+  L18308: export type setAsyncCallStackDepthReturnValue 
+  L18315: export type setBlackboxExecutionContextsParameters 
+  L18321: export type setBlackboxExecutionContextsReturnValue 
+  L18328: export type setBlackboxPatternsParameters 
+  L18338: export type setBlackboxPatternsReturnValue 
+  L18346: export type setBlackboxedRangesParameters 
+  L18353: export type setBlackboxedRangesReturnValue 
+  L18358: export type setBreakpointParameters 
+  L18369: export type setBreakpointReturnValue 
+  L18382: export type setInstrumentationBreakpointParameters 
+  L18388: export type setInstrumentationBreakpointReturnValue 
+  L18400: export type setBreakpointByUrlParameters 
+  L18428: export type setBreakpointByUrlReturnValue 
+  L18443: export type setBreakpointOnFunctionCallParameters 
+  L18454: export type setBreakpointOnFunctionCallReturnValue 
+  L18463: export type setBreakpointsActiveParameters 
+  L18469: export type setBreakpointsActiveReturnValue 
+  L18475: export type setPauseOnExceptionsParameters 
+  L18481: export type setPauseOnExceptionsReturnValue 
+  L18486: export type setReturnValueParameters 
+  L18492: export type setReturnValueReturnValue 
+  L18503: export type setScriptSourceParameters 
+  L18523: export type setScriptSourceReturnValue 
+  L18554: export type setSkipAllPausesParameters 
+  L18560: export type setSkipAllPausesReturnValue 
+  L18566: export type setVariableValueParameters 
+  L18585: export type setVariableValueReturnValue 
+  L18590: export type stepIntoParameters 
+  L18601: export type stepIntoReturnValue 
+  L18606: export type stepOutParameters 
+  L18608: export type stepOutReturnValue 
+  L18613: export type stepOverParameters 
+  L18619: export type stepOverReturnValue 
+  L18627: export type HeapSnapshotObjectId 
+  L18631: export interface SamplingHeapProfileNode 
+  L18652: export interface SamplingHeapProfileSample 
+  L18670: export interface SamplingHeapProfile 
+  L18675: export type addHeapSnapshotChunkPayload 
+  L18681: export type heapStatsUpdatePayload 
+  L18694: export type lastSeenObjectIdPayload 
+  L18698: export type reportHeapSnapshotProgressPayload 
+  L18703: export type resetProfilesPayload 
+  L18709: export type addInspectedHeapObjectParameters 
+  L18715: export type addInspectedHeapObjectReturnValue 
+  L18717: export type collectGarbageParameters 
+  L18719: export type collectGarbageReturnValue 
+  L18721: export type disableParameters 
+  L18723: export type disableReturnValue 
+  L18725: export type enableParameters 
+  L18727: export type enableReturnValue 
+  L18729: export type getHeapObjectIdParameters 
+  L18735: export type getHeapObjectIdReturnValue 
+  L18741: export type getObjectByHeapObjectIdParameters 
+  L18748: export type getObjectByHeapObjectIdReturnValue 
+  L18754: export type getSamplingProfileParameters 
+  L18756: export type getSamplingProfileReturnValue 
+  L18762: export type startSamplingParameters 
+  L18789: export type startSamplingReturnValue 
+  L18791: export type startTrackingHeapObjectsParameters 
+  L18794: export type startTrackingHeapObjectsReturnValue 
+  L18796: export type stopSamplingParameters 
+  L18798: export type stopSamplingReturnValue 
+  L18804: export type stopTrackingHeapObjectsParameters 
+  L18823: export type stopTrackingHeapObjectsReturnValue 
+  L18825: export type takeHeapSnapshotParameters 
+  L18844: export type takeHeapSnapshotReturnValue 
+  L18852: export interface ProfileNode 
+  L18882: export interface Profile 
+  L18908: export interface PositionTickInfo 
+  L18921: export interface CoverageRange 
+  L18938: export interface FunctionCoverage 
+  L18955: export interface ScriptCoverage 
+  L18970: export type consoleProfileFinishedPayload 
+  L18985: export type consoleProfileStartedPayload 
+  L19002: export type preciseCoverageDeltaUpdatePayload 
+  L19017: export type disableParameters 
+  L19019: export type disableReturnValue 
+  L19021: export type enableParameters 
+  L19023: export type enableReturnValue 
+  L19029: export type getBestEffortCoverageParameters 
+  L19031: export type getBestEffortCoverageReturnValue 
+  L19040: export type setSamplingIntervalParameters 
+  L19046: export type setSamplingIntervalReturnValue 
+  L19048: export type startParameters 
+  L19050: export type startReturnValue 
+  L19057: export type startPreciseCoverageParameters 
+  L19071: export type startPreciseCoverageReturnValue 
+  L19077: export type stopParameters 
+  L19079: export type stopReturnValue 
+  L19089: export type stopPreciseCoverageParameters 
+  L19091: export type stopPreciseCoverageReturnValue 
+  L19097: export type takePreciseCoverageParameters 
+  L19099: export type takePreciseCoverageReturnValue 
+  L19122: export type ScriptId 
+  L19126: export interface SerializationOptions 
+  L19142: export interface DeepSerializedValue 
+  L19156: export type RemoteObjectId 
+  L19161: export type UnserializableValue 
+  L19165: export interface RemoteObject 
+  L19207: export interface CustomPreview 
+  L19223: export interface ObjectPreview 
+  L19249: export interface PropertyPreview 
+  L19271: export interface EntryPreview 
+  L19284: export interface PropertyDescriptor 
+  L19333: export interface InternalPropertyDescriptor 
+  L19346: export interface PrivatePropertyDescriptor 
+  L19370: export interface CallArgument 
+  L19387: export type ExecutionContextId 
+  L19391: export interface ExecutionContextDescription 
+  L19420: export interface ExceptionDetails 
+  L19467: export type Timestamp 
+  L19471: export type TimeDelta 
+  L19475: export interface CallFrame 
+  L19500: export interface StackTrace 
+  L19522: export type UniqueDebuggerId 
+  L19527: export interface StackTraceId 
+  L19535: export type bindingCalledPayload 
+  L19546: export type consoleAPICalledPayload 
+  L19579: export type exceptionRevokedPayload 
+  L19592: export type exceptionThrownPayload 
+  L19602: export type executionContextCreatedPayload 
+  L19611: export type executionContextDestroyedPayload 
+  L19624: export type executionContextsClearedPayload 
+  L19629: export type inspectRequestedPayload 
+  L19641: export type awaitPromiseParameters 
+  L19655: export type awaitPromiseReturnValue 
+  L19669: export type callFunctionOnParameters 
+  L19736: export type callFunctionOnReturnValue 
+  L19749: export type compileScriptParameters 
+  L19768: export type compileScriptReturnValue 
+  L19781: export type disableParameters 
+  L19783: export type disableReturnValue 
+  L19788: export type discardConsoleEntriesParameters 
+  L19790: export type discardConsoleEntriesReturnValue 
+  L19797: export type enableParameters 
+  L19799: export type enableReturnValue 
+  L19804: export type evaluateParameters 
+  L19888: export type evaluateReturnValue 
+  L19901: export type getIsolateIdParameters 
+  L19903: export type getIsolateIdReturnValue 
+  L19913: export type getHeapUsageParameters 
+  L19915: export type getHeapUsageReturnValue 
+  L19929: export type getPropertiesParameters 
+  L19953: export type getPropertiesReturnValue 
+  L19974: export type globalLexicalScopeNamesParameters 
+  L19980: export type globalLexicalScopeNamesReturnValue 
+  L19983: export type queryObjectsParameters 
+  L19993: export type queryObjectsReturnValue 
+  L20002: export type releaseObjectParameters 
+  L20008: export type releaseObjectReturnValue 
+  L20013: export type releaseObjectGroupParameters 
+  L20019: export type releaseObjectGroupReturnValue 
+  L20024: export type runIfWaitingForDebuggerParameters 
+  L20026: export type runIfWaitingForDebuggerReturnValue 
+  L20031: export type runScriptParameters 
+  L20068: export type runScriptReturnValue 
+  L20081: export type setAsyncCallStackDepthParameters 
+  L20088: export type setAsyncCallStackDepthReturnValue 
+  L20090: export type setCustomObjectFormatterEnabledParameters 
+  L20093: export type setCustomObjectFormatterEnabledReturnValue 
+  L20095: export type setMaxCallStackSizeToCaptureParameters 
+  L20098: export type setMaxCallStackSizeToCaptureReturnValue 
+  L20104: export type terminateExecutionParameters 
+  L20106: export type terminateExecutionReturnValue 
+  L20116: export type addBindingParameters 
+  L20137: export type addBindingReturnValue 
+  L20143: export type removeBindingParameters 
+  L20146: export type removeBindingReturnValue 
+  L20155: export type getExceptionDetailsParameters 
+  L20161: export type getExceptionDetailsReturnValue 
+  L20173: export interface Domain 
+  L20188: export type getDomainsParameters 
+  L20190: export type getDomainsReturnValue 
+  L20198: export interface Events 
+  L20397: export interface CommandParameters 
+  L21008: export interface CommandReturnValues 
+
+=== venv\Lib\site-packages\playwright\driver\package\types\structs.d.ts (2.1 KB) ===
+  L22: export type Serializable 
+  L26: export type EvaluationArgument 
+  L28: export type NoHandles<Arg> 
+  L29: export type Unboxed<Arg> 
+  L40: export type PageFunction0<R> 
+  L41: export type PageFunction<Arg, R> 
+  L42: export type PageFunctionOn<On, Arg2, R> 
+  L43: export type SmartHandle<T> 
+  L44: export type ElementHandleForTag<K extends keyof HTMLElementTagNameMap> 
+  L45: export type BindingSource 
+
+=== venv\Lib\site-packages\playwright\driver\package\types\types.d.ts (908.7 KB) ===
+  L24: type PageWaitForSelectorOptionsNotHidden 
+  L27: type ElementHandleWaitForSelectorOptionsNotHidden 
+  L74: export interface Page 
+  L5213: export interface Frame 
+  L8023: export interface BrowserContext 
+  L9515: export interface Browser 
+  L10198: export interface Worker 
+  L10341: export interface JSHandle<T 
+  L10521: export interface ElementHandle<T
+  L12158: export interface Locator 
+  L14552: export interface BrowserType<Unused 
+  L15383: export interface CDPSession 
+  L15496: export interface WebSocketRoute 
+  L15580: type DeviceDescriptor 
+  L15618: class TimeoutError extends Error 
+  L15638: export interface Accessibility 
+  L15685: type AccessibilityNode 
+  L15717: type ElectronType 
+  L15755: export interface ElectronApplication 
+  L16076: export type AndroidElementInfo 
+  L16094: export type AndroidSelector 
+  L16114: export type AndroidKey 
+  L16251: export interface Android 
+  L16400: export interface AndroidDevice 
+  L17193: export interface AndroidInput 
+  L17260: export interface AndroidSocket 
+  L17341: export interface AndroidWebView 
+  L17396: export interface APIRequest 
+  L17618: export interface APIRequestContext 
+  L18394: export interface APIResponse 
+  L18461: export interface BrowserServer 
+  L18529: export interface Clock 
+  L18677: export interface ConsoleMessage 
+  L18747: export interface Coverage 
+  L18886: export interface Dialog 
+  L18938: export interface Download 
+  L19054: export interface Electron 
+  L19269: export interface FileChooser 
+  L19375: export interface FrameLocator 
+  L19832: export interface Keyboard 
+  L19995: export interface Logger 
+  L20036: export interface Mouse 
+  L20191: export interface Request 
+  L20485: export interface Response 
+  L20641: export interface Route 
+  L20951: export interface Selectors 
+  L21032: export interface Touchscreen 
+  L21063: export interface Tracing 
+  L21231: export interface Video 
+  L21268: export interface WebError 
+  L21284: export interface WebSocket 
+  L21527: interface AccessibilitySnapshotOptions 
+  L21539: export interface LaunchOptions 
+  L21677: export interface ConnectOverCDPOptions 
+  L21706: export interface ConnectOptions 
+  L21746: export interface LocatorScreenshotOptions 
+  L21826: interface ElementHandleWaitForSelectorOptions 
+  L21853: export interface BrowserContextOptions 
+  L22257: export interface ViewportSize 
+  L22269: export interface HTTPCredentials 
+  L22289: export interface Geolocation 
+  L22306: export interface Cookie 
+  L22327: interface PageWaitForSelectorOptions 
+  L22354: interface PageWaitForFunctionOptions 
+  L22373: export interface PageScreenshotOptions 
+  L22483: type Devices 
+  L22620: export interface ChromiumBrowserContext extends BrowserContext 
+  L22621: export interface ChromiumBrowser extends Browser 
+  L22622: export interface FirefoxBrowser extends Browser 
+  L22623: export interface WebKitBrowser extends Browser 
+  L22624: export interface ChromiumCoverage extends Coverage 
+

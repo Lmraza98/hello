@@ -115,7 +115,6 @@ async def run_campaign_email_sender(
         
         # Process in BATCHES
         summary = {'processed': 0, 'ready': 0, 'failed': 0, 'details': []}
-        ready_tabs = []
         
         num_batches = (num_tabs + batch_size - 1) // batch_size
         
@@ -174,14 +173,28 @@ async def run_campaign_email_sender(
                     print(f"  [Tab {tab_num}] Filling email content...")
                     await sender.fill_email_body(page, task['subject'], task['body'])
                     
-                    print(f"  [Tab {tab_num}] READY - {contact_name}")
-                    return {
-                        'task_idx': task_idx,
-                        'task': task,
-                        'success': True,
-                        'ready_to_send': True,
-                        'lead_url': lead_url
-                    }
+                    # Send the email automatically
+                    print(f"  [Tab {tab_num}] Sending email...")
+                    send_success = await sender.send_email(page)
+                    
+                    if send_success:
+                        print(f"  [Tab {tab_num}] SENT - {contact_name}")
+                        return {
+                            'task_idx': task_idx,
+                            'task': task,
+                            'success': True,
+                            'sent': True,
+                            'lead_url': lead_url
+                        }
+                    else:
+                        print(f"  [Tab {tab_num}] SEND FAILED - {contact_name}")
+                        return {
+                            'task_idx': task_idx,
+                            'task': task,
+                            'success': False,
+                            'error': 'Failed to click Send button',
+                            'lead_url': lead_url
+                        }
                     
                 except Exception as e:
                     print(f"  [Tab {tab_num}] ERROR: {e}")
@@ -211,16 +224,34 @@ async def run_campaign_email_sender(
                 contact = task['contact']
                 summary['processed'] += 1
                 
-                if result.get('success'):
+                if result.get('success') and result.get('sent'):
+                    # Email was sent successfully - log immediately
                     summary['ready'] += 1
-                    ready_tabs.append({
-                        'tab_index': result['task_idx'],
-                        'contact': contact,
-                        'task': task,
-                        'result': result
-                    })
-                    if result.get('lead_url'):
-                        db.update_campaign_contact(contact['id'], sf_lead_url=result['lead_url'])
+                    
+                    db.log_sent_email(
+                        campaign_id=contact['campaign_id'],
+                        campaign_contact_id=contact['id'],
+                        contact_id=contact['contact_id'],
+                        step_number=task['step'],
+                        subject=task['subject'],
+                        body=task['body'],
+                        sf_lead_url=result.get('lead_url'),
+                        status='sent'
+                    )
+                    
+                    days = contact.get('days_between_emails', 3)
+                    next_email_at = (datetime.now() + timedelta(days=days)).isoformat()
+                    new_status = 'completed' if task['step'] >= contact.get('num_emails', 3) else 'active'
+                    
+                    db.update_campaign_contact(
+                        contact['id'],
+                        current_step=task['step'],
+                        status=new_status,
+                        sf_lead_url=result.get('lead_url'),
+                        next_email_at=next_email_at if new_status == 'active' else None
+                    )
+                    
+                    print(f"  [DB] Logged sent email for {contact.get('contact_name')}")
                 else:
                     summary['failed'] += 1
                     db.log_sent_email(
@@ -242,50 +273,12 @@ async def run_campaign_email_sender(
         # Final summary
         print(f"\n{'='*60}")
         print(f"ALL BATCHES COMPLETE")
-        print(f"  Ready: {summary['ready']} tabs")
+        print(f"  Sent: {summary['ready']} emails")
         print(f"  Failed: {summary['failed']}")
         print(f"{'='*60}")
         
-        if ready_tabs:
-            print(f"\n{len(ready_tabs)} emails ready in browser:")
-            for rt in ready_tabs:
-                c = rt['contact']
-                print(f"  Tab {rt['tab_index']+1}: {c.get('contact_name')} ({c.get('email')})")
-            
-            print(f"\n" + "="*60)
-            print("Switch between tabs and click SEND on each email.")
-            print("When done, press ENTER to log all as sent.")
-            print("="*60)
-            input("\n>>> Press ENTER when finished...")
-            
-            # Log as sent
-            for rt in ready_tabs:
-                contact = rt['contact']
-                task = rt['task']
-                
-                db.log_sent_email(
-                    campaign_id=contact['campaign_id'],
-                    campaign_contact_id=contact['id'],
-                    contact_id=contact['contact_id'],
-                    step_number=task['step'],
-                    subject=task['subject'],
-                    body=task['body'],
-                    sf_lead_url=rt['result'].get('lead_url'),
-                    status='sent'
-                )
-                
-                days = contact.get('days_between_emails', 3)
-                next_email_at = (datetime.now() + timedelta(days=days)).isoformat()
-                new_status = 'completed' if task['step'] >= contact.get('num_emails', 3) else 'active'
-                
-                db.update_campaign_contact(
-                    contact['id'],
-                    current_step=task['step'],
-                    status=new_status,
-                    next_email_at=next_email_at if new_status == 'active' else None
-                )
-            
-            print(f"[SFEmailSender] Logged {len(ready_tabs)} emails as sent")
+        print("\n[SFEmailSender] All emails have been sent and logged!")
+        input("\nPress ENTER to close browser...")
         
         await sender.stop()
         return summary
@@ -339,7 +332,6 @@ async def process_approved_emails(
         print(f"[SFScheduledSender] {len(sender.pages)} tabs ready")
         
         summary = {'processed': 0, 'sent': 0, 'failed': 0, 'details': []}
-        ready_tabs = []
         
         num_batches = (num_emails + batch_size - 1) // batch_size
         
@@ -397,14 +389,28 @@ async def process_approved_emails(
                     print(f"  [Tab {tab_num}] Filling email content...")
                     await sender.fill_email_body(page, subject, body)
                     
-                    print(f"  [Tab {tab_num}] READY - {contact_name}")
-                    return {
-                        'task_idx': task_idx,
-                        'email': email,
-                        'success': True,
-                        'ready_to_send': True,
-                        'lead_url': lead_url
-                    }
+                    # Send the email automatically
+                    print(f"  [Tab {tab_num}] Sending email...")
+                    send_success = await sender.send_email(page)
+                    
+                    if send_success:
+                        print(f"  [Tab {tab_num}] SENT - {contact_name}")
+                        return {
+                            'task_idx': task_idx,
+                            'email': email,
+                            'success': True,
+                            'sent': True,
+                            'lead_url': lead_url
+                        }
+                    else:
+                        print(f"  [Tab {tab_num}] SEND FAILED - {contact_name}")
+                        return {
+                            'task_idx': task_idx,
+                            'email': email,
+                            'success': False,
+                            'error': 'Failed to click Send button',
+                            'lead_url': lead_url
+                        }
                     
                 except Exception as e:
                     print(f"  [Tab {tab_num}] ERROR: {e}")
@@ -431,12 +437,30 @@ async def process_approved_emails(
                 email = result['email']
                 summary['processed'] += 1
                 
-                if result.get('success'):
-                    ready_tabs.append({
-                        'tab_index': result['task_idx'],
-                        'email': email,
-                        'result': result
-                    })
+                if result.get('success') and result.get('sent'):
+                    # Email was sent successfully - log immediately
+                    summary['sent'] += 1
+                    
+                    db.mark_email_sent(email['id'], sf_lead_url=result.get('lead_url'))
+                    
+                    # Update campaign contact progress
+                    days = email.get('days_between_emails', 3)
+                    next_email_at = (datetime.now() + timedelta(days=days)).isoformat()
+                    step = email.get('step_number', 1)
+                    num_emails_in_campaign = email.get('num_emails', 3)
+                    new_status = 'completed' if step >= num_emails_in_campaign else 'active'
+                    
+                    campaign_contact_id = email.get('campaign_contact_id')
+                    if campaign_contact_id:
+                        db.update_campaign_contact(
+                            campaign_contact_id,
+                            current_step=step,
+                            status=new_status,
+                            sf_lead_url=result.get('lead_url'),
+                            next_email_at=next_email_at if new_status == 'active' else None
+                        )
+                    
+                    print(f"  [DB] Logged sent email for {email.get('contact_name')}")
                 else:
                     summary['failed'] += 1
                     db.mark_email_failed(email['id'], error_message=result.get('error'))
@@ -448,49 +472,12 @@ async def process_approved_emails(
         # Final summary
         print(f"\n{'='*60}")
         print(f"ALL BATCHES COMPLETE")
-        print(f"  Ready: {len(ready_tabs)} tabs")
+        print(f"  Sent: {summary['sent']} emails")
         print(f"  Failed: {summary['failed']}")
         print(f"{'='*60}")
         
-        if ready_tabs:
-            print(f"\n{len(ready_tabs)} emails ready in browser:")
-            for rt in ready_tabs:
-                e = rt['email']
-                print(f"  Tab {rt['tab_index']+1}: {e.get('contact_name')} ({e.get('contact_email')})")
-            
-            print(f"\n" + "="*60)
-            print("Switch between tabs and click SEND on each email.")
-            print("When done, press ENTER to log all as sent.")
-            print("="*60)
-            input("\n>>> Press ENTER when finished...")
-            
-            # Log as sent and update campaign contacts
-            for rt in ready_tabs:
-                email = rt['email']
-                
-                db.mark_email_sent(email['id'], sf_lead_url=rt['result'].get('lead_url'))
-                
-                # Update campaign contact progress
-                days = email.get('days_between_emails', 3)
-                from datetime import timedelta
-                next_email_at = (datetime.now() + timedelta(days=days)).isoformat()
-                step = email.get('step_number', 1)
-                num_emails_in_campaign = email.get('num_emails', 3)
-                new_status = 'completed' if step >= num_emails_in_campaign else 'active'
-                
-                campaign_contact_id = email.get('campaign_contact_id')
-                if campaign_contact_id:
-                    db.update_campaign_contact(
-                        campaign_contact_id,
-                        current_step=step,
-                        status=new_status,
-                        sf_lead_url=rt['result'].get('lead_url'),
-                        next_email_at=next_email_at if new_status == 'active' else None
-                    )
-                
-                summary['sent'] += 1
-            
-            print(f"[SFScheduledSender] Logged {len(ready_tabs)} emails as sent")
+        print("\n[SFScheduledSender] All emails have been sent and logged!")
+        input("\nPress ENTER to close browser...")
         
         await sender.stop()
         return summary

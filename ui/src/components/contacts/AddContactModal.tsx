@@ -16,6 +16,7 @@ export function AddContactModal({ companies, onAdd, onClose }: AddContactModalPr
     company_name: '',
     title: '',
     linkedin_url: '',
+    salesforce_url: '',
   });
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -130,6 +131,19 @@ export function AddContactModal({ companies, onAdd, onClose }: AddContactModalPr
             className="w-full px-3 py-2.5 md:py-2 bg-bg border border-border rounded-lg text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent"
           />
         </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-text mb-1.5">Salesforce URL</label>
+        <input
+          type="url"
+          placeholder="https://yourorg.lightning.force.com/lightning/r/Lead/..."
+          value={form.salesforce_url}
+          onChange={(e) => setForm({ ...form, salesforce_url: e.target.value })}
+          className="w-full px-3 py-2.5 md:py-2 bg-bg border border-border rounded-lg text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent"
+        />
+        {form.salesforce_url && (
+          <p className="mt-1 text-xs text-text-muted">Lead is already in Salesforce</p>
+        )}
       </div>
     </BaseModal>
   );

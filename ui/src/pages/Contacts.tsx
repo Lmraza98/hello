@@ -24,8 +24,9 @@ import { SearchToolbar } from '../components/shared/SearchToolbar';
 import { PageHeader } from '../components/shared/PageHeader';
 import { EmptyState } from '../components/shared/EmptyState';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
+import { ConfirmDialog } from '../components/shared/ConfirmDialog';
 import { CampaignEnrollmentModal } from '../components/contacts/CampaignEnrollmentModal';
-import { contactColumns } from '../components/contacts/tableColumns';
+import { createContactColumns } from '../components/contacts/tableColumns';
 import { Users, Download, Plus, X } from 'lucide-react';
 
 /* ── Constants ─────────────────────────── */
@@ -47,6 +48,8 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     companies,
     getCampaignContacts,
     addContact,
+    deleteContact,
+    bulkDeleteContacts,
     bulkAction,
     enrollInCampaign,
   } = useContacts();
@@ -54,6 +57,8 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
   const [showAddModal, setShowAddModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [confirmDeleteSingle, setConfirmDeleteSingle] = useState<{ id: number; name: string } | null>(null);
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = useState<SortingState>([{ id: 'company_name', desc: false }]);
@@ -90,7 +95,12 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
 
   /* ── Table configuration ── */
 
-  const columns = useMemo(() => contactColumns, []);
+  const columns = useMemo(
+    () => createContactColumns((id, name) => {
+      setConfirmDeleteSingle({ id, name });
+    }),
+    []
+  );
 
   /* ── Pre-filter data for virtual filters ── */
 
@@ -239,6 +249,22 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     );
   };
 
+  const handleBulkDelete = () => {
+    if (selectedCount === 0) return;
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmBulkDelete = () => {
+    setActionLoading('delete');
+    bulkDeleteContacts.mutate(selectedIds, {
+      onSuccess: () => {
+        setRowSelection({});
+        setShowDeleteConfirm(false);
+      },
+      onSettled: () => setActionLoading(null),
+    });
+  };
+
   /* ── Filter pills ── */
 
   const allFilterPills = useMemo(() => {
@@ -308,6 +334,7 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
             onSendEmail={() => handleBulkAction('send-email', 'email', 'Sending emails')}
             onCollectPhone={() => handleBulkAction('collect-phone', 'phone', 'Collecting phone data')}
             onEnrollInCampaign={() => setShowCampaignModal(true)}
+            onDelete={handleBulkDelete}
             actionLoading={actionLoading}
           />
 
@@ -496,6 +523,31 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
           onClose={() => setShowAddModal(false)}
         />
       )}
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title={`Delete ${selectedCount} contact${selectedCount !== 1 ? 's' : ''}?`}
+        message="This action cannot be undone. The selected contacts will be permanently removed."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+
+      {/* Single Contact Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!confirmDeleteSingle}
+        title={`Delete ${confirmDeleteSingle?.name ?? 'contact'}?`}
+        message="This contact will be permanently removed."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => {
+          if (confirmDeleteSingle) deleteContact.mutate(confirmDeleteSingle.id);
+          setConfirmDeleteSingle(null);
+        }}
+        onCancel={() => setConfirmDeleteSingle(null)}
+      />
     </div>
   );
 }

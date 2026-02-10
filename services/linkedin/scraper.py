@@ -907,33 +907,37 @@ class SalesNavigatorScraper:
             if await search_input.count() == 0:
                 return None
             
-            # Clear and fill the location quickly (but don't apply it)
+            # Clear and type only the primary part (e.g. "California" not "California, United States")
             await search_input.click()
             await asyncio.sleep(0.2)
             await search_input.fill('')
             await asyncio.sleep(0.2)
             
-            # Fill the location quickly to trigger dropdown (faster than typing char by char)
-            await search_input.fill(location)
+            location_parts_raw = [p.strip() for p in location.split(',')]
+            primary_part = location_parts_raw[0]   # e.g. "California"
+            
+            # Type primary part char-by-char to trigger autocomplete properly
+            for char in primary_part:
+                await search_input.type(char, delay=80)
             
             # Wait for dropdown to appear
-            await asyncio.sleep(1.5)
+            try:
+                await self.page.wait_for_selector('[role="listbox"]', state='visible', timeout=5000)
+            except:
+                pass
             
-            # Look for the matching option in dropdown
+            # Poll until the option list stabilises
+            option_count = await self._wait_for_dropdown_to_settle(timeout_seconds=8.0)
+            
             result_options = self.page.locator('li[role="option"]')
             option_count = await result_options.count()
             
             if option_count == 0:
                 return None
             
-            # Find the matching option - prioritize exact matches and more specific locations
-            location_normalized = location.strip().lower()
+            # ── Score each option using the shared helper ──
             best_match = None
-            best_match_score = 0
-            
-            # Extract the state/city part (e.g., "New Hampshire" from "New Hampshire, United States")
-            location_parts = [part.strip().lower() for part in location.split(',')]
-            primary_location = location_parts[0] if location_parts else location_normalized
+            best_score = 0
             
             for i in range(option_count):
                 try:
@@ -942,36 +946,21 @@ class SalesNavigatorScraper:
                     if await location_text_span.count() > 0:
                         option_text = await location_text_span.text_content()
                         if option_text:
-                            option_text_normalized = option_text.strip().lower()
-                            
-                            # Score 3: Exact match (highest priority)
-                            if option_text_normalized == location_normalized:
+                            score = self._score_location_match(option_text, location)
+                            if score > best_score:
+                                best_score = score
                                 best_match = option
-                                best_match_score = 3
-                                print(f"[LinkedIn] Found exact match: {option_text}")
-                                break
-                            
-                            # Score 2: Contains both the primary location AND the full location
-                            # This ensures we get "New Hampshire, United States" not just "United States"
-                            elif (primary_location in option_text_normalized and 
-                                  location_normalized in option_text_normalized):
-                                if best_match_score < 2:
-                                    best_match = option
-                                    best_match_score = 2
-                                    print(f"[LinkedIn] Found specific match: {option_text}")
-                            
-                            # Score 1: Contains primary location (less specific)
-                            elif primary_location in option_text_normalized:
-                                if best_match_score < 1:
-                                    best_match = option
-                                    best_match_score = 1
-                                    print(f"[LinkedIn] Found partial match: {option_text}")
+                                print(f"[LinkedIn] Dropdown option: '{option_text.strip()}' → score {score}")
+                                if score >= 100:
+                                    break
                 except:
                     continue
             
-            if best_match is None:
-                print(f"[LinkedIn] No matching location found, using first option")
-                best_match = result_options.first
+            if best_match is None or best_score == 0:
+                print(f"[LinkedIn] No matching location found in dropdown for '{location}'")
+                await search_input.fill('')
+                await asyncio.sleep(0.5)
+                return None
             
             # Extract ID from the option's data attributes
             option_html = await best_match.evaluate('el => el.outerHTML')
@@ -1202,9 +1191,11 @@ class SalesNavigatorScraper:
             if direct_url:
                 print(f"[LinkedIn] Navigating to direct URL with all filters...")
                 print(f"[LinkedIn] URL: {direct_url[:150]}...")  # Print first 150 chars for debugging
-                await self.page.goto(direct_url, timeout=30000, wait_until='networkidle')
-                await self.page.wait_for_load_state('domcontentloaded', timeout=15000)
-                await asyncio.sleep(5)  # Wait longer for results to load
+                # Use 'domcontentloaded' instead of 'networkidle' — LinkedIn's SPA
+                # keeps persistent connections open that prevent networkidle from
+                # ever being reached, causing timeouts.
+                await self.page.goto(direct_url, timeout=60000, wait_until='domcontentloaded')
+                await asyncio.sleep(5)  # Wait for SPA to render results
                 
                 # Verify the URL was applied correctly by checking the current URL
                 current_url = self.page.url
@@ -1339,6 +1330,70 @@ class SalesNavigatorScraper:
             import traceback
             traceback.print_exc()
     
+    async def _wait_for_dropdown_to_settle(self, timeout_seconds: float = 8.0, poll_interval: float = 0.8) -> int:
+        """
+        Wait until the dropdown option list stops changing (results fully loaded).
+        Returns the final option count.
+        """
+        result_options = self.page.locator('li[role="option"]')
+        last_count = 0
+        stable_ticks = 0
+        elapsed = 0.0
+
+        while elapsed < timeout_seconds:
+            current_count = await result_options.count()
+            if current_count > 0 and current_count == last_count:
+                stable_ticks += 1
+                if stable_ticks >= 2:          # stable for 2 consecutive polls
+                    return current_count
+            else:
+                stable_ticks = 0
+            last_count = current_count
+            await asyncio.sleep(poll_interval)
+            elapsed += poll_interval
+
+        return last_count
+
+    def _score_location_match(self, option_text: str, target: str) -> int:
+        """
+        Score how well a dropdown option matches the target location.
+        Higher is better.  0 = no match.
+
+        Key rule:  "United States" must NOT match "California, United States".
+        The option must be at least as specific as the target.
+        """
+        opt = option_text.strip().lower()
+        tgt = target.strip().lower()
+
+        # Exact match → best
+        if opt == tgt:
+            return 100
+
+        # Split into parts for structural comparison
+        tgt_parts = [p.strip() for p in tgt.split(',')]
+        opt_parts = [p.strip() for p in opt.split(',')]
+        primary_tgt = tgt_parts[0]          # e.g. "california"
+
+        # Option must contain the primary (state/city) part to be a candidate at all
+        if primary_tgt not in opt:
+            return 0
+
+        # Reject if the option is LESS specific than the target
+        # e.g. target="california, united states" (2 parts) vs option="united states" (1 part)
+        if len(opt_parts) < len(tgt_parts):
+            return 0
+
+        # Good match: option contains the full target text
+        if tgt in opt:
+            return 80
+
+        # Decent match: primary part matches and specificity is comparable
+        if primary_tgt == opt_parts[0]:
+            return 60
+
+        # Weak partial match
+        return 20
+
     async def _apply_location_filter(self, location: str):
         """Apply a headquarters location filter using the correct LinkedIn Sales Navigator selectors."""
         try:
@@ -1375,28 +1430,32 @@ class SalesNavigatorScraper:
                 print("[LinkedIn] Location search input not found")
                 return
             
-            # Clear any existing text and type the location
+            # Clear any existing text
             await search_input.click()
             await asyncio.sleep(0.5)
-            await search_input.fill('')  # Clear first
+            await search_input.fill('')
             await asyncio.sleep(0.5)
             
-            # Type the location character by character to trigger autocomplete properly
-            for char in location:
-                await search_input.type(char, delay=100)  # 100ms delay between characters
+            # ── Type only the primary part first (e.g. "California" not
+            # "California, United States") to get relevant results faster,
+            # then wait for the dropdown to fully settle. ──
+            location_parts = [p.strip() for p in location.split(',')]
+            primary_part = location_parts[0]   # e.g. "California"
             
-            # Wait for the dropdown to appear and populate
+            # Type character by character to trigger autocomplete properly
+            for char in primary_part:
+                await search_input.type(char, delay=80)
+            
+            # Wait for the dropdown to appear
             print(f"[LinkedIn] Waiting for location dropdown to appear...")
             try:
-                # Wait for the listbox to be visible
                 await self.page.wait_for_selector('[role="listbox"]', state='visible', timeout=5000)
             except:
-                pass  # Continue even if timeout
+                pass
             
-            # Wait longer for results to fully populate
-            await asyncio.sleep(3)  # Increased wait time for dropdown to populate
+            # ── Poll until the option list stabilises ──
+            option_count = await self._wait_for_dropdown_to_settle(timeout_seconds=8.0)
             
-            # Look for the dropdown options
             result_options = self.page.locator('li[role="option"]')
             option_count = await result_options.count()
             print(f"[LinkedIn] Found {option_count} location options in dropdown")
@@ -1405,44 +1464,31 @@ class SalesNavigatorScraper:
                 print("[LinkedIn] No location options found in dropdown")
                 return
             
-            # Normalize the location for matching (case-insensitive, strip whitespace)
-            location_normalized = location.strip().lower()
-            
-            # Try to find exact or best match
+            # ── Score each option and pick the best ──
             best_match = None
-            best_match_index = None
+            best_score = 0
             
             for i in range(option_count):
                 try:
                     option = result_options.nth(i)
-                    # Get the text from the span within the option (the location name)
                     location_text_span = option.locator('span.t-14').first
                     if await location_text_span.count() > 0:
                         option_text = await location_text_span.text_content()
                         if option_text:
-                            option_text_normalized = option_text.strip().lower()
-                            
-                            # Exact match (preferred)
-                            if option_text_normalized == location_normalized:
+                            score = self._score_location_match(option_text, location)
+                            if score > best_score:
+                                best_score = score
                                 best_match = option
-                                best_match_index = i
-                                print(f"[LinkedIn] Found exact match: {option_text}")
-                                break
-                            
-                            # Partial match (fallback) - check if location is contained in option
-                            if location_normalized in option_text_normalized or option_text_normalized in location_normalized:
-                                if best_match is None:  # Take first partial match
-                                    best_match = option
-                                    best_match_index = i
-                                    print(f"[LinkedIn] Found partial match: {option_text}")
+                                print(f"[LinkedIn] Option: '{option_text.strip()}' → score {score}")
+                                if score >= 100:
+                                    break      # exact match, stop early
                 except Exception as e:
                     print(f"[LinkedIn] Error checking option {i}: {e}")
                     continue
             
-            if best_match is None:
-                print(f"[LinkedIn] No matching location found for '{location}', using first option")
-                best_match = result_options.first
-                best_match_index = 0
+            if best_match is None or best_score == 0:
+                print(f"[LinkedIn] No matching location found for '{location}', skipping")
+                return
             
             # Click the "Include" button within the matched option
             include_button = best_match.locator('button._include-button_1cz98z').or_(
@@ -1556,6 +1602,52 @@ class SalesNavigatorScraper:
             import traceback
             traceback.print_exc()
     
+    # ── Regex that captures LinkedIn employee-count formats ──
+    # Matches: "8.5K+", "14K+", "2.5K+", "311", "1,234", "3M+", etc.
+    _EMP_NUMBER_RE = re.compile(
+        r'(\d+(?:[.,]\d+)?)\s*([KkMm])?\+?'
+    )
+
+    @staticmethod
+    def _parse_employee_text(raw: str) -> Optional[str]:
+        """
+        Extract the employee-count display string from text like
+        "Construction · 8.5K+ employees on LinkedIn".
+
+        Returns a human-friendly string such as "8.5K+" or "1,234",
+        or None if nothing is found.
+        """
+        # First, try the full "N employees" pattern (most reliable)
+        m = re.search(
+            r'([\d,]+(?:\.\d+)?)\s*([KkMm])?\+?\s+employees?',
+            raw, re.IGNORECASE,
+        )
+        if m:
+            number_part = m.group(1)     # e.g. "8.5" or "1,234"
+            suffix = m.group(2) or ''    # e.g. "K" or ""
+            plus = '+' if '+' in raw[m.start():m.end() + 2] else ''
+            return f"{number_part}{suffix.upper()}{plus}"
+        return None
+
+    @staticmethod
+    def _employee_display_to_int(display: str) -> int:
+        """
+        Convert a display string like "8.5K+" to an approximate integer (8500).
+        Used only for validation / sanity checks.
+        """
+        s = display.replace(',', '').replace('+', '').strip().upper()
+        multiplier = 1
+        if s.endswith('K'):
+            multiplier = 1_000
+            s = s[:-1]
+        elif s.endswith('M'):
+            multiplier = 1_000_000
+            s = s[:-1]
+        try:
+            return int(float(s) * multiplier)
+        except ValueError:
+            return 0
+
     async def scrape_company_results(self, max_companies: int = 100) -> List[Dict]:
         """
         Scrape company results from the current Account search page.
@@ -1872,75 +1964,40 @@ class SalesNavigatorScraper:
                         subtitle = card_container.locator(subtitle_selector).first
                         if await subtitle.count() > 0:
                             subtitle_text = await subtitle.text_content()
-                            if subtitle_text:
-                                # Look for patterns like "311 employees" or "1,234 employees on LinkedIn"
-                                emp_patterns = [
-                                    r'(\d+(?:,\d+)?)\s+employees?\s+on\s+LinkedIn',
-                                    r'(\d+(?:,\d+)?)\s+employees?',
-                                    r'(\d+(?:,\d+)?)\s+people'
-                                ]
-                                for pattern in emp_patterns:
-                                    emp_match = re.search(pattern, subtitle_text, re.IGNORECASE)
-                                    if emp_match:
-                                        employee_count = emp_match.group(1).replace(',', '')
-                                        break
-                                if employee_count:
+                            if subtitle_text and 'employee' in subtitle_text.lower():
+                                parsed = self._parse_employee_text(subtitle_text)
+                                if parsed:
+                                    employee_count = parsed
                                     break
                     
                     # Strategy 2: Look in all text spans and divs within the card
                     if not employee_count:
-                        # Check spans first
-                        all_spans = card_container.locator('span')
-                        span_count = await all_spans.count()
-                        for i in range(min(span_count, 30)):  # Check first 30 spans
-                            span = all_spans.nth(i)
-                            span_text = await span.text_content()
-                            if span_text:
-                                # Look for employee patterns
-                                emp_match = re.search(r'(\d+(?:,\d+)?)\s+employees?\s+on\s+LinkedIn', span_text, re.IGNORECASE)
-                                if not emp_match:
-                                    emp_match = re.search(r'(\d+(?:,\d+)?)\s+employees?', span_text, re.IGNORECASE)
-                                if emp_match:
-                                    # Make sure it's not part of a date or other number
-                                    count_value = int(emp_match.group(1).replace(',', ''))
-                                    if count_value >= 1 and count_value < 10000000:  # Reasonable range
-                                        employee_count = str(count_value)
-                                        break
-                        
-                        # Also check divs if not found in spans
-                        if not employee_count:
-                            all_divs = card_container.locator('div')
-                            div_count = await all_divs.count()
-                            for i in range(min(div_count, 20)):  # Check first 20 divs
-                                div = all_divs.nth(i)
-                                div_text = await div.text_content()
-                                if div_text:
-                                    emp_match = re.search(r'(\d+(?:,\d+)?)\s+employees?\s+on\s+LinkedIn', div_text, re.IGNORECASE)
-                                    if not emp_match:
-                                        emp_match = re.search(r'(\d+(?:,\d+)?)\s+employees?', div_text, re.IGNORECASE)
-                                    if emp_match:
-                                        count_value = int(emp_match.group(1).replace(',', ''))
-                                        if count_value >= 1 and count_value < 10000000:
-                                            employee_count = str(count_value)
+                        for tag in ('span', 'div'):
+                            elements = card_container.locator(tag)
+                            el_count = await elements.count()
+                            limit = 30 if tag == 'span' else 20
+                            for idx in range(min(el_count, limit)):
+                                el = elements.nth(idx)
+                                el_text = await el.text_content()
+                                if el_text and 'employee' in el_text.lower():
+                                    parsed = self._parse_employee_text(el_text)
+                                    if parsed:
+                                        approx = self._employee_display_to_int(parsed)
+                                        if 1 <= approx < 10_000_000:
+                                            employee_count = parsed
                                             break
+                            if employee_count:
+                                break
                     
                     # Strategy 3: Look in the full card text if not found
                     if not employee_count:
                         details_text = await card_container.text_content()
-                        if details_text:
-                            # Extract employee count pattern: "311 employees" or "1,234 employees"
-                            emp_patterns = [
-                                r'(\d+(?:,\d+)?)\s+employees?\s+on\s+LinkedIn',
-                                r'(\d+(?:,\d+)?)\s+employees?',
-                                r'(\d+(?:,\d+)?)\s+people'
-                            ]
-                            for pattern in emp_patterns:
-                                emp_match = re.search(pattern, details_text, re.IGNORECASE)
-                                if emp_match:
-                                    count_value = int(emp_match.group(1).replace(',', ''))
-                                    if count_value >= 1 and count_value < 10000000:
-                                        employee_count = str(count_value)
-                                        break
+                        if details_text and 'employee' in details_text.lower():
+                            parsed = self._parse_employee_text(details_text)
+                            if parsed:
+                                approx = self._employee_display_to_int(parsed)
+                                if 1 <= approx < 10_000_000:
+                                    employee_count = parsed
                     
                     # Strategy 4: Look for data attributes that might contain employee count
                     if not employee_count:
@@ -1948,11 +2005,14 @@ class SalesNavigatorScraper:
                         if await emp_el.count() > 0:
                             emp_text = await emp_el.text_content()
                             if emp_text:
-                                emp_match = re.search(r'(\d+(?:,\d+)?)', emp_text)
-                                if emp_match:
-                                    count_value = int(emp_match.group(1).replace(',', ''))
-                                    if count_value >= 1:
-                                        employee_count = str(count_value)
+                                parsed = self._parse_employee_text(emp_text)
+                                if parsed:
+                                    employee_count = parsed
+                                else:
+                                    # Fallback: grab the first number as raw count
+                                    emp_match = re.search(r'(\d+(?:,\d+)?)', emp_text)
+                                    if emp_match:
+                                        employee_count = emp_match.group(1)
                     
                     # Debug: Save card HTML if we have company name but no employee count (for testing)
                     if company_name and not employee_count:
@@ -2108,9 +2168,17 @@ class SalesNavigatorScraper:
         try:
             # Step 1: Click the 3-dot overflow menu on the card
             overflow_btn = card.locator('button[aria-label*="See more actions"]').or_(
+                card.locator('button[aria-label*="More actions"]')
+            ).or_(
                 card.locator('button[data-search-overflow-trigger]')
             ).or_(
                 card.locator('button[aria-haspopup="true"]._circle_ps32ck')
+            ).or_(
+                # Newer UI: icon span class can be _icon_ps32ck (matches your DOM snippet)
+                card.locator('button:has(span._icon_ps32ck)')
+            ).or_(
+                # Generic fallback: any button with 3-dot svg (very common for overflow menus)
+                card.locator('button:has(svg[viewBox="0 0 16 16"])')
             ).first
             
             if await overflow_btn.count() == 0:
@@ -2121,15 +2189,41 @@ class SalesNavigatorScraper:
             await asyncio.sleep(random.uniform(0.5, 1.0))
             
             # Step 2: Find "View Profile" button/link
-            view_profile_btn = self.page.locator('button:has-text("View profile")').or_(
-                self.page.locator('a:has-text("View profile")')
+            # Prefer scoping to the Hue menu container (id looks like hue-menu-ember###).
+            menu = self.page.locator('div[id^="hue-menu-"]').last
+            view_profile_btn = menu.locator('button:has-text("View profile")').or_(
+                menu.locator('a:has-text("View profile")')
             ).or_(
+                menu.locator('button:has-text("View Profile")')
+            ).or_(
+                menu.locator('a:has-text("View Profile")')
+            ).or_(
+                menu.locator('button:has-text("View on LinkedIn")')
+            ).or_(
+                menu.locator('a:has-text("View on LinkedIn")')
+            ).or_(
+                # Fallback (older UI)
                 self.page.locator('[data-control-name="view_profile"]')
             ).first
             
             if await view_profile_btn.count() == 0:
+                # Some Sales Nav variants don't show "View profile" in the card menu.
+                # In those cases, we already have the Sales Nav lead URL on the card.
+                # Navigate to that lead page and use its ellipsis menu to "Copy LinkedIn.com URL".
                 await self.page.keyboard.press('Escape')
-                print(f"[LinkedIn] No 'View Profile' option for {name or 'lead'}")
+                print(f"[LinkedIn] No 'View Profile' option for {name or 'lead'}; trying lead page flow")
+
+                lead_link = card.locator('a[href*="/sales/lead/"]').first
+                sales_nav_url = None
+                if await lead_link.count() > 0:
+                    sales_nav_url = await lead_link.get_attribute('href')
+
+                public_from_lead = await self._copy_public_url_from_lead_page(
+                    sales_nav_url=sales_nav_url,
+                    name=name,
+                )
+                if public_from_lead:
+                    return public_from_lead
                 return None
             
             # FORCE open in new tab using Ctrl+Click (keeps search results page intact)
@@ -2173,6 +2267,10 @@ class SalesNavigatorScraper:
                 profile_page.locator('button._overflow-menu--trigger_1xow7n')
             ).or_(
                 profile_page.locator('button[aria-label="Open actions overflow menu"]')
+            ).or_(
+                profile_page.locator('button:has(span._icon_ps32ck)')
+            ).or_(
+                profile_page.locator('button:has(svg[viewBox="0 0 16 16"])')
             ).first
             
             if await profile_overflow.count() == 0:
@@ -2183,21 +2281,46 @@ class SalesNavigatorScraper:
             await profile_overflow.click()
             await asyncio.sleep(random.uniform(0.5, 1.0))
             
-            # Step 4: Click "Copy LinkedIn URL"
-            copy_url_btn = profile_page.locator('button:has-text("Copy LinkedIn URL")').or_(
-                profile_page.locator('button:has-text("Copy LinkedIn")').or_(
-                profile_page.locator('[data-control-name="copy_linkedin_url"]'))
+            # Step 4: Click "Copy LinkedIn.com URL" / "Copy LinkedIn URL"
+            profile_menu = profile_page.locator('div[id^="hue-menu-"]').last
+            copy_url_btn = profile_menu.locator('button:has-text("Copy LinkedIn.com URL")').or_(
+                profile_menu.locator('button:has-text("Copy LinkedIn URL")')
+            ).or_(
+                profile_menu.locator('button:has-text("Copy LinkedIn")')
+            ).or_(
+                profile_menu.locator('[data-control-name="copy_linkedin_url"]')
+            ).or_(
+                # Some builds render menu items as divs/spans instead of buttons
+                profile_menu.locator(':is(div,span):has-text("Copy LinkedIn.com URL")')
+            ).or_(
+                profile_menu.locator(':is(div,span):has-text("Copy LinkedIn URL")')
+            ).or_(
+                profile_menu.locator(':is(div,span):has-text("Copy LinkedIn")')
             ).first
             
             if await copy_url_btn.count() == 0:
                 print(f"[LinkedIn] No 'Copy LinkedIn URL' option for {name or 'lead'}")
                 await profile_page.keyboard.press('Escape')
+                # Fallback: sometimes the profile page contains an actual public /in/ link.
+                try:
+                    public_link = profile_page.locator('a[href*="linkedin.com/in/"]').first
+                    if await public_link.count() > 0:
+                        href = await public_link.get_attribute('href')
+                        if href and 'linkedin.com/in/' in href:
+                            await profile_page.close()
+                            return href.strip()
+                except Exception:
+                    pass
                 await profile_page.close()
                 return None
             
             # Grant clipboard permissions and click
             await self.context.grant_permissions(['clipboard-read', 'clipboard-write'])
-            await copy_url_btn.click()
+            try:
+                await copy_url_btn.click()
+            except Exception:
+                # If it's a non-button node, click via JS
+                await copy_url_btn.evaluate("(el) => el.click()")
             await asyncio.sleep(random.uniform(0.3, 0.6))
             
             # Step 5: Read from clipboard
@@ -2213,6 +2336,16 @@ class SalesNavigatorScraper:
             # Validate it's a LinkedIn URL
             if linkedin_url and 'linkedin.com/in/' in linkedin_url:
                 return linkedin_url.strip()
+
+            # Fallback: try to find any public profile link on the page.
+            try:
+                public_link = profile_page.locator('a[href*="linkedin.com/in/"]').first
+                if await public_link.count() > 0:
+                    href = await public_link.get_attribute('href')
+                    if href and 'linkedin.com/in/' in href:
+                        return href.strip()
+            except Exception:
+                pass
             
             return None
             
@@ -2229,6 +2362,315 @@ class SalesNavigatorScraper:
             except:
                 pass
             return None
+
+    def _abs_salesnav_url(self, url: Optional[str]) -> Optional[str]:
+        if not url:
+            return None
+        u = (url or "").strip()
+        if not u:
+            return None
+        if u.startswith("http://") or u.startswith("https://"):
+            return u
+        if u.startswith("/"):
+            return f"https://www.linkedin.com{u}"
+        return u
+
+    def _extract_public_url_from_html(self, html: str) -> Optional[str]:
+        """Extract a canonical public profile URL from lead page HTML."""
+        if not html:
+            return None
+
+        patterns = [
+            r'https?://(?:[a-z]{2,3}\.)?linkedin\.com/in/[A-Za-z0-9%._\-]+/?',
+            r'"publicProfileUrl"\s*:\s*"https:\\/\\/www\.linkedin\.com\\/in\\/[A-Za-z0-9%._\-]+\\/?',
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, html)
+            if not match:
+                continue
+
+            url = match.group(0)
+            if '"publicProfileUrl"' in url:
+                try:
+                    url = url.split(":", 1)[1].strip().strip('"')
+                except Exception:
+                    continue
+                url = url.replace("\\/", "/")
+
+            # Trim trailing punctuation from serialized contexts.
+            url = url.strip().rstrip('",}')
+            if "linkedin.com/in/" in url:
+                return url
+        return None
+
+    async def _copy_public_url_from_lead_page(
+        self, sales_nav_url: Optional[str], name: str = None
+    ) -> Optional[str]:
+        """
+        Given a Sales Navigator lead URL, navigate in the SAME TAB and use the lead-page
+        ellipsis menu to click "Copy LinkedIn.com URL".
+        """
+        import random
+
+        abs_url = self._abs_salesnav_url(sales_nav_url)
+        if not abs_url:
+            print(f"[LinkedIn] No sales lead URL available for {name or 'lead'}")
+            return None
+
+        original_url = None
+        try:
+            original_url = self.page.url
+            print(f"[LinkedIn] Opening lead page in same tab for {name or 'lead'}")
+            await self.page.goto(abs_url, timeout=30000)
+            await self.page.wait_for_load_state("domcontentloaded", timeout=15000)
+            try:
+                await self.page.wait_for_load_state("networkidle", timeout=8000)
+            except Exception:
+                pass
+            await asyncio.sleep(random.uniform(1.0, 2.0))
+
+            # Fast path: many lead pages embed the public /in/ URL in HTML payload.
+            try:
+                html = await self.page.content()
+                embedded_url = self._extract_public_url_from_html(html)
+                if embedded_url:
+                    print(f"[LinkedIn] Found embedded public URL for {name or 'lead'}")
+                    return embedded_url
+            except Exception:
+                pass
+
+            # Open the exact lead actions overflow menu button.
+            overflow = self.page.locator(
+                'button[data-x--lead-actions-bar-overflow-menu]'
+                '[aria-label="Open actions overflow menu"]'
+                '._overflow-menu--trigger_1xow7n'
+            ).or_(
+                self.page.locator(
+                    'button[id^="hue-menu-trigger-"]'
+                    '[aria-label="Open actions overflow menu"]'
+                    '[aria-haspopup="true"]'
+                )
+            ).or_(
+                self.page.locator(
+                    'button[data-x--lead-actions-bar-overflow-menu]'
+                    '[aria-label="Open actions overflow menu"]'
+                )
+            ).or_(
+                self.page.locator(
+                    'button._overflow-menu--trigger_1xow7n'
+                    '[aria-label="Open actions overflow menu"]'
+                )
+            )
+
+            menu_opened = False
+            overflow_count = await overflow.count()
+            if overflow_count > 0:
+                try:
+                    for idx in range(min(overflow_count, 8)):
+                        btn = overflow.nth(idx)
+                        if not await btn.is_visible():
+                            continue
+                        await btn.scroll_into_view_if_needed()
+                        try:
+                            await btn.click(timeout=2000)
+                        except Exception:
+                            await btn.click(force=True, timeout=2000)
+                        await self.page.wait_for_selector(
+                            'div[id^="hue-menu-"], div._container_x5gf48',
+                            timeout=1200
+                        )
+                        menu_opened = True
+                        print(f"[LinkedIn] Opened lead actions menu via exact selector #{idx}")
+                        break
+                except Exception:
+                    menu_opened = False
+
+            if not menu_opened:
+                # DOM fallback: only click the exact lead action menu button signatures.
+                try:
+                    clicked = await self.page.evaluate("""
+                        () => {
+                          const isVisible = (el) => {
+                            if (!el) return false;
+                            const r = el.getBoundingClientRect();
+                            const s = window.getComputedStyle(el);
+                            return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none';
+                          };
+
+                          const selectors = [
+                            'button[data-x--lead-actions-bar-overflow-menu][aria-label="Open actions overflow menu"]._overflow-menu--trigger_1xow7n',
+                            'button[id^="hue-menu-trigger-"][aria-label="Open actions overflow menu"][aria-haspopup="true"]',
+                            'button[data-x--lead-actions-bar-overflow-menu][aria-label="Open actions overflow menu"]',
+                            'button._overflow-menu--trigger_1xow7n[aria-label="Open actions overflow menu"]'
+                          ];
+
+                          for (const sel of selectors) {
+                            const targets = Array.from(document.querySelectorAll(sel));
+                            for (const target of targets) {
+                              if (!isVisible(target)) continue;
+                              target.click();
+                              return true;
+                            }
+                          }
+                          return false;
+                        }
+                    """)
+                    if clicked:
+                        await self.page.wait_for_selector(
+                            'div[id^="hue-menu-"], div._container_x5gf48',
+                            timeout=3500
+                        )
+                        menu_opened = True
+                except Exception:
+                    menu_opened = False
+
+            if not menu_opened:
+                # SVG-path fallback: target the exact three-dot icon and click a clickable ancestor.
+                try:
+                    ellipsis_path_selector = (
+                        'svg path[d="M3 9.5A1.5 1.5 0 114.5 8 1.5 1.5 0 013 9.5z'
+                        'M11.5 8A1.5 1.5 0 1013 6.5 1.5 1.5 0 0011.5 8z'
+                        'm-5 0A1.5 1.5 0 108 6.5 1.5 1.5 0 006.5 8z"]'
+                    )
+                    dots = self.page.locator(ellipsis_path_selector)
+                    dots_count = await dots.count()
+                    for idx in range(min(dots_count, 12)):
+                        dot = dots.nth(idx)
+                        try:
+                            clicked = await dot.evaluate("""
+                                (el) => {
+                                  const isVisible = (node) => {
+                                    if (!node) return false;
+                                    const r = node.getBoundingClientRect();
+                                    const s = window.getComputedStyle(node);
+                                    return r.width > 0 && r.height > 0 && s.display !== 'none' && s.visibility !== 'hidden';
+                                  };
+                                  let cur = el;
+                                  for (let i = 0; i < 10 && cur; i++) {
+                                    if (cur.matches?.('button,[role="button"],a,div[role="button"]') && isVisible(cur)) {
+                                      cur.click();
+                                      return true;
+                                    }
+                                    cur = cur.parentElement;
+                                  }
+                                  if (isVisible(el)) {
+                                    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                                    return true;
+                                  }
+                                  return false;
+                                }
+                            """)
+                            if not clicked:
+                                continue
+                            await self.page.wait_for_selector(
+                                'div[id^="hue-menu-"], div._container_x5gf48',
+                                timeout=1200
+                            )
+                            menu_opened = True
+                            print(f"[LinkedIn] Opened ellipsis menu via SVG fallback #{idx}")
+                            break
+                        except Exception:
+                            try:
+                                await self.page.keyboard.press("Escape")
+                            except Exception:
+                                pass
+                            continue
+                except Exception:
+                    menu_opened = False
+
+            if not menu_opened:
+                # Brute-force fallback: iterate all visible ellipsis-like controls on the lead page
+                # and click them one-by-one until the Hue menu appears.
+                try:
+                    candidates = self.page.locator(
+                        'button:has(span._icon_ps32ck), '
+                        '[role="button"]:has(span._icon_ps32ck), '
+                        'button:has(svg[viewBox="0 0 16 16"]), '
+                        '[role="button"]:has(svg[viewBox="0 0 16 16"])'
+                    )
+                    candidate_count = await candidates.count()
+                    for idx in range(min(candidate_count, 24)):
+                        candidate = candidates.nth(idx)
+                        try:
+                            if not await candidate.is_visible():
+                                continue
+                            await candidate.scroll_into_view_if_needed()
+                            await candidate.click(force=True, timeout=2000)
+                            await self.page.wait_for_selector(
+                                'div[id^="hue-menu-"], div._container_x5gf48',
+                                timeout=1200
+                            )
+                            menu_opened = True
+                            print(f"[LinkedIn] Opened ellipsis menu via fallback candidate #{idx}")
+                            break
+                        except Exception:
+                            # Close any partial popovers and keep trying.
+                            try:
+                                await self.page.keyboard.press("Escape")
+                            except Exception:
+                                pass
+                            continue
+                except Exception:
+                    menu_opened = False
+
+            if not menu_opened:
+                print(f"[LinkedIn] Ellipsis menu did not open on lead page for {name or 'lead'}")
+                return None
+
+            menu = self.page.locator('div[id^="hue-menu-"]').or_(
+                self.page.locator('div._container_x5gf48')
+            ).last
+            copy_btn = menu.locator('button:has-text("Copy LinkedIn.com URL")').or_(
+                menu.locator('button:has-text("Copy LinkedIn URL")')
+            ).or_(
+                menu.locator('[data-control-name="copy_linkedin_url"]')
+            ).or_(
+                menu.locator('[role="menuitem"]:has-text("Copy LinkedIn.com URL")')
+            ).or_(
+                menu.locator('[role="menuitem"]:has-text("Copy LinkedIn URL")')
+            ).or_(
+                menu.locator(':is(div,span):has-text("Copy LinkedIn.com URL")')
+            ).or_(
+                menu.locator(':is(div,span):has-text("Copy LinkedIn URL")')
+            ).first
+
+            if await copy_btn.count() == 0:
+                print(f"[LinkedIn] No 'Copy LinkedIn.com URL' option on lead page for {name or 'lead'}")
+                return None
+
+            await self.context.grant_permissions(['clipboard-read', 'clipboard-write'])
+            try:
+                await copy_btn.click()
+            except Exception:
+                await copy_btn.evaluate("(el) => el.click()")
+            await asyncio.sleep(random.uniform(0.3, 0.6))
+
+            copied = await self.page.evaluate("navigator.clipboard.readText()")
+            if copied and "linkedin.com/in/" in copied:
+                print(f"[LinkedIn] Copied public URL for {name or 'lead'}")
+                return copied.strip()
+
+            # Fallback: find any public /in/ link on the lead page.
+            public_link = self.page.locator('a[href*="linkedin.com/in/"]').first
+            if await public_link.count() > 0:
+                href = await public_link.get_attribute("href")
+                if href and "linkedin.com/in/" in href:
+                    print(f"[LinkedIn] Found public /in/ link on lead page for {name or 'lead'}")
+                    return href.strip()
+
+            return None
+        except Exception as e:
+            print(f"[LinkedIn] Lead page copy URL error for {name or 'lead'}: {e}")
+            return None
+        finally:
+            try:
+                # Return to the original results page in the same tab.
+                if original_url and self.page.url != original_url:
+                    await self.page.goto(original_url, timeout=30000)
+                    await self.page.wait_for_load_state("domcontentloaded", timeout=15000)
+                    await asyncio.sleep(0.5)
+            except Exception:
+                pass
     
     async def scrape_current_results_with_public_urls(
         self, 
@@ -2312,7 +2754,8 @@ class SalesNavigatorScraper:
                         'card_index': i  # Remember position for pass 2
                     }
                     employees.append(employee)
-                    print(f"  ○ {name}: {title or 'N/A'}")
+                    # Avoid unicode bullets that can break Windows consoles (cp1252).
+                    print(f"  - {name}: {title or 'N/A'}")
                     
                 except Exception as e:
                     print(f"  [error] Card {i}: {e}")
@@ -2490,29 +2933,24 @@ async def _tavily_search_profile(name: str, company: str) -> Optional[str]:
     Last resort: Use Tavily to search for LinkedIn profile.
     Cost: ~$0.007 per search
     """
-    import requests
     import re
-    
-    tavily_key = getattr(config, 'TAVILY_API_KEY', '')
-    if not tavily_key:
-        return None
-    
+
+    from services.web_search import tavily_search
+
     try:
         query = f"{name} {company} LinkedIn profile site:linkedin.com/in/"
-        
-        response = requests.post(
-            "https://api.tavily.com/search",
-            json={
-                "api_key": tavily_key,
-                "query": query,
-                "search_depth": "basic",
-                "include_answer": False,
-                "max_results": 3
-            },
-            timeout=30
+
+        data = await tavily_search(
+            query=query,
+            search_depth="basic",
+            include_answer=False,
+            max_results=3,
         )
-        response.raise_for_status()
-        results = response.json().get('results', [])
+        if data.get("error"):
+            print(f"  [Tavily error] {data['error']}")
+            return None
+
+        results = data.get("results", [])
         
         # Find first LinkedIn /in/ URL
         for result in results:

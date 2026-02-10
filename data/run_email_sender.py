@@ -8,15 +8,15 @@ from services.salesforce_email_sender import run_campaign_email_sender
 print("="*60)
 print("SALESFORCE EMAIL SENDER")
 print("="*60)
-print("Campaign ID: 2")
-print("Contacts to process: 10")
+print("Campaign ID: All")
+print("Contacts to process: 1")
 print("Review Mode: True")
 print("="*60)
 
 try:
     result = asyncio.run(run_campaign_email_sender(
-        campaign_id=2,
-        limit=10,
+        campaign_id=None,
+        limit=1,
         headless=False,
         review_mode=True
     ))

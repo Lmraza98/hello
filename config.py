@@ -87,6 +87,12 @@ OPT_OUT_LINE = "Reply 'unsubscribe' to opt out of future messages."
 SENDER_NAME = os.getenv("SENDER_NAME", "Your Name")
 VALUE_PROP = os.getenv("VALUE_PROP", "streamline their outreach")
 
+# Microsoft Graph API (Outlook reply monitoring)
+MS_GRAPH_CLIENT_ID = os.getenv("MS_GRAPH_CLIENT_ID", "32547efa-377d-44b7-95de-29664cf800d6")
+MS_GRAPH_TENANT_ID = os.getenv("MS_GRAPH_TENANT_ID", "5b9e54d1-e719-4b6e-a4e4-5afb715bbe7e")
+MS_GRAPH_SCOPES = ["Mail.Read"]
+MS_GRAPH_TOKEN_CACHE_PATH = DATA_DIR / "ms_graph_token_cache.json"
+
 # Phone Discovery APIs
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")

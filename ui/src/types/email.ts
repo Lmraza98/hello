@@ -99,3 +99,61 @@ export type GlobalStats = {
   total_sent: number;
   sent_today: number;
 };
+
+export type ScheduledEmail = {
+  id: number;
+  campaign_id: number;
+  contact_id: number;
+  step_number: number;
+  subject: string;
+  body: string;
+  rendered_subject: string | null;
+  rendered_body: string | null;
+  review_status: string;
+  scheduled_send_time: string;
+  status: string | null;
+  opened: number;
+  open_count: number;
+  first_opened_at: string | null;
+  replied: number;
+  replied_at: string | null;
+  contact_name: string;
+  company_name: string;
+  contact_title: string;
+  contact_email: string;
+  contact_linkedin: string | null;
+  campaign_name: string;
+  num_emails: number;
+  days_between_emails: number;
+  campaign_contact_id: number;
+};
+
+export type EmailDetail = ScheduledEmail & {
+  current_step: number;
+  enrollment_status: string;
+  sequence_emails: Array<{
+    id: number;
+    step_number: number;
+    subject: string;
+    rendered_subject: string | null;
+    status: string | null;
+    review_status: string;
+    sent_at: string | null;
+    scheduled_send_time: string | null;
+    opened: number;
+    open_count: number;
+    replied: number;
+    replied_at: string | null;
+  }>;
+};
+
+export type CampaignScheduleSummary = {
+  campaign_id: number;
+  campaign_name: string;
+  campaign_status: string;
+  scheduled_count: number;
+  pending_review_count: number;
+  next_send_time: string | null;
+  next_contact_name: string | null;
+  last_sent_at: string | null;
+};

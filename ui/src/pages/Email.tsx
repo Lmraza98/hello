@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Mail, Plus, Clock, CheckCircle, FileText, Settings } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Mail, Plus, CalendarClock, CheckCircle, FileText, Settings } from 'lucide-react';
 import { useNotificationContext } from '../contexts/NotificationContext';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useEmailCampaigns } from '../hooks/useEmailCampaigns';
@@ -8,20 +8,25 @@ import { TemplateEditorModal } from '../components/email/TemplateEditorModal';
 import { CampaignsView } from '../components/email/CampaignsView';
 import { ReviewQueueView } from '../components/email/ReviewQueueView';
 import { SentEmailsList } from '../components/email/SentEmailsList';
-import { QueueView } from '../components/email/QueueView';
+import { ScheduledView } from '../components/email/ScheduledView';
 import { SettingsPanel } from '../components/email/SettingsPanel';
-import type { EmailCampaign } from '../types/email';
+import { NextScheduledSends } from '../components/email/NextScheduledSends';
+import { EmailDetailModal } from '../components/email/EmailDetailModal';
+import { SendNowConfirm } from '../components/email/SendNowConfirm';
+import type { EmailCampaign, ScheduledEmail } from '../types/email';
 
-/* ── Main Email Page ───────────────────────────────────── */
+/* ── Main Email Page ───────────────────────────────── */
 
 export default function Email({ openAddModal, onModalOpened }: { openAddModal?: boolean; onModalOpened?: () => void }) {
   const isMobile = useIsMobile();
   const { addNotification } = useNotificationContext();
-  const [view, setView] = useState<'campaigns' | 'review' | 'history' | 'queue'>('campaigns');
+  const [view, setView] = useState<'campaigns' | 'review' | 'history' | 'scheduled'>('campaigns');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTemplates, setEditingTemplates] = useState<EmailCampaign | null>(null);
   const [uploadingCampaignId, setUploadingCampaignId] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [viewingEmail, setViewingEmail] = useState<ScheduledEmail | null>(null);
+  const [sendNowTarget, setSendNowTarget] = useState<ScheduledEmail | null>(null);
 
   const {
     campaigns,
@@ -30,7 +35,8 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
     stats,
     queue,
     reviewQueue,
-    scheduled,
+    allScheduled,
+    campaignScheduleSummary,
     emailConfig,
     createCampaign,
     deleteCampaign,
@@ -43,7 +49,10 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
     approveAll,
     prepareBatch,
     updateConfig,
-    uploadToSalesforce
+    uploadToSalesforce,
+    sendEmailNow,
+    rescheduleEmail,
+    reorderEmails
   } = useEmailCampaigns();
 
   // Open create modal from sidebar quick-add
@@ -71,6 +80,42 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
     uploadToSalesforce.mutate(campaignId, {
       onSettled: () => setUploadingCampaignId(null)
     });
+  };
+
+  // "Send Now" shows a confirmation dialog first
+  const handleSendNowRequest = useCallback((emailId: number) => {
+    const email = allScheduled.find(e => e.id === emailId);
+    if (email) {
+      setSendNowTarget(email);
+    }
+  }, [allScheduled]);
+
+  const handleSendNowConfirm = useCallback(() => {
+    if (!sendNowTarget) return;
+    sendEmailNow.mutate(sendNowTarget.id);
+    setSendNowTarget(null);
+    setViewingEmail(null);
+  }, [sendNowTarget, sendEmailNow]);
+
+  const handleReschedule = (email: ScheduledEmail) => {
+    // Simple reschedule: prompt for new time
+    const currentTime = new Date(email.scheduled_send_time);
+    const newTimeStr = prompt(
+      'Enter new send time (e.g., "2026-02-10 14:30"):',
+      currentTime.toLocaleString()
+    );
+    if (newTimeStr) {
+      const parsed = new Date(newTimeStr);
+      if (!isNaN(parsed.getTime())) {
+        rescheduleEmail.mutate({ emailId: email.id, sendTime: parsed.toISOString() });
+      } else {
+        addNotification({ type: 'error', title: 'Invalid date format' });
+      }
+    }
+  };
+
+  const handleReorder = (emailIds: number[], startTime?: string) => {
+    reorderEmails.mutate({ emailIds, startTime });
   };
 
   return (
@@ -108,7 +153,7 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
             { id: 'campaigns', label: 'Campaigns', icon: Mail, shortLabel: 'All' },
             { id: 'review', label: `Review${reviewQueue.length > 0 ? ` (${reviewQueue.length})` : ''}`, icon: CheckCircle, shortLabel: reviewQueue.length > 0 ? `Review (${reviewQueue.length})` : 'Review' },
             { id: 'history', label: 'Sent History', icon: FileText, shortLabel: 'Sent' },
-            { id: 'queue', label: `Queue (${queue.length + scheduled.length})`, icon: Clock, shortLabel: `Queue (${queue.length + scheduled.length})` }
+            { id: 'scheduled', label: `Scheduled (${allScheduled.length})`, icon: CalendarClock, shortLabel: `Sched (${allScheduled.length})` }
           ].map(tab => {
             const Icon = tab.icon;
             const displayLabel = isMobile ? tab.shortLabel : tab.label;
@@ -149,26 +194,39 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
 
       {/* Content */}
       {view === 'campaigns' && (
-        <CampaignsView
-          campaigns={campaigns}
-          isLoading={campaignsLoading}
-          onCreateCampaign={() => setShowCreateModal(true)}
-          onEditTemplates={setEditingTemplates}
-          onDelete={(id) => deleteCampaign.mutate(id)}
-          onActivate={(id) => activateCampaign.mutate(id)}
-          onPause={(id) => pauseCampaign.mutate(id)}
-          onViewContacts={() => {
-            addNotification({ type: 'info', title: 'View contacts', message: 'Go to Contacts tab and filter by this campaign' });
-          }}
-          onSendEmails={(id) => sendEmails.mutate(id)}
-          onUploadToSalesforce={handleUploadToSalesforce}
-          uploadingCampaignId={uploadingCampaignId}
-        />
+        <>
+          {/* Next Scheduled Sends Widget */}
+          <NextScheduledSends
+            scheduledEmails={allScheduled}
+            onViewEmail={setViewingEmail}
+            onEditEmail={setViewingEmail}
+            onSendNow={handleSendNowRequest}
+            onViewAll={() => setView('scheduled')}
+          />
+
+          <CampaignsView
+            campaigns={campaigns}
+            campaignScheduleSummary={campaignScheduleSummary}
+            isLoading={campaignsLoading}
+            onCreateCampaign={() => setShowCreateModal(true)}
+            onEditTemplates={setEditingTemplates}
+            onDelete={(id) => deleteCampaign.mutate(id)}
+            onActivate={(id) => activateCampaign.mutate(id)}
+            onPause={(id) => pauseCampaign.mutate(id)}
+            onViewContacts={() => {
+              addNotification({ type: 'info', title: 'View contacts', message: 'Go to Contacts tab and filter by this campaign' });
+            }}
+            onSendEmails={(id) => sendEmails.mutate(id)}
+            onUploadToSalesforce={handleUploadToSalesforce}
+            uploadingCampaignId={uploadingCampaignId}
+          />
+        </>
       )}
 
       {view === 'review' && (
         <ReviewQueueView
           reviewQueue={reviewQueue}
+          scheduledCount={allScheduled.length}
           onPrepareBatch={() => prepareBatch.mutate()}
           onApproveEmail={(emailId, subject, body) => approveEmail.mutate({ emailId, subject, body })}
           onRejectEmail={(emailId) => rejectEmail.mutate(emailId)}
@@ -187,10 +245,15 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
         </div>
       )}
 
-      {view === 'queue' && (
-        <QueueView
+      {view === 'scheduled' && (
+        <ScheduledView
+          allScheduled={allScheduled}
           queue={queue}
-          scheduled={scheduled}
+          onViewEmail={setViewingEmail}
+          onEditEmail={setViewingEmail}
+          onSendNow={handleSendNowRequest}
+          onReschedule={handleReschedule}
+          onReorder={handleReorder}
           onSendAll={() => sendEmails.mutate(undefined)}
           isSending={sendEmails.isPending}
         />
@@ -209,6 +272,25 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
           campaign={editingTemplates}
           onClose={() => setEditingTemplates(null)}
           onSave={handleSaveTemplates}
+        />
+      )}
+
+      {viewingEmail && (
+        <EmailDetailModal
+          email={viewingEmail}
+          onClose={() => setViewingEmail(null)}
+          onReschedule={handleReschedule}
+          onSendNow={handleSendNowRequest}
+        />
+      )}
+
+      {/* Send Now confirmation dialog */}
+      {sendNowTarget && (
+        <SendNowConfirm
+          email={sendNowTarget}
+          isSending={sendEmailNow.isPending}
+          onConfirm={handleSendNowConfirm}
+          onCancel={() => setSendNowTarget(null)}
         />
       )}
     </div>

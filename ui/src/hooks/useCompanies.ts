@@ -1,9 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import type { Company } from '../api';
+import { useNotificationContext } from '../contexts/NotificationContext';
 
 export function useCompanies() {
   const queryClient = useQueryClient();
+  const { addNotification } = useNotificationContext();
 
   // Queries
   const companies = useQuery({
@@ -25,7 +27,23 @@ export function useCompanies() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
+      addNotification({ type: 'success', title: 'Company deleted' });
     },
+    onError: (err: Error) => addNotification({ type: 'error', title: 'Failed to delete company', message: err.message }),
+  });
+
+  const bulkDeleteCompanies = useMutation({
+    mutationFn: (companyIds: number[]) => api.bulkDeleteCompanies(companyIds),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      addNotification({
+        type: 'success',
+        title: 'Companies deleted',
+        message: data.message || `Deleted ${data.deleted} compan${data.deleted === 1 ? 'y' : 'ies'}`
+      });
+    },
+    onError: (err: Error) => addNotification({ type: 'error', title: 'Failed to delete companies', message: err.message }),
   });
 
   const resetCompanies = useMutation({
@@ -48,6 +66,7 @@ export function useCompanies() {
     // Mutations
     addCompany,
     deleteCompany,
+    bulkDeleteCompanies,
     resetCompanies,
     importCompanies,
   };

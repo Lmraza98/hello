@@ -56,6 +56,60 @@ def add_company(company: Company):
     return company
 
 
+@router.post("/lookup-existing")
+def lookup_existing_companies(company_names: list[str]):
+    """
+    Look up which company names already exist in the database.
+    Returns existing info + contact counts for each match.
+    """
+    if not company_names:
+        return []
+
+    results = {}
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        for name in company_names:
+            cursor.execute(
+                """SELECT t.id, t.company_name, t.status, t.vetted_at, t.icp_fit_score,
+                          (SELECT COUNT(*) FROM linkedin_contacts lc
+                           WHERE LOWER(lc.company_name) = LOWER(t.company_name)) as contact_count
+                   FROM targets t
+                   WHERE LOWER(t.company_name) = LOWER(?)
+                   LIMIT 1""",
+                (name,)
+            )
+            row = cursor.fetchone()
+            if row:
+                results[name.lower()] = {
+                    "id": row[0],
+                    "company_name": row[1],
+                    "status": row[2],
+                    "vetted_at": row[3],
+                    "icp_fit_score": row[4],
+                    "contact_count": row[5],
+                }
+    return results
+
+
+@router.post("/{company_id}/mark-vetted")
+def mark_company_vetted(company_id: int, icp_score: Optional[int] = None):
+    """Mark a company as vetted with timestamp and optional ICP score."""
+    from datetime import datetime
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        if icp_score is not None:
+            cursor.execute(
+                "UPDATE targets SET vetted_at = ?, icp_fit_score = ? WHERE id = ?",
+                (datetime.utcnow().isoformat(), icp_score, company_id)
+            )
+        else:
+            cursor.execute(
+                "UPDATE targets SET vetted_at = ? WHERE id = ?",
+                (datetime.utcnow().isoformat(), company_id)
+            )
+    return {"success": True}
+
+
 @router.put("/{company_id}")
 def update_company(company_id: int, company: Company):
     with db.get_db() as conn:
@@ -72,6 +126,28 @@ def delete_company(company_id: int):
     with db.get_db() as conn:
         conn.cursor().execute("DELETE FROM targets WHERE id = ?", (company_id,))
     return {"deleted": True}
+
+
+@router.post("/bulk-delete")
+def bulk_delete_companies(company_ids: list[int]):
+    """Delete multiple companies by their IDs."""
+    if not company_ids:
+        return {'success': False, 'error': 'No company IDs provided'}
+    
+    try:
+        with db.get_db() as conn:
+            cursor = conn.cursor()
+            placeholders = ','.join(['?'] * len(company_ids))
+            cursor.execute(f"DELETE FROM targets WHERE id IN ({placeholders})", company_ids)
+            deleted_count = cursor.rowcount
+        
+        return {
+            'success': True,
+            'deleted': deleted_count,
+            'message': f'Deleted {deleted_count} compan{"y" if deleted_count == 1 else "ies"}'
+        }
+    except Exception as e:
+        return {'success': False, 'error': str(e)}
 
 
 @router.post("/import")

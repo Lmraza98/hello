@@ -25,6 +25,7 @@ class Contact(BaseModel):
     phone_source: Optional[str] = None
     phone_confidence: Optional[int] = None
     linkedin_url: Optional[str] = None
+    salesforce_url: Optional[str] = None
     scraped_at: Optional[str] = None
 
 class Stats(BaseModel):

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Phone, ExternalLink, Globe, Calendar, Target, Copy, Check } from 'lucide-react';
+import { Mail, Phone, ExternalLink, Globe, Calendar, Target, Copy, Check, Cloud } from 'lucide-react';
 import type { Contact } from '../../api';
 import { SalesforceStatusBadge } from './SalesforceStatusBadge';
 
@@ -58,7 +58,7 @@ export function ContactDetail({ contact }: ContactDetailProps) {
               </button>
             </div>
             {contact.phone_source && (
-              <div className="text-text-muted text-xs break-words">
+              <div className="text-text-muted text-xs wrap-break-word">
                 Source: {contact.phone_source} {contact.phone_confidence !== null && `(${contact.phone_confidence}%)`}
               </div>
             )}
@@ -98,6 +98,19 @@ export function ContactDetail({ contact }: ContactDetailProps) {
         <h4 className="font-medium flex items-center gap-1.5 text-xs uppercase tracking-wider text-text-muted">
           <Target className="w-3.5 h-3.5 shrink-0" /> Details
         </h4>
+        {contact.salesforce_url ? (
+          <a
+            href={contact.salesforce_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs text-blue-700 hover:underline min-w-0"
+            title={contact.salesforce_url}
+          >
+            <Cloud className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Open in Salesforce</span>
+            <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+          </a>
+        ) : null}
         {contact.vertical && (
           <div className="flex items-center gap-1.5 text-text-muted text-xs min-w-0">
             <span className="truncate" title={contact.vertical}>

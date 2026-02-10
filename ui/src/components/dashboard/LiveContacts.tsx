@@ -1,4 +1,5 @@
 import type { Contact } from '../../api';
+import { Cloud, ExternalLink } from 'lucide-react';
 
 type LiveContactsProps = {
   contacts: Contact[];
@@ -28,6 +29,19 @@ export function LiveContacts({ contacts }: LiveContactsProps) {
             {list.slice(0, 5).map((c) => (
               <div key={c.id} className="px-2.5 md:px-3 py-1.5 flex justify-between items-center gap-2">
                 <span className="text-xs text-text truncate flex-1 min-w-0">{c.name}</span>
+                {c.salesforce_url ? (
+                  <a
+                    href={c.salesforce_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 rounded border border-border bg-bg px-1.5 py-0.5 text-[10px] text-text-muted hover:bg-surface-hover hover:text-text shrink-0"
+                    title="Open in Salesforce"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Cloud className="h-3 w-3 text-blue-600" />
+                    SF <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : null}
                 {c.email && (
                   <span className="text-[10px] text-success shrink-0 truncate max-w-[100px] md:max-w-none">{c.email}</span>
                 )}

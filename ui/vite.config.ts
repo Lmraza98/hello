@@ -6,7 +6,15 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     proxy: {
-      '/api': 'http://localhost:8000'
-    }
-  }
+      '/api': {
+        target: 'http://localhost:8000',
+        timeout: 600_000,       // 10 min — company scraping is slow
+        proxyTimeout: 600_000,
+      },
+      '/ws': {
+        target: 'ws://localhost:8000',
+        ws: true,
+      },
+    },
+  },
 })

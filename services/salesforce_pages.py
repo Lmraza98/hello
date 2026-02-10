@@ -70,36 +70,161 @@ class GlobalSearch(SalesforceBasePage):
         """
         Perform global search.
         Returns True if search executed successfully.
-        """
-        # Click search box (multiple possible selectors for different SF versions)
-        search_input = self.page.get_by_placeholder('Search...').or_(
-            self.page.locator('input[type="search"]')
-        ).or_(
-            self.page.locator('.slds-global-header__item_search input')
-        ).first
         
+        Salesforce Lightning has a two-step search:
+        1. Click the search bar/button to ACTIVATE/EXPAND the search input
+        2. Only then is the actual text input visible and typeable
+        """
+        # ── Step 1: Activate the search bar ──
+        # The search input is hidden behind a button until clicked.
+        activate_selectors = [
+            "button.search-button",                                 # Main search button ("Search...")
+            "button.slds-button_neutral.search-button",             # Neutral variant
+            ".forceSearchAssistant button",                         # Search assistant wrapper
+            "button[aria-label='Search']",                          # Aria-labelled search button
+            ".slds-global-header__item_search button",              # Header search button
+            ".slds-global-header__item--search button",             # Alt header class
+            "[role='search'] button",                               # Search role
+        ]
+        
+        activated = False
+        for sel in activate_selectors:
+            try:
+                btn = self.page.locator(sel).first
+                if await btn.count() > 0 and await btn.is_visible():
+                    await btn.click()
+                    activated = True
+                    print(f"[GlobalSearch] Activated search via: {sel}")
+                    break
+            except Exception:
+                continue
+        
+        if not activated:
+            # Fallback: maybe the input is already visible (older SF versions)
+            print("[GlobalSearch] No activation button found, trying input directly")
+        
+        # Brief wait for the search input to expand/appear
+        await asyncio.sleep(0.8)
+        
+        # ── Step 2: Find and fill the now-visible input ──
+        input_selectors = [
+            "input.slds-input[type='search']",
+            "input[placeholder='Search...']",
+            "input[placeholder='Search Salesforce']",
+            "input[role='combobox']",
+            ".slds-global-header__item_search input[type='search']",
+            "input.search-input",
+            "input[type='search']",
+        ]
+        
+        search_input = None
+        for sel in input_selectors:
+            try:
+                field = self.page.locator(sel).first
+                if await field.count() > 0 and await field.is_visible():
+                    search_input = field
+                    print(f"[GlobalSearch] Found input via: {sel}")
+                    break
+            except Exception:
+                continue
+        
+        if not search_input:
+            print("[GlobalSearch] Could not find visible search input after activation")
+            # Debug: take screenshot
+            try:
+                import config
+                await self.page.screenshot(
+                    path=str(config.SCREENSHOTS_DIR / "debug_search_state.png"),
+                    full_page=True,
+                )
+                print("[GlobalSearch] Debug screenshot saved")
+            except Exception:
+                pass
+            return False
+        
+        # ── Step 3: Type query and submit ──
         await search_input.click()
         await search_input.fill(query)
-        await search_input.press('Enter')
+        await asyncio.sleep(0.5)
+        await search_input.press("Enter")
         
         await self.wait_for_lightning_ready()
         return True
     
     async def get_search_results(self) -> list:
         """Get search result items."""
-        results = self.page.locator('.searchResultItem, .slds-listbox__option')
+        # Try the data-table results first (search results page)
+        results = self.page.locator(
+            'table[role="grid"] a[data-refid="recordId"]'
+        ).or_(
+            self.page.locator('.searchResultItem')
+        ).or_(
+            self.page.locator('.slds-listbox__option')
+        )
         count = await results.count()
         
         items = []
-        for i in range(min(count, 10)):  # Max 10 results
+        for i in range(min(count, 10)):
             item = results.nth(i)
-            text = await item.text_content()
-            items.append({'index': i, 'text': text})
+            text = (await item.get_attribute('title')) or (await item.text_content()) or ''
+            href = await item.get_attribute('href')
+            items.append({'index': i, 'text': text, 'href': href})
         
         return items
     
+    async def get_record_url_by_name(self, name: str) -> str | None:
+        """
+        Find a record link in the search results table by name and return its URL.
+        
+        Salesforce search results render as a data-table with <a> links containing
+        `data-refid="recordId"` and `title="Name"`.  This method grabs the href
+        directly without needing to click through.
+        """
+        # Normalise the target name for comparison
+        target = name.strip().lower()
+        
+        # Look for links in the search results grid
+        links = self.page.locator('table[role="grid"] a[data-refid="recordId"]')
+        count = await links.count()
+        print(f"[GlobalSearch] Found {count} record links in results table")
+        
+        for i in range(count):
+            link = links.nth(i)
+            title = (await link.get_attribute('title') or '').strip().lower()
+            if target in title or title in target:
+                href = await link.get_attribute('href')
+                if href:
+                    # href may be relative (e.g. /lightning/r/00Qa.../view)
+                    if href.startswith('/'):
+                        # Build absolute URL from current page origin
+                        from urllib.parse import urlparse
+                        parsed = urlparse(self.page.url)
+                        href = f"{parsed.scheme}://{parsed.netloc}{href}"
+                    print(f"[GlobalSearch] Matched '{title}' → {href}")
+                    return href
+        
+        print(f"[GlobalSearch] No record link matched '{name}'")
+        return None
+    
     async def click_result_by_text(self, text: str) -> bool:
         """Click a search result containing the given text."""
+        # First try the data-table links on the search results page
+        target = text.strip().lower()
+        links = self.page.locator('table[role="grid"] a[data-refid="recordId"]')
+        count = await links.count()
+        
+        for i in range(count):
+            link = links.nth(i)
+            title = (await link.get_attribute('title') or '').strip().lower()
+            if target in title or title in target:
+                try:
+                    await link.click()
+                    await self.wait_for_lightning_ready()
+                    return True
+                except Exception:
+                    pass
+        
+        # Fallback: older-style selectors
         result = self.page.locator(f'.searchResultItem:has-text("{text}")').or_(
             self.page.locator(f'.slds-listbox__option:has-text("{text}")')
         ).first

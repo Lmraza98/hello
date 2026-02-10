@@ -608,8 +608,12 @@ class SalesforceSender:
         """Click the Send button and verify success."""
         print("  [SFSender] Clicking Send...")
         
-        # Look for Send button - multiple possible selectors
-        send_btn = page.locator('button.slds-button:has-text("Send")').or_(
+        # Look for Send button - multiple possible selectors including the specific one from user's org
+        send_btn = page.locator('button.cuf-publisherShareButton.send').or_(
+            page.locator('button.slds-button--brand:has-text("Send")')
+        ).or_(
+            page.locator('button.slds-button:has-text("Send")')
+        ).or_(
             page.get_by_role('button', name='Send')
         ).or_(
             page.locator('button[title="Send"]')
@@ -618,8 +622,10 @@ class SalesforceSender:
         ).first
         
         try:
-            await send_btn.wait_for(state='visible', timeout=5000)
+            await send_btn.wait_for(state='visible', timeout=10000)
+            print("  [SFSender] Found Send button, clicking...")
             await send_btn.click()
+            print("  [SFSender] Send button clicked!")
             await asyncio.sleep(3)
             
             # Check for success toast
@@ -631,6 +637,7 @@ class SalesforceSender:
                 return 'sent' in text.lower() or 'success' in text.lower() or 'email' in text.lower()
             except:
                 # No toast, might still have succeeded
+                print("  [SFSender] No toast message, assuming success")
                 pass
             
             return True

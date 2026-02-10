@@ -98,6 +98,30 @@ export function useContacts() {
     onError: (error: Error) => addNotification({ type: 'error', title: 'Enrollment failed', message: error.message }),
   });
 
+  const deleteContact = useMutation({
+    mutationFn: (id: number) => api.deleteContact(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      addNotification({ type: 'success', title: 'Contact deleted' });
+    },
+    onError: (err: Error) => addNotification({ type: 'error', title: 'Failed to delete contact', message: err.message }),
+  });
+
+  const bulkDeleteContacts = useMutation({
+    mutationFn: (contactIds: number[]) => api.bulkDeleteContacts(contactIds),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['stats'] });
+      addNotification({
+        type: 'success',
+        title: 'Contacts deleted',
+        message: data.message || `Deleted ${data.deleted} contact(s)`
+      });
+    },
+    onError: (err: Error) => addNotification({ type: 'error', title: 'Failed to delete contacts', message: err.message }),
+  });
+
   return {
     // Query data
     contacts: contacts.data || [],
@@ -108,6 +132,8 @@ export function useContacts() {
 
     // Mutations
     addContact,
+    deleteContact,
+    bulkDeleteContacts,
     bulkAction,
     enrollInCampaign,
   };

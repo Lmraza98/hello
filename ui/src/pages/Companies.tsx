@@ -23,7 +23,7 @@ import { EmptyState } from '../components/shared/EmptyState';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { ConfirmDialog } from '../components/shared/ConfirmDialog';
 import { createCompanyColumns } from '../components/companies/tableColumns';
-import { Upload, Building2, Plus, RotateCcw, X } from 'lucide-react';
+import { Upload, Building2, Plus, RotateCcw, X, Trash2 } from 'lucide-react';
 
 /* ── Constants ─────────────────────────── */
 
@@ -39,6 +39,7 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
     companiesLoading: isLoading,
     addCompany,
     deleteCompany,
+    bulkDeleteCompanies,
     resetCompanies,
     importCompanies,
   } = useCompanies();
@@ -46,6 +47,7 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
   const [showAddModal, setShowAddModal] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: number; name: string } | null>(null);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [globalFilter, setGlobalFilter] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -102,7 +104,8 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
 
   const { rows } = table.getRowModel();
   const filteredCount = table.getFilteredRowModel().rows.length;
-  const selectedCount = Object.keys(rowSelection).length;
+  const selectedIds = Object.keys(rowSelection).map(Number);
+  const selectedCount = selectedIds.length;
   const activeFilterCount = columnFilters.length;
 
   /* ── Virtualizer ── */
@@ -135,6 +138,22 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
       alert('Import failed');
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  /* ── Bulk delete ── */
+
+  const handleBulkDelete = () => {
+    if (selectedCount === 0) return;
+    setShowBulkDeleteConfirm(true);
+  };
+
+  const confirmBulkDelete = () => {
+    bulkDeleteCompanies.mutate(selectedIds, {
+      onSuccess: () => {
+        setRowSelection({});
+        setShowBulkDeleteConfirm(false);
+      },
+    });
   };
 
   /* ── Column widths for synced header/body ── */
@@ -201,6 +220,22 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
               </>
             }
           />
+
+          {/* Bulk Actions Bar */}
+          {selectedCount > 0 && (
+            <div className="mb-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs md:text-sm font-medium text-indigo-900 mr-1">{selectedCount} selected</span>
+                <button
+                  onClick={handleBulkDelete}
+                  className="flex items-center gap-1 px-2 py-1.5 border border-red-300 text-red-700 rounded-md text-xs font-medium hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span className="hidden md:inline">Delete</span>
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Toolbar */}
           <div ref={filterRef}>
@@ -392,6 +427,16 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
           setShowResetConfirm(false);
         }}
         onCancel={() => setShowResetConfirm(false)}
+      />
+
+      <ConfirmDialog
+        open={showBulkDeleteConfirm}
+        title={`Delete ${selectedCount} compan${selectedCount !== 1 ? 'ies' : 'y'}?`}
+        message="This action cannot be undone. The selected companies will be permanently removed."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={confirmBulkDelete}
+        onCancel={() => setShowBulkDeleteConfirm(false)}
       />
     </div>
   );

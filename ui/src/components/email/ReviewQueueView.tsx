@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { CheckCircle, RefreshCw, Loader2, Check, X, Edit3 } from 'lucide-react';
+import { CheckCircle, RefreshCw, Loader2, Check, X, Edit3, Clock } from 'lucide-react';
 import type { ReviewQueueItem } from '../../types/email';
 
 type ReviewQueueViewProps = {
   reviewQueue: ReviewQueueItem[];
+  scheduledCount: number;
   onPrepareBatch: () => void;
   onApproveEmail: (emailId: number, subject?: string, body?: string) => void;
   onRejectEmail: (emailId: number) => void;
@@ -16,6 +17,7 @@ type ReviewQueueViewProps = {
 
 export function ReviewQueueView({
   reviewQueue,
+  scheduledCount,
   onPrepareBatch,
   onApproveEmail,
   onRejectEmail,
@@ -55,6 +57,19 @@ export function ReviewQueueView({
           )}
         </div>
       </div>
+
+      {/* Scheduling info banner */}
+      {reviewQueue.length > 0 && (
+        <div className="flex items-center gap-2 mb-4 px-3 py-2.5 bg-blue-50 border border-blue-100 rounded-lg">
+          <Clock className="w-4 h-4 text-blue-600 shrink-0" />
+          <p className="text-xs md:text-sm text-blue-800">
+            After approval, <span className="font-medium">{reviewQueue.length} email{reviewQueue.length !== 1 ? 's' : ''}</span> will be scheduled for sending.
+            {scheduledCount > 0 && (
+              <span className="text-blue-600"> ({scheduledCount} already scheduled)</span>
+            )}
+          </p>
+        </div>
+      )}
 
       {reviewQueue.length === 0 ? (
         <div className="text-center py-10 md:py-12 text-text-muted">

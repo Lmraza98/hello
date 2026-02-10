@@ -13,6 +13,10 @@ def generate_email_with_gpt4o(campaign: Dict, contact: Dict) -> Tuple[str, str]:
     """
     Generate email subject and body using GPT-4o based on campaign template.
     
+    The LLM's ONLY job is to replace {placeholder} variables in the template.
+    It must NOT rewrite, rephrase, or add content beyond what the template specifies.
+    The special {personalization} variable is the one place the LLM adds a custom sentence.
+    
     Args:
         campaign: Campaign dict with title, subject_template, body_template
         contact: Contact dict with name, title, company_name, etc.
@@ -27,6 +31,7 @@ def generate_email_with_gpt4o(campaign: Dict, contact: Dict) -> Tuple[str, str]:
     
     # Build context for personalization
     contact_name = contact.get('name', 'there')
+    first_name = contact_name.split()[0] if contact_name else 'there'
     contact_title = contact.get('title', '')
     company_name = contact.get('company_name', '')
     domain = contact.get('domain', '')
@@ -35,40 +40,69 @@ def generate_email_with_gpt4o(campaign: Dict, contact: Dict) -> Tuple[str, str]:
     subject_template = campaign.get('subject_template') or config.DEFAULT_SUBJECT_TEMPLATE
     body_template = campaign.get('body_template') or config.DEFAULT_BODY_TEMPLATE
     
-    # Build prompt for GPT-4o
-    prompt = f"""Generate a personalized email for an outreach campaign.
+    # Check if the template even has placeholders that need LLM help.
+    # If it only has simple variables like {name}, {company}, skip the LLM entirely.
+    simple_vars = {'{name}', '{Name}', '{FirstName}', '{company}', '{Company}',
+                   '{title}', '{domain}', '{sender_name}', '{value_prop}', '{opt_out_line}'}
+    
+    # Find all {placeholder} patterns in the template
+    import re
+    all_placeholders = set(re.findall(r'\{[^}]+\}', subject_template + body_template))
+    needs_llm = bool(all_placeholders - simple_vars)  # Has placeholders beyond simple ones
+    
+    if not needs_llm:
+        # No LLM needed — just do variable replacement
+        return _generate_from_template(subject_template, body_template, contact, company_name)
+    
+    # Build prompt — strict template-following instructions
+    prompt = f"""You are filling in placeholders in an email template. Your job is to REPLACE the {{placeholders}} with appropriate content while keeping EVERYTHING ELSE exactly as written.
 
-Campaign: {campaign.get('title', 'Outreach')}
-Campaign Description: {campaign.get('description', '')}
+TEMPLATE (Subject):
+{subject_template}
 
-Contact Information:
+TEMPLATE (Body):
+{body_template}
+
+CONTACT INFO:
 - Name: {contact_name}
+- First Name: {first_name}
 - Title: {contact_title}
 - Company: {company_name}
 - Domain: {domain}
 
-Subject Template: {subject_template}
-Body Template: {body_template}
+CAMPAIGN CONTEXT:
+- Campaign: {campaign.get('title', 'Outreach')}
+- Description: {campaign.get('description', 'N/A')}
 
-Instructions:
-1. Personalize the subject line using the template. Make it specific to the contact and company.
-2. Personalize the email body using the template. Include relevant details about the contact's role and company.
-3. Keep the tone professional but friendly.
-4. Ensure the email is concise and actionable.
+VARIABLE REPLACEMENT RULES:
+- {{name}} or {{Name}} → "{contact_name}"
+- {{FirstName}} → "{first_name}"
+- {{company}} or {{Company}} → "{company_name}"
+- {{title}} → "{contact_title}"
+- {{personalization}} → Write 1-2 short sentences referencing the contact's role/company. Keep it natural and brief.
+- {{value_prop}} → A brief value proposition relevant to the contact.
+- Any other {{placeholder}} → Replace with contextually appropriate content.
 
-Return your response as JSON with this exact format:
+CRITICAL RULES:
+1. DO NOT rewrite, rephrase, or restructure the template. Keep the EXACT wording.
+2. DO NOT add greetings, sign-offs, or content that isn't in the template.
+3. DO NOT add "Best regards", "[Your Name]", or signature blocks unless the template has them.
+4. ONLY replace the {{placeholder}} text. Everything else stays IDENTICAL.
+5. If a line has no placeholders, output it exactly as-is.
+
+Return JSON:
 {{
-  "subject": "personalized subject line",
-  "body": "personalized email body"
+  "subject": "subject with placeholders filled in",
+  "body": "body with placeholders filled in"
 }}"""
 
     try:
         response = client.chat.completions.create(
-            model=config.LLM_MODEL_SMART,  # GPT-4o
+            model=config.LLM_MODEL_SMART,
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an expert B2B sales email writer. Generate personalized, professional outreach emails that are concise and actionable."
+                    "content": "You are a template variable replacement engine. You fill in {placeholders} in email templates. You NEVER rewrite, rephrase, or add to the template. You ONLY replace {placeholder} variables with appropriate values. Output the template exactly as written, with only the {placeholders} replaced."
                 },
                 {
                     "role": "user",
@@ -76,7 +110,7 @@ Return your response as JSON with this exact format:
                 }
             ],
             max_tokens=800,
-            temperature=0.7
+            temperature=0.3  # Low temperature for faithful reproduction
         )
         
         content = response.choices[0].message.content.strip()
@@ -87,7 +121,6 @@ Return your response as JSON with this exact format:
         
         result = json.loads(content)
         
-        # Get subject/body from GPT result, or use template as fallback
         subject = result.get('subject')
         body = result.get('body')
         
@@ -110,11 +143,9 @@ Return your response as JSON with this exact format:
         
     except json.JSONDecodeError as e:
         print(f"[EmailGenerator] JSON parse error: {e}")
-        # Fallback to template-based generation
         return _generate_from_template(subject_template, body_template, contact, company_name)
     except Exception as e:
         print(f"[EmailGenerator] Error: {e}")
-        # Fallback to template-based generation
         return _generate_from_template(subject_template, body_template, contact, company_name)
 
 

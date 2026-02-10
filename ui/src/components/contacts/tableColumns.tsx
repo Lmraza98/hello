@@ -1,5 +1,5 @@
 import { createColumnHelper } from '@tanstack/react-table';
-import { Building2, CheckCircle, XCircle, ChevronDown, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Building2, CheckCircle, XCircle, ChevronDown, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown, Trash2 } from 'lucide-react';
 import type { Contact } from '../../api';
 import { SalesforceStatusBadge } from './SalesforceStatusBadge';
 
@@ -21,7 +21,8 @@ function SortableHeader({ column, children }: { column: any; children: React.Rea
   );
 }
 
-export const contactColumns = [
+export function createContactColumns(onDelete: (id: number, name: string) => void) {
+  return [
   columnHelper.display({
     id: 'select',
     header: ({ table }) => (
@@ -111,4 +112,28 @@ export const contactColumns = [
     filterFn: (row, _id, value) => (row.original.salesforce_status || 'pending').toLowerCase() === value.toLowerCase(),
     size: 100,
   }),
+  columnHelper.display({
+    id: 'actions',
+    header: () => null,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            const c = row.original;
+            if (c.id) onDelete(c.id, c.name);
+          }}
+          className="p-1.5 hover:bg-red-50 rounded text-text-muted hover:text-red-600"
+          title="Delete"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    ),
+    size: 48,
+  }),
 ];
+}
+
+// Default export for backward compatibility
+export const contactColumns = createContactColumns(() => {});

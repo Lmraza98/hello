@@ -309,32 +309,24 @@ class LinkedInProfileFinder:
         Use Tavily web search + GPT-4o to find LinkedIn profile URL.
         Synchronous version for running in a thread.
         """
-        import requests
         from openai import OpenAI
+        from services.web_search import tavily_search_sync
         
         print(f"[Profile Finder] LLM Search: {name} @ {company}")
         
         # Step 1: Search with Tavily
-        if not config.TAVILY_API_KEY:
-            print("[Profile Finder] TAVILY_API_KEY not configured")
-            return None
-        
         try:
             query = f"{name} {company} LinkedIn profile site:linkedin.com/in/"
-            
-            response = requests.post(
-                "https://api.tavily.com/search",
-                json={
-                    "api_key": config.TAVILY_API_KEY,
-                    "query": query,
-                    "search_depth": "basic",
-                    "include_answer": False,
-                    "max_results": 5
-                },
-                timeout=30
+
+            search_results = tavily_search_sync(
+                query=query,
+                search_depth="basic",
+                include_answer=False,
+                max_results=5,
             )
-            response.raise_for_status()
-            search_results = response.json()
+            if search_results.get("error"):
+                print(f"[Profile Finder] Tavily search error: {search_results['error']}")
+                return None
             
         except Exception as e:
             print(f"[Profile Finder] Tavily search error: {e}")

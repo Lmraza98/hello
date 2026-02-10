@@ -5,7 +5,10 @@ import type {
   SentEmail,
   GlobalStats,
   ReviewQueueItem,
-  EmailConfig
+  EmailConfig,
+  ScheduledEmail,
+  EmailDetail,
+  CampaignScheduleSummary
 } from '../types/email';
 
 const API_BASE = '/api/emails';
@@ -253,5 +256,69 @@ export const emailApi = {
       body: JSON.stringify(data)
     });
     if (!res.ok) throw new Error('Failed to update config');
+  },
+
+  // === Scheduled Emails (full timeline) ===
+
+  getAllScheduledEmails: async (campaignId?: number): Promise<ScheduledEmail[]> => {
+    try {
+      const params = campaignId ? `?campaign_id=${campaignId}` : '';
+      const res = await fetch(`${API_BASE}/scheduled-emails${params}`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  },
+
+  getEmailDetail: async (emailId: number): Promise<EmailDetail | null> => {
+    try {
+      const res = await fetch(`${API_BASE}/scheduled-emails/${emailId}`);
+      if (!res.ok) return null;
+      return res.json();
+    } catch {
+      return null;
+    }
+  },
+
+  sendEmailNow: async (emailId: number): Promise<{ success: boolean; message?: string; error?: string; contact_name?: string; company_name?: string }> => {
+    try {
+      const res = await fetch(`${API_BASE}/scheduled-emails/${emailId}/send-now`, {
+        method: 'POST'
+      });
+      return res.json();
+    } catch (e) {
+      return { success: false, error: String(e) };
+    }
+  },
+
+  rescheduleEmail: async (emailId: number, sendTime: string): Promise<void> => {
+    const res = await fetch(`${API_BASE}/scheduled-emails/${emailId}/reschedule`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ send_time: sendTime })
+    });
+    if (!res.ok) throw new Error('Failed to reschedule email');
+  },
+
+  reorderEmails: async (emailIds: number[], startTime?: string): Promise<void> => {
+    const res = await fetch(`${API_BASE}/scheduled-emails/reorder`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email_ids: emailIds, start_time: startTime })
+    });
+    if (!res.ok) throw new Error('Failed to reorder emails');
+  },
+
+  getCampaignScheduleSummary: async (): Promise<CampaignScheduleSummary[]> => {
+    try {
+      const res = await fetch(`${API_BASE}/campaign-schedule-summary`);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
   }
 };

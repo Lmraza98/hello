@@ -32,7 +32,8 @@ class CompanyCollector:
         query: str,
         max_companies: int = 100,
         headless: bool = False,
-        save_to_db: bool = True
+        save_to_db: bool = True,
+        on_page_ready=None
     ) -> Dict:
         """
         Collect companies from Sales Navigator based on a natural language query.
@@ -71,6 +72,10 @@ class CompanyCollector:
                     result['status'] = 'auth_failed'
                     result['error'] = 'Login timeout'
                     return result
+            
+            # Notify caller that the browser page is ready (e.g. for live streaming)
+            if on_page_ready and self.scraper.page:
+                on_page_ready(self.scraper.page)
             
             # Step 3: Search and scrape companies
             print(f"[Company Collector] Collecting up to {max_companies} companies...")
@@ -178,7 +183,8 @@ async def collect_companies_from_query(
     query: str,
     max_companies: int = 100,
     headless: bool = False,
-    save_to_db: bool = True
+    save_to_db: bool = True,
+    on_page_ready=None
 ) -> Dict:
     """
     Convenience function to collect companies from a natural language query.
@@ -188,6 +194,7 @@ async def collect_companies_from_query(
         max_companies: Maximum number of companies to collect
         headless: Run browser in headless mode
         save_to_db: Whether to save companies to database
+        on_page_ready: Optional callback(page) invoked when the browser page is ready
         
     Returns:
         Dictionary with companies list and metadata
@@ -197,7 +204,8 @@ async def collect_companies_from_query(
         query=query,
         max_companies=max_companies,
         headless=headless,
-        save_to_db=save_to_db
+        save_to_db=save_to_db,
+        on_page_ready=on_page_ready
     )
 
 

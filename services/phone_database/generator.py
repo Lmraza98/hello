@@ -4,7 +4,7 @@ Phone Number Generator
 Generates all possible US phone numbers for given area codes.
 Uses efficient generators to avoid memory issues.
 """
-import re
+import reF
 from typing import Generator, List, Dict
 
 

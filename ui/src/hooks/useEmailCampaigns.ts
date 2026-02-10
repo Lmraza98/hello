@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { emailApi } from '../api/emailApi';
 import { useNotificationContext } from '../contexts/NotificationContext';
-import type { EmailCampaign, EmailTemplate, EmailConfig } from '../types/email';
+import type { EmailCampaign, EmailConfig } from '../types/email';
 
 export function useEmailCampaigns() {
   const queryClient = useQueryClient();
@@ -37,6 +37,18 @@ export function useEmailCampaigns() {
   const scheduled = useQuery({
     queryKey: ['scheduledEmails'],
     queryFn: () => emailApi.getScheduled()
+  });
+
+  const allScheduled = useQuery({
+    queryKey: ['allScheduledEmails'],
+    queryFn: () => emailApi.getAllScheduledEmails(),
+    refetchInterval: 30000
+  });
+
+  const campaignScheduleSummary = useQuery({
+    queryKey: ['campaignScheduleSummary'],
+    queryFn: () => emailApi.getCampaignScheduleSummary(),
+    refetchInterval: 30000
   });
 
   const emailConfig = useQuery({
@@ -178,6 +190,48 @@ export function useEmailCampaigns() {
     }
   });
 
+  const sendEmailNow = useMutation({
+    mutationFn: (emailId: number) => emailApi.sendEmailNow(emailId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['allScheduledEmails'] });
+      queryClient.invalidateQueries({ queryKey: ['scheduledEmails'] });
+      queryClient.invalidateQueries({ queryKey: ['campaignScheduleSummary'] });
+      if (data.success) {
+        addNotification({
+          type: 'success',
+          title: 'Salesforce sender launched',
+          message: data.message || `Sending to ${data.contact_name} at ${data.company_name}`
+        });
+      } else {
+        addNotification({ type: 'error', title: 'Send failed', message: data.error });
+      }
+    },
+    onError: () => {
+      addNotification({ type: 'error', title: 'Send failed', message: 'An unexpected error occurred' });
+    }
+  });
+
+  const rescheduleEmail = useMutation({
+    mutationFn: ({ emailId, sendTime }: { emailId: number; sendTime: string }) =>
+      emailApi.rescheduleEmail(emailId, sendTime),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allScheduledEmails'] });
+      queryClient.invalidateQueries({ queryKey: ['scheduledEmails'] });
+      queryClient.invalidateQueries({ queryKey: ['campaignScheduleSummary'] });
+      addNotification({ type: 'success', title: 'Email rescheduled' });
+    }
+  });
+
+  const reorderEmails = useMutation({
+    mutationFn: ({ emailIds, startTime }: { emailIds: number[]; startTime?: string }) =>
+      emailApi.reorderEmails(emailIds, startTime),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allScheduledEmails'] });
+      queryClient.invalidateQueries({ queryKey: ['scheduledEmails'] });
+      addNotification({ type: 'success', title: 'Send order updated' });
+    }
+  });
+
   return {
     // Query data
     campaigns: campaigns.data || [],
@@ -188,6 +242,8 @@ export function useEmailCampaigns() {
     queue: queue.data || [],
     reviewQueue: reviewQueue.data || [],
     scheduled: scheduled.data || [],
+    allScheduled: allScheduled.data || [],
+    campaignScheduleSummary: campaignScheduleSummary.data || [],
     emailConfig: emailConfig.data,
     
     // Mutations
@@ -203,6 +259,9 @@ export function useEmailCampaigns() {
     approveAll,
     prepareBatch,
     updateConfig,
-    uploadToSalesforce
+    uploadToSalesforce,
+    sendEmailNow,
+    rescheduleEmail,
+    reorderEmails
   };
 }

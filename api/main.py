@@ -15,7 +15,15 @@ import config
 import database as db
 
 # Import routes
-from api.routes import companies, contacts, stats, pipeline, emails
+from api.routes import companies, contacts, stats, pipeline, emails, salesnav, browser_stream, salesforce, research
+from services.salesforce_lookup_queue import (
+    start_salesforce_lookup_worker,
+    stop_salesforce_lookup_worker,
+)
+from services.salesforce_auth_manager import (
+    start_session_health_worker,
+    stop_session_health_worker,
+)
 
 
 # ============================================
@@ -59,6 +67,27 @@ def _setup_scheduler():
             id='tracking_poll'
         )
         
+        # Poll Outlook inbox for replies every 10 minutes
+        async def _poll_outlook_replies():
+            try:
+                from services.graph_auth import is_authenticated
+                if not is_authenticated():
+                    return  # Skip silently if not authed yet
+                from services.outlook_reply_monitor import poll_outlook_replies
+                result = await poll_outlook_replies(minutes_back=15)
+                if result.get('new_replies', 0) > 0:
+                    print(f"[Scheduler] Outlook replies: {result.get('message', '')}")
+            except ImportError:
+                pass  # MSAL not installed — skip silently
+            except Exception as e:
+                print(f"[Scheduler] Outlook reply poll error: {e}")
+        
+        scheduler.add_job(
+            _poll_outlook_replies,
+            IntervalTrigger(minutes=10),
+            id='outlook_reply_poll'
+        )
+        
         scheduler.start()
         print("[Scheduler] Background scheduler started")
         
@@ -71,7 +100,11 @@ def _setup_scheduler():
 async def lifespan(app: FastAPI):
     """Application lifespan: start scheduler on startup, stop on shutdown."""
     _setup_scheduler()
+    await start_salesforce_lookup_worker()
+    await start_session_health_worker()
     yield
+    await stop_session_health_worker()
+    await stop_salesforce_lookup_worker()
     if scheduler:
         scheduler.shutdown(wait=False)
         print("[Scheduler] Background scheduler stopped")
@@ -131,6 +164,10 @@ app.include_router(contacts.router)
 app.include_router(stats.router)
 app.include_router(pipeline.router)
 app.include_router(emails.router)
+app.include_router(salesnav.router)
+app.include_router(browser_stream.router)
+app.include_router(salesforce.router)
+app.include_router(research.router)
 
 # ============================================
 # Frontend serving (MUST be last - catch-all)

@@ -1,4 +1,4 @@
-import { Upload, UserPlus, Send, Phone, Target, Loader2 } from 'lucide-react';
+import { Upload, UserPlus, Send, Phone, Target, Loader2, Trash2 } from 'lucide-react';
 
 type BulkActionsBarProps = {
   selectedCount: number;
@@ -7,6 +7,7 @@ type BulkActionsBarProps = {
   onSendEmail: () => void;
   onCollectPhone: () => void;
   onEnrollInCampaign: () => void;
+  onDelete: () => void;
   actionLoading: string | null;
 };
 
@@ -17,6 +18,7 @@ export function BulkActionsBar({
   onSendEmail,
   onCollectPhone,
   onEnrollInCampaign,
+  onDelete,
   actionLoading,
 }: BulkActionsBarProps) {
   if (selectedCount === 0) return null;
@@ -65,6 +67,14 @@ export function BulkActionsBar({
           <Target className="w-3 h-3" />
           <span className="hidden md:inline">Enroll in Campaign</span>
           <span className="md:hidden">Campaign</span>
+        </button>
+        <button
+          onClick={onDelete}
+          disabled={actionLoading !== null}
+          className="flex items-center gap-1 px-2 py-1.5 border border-red-300 text-red-700 rounded-md text-xs font-medium hover:bg-red-50 disabled:opacity-50 transition-colors"
+        >
+          {actionLoading === 'delete' ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+          <span className="hidden md:inline">Delete</span>
         </button>
       </div>
     </div>

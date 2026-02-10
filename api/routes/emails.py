@@ -411,6 +411,37 @@ def get_email_stats():
     return db.get_email_campaign_stats()
 
 
+@router.get("/dashboard-metrics")
+def get_dashboard_metrics(days: int = 30, active_days: int = 30):
+    """Get aggregated email metrics for the dashboard."""
+    tracking = db.get_tracking_stats(days=days)
+    daily = db.get_daily_email_stats(days=days)
+    meeting = db.get_meeting_booking_rate(days=days)
+    active_conversations = db.get_active_conversations_count(days=active_days)
+    best_campaign = db.get_best_campaign_segment(days=days)
+
+    # Get recent reply previews for the dashboard
+    recent_replies = db.get_active_conversations(days=active_days, limit=5)
+
+    # Check Outlook auth status
+    outlook_connected = False
+    try:
+        from services.graph_auth import is_authenticated
+        outlook_connected = is_authenticated()
+    except ImportError:
+        pass
+
+    return {
+        "reply_rate": tracking.get("reply_rate", 0),
+        "meeting_booking_rate": meeting.get("meeting_rate", 0),
+        "active_conversations": active_conversations,
+        "best_campaign": best_campaign,
+        "daily": daily,
+        "recent_replies": recent_replies,
+        "outlook_connected": outlook_connected,
+    }
+
+
 @router.get("/campaigns/{campaign_id}/stats")
 def get_campaign_stats(campaign_id: int):
     """Get statistics for a specific campaign."""
@@ -493,8 +524,126 @@ async def poll_tracking():
 
 @router.get("/scheduled")
 def get_scheduled():
-    """Get approved emails with scheduled send times."""
+    """Get approved emails with scheduled send times (due now - for the sender)."""
     return db.get_scheduled_emails(limit=50)
+
+
+@router.get("/scheduled-emails")
+def get_all_scheduled(campaign_id: Optional[int] = None, limit: int = 200):
+    """Get ALL future scheduled emails for the UI timeline view."""
+    return db.get_all_scheduled_emails(campaign_id=campaign_id, limit=limit)
+
+
+@router.get("/scheduled-emails/{email_id}")
+def get_email_detail(email_id: int):
+    """Get detailed info for a single email including sequence history."""
+    detail = db.get_email_detail(email_id)
+    if not detail:
+        raise HTTPException(status_code=404, detail="Email not found")
+    return detail
+
+
+@router.get("/campaign-schedule-summary")
+def get_campaign_schedule_summary():
+    """Get per-campaign scheduled/pending counts for campaign cards."""
+    return db.get_campaign_scheduled_summary()
+
+
+class RescheduleRequest(BaseModel):
+    send_time: str
+
+
+@router.put("/scheduled-emails/{email_id}/reschedule")
+def reschedule_email(email_id: int, data: RescheduleRequest):
+    """Reschedule a single email to a new time."""
+    success = db.reschedule_email(email_id, data.send_time)
+    if not success:
+        raise HTTPException(status_code=404, detail="Email not found or not in approved state")
+    return {"success": True}
+
+
+class ReorderRequest(BaseModel):
+    email_ids: List[int]
+    start_time: Optional[str] = None
+
+
+@router.put("/scheduled-emails/reorder")
+def reorder_emails(data: ReorderRequest):
+    """Reorder scheduled emails with auto-adjusted times (1-min spacing)."""
+    db.reorder_scheduled_emails(data.email_ids, data.start_time)
+    return {"success": True}
+
+
+@router.post("/scheduled-emails/{email_id}/send-now")
+async def send_email_now(email_id: int):
+    """Send a single scheduled email immediately via Salesforce automation.
+    Reschedules to now, then launches the Salesforce sender for it."""
+    try:
+        # Verify the email exists and is approved
+        detail = db.get_email_detail(email_id)
+        if not detail:
+            return {'success': False, 'error': 'Email not found'}
+        if detail['review_status'] != 'approved':
+            return {'success': False, 'error': f'Email is not approved (status: {detail["review_status"]})'}
+
+        # Reschedule to now so the sender picks it up
+        db.reschedule_email(email_id, datetime.now().isoformat())
+
+        contact_name = detail.get('contact_name', 'Unknown')
+        company_name = detail.get('company_name', '')
+        subject = detail.get('rendered_subject') or detail.get('subject', '')
+
+        # Launch the Salesforce sender in a separate console window
+        script_content = f'''
+import asyncio
+import sys
+sys.path.insert(0, r"{config.BASE_DIR}")
+
+from services.salesforce_email_sender import process_approved_emails
+
+print("="*60)
+print("SALESFORCE SEND NOW")
+print("="*60)
+print("Sending 1 email immediately")
+print("  To: {contact_name} ({company_name})")
+print("  Subject: {subject[:60]}")
+print("="*60)
+
+try:
+    result = asyncio.run(process_approved_emails(limit=1))
+    import json
+    print("\\n" + "="*60)
+    print("RESULTS:", json.dumps(result, indent=2))
+    print("="*60)
+except Exception as e:
+    import traceback
+    print("\\n" + "="*60)
+    print("ERROR:", str(e))
+    print(traceback.format_exc())
+    print("="*60)
+
+input("\\nPress ENTER to close...")
+'''
+        script_path = config.DATA_DIR / "run_send_now.py"
+        with open(script_path, 'w') as f:
+            f.write(script_content)
+
+        subprocess.Popen(
+            [sys.executable, str(script_path)],
+            creationflags=subprocess.CREATE_NEW_CONSOLE,
+            cwd=str(config.BASE_DIR)
+        )
+
+        return {
+            'success': True,
+            'message': f'Salesforce sender launched for {contact_name} at {company_name}',
+            'contact_name': contact_name,
+            'company_name': company_name,
+            'subject': subject
+        }
+    except Exception as e:
+        import traceback
+        return {'success': False, 'error': str(e), 'traceback': traceback.format_exc()}
 
 
 @router.post("/process-scheduled")
@@ -720,6 +869,97 @@ async def upload_campaign_to_salesforce(campaign_id: int):
         import traceback
         print(f"[Campaign Salesforce Upload] ERROR: {e}")
         return {'success': False, 'error': str(e), 'traceback': traceback.format_exc()}
+
+
+# ============ Microsoft Graph / Outlook Reply Monitoring ============
+
+@router.get("/outlook/auth-status")
+def get_outlook_auth_status():
+    """Check Microsoft Graph authentication status. Returns instantly (no blocking)."""
+    try:
+        from services.graph_auth import get_auth_status
+        return get_auth_status()
+    except ImportError:
+        return {"authenticated": False, "error": "MSAL not installed. Run: pip install msal"}
+    except Exception as e:
+        return {"authenticated": False, "error": str(e)}
+
+
+@router.post("/outlook/auth")
+def start_outlook_auth():
+    """Start interactive Microsoft Graph authentication (device-code flow).
+    Returns the device code info. A background thread waits for sign-in completion."""
+    try:
+        from services.graph_auth import initiate_auth
+        return initiate_auth()
+    except ImportError:
+        return {"success": False, "error": "MSAL not installed. Run: pip install msal"}
+    except Exception as e:
+        import traceback
+        return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
+
+
+@router.post("/outlook/logout")
+def outlook_logout():
+    """Clear Microsoft Graph tokens."""
+    try:
+        from services.graph_auth import logout
+        logout()
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@router.post("/outlook/poll-replies")
+async def poll_outlook_replies_endpoint(minutes_back: int = 15):
+    """Manually trigger Outlook reply polling."""
+    try:
+        from services.outlook_reply_monitor import poll_outlook_replies
+        result = await poll_outlook_replies(minutes_back=minutes_back)
+        return result
+    except ImportError:
+        return {"success": False, "error": "MSAL not installed. Run: pip install msal"}
+    except Exception as e:
+        import traceback
+        return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
+
+
+@router.get("/replies")
+def get_replies(contact_id: Optional[int] = None, campaign_id: Optional[int] = None, limit: int = 50):
+    """Get logged email replies."""
+    return db.get_email_replies(contact_id=contact_id, campaign_id=campaign_id, limit=limit)
+
+
+@router.get("/active-conversations")
+def get_active_conversations_endpoint(days: int = 30, limit: int = 50):
+    """Get active conversations (contacts who replied) for the dashboard."""
+    return db.get_active_conversations(days=days, limit=limit)
+
+
+@router.post("/conversations/{reply_id}/mark-handled")
+def mark_conversation_handled(reply_id: int):
+    """Mark a conversation as handled (removes from Active Conversations)."""
+    success = db.mark_conversation_handled(reply_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Reply not found")
+    return {"success": True}
+
+
+@router.get("/conversations/{contact_id}/thread")
+def get_conversation_thread(contact_id: int, limit: int = 20):
+    """Get the full conversation thread for a contact."""
+    thread = db.get_conversation_thread(contact_id, limit=limit)
+    # Also fetch contact info
+    conn = db.get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT id, name, title, company_name, email_generated as email, linkedin_url
+        FROM linkedin_contacts WHERE id = ?
+    """, (contact_id,))
+    row = cursor.fetchone()
+    conn.close()
+    contact = dict(row) if row else None
+    return {"contact": contact, "thread": thread}
 
 
 @router.post("/preview")
