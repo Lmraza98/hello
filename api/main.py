@@ -3,24 +3,43 @@ FastAPI backend for LinkedIn Scraper UI.
 Run scraping directly from the browser.
 """
 import asyncio
+import traceback
+import time
+import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 import config
 import database as db
+from api.observability import clear_request_context, set_request_context
 
 # Import routes
-from api.routes import companies, contacts, stats, pipeline, emails, salesnav, browser_stream, salesforce, research
-from services.salesforce_lookup_queue import (
+from api.routes import (
+    admin,
+    browser_nav,
+    browser_stream,
+    chat,
+    companies,
+    contacts,
+    emails,
+    pipeline,
+    research,
+    search,
+    salesforce,
+    salesnav,
+    stats,
+)
+from services.salesforce.lookup_queue import (
     start_salesforce_lookup_worker,
     stop_salesforce_lookup_worker,
 )
-from services.salesforce_auth_manager import (
+from services.salesforce.auth_manager import (
     start_session_health_worker,
     stop_session_health_worker,
 )
@@ -44,7 +63,7 @@ def _setup_scheduler():
         # Prepare daily batch at 7:00 AM
         async def _prepare_batch():
             try:
-                from services.email_preparer import prepare_daily_batch
+                from services.email.preparer import prepare_daily_batch
                 result = await prepare_daily_batch()
                 print(f"[Scheduler] Daily batch: {result.get('message', '')}")
             except Exception as e:
@@ -55,7 +74,7 @@ def _setup_scheduler():
         # Poll Salesforce tracking every 90 minutes during business hours (8am-5pm)
         async def _poll_tracking():
             try:
-                from services.salesforce_tracker import poll_salesforce_tracking
+                from services.email.salesforce_tracker import poll_salesforce_tracking
                 result = await poll_salesforce_tracking()
                 print(f"[Scheduler] Tracking poll: {result.get('message', '')}")
             except Exception as e:
@@ -70,10 +89,10 @@ def _setup_scheduler():
         # Poll Outlook inbox for replies every 10 minutes
         async def _poll_outlook_replies():
             try:
-                from services.graph_auth import is_authenticated
+                from services.email.graph_auth import is_authenticated
                 if not is_authenticated():
                     return  # Skip silently if not authed yet
-                from services.outlook_reply_monitor import poll_outlook_replies
+                from services.email.outlook_monitor import poll_outlook_replies
                 result = await poll_outlook_replies(minutes_back=15)
                 if result.get('new_replies', 0) > 0:
                     print(f"[Scheduler] Outlook replies: {result.get('message', '')}")
@@ -120,43 +139,107 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def request_observability_middleware(request: Request, call_next):
+    request_id = str(uuid.uuid4())
+    correlation_id = request.headers.get("x-correlation-id") or str(uuid.uuid4())
+    request.state.request_id = request_id
+    request.state.correlation_id = correlation_id
+    set_request_context(request_id, correlation_id)
+
+    start = time.perf_counter()
+    try:
+        response = await call_next(request)
+    except Exception:
+        duration_ms = (time.perf_counter() - start) * 1000
+        db.insert_log(
+            {
+                "level": "error",
+                "feature": "http",
+                "source": "middleware",
+                "message": f"{request.method} {request.url.path}",
+                "correlation_id": correlation_id,
+                "request_id": request_id,
+                "status_code": 500,
+                "duration_ms": round(duration_ms, 3),
+                "meta_json": {"method": request.method, "path": request.url.path},
+            }
+        )
+        clear_request_context()
+        raise
+
+    duration_ms = (time.perf_counter() - start) * 1000
+    response.headers["x-request-id"] = request_id
+    response.headers["x-correlation-id"] = correlation_id
+    db.insert_log(
+        {
+            "level": "info" if response.status_code < 400 else "error",
+            "feature": "http",
+            "source": "middleware",
+            "message": f"{request.method} {request.url.path}",
+            "correlation_id": correlation_id,
+            "request_id": request_id,
+            "status_code": response.status_code,
+            "duration_ms": round(duration_ms, 3),
+            "meta_json": {"method": request.method, "path": request.url.path},
+        }
+    )
+    clear_request_context()
+    return response
+
+
+def _error_payload(status_code: int, detail) -> dict:
+    if isinstance(detail, dict):
+        code = str(detail.get("code") or f"http_{status_code}")
+        message = str(detail.get("message") or detail.get("detail") or "Request failed")
+        details = detail.get("details")
+    else:
+        code = f"http_{status_code}"
+        message = str(detail or "Request failed")
+        details = None
+
+    payload = {
+        "success": False,
+        "error": {
+            "code": code,
+            "message": message,
+        },
+        "detail": detail,
+    }
+    if details is not None:
+        payload["error"]["details"] = details
+    return payload
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    response = JSONResponse(status_code=exc.status_code, content=_error_payload(exc.status_code, exc.detail))
+    if hasattr(request.state, "request_id"):
+        response.headers["x-request-id"] = request.state.request_id
+    if hasattr(request.state, "correlation_id"):
+        response.headers["x-correlation-id"] = request.state.correlation_id
+    return response
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    traceback.print_exc()
+    response = JSONResponse(
+        status_code=500,
+        content=_error_payload(500, {"code": "internal_error", "message": str(exc)}),
+    )
+    if hasattr(request.state, "request_id"):
+        response.headers["x-request-id"] = request.state.request_id
+    if hasattr(request.state, "correlation_id"):
+        response.headers["x-correlation-id"] = request.state.correlation_id
+    return response
+
 # Frontend directory (routes added at end of file)
 FRONTEND_DIR = config.BASE_DIR / "ui" / "dist"
 
 # Initialize database
 db.init_database()
-
-# Add status column to targets
-try:
-    with db.get_db() as conn:
-        conn.cursor().execute("ALTER TABLE targets ADD COLUMN status TEXT DEFAULT 'pending'")
-except:
-    pass
-
-# Create linkedin_contacts table
-with db.get_db() as conn:
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS linkedin_contacts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            domain TEXT,
-            company_name TEXT,
-            name TEXT NOT NULL,
-            title TEXT,
-            linkedin_url TEXT,
-            email_generated TEXT,
-            email_pattern TEXT,
-            email_confidence INTEGER DEFAULT 0,
-            salesforce_status TEXT DEFAULT 'pending',
-            scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(domain, name)
-        )
-    """)
-    # Add salesforce_status column if it doesn't exist
-    try:
-        cursor.execute("ALTER TABLE linkedin_contacts ADD COLUMN salesforce_status TEXT DEFAULT 'pending'")
-    except:
-        pass  # Column already exists
 
 # Register routes
 app.include_router(companies.router)
@@ -166,8 +249,12 @@ app.include_router(pipeline.router)
 app.include_router(emails.router)
 app.include_router(salesnav.router)
 app.include_router(browser_stream.router)
+app.include_router(browser_nav.router)
 app.include_router(salesforce.router)
 app.include_router(research.router)
+app.include_router(search.router)
+app.include_router(chat.router)
+app.include_router(admin.router)
 
 # ============================================
 # Frontend serving (MUST be last - catch-all)
@@ -175,11 +262,11 @@ app.include_router(research.router)
 if FRONTEND_DIR.exists():
     app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
     
-    @app.get("/", response_class=HTMLResponse)
+    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
     async def serve_frontend():
         return (FRONTEND_DIR / "index.html").read_text()
     
-    @app.get("/{path:path}")
+    @app.get("/{path:path}", include_in_schema=False)
     async def serve_spa(path: str):
         # Don't catch API routes
         if path.startswith("api"):
@@ -192,4 +279,3 @@ if FRONTEND_DIR.exists():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-

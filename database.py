@@ -4,7 +4,8 @@ Single-file database for easy portability and resume capability.
 """
 import sqlite3
 import json
-from datetime import datetime
+import math
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from contextlib import contextmanager
@@ -201,7 +202,6 @@ def init_database():
                 phone TEXT,
                 phone_source TEXT,
                 phone_confidence INTEGER,
-                phone_links TEXT,
                 salesforce_status TEXT DEFAULT 'pending',
                 salesforce_url TEXT,
                 salesforce_uploaded_at TIMESTAMP,
@@ -371,6 +371,86 @@ def init_database():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+
+        # App logs table - request/system logs for admin diagnostics
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS app_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                level TEXT NOT NULL,
+                feature TEXT,
+                source TEXT,
+                message TEXT NOT NULL,
+                correlation_id TEXT,
+                request_id TEXT,
+                status_code INTEGER,
+                duration_ms REAL,
+                meta_json TEXT
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_app_logs_timestamp ON app_logs(timestamp)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_app_logs_level ON app_logs(level)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_app_logs_feature ON app_logs(feature)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_app_logs_source ON app_logs(source)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_app_logs_correlation ON app_logs(correlation_id)")
+
+        # API cost events table - normalized cost tracking by call
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS api_cost_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT NOT NULL,
+                provider TEXT NOT NULL,
+                model TEXT,
+                feature TEXT,
+                endpoint TEXT,
+                correlation_id TEXT,
+                request_id TEXT,
+                usd REAL NOT NULL DEFAULT 0,
+                input_tokens INTEGER,
+                output_tokens INTEGER,
+                meta_json TEXT
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_cost_events_timestamp ON api_cost_events(timestamp)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_cost_events_provider ON api_cost_events(provider)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_cost_events_feature ON api_cost_events(feature)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_cost_events_model ON api_cost_events(model)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_cost_events_correlation ON api_cost_events(correlation_id)")
+
+        # Unified semantic search chunks across CRM + email + files.
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS semantic_chunks (
+                chunk_id TEXT PRIMARY KEY,
+                source_type TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                chunk_type TEXT DEFAULT 'summary',
+                text TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                metadata TEXT
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_semantic_chunks_source ON semantic_chunks(source_type, source_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_semantic_chunks_created ON semantic_chunks(created_at)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_semantic_chunks_updated ON semantic_chunks(updated_at)")
+
+        # Deterministic exact/lex index for fast local-first retrieval.
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS entity_search_index (
+                entity_type TEXT NOT NULL,
+                entity_id TEXT NOT NULL,
+                name TEXT,
+                emails TEXT,
+                phones TEXT,
+                domain TEXT,
+                keywords TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (entity_type, entity_id)
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_entity_search_updated ON entity_search_index(updated_at)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_entity_search_name ON entity_search_index(name)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_entity_search_domain ON entity_search_index(domain)")
         
         # Insert default config values
         default_configs = [
@@ -1309,6 +1389,269 @@ def get_all_config() -> Dict:
         cursor = conn.cursor()
         cursor.execute("SELECT key, value FROM system_config")
         return {row['key']: row['value'] for row in cursor.fetchall()}
+
+
+# ============ Admin Logs & Cost Monitoring ============
+
+def _range_to_start_timestamp(range_key: str) -> str:
+    now = datetime.utcnow()
+    if range_key == "today":
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif range_key == "7d":
+        start = now - timedelta(days=7)
+    elif range_key == "30d":
+        start = now - timedelta(days=30)
+    else:
+        start = now - timedelta(days=1)
+    return start.isoformat()
+
+
+def _time_range_to_start_timestamp(time_range: str) -> str:
+    now = datetime.utcnow()
+    if time_range == "15m":
+        start = now - timedelta(minutes=15)
+    elif time_range == "1h":
+        start = now - timedelta(hours=1)
+    elif time_range == "24h":
+        start = now - timedelta(hours=24)
+    elif time_range == "7d":
+        start = now - timedelta(days=7)
+    else:
+        start = now - timedelta(hours=1)
+    return start.isoformat()
+
+
+def insert_log(row: Dict[str, Any]) -> int:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO app_logs (
+                timestamp, level, feature, source, message, correlation_id, request_id,
+                status_code, duration_ms, meta_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                row.get("timestamp") or datetime.utcnow().isoformat(),
+                row.get("level", "info"),
+                row.get("feature"),
+                row.get("source"),
+                row.get("message", ""),
+                row.get("correlation_id"),
+                row.get("request_id"),
+                row.get("status_code"),
+                row.get("duration_ms"),
+                json.dumps(row.get("meta_json") or {}),
+            ),
+        )
+        return int(cursor.lastrowid)
+
+
+def query_logs(filters: Dict[str, Any]) -> List[Dict[str, Any]]:
+    limit = int(filters.get("limit") or 200)
+    limit = max(1, min(limit, 1000))
+
+    sql = "SELECT * FROM app_logs WHERE 1=1"
+    params: List[Any] = []
+
+    time_range = filters.get("time_range")
+    if time_range:
+        sql += " AND timestamp >= ?"
+        params.append(_time_range_to_start_timestamp(time_range))
+
+    if filters.get("q"):
+        sql += " AND (message LIKE ? OR feature LIKE ? OR source LIKE ?)"
+        q = f"%{filters['q']}%"
+        params.extend([q, q, q])
+
+    if filters.get("level"):
+        sql += " AND level = ?"
+        params.append(filters["level"])
+
+    if filters.get("feature"):
+        sql += " AND feature = ?"
+        params.append(filters["feature"])
+
+    if filters.get("source"):
+        sql += " AND source = ?"
+        params.append(filters["source"])
+
+    if filters.get("correlation_id"):
+        sql += " AND correlation_id = ?"
+        params.append(filters["correlation_id"])
+
+    sql += " ORDER BY timestamp DESC LIMIT ?"
+    params.append(limit)
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(sql, params)
+        rows = [dict(r) for r in cursor.fetchall()]
+
+    for row in rows:
+        try:
+            row["meta_json"] = json.loads(row.get("meta_json") or "{}")
+        except Exception:
+            row["meta_json"] = {}
+    return rows
+
+
+def insert_cost_event(row: Dict[str, Any]) -> int:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO api_cost_events (
+                timestamp, provider, model, feature, endpoint, correlation_id, request_id,
+                usd, input_tokens, output_tokens, meta_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                row.get("timestamp") or datetime.utcnow().isoformat(),
+                row.get("provider"),
+                row.get("model"),
+                row.get("feature"),
+                row.get("endpoint"),
+                row.get("correlation_id"),
+                row.get("request_id"),
+                float(row.get("usd") or 0.0),
+                row.get("input_tokens"),
+                row.get("output_tokens"),
+                json.dumps(row.get("meta_json") or {}),
+            ),
+        )
+        return int(cursor.lastrowid)
+
+
+def _p95(values: List[float]) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    idx = max(0, math.ceil(len(ordered) * 0.95) - 1)
+    return float(ordered[idx])
+
+
+def aggregate_costs(range_key: str) -> Dict[str, Any]:
+    start_ts = _range_to_start_timestamp(range_key)
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT timestamp, provider, model, feature, endpoint, correlation_id, request_id, usd,
+                   input_tokens, output_tokens, meta_json
+            FROM api_cost_events
+            WHERE timestamp >= ?
+            ORDER BY timestamp DESC
+            """,
+            (start_ts,),
+        )
+        rows = [dict(r) for r in cursor.fetchall()]
+
+    normalized = []
+    for row in rows:
+        raw_meta = row.get("meta_json")
+        try:
+            meta = json.loads(raw_meta or "{}")
+        except Exception:
+            meta = {}
+        if not isinstance(meta, dict):
+            meta = {}
+        try:
+            usd = float(row.get("usd") or 0.0)
+        except Exception:
+            usd = 0.0
+        if not math.isfinite(usd):
+            usd = 0.0
+        normalized.append({**row, "meta_json": meta, "usd": usd})
+
+    total_usd = sum(r["usd"] for r in normalized)
+    openai_usd = sum(r["usd"] for r in normalized if r.get("provider") == "openai")
+    tavily_usd = sum(r["usd"] for r in normalized if r.get("provider") == "tavily")
+    requests = len(normalized)
+    avg_cost = (total_usd / requests) if requests else 0.0
+    p95 = _p95([r["usd"] for r in normalized])
+
+    feature_map: Dict[str, Dict[str, Any]] = {}
+    model_map: Dict[str, Dict[str, Any]] = {}
+    expensive_map: Dict[tuple, Dict[str, Any]] = {}
+    daily_map: Dict[str, Dict[str, Any]] = {}
+
+    for row in normalized:
+        feature_key = row.get("feature") or "unknown"
+        model_key = row.get("model") or row.get("provider") or "unknown"
+        tool = row["meta_json"].get("tool")
+        error_flag = 1 if row["meta_json"].get("error") else 0
+
+        f = feature_map.setdefault(feature_key, {"key": feature_key, "requests": 0, "total_usd": 0.0, "errors": 0})
+        f["requests"] += 1
+        f["total_usd"] += row["usd"]
+        f["errors"] += error_flag
+
+        m = model_map.setdefault(model_key, {"key": model_key, "requests": 0, "total_usd": 0.0, "errors": 0})
+        m["requests"] += 1
+        m["total_usd"] += row["usd"]
+        m["errors"] += error_flag
+
+        exp_key = (row.get("correlation_id"), row.get("endpoint"), tool)
+        e = expensive_map.setdefault(
+            exp_key,
+            {
+                "correlation_id": row.get("correlation_id"),
+                "endpoint": row.get("endpoint"),
+                "tool": tool,
+                "total_usd": 0.0,
+                "requests": 0,
+            },
+        )
+        e["total_usd"] += row["usd"]
+        e["requests"] += 1
+
+        date_key = str(row.get("timestamp") or "")[:10]
+        d = daily_map.setdefault(date_key, {"date": date_key, "total_usd": 0.0, "openai_usd": 0.0, "tavily_usd": 0.0})
+        d["total_usd"] += row["usd"]
+        if row.get("provider") == "openai":
+            d["openai_usd"] += row["usd"]
+        elif row.get("provider") == "tavily":
+            d["tavily_usd"] += row["usd"]
+
+    by_feature = [
+        {
+            **v,
+            "avg_usd": (v["total_usd"] / v["requests"]) if v["requests"] else 0.0,
+        }
+        for v in feature_map.values()
+    ]
+    by_feature.sort(key=lambda x: x["total_usd"], reverse=True)
+
+    by_model = [
+        {
+            **v,
+            "avg_usd": (v["total_usd"] / v["requests"]) if v["requests"] else 0.0,
+        }
+        for v in model_map.values()
+    ]
+    by_model.sort(key=lambda x: x["total_usd"], reverse=True)
+
+    top_expensive = list(expensive_map.values())
+    top_expensive.sort(key=lambda x: x["total_usd"], reverse=True)
+
+    daily = list(daily_map.values())
+    daily.sort(key=lambda x: x["date"])
+
+    return {
+        "summary": {
+            "total_usd": round(total_usd, 6),
+            "openai_usd": round(openai_usd, 6),
+            "tavily_usd": round(tavily_usd, 6),
+            "requests": requests,
+            "avg_cost_usd": round(avg_cost, 6),
+            "p95_cost_usd": round(p95, 6),
+        },
+        "by_feature": by_feature,
+        "by_model": by_model,
+        "top_expensive": top_expensive[:20],
+        "daily": daily,
+    }
 
 
 # ============ Review Queue Operations ============
@@ -2261,7 +2604,586 @@ def get_conversation_thread(contact_id: int, limit: int = 20) -> List[Dict]:
         return thread
 
 
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _normalize_text(value: Optional[str]) -> str:
+    if not value:
+        return ""
+    return " ".join(str(value).strip().lower().split())
+
+
+def _tokenize(text: str) -> List[str]:
+    cleaned = "".join(ch.lower() if ch.isalnum() else " " for ch in (text or ""))
+    return [tok for tok in cleaned.split() if len(tok) >= 2]
+
+
+def _json_loads_safe(raw: Optional[str], default):
+    if not raw:
+        return default
+    try:
+        return json.loads(raw)
+    except Exception:
+        return default
+
+
+def upsert_semantic_chunk(
+    source_type: str,
+    source_id: str,
+    text: str,
+    chunk_type: str = "summary",
+    metadata: Optional[Dict[str, Any]] = None,
+    chunk_id: Optional[str] = None,
+) -> str:
+    """
+    Upsert one semantic chunk row.
+
+    `chunk_id` defaults to "{source_type}:{source_id}:{chunk_type}" for deterministic updates.
+    """
+    normalized_source_type = (source_type or "").strip()
+    normalized_source_id = str(source_id or "").strip()
+    if not normalized_source_type or not normalized_source_id:
+        raise ValueError("source_type and source_id are required")
+    if not text or not text.strip():
+        raise ValueError("text is required")
+
+    now = _utc_now_iso()
+    final_chunk_id = chunk_id or f"{normalized_source_type}:{normalized_source_id}:{chunk_type}"
+    metadata_json = json.dumps(metadata or {}, ensure_ascii=False)
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO semantic_chunks
+                (chunk_id, source_type, source_id, chunk_type, text, created_at, updated_at, metadata)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(chunk_id) DO UPDATE SET
+                source_type=excluded.source_type,
+                source_id=excluded.source_id,
+                chunk_type=excluded.chunk_type,
+                text=excluded.text,
+                updated_at=excluded.updated_at,
+                metadata=excluded.metadata
+            """,
+            (
+                final_chunk_id,
+                normalized_source_type,
+                normalized_source_id,
+                chunk_type,
+                text.strip(),
+                now,
+                now,
+                metadata_json,
+            ),
+        )
+    return final_chunk_id
+
+
+def build_contact_embedding_text(contact_id: int) -> Optional[str]:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                lc.id, lc.name, lc.title, lc.company_name, lc.domain,
+                lc.email_generated, lc.phone, lc.phone_source,
+                lc.linkedin_url, lc.scraped_at, t.vertical
+            FROM linkedin_contacts lc
+            LEFT JOIN targets t ON LOWER(t.company_name) = LOWER(lc.company_name)
+            WHERE lc.id = ?
+            """,
+            (contact_id,),
+        )
+        row = cursor.fetchone()
+    if not row:
+        return None
+    company = row["company_name"] or ""
+    lines = [
+        f"Contact: {row['name'] or ''}",
+        f"Title: {row['title'] or ''}",
+        f"Company: {company}",
+        f"Domain: {row['domain'] or ''}",
+        f"Email: {row['email_generated'] or ''}",
+        f"Phone: {row['phone'] or ''}",
+        f"Vertical: {row['vertical'] or ''}",
+        f"LinkedIn: {row['linkedin_url'] or ''}",
+        f"Last interaction summary: scraped_at={row['scraped_at'] or ''}",
+    ]
+    return "\n".join(lines).strip()
+
+
+def build_company_embedding_text(company_id: int) -> Optional[str]:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                id, company_name, domain, tier, vertical, target_reason, wedge, status, updated_at
+            FROM targets
+            WHERE id = ?
+            """,
+            (company_id,),
+        )
+        row = cursor.fetchone()
+    if not row:
+        return None
+    lines = [
+        f"Company: {row['company_name'] or ''}",
+        f"Domain: {row['domain'] or ''}",
+        f"Industry: {row['vertical'] or ''}",
+        f"Tier: {row['tier'] or ''}",
+        f"ICP fit notes: {row['target_reason'] or ''}",
+        f"Pain points / wedge: {row['wedge'] or ''}",
+        f"Status: {row['status'] or ''}",
+        f"Recent interactions: updated_at={row['updated_at'] or ''}",
+    ]
+    return "\n".join(lines).strip()
+
+
+def build_campaign_embedding_text(campaign_id: int) -> Optional[str]:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT id, name, description, status, num_emails, days_between_emails, updated_at
+            FROM email_campaigns
+            WHERE id = ?
+            """,
+            (campaign_id,),
+        )
+        campaign = cursor.fetchone()
+        if not campaign:
+            return None
+        cursor.execute(
+            """
+            SELECT step_number, subject_template, body_template
+            FROM email_templates
+            WHERE campaign_id = ?
+            ORDER BY step_number
+            """,
+            (campaign_id,),
+        )
+        templates = cursor.fetchall()
+
+    template_summaries = []
+    for row in templates[:5]:
+        subject = row["subject_template"] or ""
+        body_preview = (row["body_template"] or "").replace("\n", " ").strip()[:160]
+        template_summaries.append(f"Step {row['step_number']}: {subject} | {body_preview}")
+
+    lines = [
+        f"Campaign: {campaign['name'] or ''}",
+        f"Objective: {campaign['description'] or ''}",
+        f"Status: {campaign['status'] or ''}",
+        f"Cadence: {campaign['num_emails'] or 0} emails, every {campaign['days_between_emails'] or 0} days",
+        f"Templates summary: {' ; '.join(template_summaries) if template_summaries else 'none'}",
+        f"Updated: {campaign['updated_at'] or ''}",
+    ]
+    return "\n".join(lines).strip()
+
+
+def build_note_embedding_text(note_id: int) -> Optional[str]:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                er.id, er.subject, er.body_preview, er.received_at,
+                lc.name as contact_name, lc.company_name
+            FROM email_replies er
+            JOIN linkedin_contacts lc ON lc.id = er.contact_id
+            WHERE er.id = ?
+            """,
+            (note_id,),
+        )
+        row = cursor.fetchone()
+    if not row:
+        return None
+    lines = [
+        f"Note/Interaction ID: {row['id']}",
+        f"Contact: {row['contact_name'] or ''}",
+        f"Company: {row['company_name'] or ''}",
+        f"Subject: {row['subject'] or ''}",
+        f"Outcome summary: {row['body_preview'] or ''}",
+        f"Timestamp: {row['received_at'] or ''}",
+    ]
+    return "\n".join(lines).strip()
+
+
+def _upsert_entity_search_index_row(
+    entity_type: str,
+    entity_id: str,
+    name: str = "",
+    emails: str = "",
+    phones: str = "",
+    domain: str = "",
+    keywords: str = "",
+):
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO entity_search_index
+                (entity_type, entity_id, name, emails, phones, domain, keywords, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(entity_type, entity_id) DO UPDATE SET
+                name=excluded.name,
+                emails=excluded.emails,
+                phones=excluded.phones,
+                domain=excluded.domain,
+                keywords=excluded.keywords,
+                updated_at=excluded.updated_at
+            """,
+            (
+                entity_type,
+                entity_id,
+                name,
+                emails,
+                phones,
+                domain,
+                keywords,
+                _utc_now_iso(),
+            ),
+        )
+
+
+def refresh_entity_search_index(entity_types: Optional[List[str]] = None):
+    wanted = set(entity_types or ["contact", "company", "campaign", "email_message", "conversation"])
+    if "contact" in wanted:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, name, company_name, title, email_generated, phone, domain
+                FROM linkedin_contacts
+                """
+            )
+            for row in cursor.fetchall():
+                keywords = " ".join(
+                    [
+                        row["name"] or "",
+                        row["company_name"] or "",
+                        row["title"] or "",
+                    ]
+                ).strip()
+                _upsert_entity_search_index_row(
+                    "contact",
+                    str(row["id"]),
+                    name=row["name"] or "",
+                    emails=row["email_generated"] or "",
+                    phones=row["phone"] or "",
+                    domain=row["domain"] or "",
+                    keywords=keywords,
+                )
+    if "company" in wanted:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, company_name, domain, vertical, target_reason, wedge FROM targets")
+            for row in cursor.fetchall():
+                keywords = " ".join(
+                    [row["vertical"] or "", row["target_reason"] or "", row["wedge"] or ""]
+                ).strip()
+                _upsert_entity_search_index_row(
+                    "company",
+                    str(row["id"]),
+                    name=row["company_name"] or "",
+                    domain=row["domain"] or "",
+                    keywords=keywords,
+                )
+    if "campaign" in wanted:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, name, description FROM email_campaigns")
+            for row in cursor.fetchall():
+                _upsert_entity_search_index_row(
+                    "campaign",
+                    str(row["id"]),
+                    name=row["name"] or "",
+                    keywords=row["description"] or "",
+                )
+    if "email_message" in wanted:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, rendered_subject, rendered_body, sent_at
+                FROM sent_emails
+                WHERE review_status = 'sent'
+                """
+            )
+            for row in cursor.fetchall():
+                body = (row["rendered_body"] or "")[:400]
+                _upsert_entity_search_index_row(
+                    "email_message",
+                    str(row["id"]),
+                    name=row["rendered_subject"] or "",
+                    keywords=f"{row['rendered_subject'] or ''} {body} {row['sent_at'] or ''}",
+                )
+    if "conversation" in wanted:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT er.id, lc.name as contact_name, lc.company_name, er.subject, er.body_preview, er.received_at
+                FROM email_replies er
+                JOIN linkedin_contacts lc ON lc.id = er.contact_id
+                """
+            )
+            for row in cursor.fetchall():
+                _upsert_entity_search_index_row(
+                    "conversation",
+                    str(row["id"]),
+                    name=row["contact_name"] or "",
+                    keywords=" ".join(
+                        [
+                            row["company_name"] or "",
+                            row["subject"] or "",
+                            row["body_preview"] or "",
+                            row["received_at"] or "",
+                        ]
+                    ),
+                )
+
+
+def _build_result(
+    entity_type: str,
+    entity_id: str,
+    title: str,
+    snippet: str,
+    timestamp: Optional[str] = None,
+    source_refs: Optional[List[Dict[str, Any]]] = None,
+    score_exact: float = 0.0,
+    score_lex: float = 0.0,
+    score_vec: float = 0.0,
+) -> Dict[str, Any]:
+    score_total = score_exact * 100.0 + score_lex * 40.0 + score_vec * 25.0
+    return {
+        "entity_type": entity_type,
+        "entity_id": str(entity_id),
+        "score_total": round(score_total, 5),
+        "score_exact": round(score_exact, 5),
+        "score_lex": round(score_lex, 5),
+        "score_vec": round(score_vec, 5),
+        "title": title,
+        "snippet": snippet[:400],
+        "source_refs": source_refs or [],
+        "timestamp": timestamp,
+    }
+
+
+def hybrid_search(
+    query: str,
+    entity_types: Optional[List[str]] = None,
+    filters: Optional[Dict[str, Any]] = None,
+    k: int = 10,
+) -> List[Dict[str, Any]]:
+    """
+    Hybrid retrieval: exact + lexical + semantic-like chunk overlap.
+    Vector stage currently uses token-overlap fallback until dedicated vector index is added.
+    """
+    q = (query or "").strip()
+    if not q:
+        return []
+    entity_types = entity_types or [
+        "contact",
+        "company",
+        "campaign",
+        "note",
+        "conversation",
+        "email_message",
+        "email_thread",
+        "file_chunk",
+    ]
+    allowed_types = set(entity_types)
+    filters = filters or {}
+    limit = max(1, min(int(k or 10), 50))
+
+    # Keep deterministic index warm for exact/lex retrieval.
+    refresh_entity_search_index([t for t in allowed_types if t in {"contact", "company", "campaign", "email_message", "conversation"}])
+
+    results_by_key: Dict[str, Dict[str, Any]] = {}
+    q_norm = _normalize_text(q)
+    q_tokens = set(_tokenize(q_norm))
+
+    def _upsert(item: Dict[str, Any]):
+        key = f"{item['entity_type']}:{item['entity_id']}"
+        prev = results_by_key.get(key)
+        if not prev:
+            results_by_key[key] = item
+            return
+        prev["score_exact"] = max(prev["score_exact"], item["score_exact"])
+        prev["score_lex"] = max(prev["score_lex"], item["score_lex"])
+        prev["score_vec"] = max(prev["score_vec"], item["score_vec"])
+        prev["score_total"] = round(prev["score_exact"] * 100.0 + prev["score_lex"] * 40.0 + prev["score_vec"] * 25.0, 5)
+        if len(item.get("snippet", "")) > len(prev.get("snippet", "")):
+            prev["snippet"] = item["snippet"]
+        prev["source_refs"] = (prev.get("source_refs") or []) + (item.get("source_refs") or [])
+        if not prev.get("timestamp") and item.get("timestamp"):
+            prev["timestamp"] = item["timestamp"]
+
+    # A) Exact / deterministic stage.
+    with get_db() as conn:
+        cursor = conn.cursor()
+        if "contact" in allowed_types:
+            cursor.execute(
+                """
+                SELECT id, name, company_name, email_generated, phone, scraped_at
+                FROM linkedin_contacts
+                WHERE LOWER(name) = LOWER(?)
+                   OR LOWER(email_generated) = LOWER(?)
+                   OR REPLACE(REPLACE(REPLACE(COALESCE(phone,''), ' ', ''), '-', ''), '(', '') = REPLACE(REPLACE(REPLACE(?, ' ', ''), '-', ''), '(', '')
+                   OR CAST(id as TEXT) = ?
+                LIMIT 10
+                """,
+                (q, q, q, q),
+            )
+            for row in cursor.fetchall():
+                title = f"{row['name'] or 'Unknown'} @ {row['company_name'] or 'Unknown company'}"
+                snippet = f"email={row['email_generated'] or 'n/a'}, phone={row['phone'] or 'n/a'}"
+                _upsert(
+                    _build_result(
+                        "contact",
+                        str(row["id"]),
+                        title,
+                        snippet,
+                        timestamp=row["scraped_at"],
+                        source_refs=[{"row_id": row["id"], "table": "linkedin_contacts"}],
+                        score_exact=1.0,
+                    )
+                )
+        if "company" in allowed_types:
+            cursor.execute(
+                """
+                SELECT id, company_name, domain, vertical, updated_at
+                FROM targets
+                WHERE LOWER(company_name) = LOWER(?)
+                   OR LOWER(domain) = LOWER(?)
+                   OR CAST(id as TEXT) = ?
+                LIMIT 10
+                """,
+                (q, q, q),
+            )
+            for row in cursor.fetchall():
+                _upsert(
+                    _build_result(
+                        "company",
+                        str(row["id"]),
+                        row["company_name"] or "Unknown company",
+                        f"domain={row['domain'] or 'n/a'}, vertical={row['vertical'] or 'n/a'}",
+                        timestamp=row["updated_at"],
+                        source_refs=[{"row_id": row["id"], "table": "targets"}],
+                        score_exact=1.0,
+                    )
+                )
+
+    # B) Lexical stage via entity_search_index.
+    with get_db() as conn:
+        cursor = conn.cursor()
+        placeholders = ",".join(["?"] * len(allowed_types)) if allowed_types else "?"
+        like = f"%{q_norm}%"
+        cursor.execute(
+            f"""
+            SELECT entity_type, entity_id, name, emails, phones, domain, keywords, updated_at
+            FROM entity_search_index
+            WHERE entity_type IN ({placeholders})
+              AND (
+                LOWER(COALESCE(name, '')) LIKE ?
+                OR LOWER(COALESCE(emails, '')) LIKE ?
+                OR LOWER(COALESCE(phones, '')) LIKE ?
+                OR LOWER(COALESCE(domain, '')) LIKE ?
+                OR LOWER(COALESCE(keywords, '')) LIKE ?
+              )
+            ORDER BY updated_at DESC
+            LIMIT 200
+            """,
+            [*allowed_types, like, like, like, like, like],
+        )
+        for row in cursor.fetchall():
+            searchable = " ".join(
+                [
+                    row["name"] or "",
+                    row["emails"] or "",
+                    row["phones"] or "",
+                    row["domain"] or "",
+                    row["keywords"] or "",
+                ]
+            )
+            words = set(_tokenize(searchable))
+            overlap = len(q_tokens.intersection(words))
+            if overlap <= 0:
+                continue
+            lex_score = min(1.0, overlap / max(len(q_tokens), 1))
+            snippet = " ".join(filter(None, [row["keywords"], row["emails"], row["phones"]]))[:260]
+            _upsert(
+                _build_result(
+                    row["entity_type"],
+                    row["entity_id"],
+                    row["name"] or f"{row['entity_type']} {row['entity_id']}",
+                    snippet or (row["domain"] or ""),
+                    timestamp=row["updated_at"],
+                    source_refs=[{"row_id": row["entity_id"], "table": "entity_search_index"}],
+                    score_lex=lex_score,
+                )
+            )
+
+    # C) Semantic/vector-like stage from semantic_chunks (token overlap fallback).
+    time_range = (filters.get("time_range") or "").strip().lower()
+    with get_db() as conn:
+        cursor = conn.cursor()
+        placeholders = ",".join(["?"] * len(allowed_types)) if allowed_types else "?"
+        where = [f"source_type IN ({placeholders})"]
+        params: List[Any] = [*allowed_types]
+        if time_range in {"last 7 days", "last_7_days"}:
+            where.append("created_at >= datetime('now', '-7 days')")
+        elif time_range in {"last 30 days", "last_30_days"}:
+            where.append("created_at >= datetime('now', '-30 days')")
+        cursor.execute(
+            f"""
+            SELECT chunk_id, source_type, source_id, chunk_type, text, created_at, updated_at, metadata
+            FROM semantic_chunks
+            WHERE {' AND '.join(where)}
+            ORDER BY updated_at DESC
+            LIMIT 400
+            """,
+            params,
+        )
+        for row in cursor.fetchall():
+            text = row["text"] or ""
+            text_tokens = set(_tokenize(text))
+            overlap = len(q_tokens.intersection(text_tokens))
+            if overlap <= 0:
+                continue
+            vec_score = min(1.0, overlap / max(len(q_tokens), 1))
+            metadata = _json_loads_safe(row["metadata"], {})
+            title = metadata.get("title") or f"{row['source_type']} {row['source_id']}"
+            snippet = text[:260]
+            _upsert(
+                _build_result(
+                    row["source_type"],
+                    row["source_id"],
+                    title,
+                    snippet,
+                    timestamp=row["updated_at"] or row["created_at"],
+                    source_refs=[
+                        {
+                            "chunk_id": row["chunk_id"],
+                            "source_id": row["source_id"],
+                            "source_type": row["source_type"],
+                            "chunk_type": row["chunk_type"],
+                        }
+                    ],
+                    score_vec=vec_score,
+                )
+            )
+
+    ranked = sorted(
+        results_by_key.values(),
+        key=lambda x: (x["score_total"], x["score_exact"], x["score_lex"], x["score_vec"]),
+        reverse=True,
+    )
+    return ranked[:limit]
+
+
 # Initialize database when module is imported
 init_database()
-
-
