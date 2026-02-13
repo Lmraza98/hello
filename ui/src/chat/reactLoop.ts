@@ -224,8 +224,9 @@ function estimateTokens(text: string): number {
 }
 
 function compactSteps(steps: ReActStep[]): ReActStep[] {
-  if (steps.length <= 2) return steps;
-  const older = steps.slice(0, -2).map((step) => ({
+  const recentLimit = 2;
+  if (steps.length <= recentLimit) return steps;
+  const older = steps.slice(0, -recentLimit).map((step) => ({
     thought: step.thought.length > 140 ? `${step.thought.slice(0, 140)}...` : step.thought,
     actions: step.actions,
     observations: step.observations.map((o) => ({
@@ -234,7 +235,7 @@ function compactSteps(steps: ReActStep[]): ReActStep[] {
     })),
     reflection: step.reflection && step.reflection.length > 180 ? `${step.reflection.slice(0, 180)}...` : step.reflection,
   }));
-  return [...older, ...steps.slice(-2)];
+  return [...older, ...steps.slice(-recentLimit)];
 }
 
 function getMemory(namespace: string): Array<{ key: string; content: string }> {
@@ -323,6 +324,33 @@ function formatToolPlanSummary(calls: PlannedToolCall[]): string {
   return `Planned actions:\n${steps.join('\n')}`;
 }
 
+function limitText(value: string, maxChars: number): string {
+  if (value.length <= maxChars) return value;
+  return `${value.slice(0, maxChars)}...`;
+}
+
+function buildStateSummary(pad: Scratchpad): string {
+  const findingLines = [...pad.findings.entries()]
+    .slice(0, 8)
+    .map(([key, value]) => `- ${key}: ${value}`);
+  const recentSteps = pad.steps
+    .slice(-2)
+    .map((step, idx) => {
+      const actionNames = step.actions.map((a) => a.name).join(', ') || 'none';
+      const ok = step.observations.filter((o) => o.ok).length;
+      const failed = step.observations.filter((o) => !o.ok).length;
+      return `${idx + 1}. actions=[${actionNames}] ok=${ok} failed=${failed}`;
+    });
+
+  const sections = [
+    `Total steps: ${pad.steps.length}`,
+    `Total tool calls: ${pad.totalToolCalls}`,
+    `Recent step stats:\n${recentSteps.length > 0 ? recentSteps.join('\n') : 'none'}`,
+    `Top findings:\n${findingLines.length > 0 ? findingLines.join('\n') : 'none'}`,
+  ];
+  return limitText(sections.join('\n\n'), 1200);
+}
+
 function buildIterationPrompt(
   pad: Scratchpad,
   conversationContext: string,
@@ -330,7 +358,7 @@ function buildIterationPrompt(
   relevantToolNames: Set<string>,
   pageContext?: string
 ): string {
-  const display = pad.estimatedTokens > 8000 ? compactSteps(pad.steps) : pad.steps;
+  const display = compactSteps(pad.steps).slice(-2);
   const trace =
     display.length === 0
       ? 'No actions taken yet.'
@@ -342,11 +370,12 @@ function buildIterationPrompt(
           })
           .join('\n\n');
 
-  const findings = pad.findings.size > 0
-    ? [...pad.findings.entries()].map(([k, v]) => `- ${k}: ${v}`).join('\n')
-    : 'None yet.';
+  const stateSummary = buildStateSummary(pad);
 
-  const allowedToolsLine = [...relevantToolNames].sort().join(', ');
+  const sortedTools = [...relevantToolNames].sort();
+  const allowedToolsLine = sortedTools.slice(0, 20).join(', ');
+  const allowedToolsSuffix =
+    sortedTools.length > 20 ? `, ... (+${sortedTools.length - 20} more)` : '';
 
   return [
     'You are a sales CRM assistant using a ReAct loop.',
@@ -355,11 +384,11 @@ function buildIterationPrompt(
     'Use only the current user goal for new tool arguments unless the user explicitly references prior results.',
     memoryContext ? `Relevant memory:\n${memoryContext}` : 'No relevant memory loaded.',
     pageContext ? `Ambient page context (metadata only, not user intent):\n${pageContext}` : 'No page context provided.',
-    `Allowed tools for this request: ${allowedToolsLine}`,
-    `Conversation context:\n${conversationContext}`,
+    `Allowed tools for this request: ${allowedToolsLine}${allowedToolsSuffix}`,
+    `Conversation context:\n${limitText(conversationContext, 700)}`,
     `User goal: ${pad.goal}`,
     `Reasoning trace:\n${trace}`,
-    `Key findings:\n${findings}`,
+    `State summary:\n${stateSummary}`,
     'Return ONLY strict JSON tool calls. No markdown. No prose.',
     'If enough information is gathered, return an empty action list.',
   ].join('\n\n');
