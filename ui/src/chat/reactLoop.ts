@@ -62,6 +62,8 @@ type Scratchpad = {
 
 const SAFE_READ_TOOL_NAMES = new Set<string>([
   'list_filter_values',
+  'resolve_entity',
+  'hybrid_search',
   'search_contacts',
   'get_contact',
   'search_companies',

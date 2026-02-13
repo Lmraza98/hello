@@ -261,6 +261,51 @@ async function listFilterValues(args: Record<string, unknown>): Promise<unknown>
   };
 }
 
+function hybridResultItems(result: unknown): Array<Record<string, unknown>> {
+  if (!result || typeof result !== 'object') return [];
+  const items = (result as { results?: unknown }).results;
+  if (!Array.isArray(items)) return [];
+  return items.filter((x) => x && typeof x === 'object') as Array<Record<string, unknown>>;
+}
+
+function hybridHasResults(result: unknown): boolean {
+  return hybridResultItems(result).length > 0;
+}
+
+function toHybridRecordFromContact(contact: Record<string, unknown>): Record<string, unknown> {
+  const id = String(contact.id ?? '');
+  const name = String(contact.name ?? 'Unknown');
+  const company = String(contact.company_name ?? 'Unknown company');
+  return {
+    entity_type: 'contact',
+    entity_id: id,
+    title: `${name} @ ${company}`,
+    snippet: `email=${String(contact.email ?? 'n/a')}, phone=${String(contact.phone ?? 'n/a')}`,
+    timestamp: typeof contact.scraped_at === 'string' ? contact.scraped_at : null,
+    score_total: 30,
+    score_exact: 0,
+    score_lex: 0.75,
+    score_vec: 0,
+    source_refs: [{ kind: 'entity', entity_type: 'contact', entity_id: id, field: 'primary' }],
+  };
+}
+
+function toHybridRecordFromCompany(company: Record<string, unknown>): Record<string, unknown> {
+  const id = String(company.id ?? '');
+  return {
+    entity_type: 'company',
+    entity_id: id,
+    title: String(company.company_name ?? 'Unknown company'),
+    snippet: `domain=${String(company.domain ?? 'n/a')}, vertical=${String(company.vertical ?? 'n/a')}`,
+    timestamp: null,
+    score_total: 30,
+    score_exact: 0,
+    score_lex: 0.75,
+    score_vec: 0,
+    source_refs: [{ kind: 'entity', entity_type: 'company', entity_id: id, field: 'primary' }],
+  };
+}
+
 function postProcessResult(
   toolName: string,
   args: Record<string, unknown>,
@@ -278,8 +323,34 @@ export async function executeTool(
 ): Promise<unknown> {
   const normalizedArgs = normalizeToolArgs(toolName, args);
   switch (toolName) {
+    case 'resolve_entity':
+      return api('POST', '/api/search/resolve', normalizedArgs);
     case 'hybrid_search':
-      return api('POST', '/api/search/hybrid', normalizedArgs);
+      {
+        const initial = await api('POST', '/api/search/hybrid', normalizedArgs);
+        const entityTypes = Array.isArray(normalizedArgs.entity_types)
+          ? normalizedArgs.entity_types.map((x) => String(x).toLowerCase())
+          : [];
+        const query = String(normalizedArgs.query || '').trim();
+        if (hybridHasResults(initial) || !query) return initial;
+
+        const merged = hybridResultItems(initial);
+        if (entityTypes.includes('contact')) {
+          const contactRows = await api('GET', `/api/contacts${qs({ name: query })}`);
+          if (Array.isArray(contactRows)) {
+            merged.push(...contactRows.map((row) => toHybridRecordFromContact(row as Record<string, unknown>)));
+          }
+        }
+        if (entityTypes.includes('company')) {
+          const companyRows = await api('GET', `/api/companies${qs({ q: query, company_name: query })}`);
+          if (Array.isArray(companyRows)) {
+            merged.push(...companyRows.map((row) => toHybridRecordFromCompany(row as Record<string, unknown>)));
+          }
+        }
+
+        if (merged.length === 0) return initial;
+        return { ...(initial as Record<string, unknown>), results: merged };
+      }
     case 'search_contacts':
       return api('GET', `/api/contacts${qs(normalizedArgs)}`);
     case 'get_contact':

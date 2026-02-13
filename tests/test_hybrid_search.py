@@ -57,6 +57,20 @@ class HybridSearchTests(unittest.TestCase):
         self.assertGreaterEqual(len(results), 1)
         self.assertEqual(results[0]["entity_type"], "contact")
         self.assertGreater(results[0]["score_exact"], 0)
+        required_keys = {
+            "entity_type",
+            "entity_id",
+            "title",
+            "snippet",
+            "timestamp",
+            "score_total",
+            "score_exact",
+            "score_lex",
+            "score_vec",
+            "source_refs",
+        }
+        self.assertTrue(required_keys.issubset(set(results[0].keys())))
+        self.assertTrue(isinstance(results[0]["source_refs"], list) and len(results[0]["source_refs"]) > 0)
 
     def test_lexical_company_fallback(self):
         results = db.hybrid_search("compliance pain", entity_types=["company"], k=5)

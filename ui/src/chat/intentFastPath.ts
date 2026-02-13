@@ -69,6 +69,36 @@ function hasAny(text: string, words: string[]): boolean {
   return words.some((w) => lower.includes(w));
 }
 
+function isExplicitContactListIntent(lower: string): boolean {
+  return (
+    hasAny(lower, ['contacts added today', "today's contacts", 'today only']) ||
+    hasAny(lower, ['contacts with email', 'with emails', 'has email']) ||
+    (hasAny(lower, ['list contacts', 'show contacts']) && hasAny(lower, ['today', 'email', 'with email']))
+  );
+}
+
+function isExplicitCompanyListIntent(lower: string): boolean {
+  return (
+    hasAny(lower, ['list companies', 'show companies']) &&
+    hasAny(lower, ['tier', 'vertical', 'industry', 'status'])
+  );
+}
+
+function isRecallLikeLookupIntent(lower: string): boolean {
+  return hasAny(lower, [
+    'find ',
+    'recall',
+    'about ',
+    'who',
+    'where',
+    'what did we say',
+    'previously',
+    'work history',
+    'thread',
+    'conversation',
+  ]);
+}
+
 function extractLocationHint(message: string): string | null {
   const lower = message.toLowerCase();
   const separators = [' in ', ' from ', ' near '];
@@ -153,15 +183,21 @@ export function classifyIntentCategory(message: string): IntentCategory {
 
 export function selectToolsForIntent(message: string): string[] {
   const category = classifyIntentCategory(message);
+  const lower = message.toLowerCase();
+  const explicitList = isExplicitContactListIntent(lower) || isExplicitCompanyListIntent(lower);
   const categories: Record<IntentCategory, string[]> = {
-    contact_lookup: ['hybrid_search', 'search_contacts', 'get_contact', 'list_filter_values'],
-    company_lookup: ['hybrid_search', 'search_companies', 'list_filter_values', 'get_pending_companies_count'],
+    contact_lookup: explicitList
+      ? ['search_contacts', 'list_filter_values', 'hybrid_search', 'resolve_entity', 'get_contact']
+      : ['resolve_entity', 'hybrid_search', 'search_contacts', 'get_contact', 'list_filter_values'],
+    company_lookup: explicitList
+      ? ['search_companies', 'list_filter_values', 'hybrid_search', 'resolve_entity', 'get_pending_companies_count']
+      : ['resolve_entity', 'hybrid_search', 'search_companies', 'list_filter_values', 'get_pending_companies_count'],
     salesnav_discovery: ['collect_companies_from_salesnav', 'salesnav_person_search', 'salesnav_scrape_leads'],
     browser_navigation: ['browser_health', 'browser_tabs', 'browser_navigate', 'browser_snapshot', 'browser_find_ref', 'browser_act', 'browser_wait', 'browser_screenshot', 'browser_extract_companies', 'browser_salesnav_search_account'],
     email_campaign: ['search_contacts', 'list_campaigns', 'get_campaign', 'enroll_contacts_in_campaign', 'send_campaign_emails', 'send_email_now'],
     research: ['research_company', 'research_person', 'assess_icp_fit'],
     pipeline_admin: ['start_pipeline', 'get_pipeline_status', 'get_dashboard_stats'],
-    general: ['hybrid_search', 'search_contacts', 'search_companies', 'collect_companies_from_salesnav'],
+    general: ['resolve_entity', 'hybrid_search', 'search_contacts', 'search_companies', 'collect_companies_from_salesnav'],
   };
 
   const base = [...(categories[category] || categories.general)];
@@ -220,6 +256,29 @@ export function detectFastPathPlan(message: string): { calls: PlannedToolCall[];
           },
         },
       ],
+    };
+  }
+
+  if (isExplicitContactListIntent(lower)) {
+    const args: Record<string, unknown> = {};
+    if (hasAny(lower, ['today', 'today only', "today's"])) args.today_only = true;
+    if (hasAny(lower, ['with email', 'with emails', 'has email'])) args.has_email = true;
+    return { reason: 'fast_path_contact_list_filters', calls: [{ name: 'search_contacts', args }] };
+  }
+
+  if (isExplicitCompanyListIntent(lower)) {
+    const args: Record<string, unknown> = {};
+    const tierMatch = lower.match(/\btier\s+([abc])\b/i);
+    if (tierMatch?.[1]) args.tier = tierMatch[1].toUpperCase();
+    const vertical = mapVertical(trimmed);
+    if (vertical) args.vertical = vertical;
+    return { reason: 'fast_path_company_list_filters', calls: [{ name: 'search_companies', args }] };
+  }
+
+  if (isRecallLikeLookupIntent(lower)) {
+    return {
+      reason: 'fast_path_hybrid_recall',
+      calls: [{ name: 'hybrid_search', args: { query: trimmed, k: 10 } }],
     };
   }
 

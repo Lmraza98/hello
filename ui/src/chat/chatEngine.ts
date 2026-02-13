@@ -367,10 +367,53 @@ function enforceHybridGrounding(
   const hasEvidence = executedCalls
     .filter((call) => call.name === 'hybrid_search')
     .some((call) => hybridSearchHasEvidence(call.result));
-  if (hasEvidence) return { response, messages };
+  const deterministicFallbackFound = executedCalls.some((call) => {
+    if (!['search_contacts', 'search_companies', 'resolve_entity'].includes(call.name)) return false;
+    if (Array.isArray(call.result)) return call.result.length > 0;
+    if (call.result && typeof call.result === 'object') {
+      const obj = call.result as { results?: unknown[]; id?: unknown };
+      if (Array.isArray(obj.results)) return obj.results.length > 0;
+      return obj.id != null;
+    }
+    return false;
+  });
+  if (hasEvidence || deterministicFallbackFound) return { response, messages };
 
   const groundedFailure = 'I cannot verify that from local sources yet. Try refining the query or broadening filters so I can cite evidence references.';
   return { response: groundedFailure, messages: [textMsg(groundedFailure)] };
+}
+
+function extractHybridSearchResultsCount(result: unknown): number {
+  if (!result || typeof result !== 'object') return 0;
+  const list = (result as { results?: unknown[] }).results;
+  return Array.isArray(list) ? list.length : 0;
+}
+
+function isCompanyLookupText(message: string): boolean {
+  const lower = message.toLowerCase();
+  return ['company', 'companies', 'tier', 'vertical', 'industry', 'domain'].some((token) => lower.includes(token));
+}
+
+async function withHybridZeroFallback(
+  message: string,
+  dispatched: Awaited<ReturnType<typeof dispatchToolCalls>>,
+  onToolCall?: (toolName: string) => void
+): Promise<Awaited<ReturnType<typeof dispatchToolCalls>>> {
+  const hybridCall = dispatched.executed.find((item) => item.name === 'hybrid_search' && item.ok);
+  if (!hybridCall) return dispatched;
+  if (extractHybridSearchResultsCount(hybridCall.result) > 0) return dispatched;
+
+  const fallbackCall: PlannedToolCall = isCompanyLookupText(message)
+    ? { name: 'search_companies', args: { q: message } }
+    : { name: 'search_contacts', args: { name: message } };
+  const fallback = await dispatchToolCalls([fallbackCall], onToolCall);
+  return {
+    ...fallback,
+    executed: [...dispatched.executed, ...fallback.executed],
+    toolsUsed: [...dispatched.toolsUsed, ...fallback.toolsUsed],
+    summary: fallback.summary || dispatched.summary,
+    success: dispatched.success || fallback.success,
+  };
 }
 
 async function handleToolRoute(
@@ -499,7 +542,8 @@ export async function processMessage(
         });
       }
       const dispatchStartedAt = nowMs();
-      const dispatched = await dispatchToolCalls(followupFastPlan.calls, options.onToolCall);
+      const initialDispatched = await dispatchToolCalls(followupFastPlan.calls, options.onToolCall);
+      const dispatched = await withHybridZeroFallback(normalizedMessage, initialDispatched, options.onToolCall);
       timings.dispatchMs = (timings.dispatchMs || 0) + elapsedMs(dispatchStartedAt);
       const assistantText = dispatched.summary || 'Executed fast path actions.';
       const formatStartedAt = nowMs();
@@ -606,7 +650,8 @@ export async function processMessage(
       }
 
       const dispatchStartedAt = nowMs();
-      const dispatched = await dispatchToolCalls(fastPlan.calls, options.onToolCall);
+      const initialDispatched = await dispatchToolCalls(fastPlan.calls, options.onToolCall);
+      const dispatched = await withHybridZeroFallback(normalizedMessage, initialDispatched, options.onToolCall);
       timings.dispatchMs = (timings.dispatchMs || 0) + elapsedMs(dispatchStartedAt);
       const assistantText = dispatched.summary || 'Executed fast path actions.';
       const formatStartedAt = nowMs();

@@ -29,6 +29,27 @@ export const TOOLS: ToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'resolve_entity',
+      description:
+        'Deterministic exact resolver for local entities (name/email/phone/id/domain). Use this before broad search when user asks for a specific known contact/company/campaign.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name_or_identifier: { type: 'string', description: 'Exact name, email, phone, domain, or numeric id' },
+          entity_types: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Subset of: contact, company, campaign',
+          },
+          k: { type: 'number', description: 'Max results to return (default 10)' },
+        },
+        required: ['name_or_identifier'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'search_contacts',
       description:
         "Search contacts in the database. Filter by contact name, company name, email presence, or today's additions. Returns array of contacts with id, name, company, title, email, phone, linkedin_url, salesforce_url, etc.",
@@ -55,7 +76,6 @@ export const TOOLS: ToolDefinition[] = [
           company_name: { type: 'string', description: 'Company they work at' }, 
           contact_id: { type: 'number', description: 'Contact database ID' },
         },
-        required: ['contact_id'],
       },
     },
   },

@@ -3168,6 +3168,14 @@ def _build_result(
     score_lex: float = 0.0,
     score_vec: float = 0.0,
 ) -> Dict[str, Any]:
+    refs = source_refs or [
+        {
+            "kind": "entity",
+            "entity_type": entity_type,
+            "entity_id": str(entity_id),
+            "field": "primary",
+        }
+    ]
     score_total = score_exact * 100.0 + score_lex * 40.0 + score_vec * 25.0
     return {
         "entity_type": entity_type,
@@ -3178,9 +3186,103 @@ def _build_result(
         "score_vec": round(score_vec, 5),
         "title": title,
         "snippet": snippet[:400],
-        "source_refs": source_refs or [],
+        "source_refs": refs,
         "timestamp": timestamp,
     }
+
+
+def resolve_entity(
+    name_or_identifier: str,
+    entity_types: Optional[List[str]] = None,
+    limit: int = 10,
+) -> List[Dict[str, Any]]:
+    q = (name_or_identifier or "").strip()
+    if not q:
+        return []
+    entity_types = entity_types or ["contact", "company", "campaign"]
+    allowed_types = set(entity_types)
+    out: List[Dict[str, Any]] = []
+    max_rows = max(1, min(int(limit), 50))
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        if "contact" in allowed_types:
+            cursor.execute(
+                """
+                SELECT id, name, company_name, email_generated, phone, scraped_at
+                FROM linkedin_contacts
+                WHERE LOWER(name) = LOWER(?)
+                   OR LOWER(email_generated) = LOWER(?)
+                   OR REPLACE(REPLACE(REPLACE(COALESCE(phone,''), ' ', ''), '-', ''), '(', '') = REPLACE(REPLACE(REPLACE(?, ' ', ''), '-', ''), '(', '')
+                   OR CAST(id as TEXT) = ?
+                LIMIT ?
+                """,
+                (q, q, q, q, max_rows),
+            )
+            for row in cursor.fetchall():
+                out.append(
+                    _build_result(
+                        "contact",
+                        str(row["id"]),
+                        f"{row['name'] or 'Unknown'} @ {row['company_name'] or 'Unknown company'}",
+                        f"email={row['email_generated'] or 'n/a'}, phone={row['phone'] or 'n/a'}",
+                        timestamp=row["scraped_at"],
+                        source_refs=[{"row_id": row["id"], "table": "linkedin_contacts"}],
+                        score_exact=1.0,
+                    )
+                )
+
+        if "company" in allowed_types:
+            cursor.execute(
+                """
+                SELECT id, company_name, domain, vertical, updated_at
+                FROM targets
+                WHERE LOWER(company_name) = LOWER(?)
+                   OR LOWER(domain) = LOWER(?)
+                   OR CAST(id as TEXT) = ?
+                LIMIT ?
+                """,
+                (q, q, q, max_rows),
+            )
+            for row in cursor.fetchall():
+                out.append(
+                    _build_result(
+                        "company",
+                        str(row["id"]),
+                        row["company_name"] or "Unknown company",
+                        f"domain={row['domain'] or 'n/a'}, vertical={row['vertical'] or 'n/a'}",
+                        timestamp=row["updated_at"],
+                        source_refs=[{"row_id": row["id"], "table": "targets"}],
+                        score_exact=1.0,
+                    )
+                )
+
+        if "campaign" in allowed_types:
+            cursor.execute(
+                """
+                SELECT id, name, description, updated_at
+                FROM email_campaigns
+                WHERE LOWER(name) = LOWER(?)
+                   OR CAST(id as TEXT) = ?
+                LIMIT ?
+                """,
+                (q, q, max_rows),
+            )
+            for row in cursor.fetchall():
+                out.append(
+                    _build_result(
+                        "campaign",
+                        str(row["id"]),
+                        row["name"] or "Unknown campaign",
+                        row["description"] or "",
+                        timestamp=row["updated_at"],
+                        source_refs=[{"row_id": row["id"], "table": "email_campaigns"}],
+                        score_exact=1.0,
+                    )
+                )
+
+    out.sort(key=lambda x: (x["score_total"], x["entity_type"]), reverse=True)
+    return out[:max_rows]
 
 
 def hybrid_search(
@@ -3234,59 +3336,8 @@ def hybrid_search(
             prev["timestamp"] = item["timestamp"]
 
     # A) Exact / deterministic stage.
-    with get_db() as conn:
-        cursor = conn.cursor()
-        if "contact" in allowed_types:
-            cursor.execute(
-                """
-                SELECT id, name, company_name, email_generated, phone, scraped_at
-                FROM linkedin_contacts
-                WHERE LOWER(name) = LOWER(?)
-                   OR LOWER(email_generated) = LOWER(?)
-                   OR REPLACE(REPLACE(REPLACE(COALESCE(phone,''), ' ', ''), '-', ''), '(', '') = REPLACE(REPLACE(REPLACE(?, ' ', ''), '-', ''), '(', '')
-                   OR CAST(id as TEXT) = ?
-                LIMIT 10
-                """,
-                (q, q, q, q),
-            )
-            for row in cursor.fetchall():
-                title = f"{row['name'] or 'Unknown'} @ {row['company_name'] or 'Unknown company'}"
-                snippet = f"email={row['email_generated'] or 'n/a'}, phone={row['phone'] or 'n/a'}"
-                _upsert(
-                    _build_result(
-                        "contact",
-                        str(row["id"]),
-                        title,
-                        snippet,
-                        timestamp=row["scraped_at"],
-                        source_refs=[{"row_id": row["id"], "table": "linkedin_contacts"}],
-                        score_exact=1.0,
-                    )
-                )
-        if "company" in allowed_types:
-            cursor.execute(
-                """
-                SELECT id, company_name, domain, vertical, updated_at
-                FROM targets
-                WHERE LOWER(company_name) = LOWER(?)
-                   OR LOWER(domain) = LOWER(?)
-                   OR CAST(id as TEXT) = ?
-                LIMIT 10
-                """,
-                (q, q, q),
-            )
-            for row in cursor.fetchall():
-                _upsert(
-                    _build_result(
-                        "company",
-                        str(row["id"]),
-                        row["company_name"] or "Unknown company",
-                        f"domain={row['domain'] or 'n/a'}, vertical={row['vertical'] or 'n/a'}",
-                        timestamp=row["updated_at"],
-                        source_refs=[{"row_id": row["id"], "table": "targets"}],
-                        score_exact=1.0,
-                    )
-                )
+    for item in resolve_entity(q, list(allowed_types), limit=10):
+        _upsert(item)
 
     # B) Lexical stage via entity_search_index.
     with get_db() as conn:

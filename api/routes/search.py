@@ -33,6 +33,16 @@ class HybridSearchResponse(BaseModel):
     results: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class ResolveEntityRequest(BaseModel):
+    name_or_identifier: str
+    entity_types: list[str] = Field(default_factory=lambda: ["contact", "company", "campaign"])
+    k: int = 10
+
+
+class ResolveEntityResponse(BaseModel):
+    results: list[dict[str, Any]] = Field(default_factory=list)
+
+
 @router.post("/hybrid", response_model=HybridSearchResponse, responses=COMMON_ERROR_RESPONSES)
 def hybrid_search(request: HybridSearchRequest):
     results = db.hybrid_search(
@@ -40,5 +50,15 @@ def hybrid_search(request: HybridSearchRequest):
         entity_types=request.entity_types,
         filters=request.filters,
         k=request.k,
+    )
+    return {"results": results}
+
+
+@router.post("/resolve", response_model=ResolveEntityResponse, responses=COMMON_ERROR_RESPONSES)
+def resolve_entity(request: ResolveEntityRequest):
+    results = db.resolve_entity(
+        name_or_identifier=request.name_or_identifier,
+        entity_types=request.entity_types,
+        limit=request.k,
     )
     return {"results": results}
