@@ -102,6 +102,29 @@ type ChatEngineSizeMetrics = {
   promptChars: number;
 };
 
+const CONFIRMED_READ_ONLY_FASTLANE_TOOLS = new Set<string>([
+  'resolve_entity',
+  'hybrid_search',
+  'search_contacts',
+  'get_contact',
+  'search_companies',
+  'list_filter_values',
+  'get_pending_companies_count',
+  'list_campaigns',
+  'get_campaign',
+  'get_campaign_contacts',
+  'get_campaign_stats',
+  'get_email_dashboard_metrics',
+  'get_review_queue',
+  'get_scheduled_emails',
+  'get_active_conversations',
+  'get_conversation_thread',
+  'preview_email',
+  'get_pipeline_status',
+  'get_salesforce_auth_status',
+  'get_dashboard_stats',
+]);
+
 const ENABLE_CHAT_ENGINE_DEBUG_TRACE = (
   import.meta.env.VITE_CHAT_DEBUG ||
   import.meta.env.VITE_DEBUG_CHAT_ENGINE ||
@@ -430,6 +453,55 @@ async function handleToolRoute(
   const modelSwitches: Array<{ from: ModelRoute; to: ModelRoute; reason: string }> = [];
 
   if (options.confirmedToolCalls?.length) {
+    const allReadOnly = options.confirmedToolCalls.every((call) =>
+      CONFIRMED_READ_ONLY_FASTLANE_TOOLS.has(call.name)
+    );
+    if (allReadOnly) {
+      const dispatchStartedAt = nowMs();
+      const dispatched = await dispatchToolCalls(options.confirmedToolCalls, options.onToolCall);
+      timings.dispatchMs = (timings.dispatchMs || 0) + elapsedMs(dispatchStartedAt);
+      const assistantText = dispatched.summary || 'Executed confirmed actions.';
+      const formatStartedAt = nowMs();
+      const grounded = enforceHybridGrounding(
+        assistantText,
+        [textMsg(assistantText), ...formatDispatchMessages(dispatched)],
+        dispatched.executed.map((x) => ({ name: x.name, result: x.result }))
+      );
+      timings.formatMs = (timings.formatMs || 0) + elapsedMs(formatStartedAt);
+      const updatedHistory: ChatCompletionMessageParam[] = [
+        ...history,
+        { role: 'user', content: userMessage },
+        { role: 'assistant', content: grounded.response },
+      ];
+      return {
+        response: grounded.response,
+        updatedHistory,
+        messages: grounded.messages,
+        modelUsed: 'qwen3',
+        toolsUsed: dispatched.toolsUsed,
+        fallbackUsed: false,
+        ...(includeDebugTrace ? { debugTrace: {
+          route: 'qwen3',
+          routeReason: 'confirmed_read_only_fastlane',
+          modelUsed: 'qwen3',
+          toolBrainName: TOOL_BRAIN_NAME,
+          toolBrainModel: TOOL_BRAIN_MODEL,
+          success: dispatched.success,
+          selectedTools: [...new Set(options.confirmedToolCalls.map((x) => x.name))],
+          nativeToolCalls: 0,
+          tokenToolCalls: options.confirmedToolCalls.length,
+          toolsUsed: dispatched.toolsUsed,
+          fallbackUsed: false,
+          modelSwitches,
+          phase: 'executing',
+          executedCalls: dispatched.executed.map((x) => ({ name: x.name, args: x.args, ok: x.ok, result: x.result })),
+          rawUserMessage: meta.rawUserMessage,
+          intentText: meta.intentText,
+          pageContext: meta.pageContext || undefined,
+        } } : {}),
+      };
+    }
+
     const result = await resumeReActLoop(
       userMessage,
       options.confirmedToolCalls,

@@ -16,6 +16,7 @@ import { processMessage } from '../src/chat/chatEngine';
 import * as ollamaStatusModule from '../src/chat/ollamaStatus';
 import * as intentFastPathModule from '../src/chat/intentFastPath';
 import * as toolExecutorModule from '../src/chat/toolExecutor';
+import * as reactLoopModule from '../src/chat/reactLoop';
 
 describe('processMessage debug gating', () => {
   beforeEach(() => {
@@ -163,6 +164,41 @@ describe('processMessage debug gating', () => {
       phase: 'planning',
     });
 
+    expect(result.response).toContain('Executed hybrid_search');
+  });
+
+  it('uses confirmed read-only fast lane without entering react loop', async () => {
+    const resumeSpy = vi.spyOn(reactLoopModule, 'resumeReActLoop');
+    vi.spyOn(toolExecutorModule, 'dispatchToolCalls').mockResolvedValue({
+      success: true,
+      toolsUsed: ['hybrid_search'],
+      executed: [
+        {
+          name: 'hybrid_search',
+          args: { query: 'Lucas Raza', entity_types: ['contact'], k: 10 },
+          ok: true,
+          result: {
+            results: [
+              {
+                entity_type: 'contact',
+                entity_id: '1',
+                title: 'Lucas Raza',
+                snippet: 'test',
+                source_refs: [{ row_id: 1, table: 'linkedin_contacts' }],
+              },
+            ],
+          },
+        },
+      ],
+      summary: 'Executed hybrid_search.',
+    });
+
+    const result = await processMessage('Find Lucas Raza', {
+      confirmedToolCalls: [{ name: 'hybrid_search', args: { query: 'Lucas Raza', entity_types: ['contact'], k: 10 } }],
+      phase: 'executing',
+    });
+
+    expect(resumeSpy).not.toHaveBeenCalled();
     expect(result.response).toContain('Executed hybrid_search');
   });
 });
