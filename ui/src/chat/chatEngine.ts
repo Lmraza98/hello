@@ -1,0 +1,732 @@
+import type { ChatMessage } from '../types/chat';
+import { statusMsg, textMsg } from '../services/workflows/helpers';
+import { dispatchToolCalls, executeTool } from './toolExecutor';
+import type { ChatCompletionMessageParam, ChatPhase, PlannedToolCall } from './chatEngineTypes';
+import { routeMessage, type ModelRoute } from './router';
+import { TOOL_BRAIN_MODEL, TOOL_BRAIN_NAME } from './models/toolBrainConfig';
+import { recordToolFailure } from './finetuneCapture';
+import { runReActLoop, resumeReActLoop, type ReActResult, type ReActStep, type ReActConfig } from './reactLoop';
+import { extractUserIntentText, extractPageContext, applyRefinementRules } from './messageParsing';
+import { formatDispatchMessages } from './dispatchFormatter';
+import { getOllamaReadyFast, toLocalHistory } from './ollamaStatus';
+import { runWithFallback } from './fallbackPipeline';
+import { detectFastPathPlan, selectToolsForIntent } from './intentFastPath';
+import { elapsedMs, nowMs } from './timing';
+
+export interface ChatEngineOptions {
+  conversationHistory?: ChatCompletionMessageParam[];
+  onToolCall?: (toolName: string) => void;
+  onPlannerEvent?: (message: string) => void;
+  onModelSwitch?: (from: ModelRoute, to: ModelRoute, reason: string) => void;
+  forceModel?: ModelRoute;
+  phase?: ChatPhase;
+  requireToolConfirmation?: boolean;
+  confirmedToolCalls?: PlannedToolCall[];
+  pendingPlanSummary?: string;
+  _reactTrace?: ReActStep[];
+  debug?: boolean;
+}
+
+export interface ChatEngineResult {
+  response: string;
+  updatedHistory: ChatCompletionMessageParam[];
+  messages: ChatMessage[];
+  modelUsed: ModelRoute;
+  toolsUsed: string[];
+  fallbackUsed: boolean;
+  confirmation?: {
+    required: boolean;
+    summary: string;
+    calls: PlannedToolCall[];
+    traceSnapshot?: ReActStep[];
+  };
+  debugTrace?: {
+    route: ModelRoute;
+    routeReason: string;
+    modelUsed: ModelRoute;
+    toolBrainName: string;
+    toolBrainModel: string;
+    success: boolean;
+    failureReason?: string;
+    selectedTools: string[];
+    nativeToolCalls: number;
+    tokenToolCalls: number;
+    toolsUsed: string[];
+    fallbackUsed: boolean;
+    modelSwitches: Array<{ from: ModelRoute; to: ModelRoute; reason: string }>;
+    phase: ChatPhase;
+    plannedSummary?: string;
+    executionTrace?: string[];
+    executedCalls?: Array<{ name: string; args: Record<string, unknown>; ok: boolean; result?: unknown }>;
+    reactTrace?: Array<{
+      step: number;
+      thought: string;
+      actions: string[];
+      observations: string[];
+      reflection?: string;
+    }>;
+    reactTraceRaw?: ReActStep[];
+    rawUserMessage?: string;
+    intentText?: string;
+    pageContext?: string;
+    timings?: ChatEngineTimings;
+    sizes?: {
+      historyChars: number;
+      localHistoryChars: number;
+      promptChars: number;
+    };
+  };
+}
+
+interface MessageMeta {
+  rawUserMessage: string;
+  intentText: string;
+  pageContext: string | null;
+}
+
+type ChatEngineTimings = {
+  totalMs: number;
+  routeMs?: number;
+  reactMs?: number;
+  plannerMs?: number;
+  dispatchMs?: number;
+  fallbackMs?: number;
+  formatMs?: number;
+  debugMs?: number;
+};
+
+type ChatEngineSizeMetrics = {
+  historyChars: number;
+  localHistoryChars: number;
+  promptChars: number;
+};
+
+const ENABLE_CHAT_ENGINE_DEBUG_TRACE = (
+  import.meta.env.VITE_CHAT_DEBUG ||
+  import.meta.env.VITE_DEBUG_CHAT_ENGINE ||
+  'false'
+).toLowerCase() === 'true';
+
+function estimateChars(value: unknown): number {
+  if (value == null) return 0;
+  if (typeof value === 'string') return value.length;
+  try {
+    return JSON.stringify(value).length;
+  } catch {
+    return String(value).length;
+  }
+}
+
+function hasOpenBrowserSessionSignal(history: ChatCompletionMessageParam[]): boolean {
+  const tail = history.slice(-6);
+  return tail.some((m) => {
+    if (m.role !== 'assistant' || typeof m.content !== 'string') return false;
+    const lower = m.content.toLowerCase();
+    return (
+      lower.includes('browser session is still open') ||
+      lower.includes('kept the session open') ||
+      lower.includes('sales navigator navigation')
+    );
+  });
+}
+
+function isBrowserFollowUpIntent(message: string): boolean {
+  const lower = message.toLowerCase();
+  const strong = [
+    'click',
+    'open it',
+    'on sales navigator',
+    'in sales navigator',
+    'who works there',
+    'employees',
+    'people at',
+    'list contacts',
+    'that company',
+    'this company',
+    'collect information',
+    'dig into this',
+  ];
+  return strong.some((x) => lower.includes(x));
+}
+
+function buildReActDebugTrace(
+  result: ReActResult,
+  modelSwitches: Array<{ from: ModelRoute; to: ModelRoute; reason: string }>,
+  executedCalls: Array<{ name: string; args: Record<string, unknown>; ok: boolean; result?: unknown }>,
+  includeHeavy = false,
+  meta?: MessageMeta
+): NonNullable<ChatEngineResult['debugTrace']> {
+  const base: NonNullable<ChatEngineResult['debugTrace']> = {
+    route: 'qwen3',
+    routeReason: 'react_loop',
+    modelUsed: 'qwen3',
+    toolBrainName: TOOL_BRAIN_NAME,
+    toolBrainModel: TOOL_BRAIN_MODEL,
+    success: !result.hitLimit,
+    selectedTools: [],
+    nativeToolCalls: 0,
+    tokenToolCalls: result.trace.reduce((sum, step) => sum + step.actions.length, 0),
+    toolsUsed: result.toolsUsed,
+    fallbackUsed: false,
+    modelSwitches,
+    phase: 'executing',
+    executedCalls,
+    rawUserMessage: meta?.rawUserMessage,
+    intentText: meta?.intentText,
+    pageContext: meta?.pageContext || undefined,
+  };
+
+  if (!includeHeavy) return base;
+
+  return {
+    ...base,
+    reactTrace: result.trace.map((step, i) => ({
+      step: i + 1,
+      thought: step.thought,
+      actions: step.actions.map((a) => `${a.name}(${Object.keys(a.args || {}).join(',')})`),
+      observations: step.observations.map((o) => `${o.name}: ${o.ok ? 'ok' : 'failed'}`),
+      reflection: step.reflection,
+    })),
+    reactTraceRaw: result.trace,
+  };
+}
+
+function reactResultToChatResult(
+  result: ReActResult,
+  userMessage: string,
+  history: ChatCompletionMessageParam[],
+  modelSwitches: Array<{ from: ModelRoute; to: ModelRoute; reason: string }>,
+  includeDebugTrace = false,
+  includeHeavyDebug = false,
+  timings?: ChatEngineTimings,
+  meta?: MessageMeta
+): ChatEngineResult {
+  const updatedHistory: ChatCompletionMessageParam[] = [
+    ...history,
+    { role: 'user', content: userMessage },
+    { role: 'assistant', content: result.answer || 'Executed ReAct loop.' },
+  ];
+
+  const lastObservedStep = [...result.trace].reverse().find((s) => s.observations.length > 0);
+  const executed = (lastObservedStep?.observations || []).map((o) => ({
+    name: o.name,
+    args: o.args,
+    result: o.result,
+    ok: o.ok,
+  }));
+
+  const firstFailure = executed.find((x) => !x.ok);
+  const failureMessage = (() => {
+    if (!firstFailure || !firstFailure.result || typeof firstFailure.result !== 'object') return '';
+    const obj = firstFailure.result as Record<string, unknown>;
+    if (typeof obj.message === 'string' && obj.message.trim()) return obj.message;
+    if (typeof obj.error === 'string' && obj.error.trim()) return obj.error;
+    if (obj.detail != null) return typeof obj.detail === 'string' ? obj.detail : JSON.stringify(obj.detail);
+    return '';
+  })();
+
+  const dispatchedLike = {
+    success: executed.length > 0 && executed.every((x) => x.ok),
+    toolsUsed: result.toolsUsed,
+    executed,
+    summary:
+      result.answer ||
+      (firstFailure
+        ? `Tool ${firstFailure.name} failed${failureMessage ? `: ${failureMessage}` : '.'}`
+        : executed.length > 0
+          ? 'Executed tool calls.'
+          : 'No tool calls executed.'),
+  };
+
+  const formatStartedAt = nowMs();
+  const richMessages = executed.length > 0
+    ? formatDispatchMessages(dispatchedLike as Awaited<ReturnType<typeof dispatchToolCalls>>)
+    : [];
+  if (timings) {
+    timings.formatMs = elapsedMs(formatStartedAt);
+    timings.dispatchMs = (timings.dispatchMs || 0) + (result.metrics?.dispatchMs || 0);
+    timings.plannerMs = (timings.plannerMs || 0) + (result.metrics?.plannerMs || 0);
+  }
+  const messages = [
+    ...(result.answer?.trim() ? [textMsg(result.answer.trim())] : []),
+    ...richMessages,
+  ];
+
+  let debugTrace: ChatEngineResult['debugTrace'];
+  if (includeDebugTrace) {
+    const debugStartedAt = nowMs();
+    debugTrace = buildReActDebugTrace(result, modelSwitches, executed, includeHeavyDebug, meta);
+    if (timings) {
+      timings.debugMs = elapsedMs(debugStartedAt);
+    }
+  }
+
+  if (result.pendingConfirmation) {
+    return {
+      response: '',
+      updatedHistory,
+      messages: messages.length > 0 ? messages : [textMsg('I prepared the next step. Confirm to continue.')],
+      modelUsed: 'qwen3',
+      toolsUsed: result.toolsUsed,
+      fallbackUsed: false,
+      confirmation: {
+        required: true,
+        summary: result.pendingConfirmation.summary,
+        calls: result.pendingConfirmation.calls,
+        traceSnapshot: result.pendingConfirmation.traceSnapshot || result.trace,
+      },
+      ...(debugTrace ? { debugTrace } : {}),
+    };
+  }
+
+  return {
+    response: result.answer || 'I completed the requested actions.',
+    updatedHistory,
+    messages: messages.length > 0 ? messages : [textMsg('I completed the requested actions.')],
+    modelUsed: 'qwen3',
+    toolsUsed: result.toolsUsed,
+    fallbackUsed: false,
+    ...(debugTrace ? { debugTrace } : {}),
+  };
+}
+
+function buildReActConfig(
+  options: ChatEngineOptions,
+  pageContext?: string | null
+): ReActConfig {
+  return {
+    maxIterations: 3,
+    maxToolCalls: 10,
+    iterationTimeoutMs: 30_000,
+    contextTokenBudget: 6_000,
+    onToolCall: options.onToolCall,
+    onReasoningEvent: options.onPlannerEvent,
+    requireWriteConfirmation: options.requireToolConfirmation ?? true,
+    memoryDir: import.meta.env.VITE_CHAT_MEMORY_DIR || 'crm-assistant',
+    pageContext: pageContext || undefined,
+  };
+}
+
+async function handleToolRoute(
+  userMessage: string,
+  history: ChatCompletionMessageParam[],
+  options: ChatEngineOptions,
+  localHistory: ReturnType<typeof toLocalHistory>,
+  reactConfig: ReActConfig,
+  includeDebugTrace: boolean,
+  includeHeavyDebug: boolean,
+  timings: ChatEngineTimings,
+  meta: MessageMeta
+): Promise<ChatEngineResult> {
+  const modelSwitches: Array<{ from: ModelRoute; to: ModelRoute; reason: string }> = [];
+
+  if (options.confirmedToolCalls?.length) {
+    const result = await resumeReActLoop(
+      userMessage,
+      options.confirmedToolCalls,
+      options._reactTrace || [],
+      localHistory,
+      reactConfig
+    );
+    return reactResultToChatResult(result, userMessage, history, modelSwitches, includeDebugTrace, includeHeavyDebug, timings, meta);
+  }
+
+  const result = await runReActLoop(
+    userMessage,
+    localHistory,
+    reactConfig
+  );
+  return reactResultToChatResult(result, userMessage, history, modelSwitches, includeDebugTrace, includeHeavyDebug, timings, meta);
+}
+
+export async function processMessage(
+  userMessage: string,
+  options: ChatEngineOptions = {}
+): Promise<ChatEngineResult> {
+  const emitPlannerEvent = (msg: string) => options.onPlannerEvent?.(msg);
+  const startedAt = nowMs();
+  const timings: ChatEngineTimings = { totalMs: 0 };
+  let sizeMetrics: ChatEngineSizeMetrics | undefined;
+  const finalize = (result: ChatEngineResult): ChatEngineResult => {
+    timings.totalMs = elapsedMs(startedAt);
+    if (!result.debugTrace) return result;
+    return {
+      ...result,
+      debugTrace: {
+        ...result.debugTrace,
+        timings: { ...timings },
+        ...(sizeMetrics ? { sizes: sizeMetrics } : {}),
+      },
+    };
+  };
+  const history = options.conversationHistory || [];
+  const localHistory = toLocalHistory(history);
+  const historyChars = history.reduce((sum, message) => sum + estimateChars((message as { content?: unknown }).content), 0);
+  const localHistoryChars = localHistory.reduce((sum, message) => sum + estimateChars(message.content), 0);
+  const intentText = extractUserIntentText(userMessage);
+  const pageContext = extractPageContext(userMessage);
+  const reactConfig = buildReActConfig(options, pageContext);
+  const includeDebugTrace = options.debug ?? ENABLE_CHAT_ENGINE_DEBUG_TRACE;
+  const includeHeavyDebug = includeDebugTrace;
+  const meta: MessageMeta = { rawUserMessage: userMessage, intentText, pageContext };
+  const selectedToolsForMessageCache: { value: string[] | null } = { value: null };
+  const getSelectedToolsForMessage = (): string[] => {
+    if (!selectedToolsForMessageCache.value) {
+      selectedToolsForMessageCache.value = selectToolsForIntent(normalizedMessage);
+    }
+    return selectedToolsForMessageCache.value;
+  };
+
+  const phase: ChatPhase = options.phase || 'planning';
+  const baseMessage = intentText.trim() || userMessage.trim();
+  const normalizedMessage = phase === 'refining' ? applyRefinementRules(baseMessage) : baseMessage;
+  sizeMetrics = {
+    historyChars,
+    localHistoryChars,
+    promptChars: normalizedMessage.length + localHistoryChars,
+  };
+  const browserFollowUp =
+    hasOpenBrowserSessionSignal(history) &&
+    isBrowserFollowUpIntent(normalizedMessage);
+
+  if (browserFollowUp && !(options.confirmedToolCalls?.length)) {
+    const followupFastPlan = detectFastPathPlan(normalizedMessage);
+    if (followupFastPlan && followupFastPlan.calls.length > 0) {
+      emitPlannerEvent(`Fast path matched: ${followupFastPlan.reason}.`);
+      const updatedHistory: ChatCompletionMessageParam[] = [
+        ...history,
+        { role: 'user', content: normalizedMessage },
+      ];
+      if (options.requireToolConfirmation ?? true) {
+        const summary =
+          'Planned actions:\n' +
+          followupFastPlan.calls
+            .map((call, idx) => `${idx + 1}. ${call.name}(${Object.entries(call.args || {}).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(', ')})`)
+            .join('\n');
+        return {
+          response: '',
+          updatedHistory,
+          messages: [textMsg('Fast plan ready for confirmation.')],
+          modelUsed: 'qwen3',
+          toolsUsed: [],
+          fallbackUsed: false,
+          confirmation: {
+            required: true,
+            summary,
+            calls: followupFastPlan.calls,
+          },
+        };
+      }
+      const dispatchStartedAt = nowMs();
+      const dispatched = await dispatchToolCalls(followupFastPlan.calls, options.onToolCall);
+      timings.dispatchMs = (timings.dispatchMs || 0) + elapsedMs(dispatchStartedAt);
+      const assistantText = dispatched.summary || 'Executed fast path actions.';
+      const formatStartedAt = nowMs();
+      const messages = [textMsg(assistantText), ...formatDispatchMessages(dispatched)];
+      timings.formatMs = (timings.formatMs || 0) + elapsedMs(formatStartedAt);
+      return {
+        response: assistantText,
+        updatedHistory: [
+          ...updatedHistory,
+          { role: 'assistant', content: assistantText },
+        ],
+        messages,
+        modelUsed: 'qwen3',
+        toolsUsed: dispatched.toolsUsed,
+        fallbackUsed: false,
+      };
+    }
+    emitPlannerEvent('Browser follow-up detected. Enforcing tool-grounded ReAct path.');
+    const reactStartedAt = nowMs();
+    const result = await handleToolRoute(
+      `${normalizedMessage}\n\nUse browser tools against the live page session. Do not invent results; only report observed data.`,
+      history,
+      options,
+      localHistory,
+      reactConfig,
+      includeDebugTrace,
+      includeHeavyDebug,
+      timings,
+      {
+        ...meta,
+        intentText: normalizedMessage,
+      }
+    );
+    timings.reactMs = elapsedMs(reactStartedAt);
+    return finalize(result);
+  }
+
+  if (!options.forceModel && phase === 'planning' && !(options.confirmedToolCalls?.length)) {
+    const fastPlan = detectFastPathPlan(normalizedMessage);
+    if (fastPlan && fastPlan.calls.length > 0) {
+      emitPlannerEvent(`Fast path matched: ${fastPlan.reason}.`);
+      const updatedHistory: ChatCompletionMessageParam[] = [
+        ...history,
+        { role: 'user', content: normalizedMessage },
+      ];
+
+      if (options.requireToolConfirmation ?? true) {
+        const summary =
+          'Planned actions:\n' +
+          fastPlan.calls
+            .map((call, idx) => `${idx + 1}. ${call.name}(${Object.entries(call.args || {}).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(', ')})`)
+            .join('\n');
+        return finalize({
+          response: '',
+          updatedHistory,
+          messages: [textMsg('Fast plan ready for confirmation.')],
+          modelUsed: 'qwen3',
+          toolsUsed: [],
+          fallbackUsed: false,
+          confirmation: {
+            required: true,
+            summary,
+            calls: fastPlan.calls,
+          },
+          ...(includeDebugTrace ? { debugTrace: {
+            route: 'qwen3',
+            routeReason: 'fast_path_intent',
+            modelUsed: 'qwen3',
+            toolBrainName: TOOL_BRAIN_NAME,
+            toolBrainModel: TOOL_BRAIN_MODEL,
+            success: true,
+            selectedTools: getSelectedToolsForMessage(),
+            nativeToolCalls: 0,
+            tokenToolCalls: 0,
+            toolsUsed: [],
+            fallbackUsed: false,
+            modelSwitches: [],
+            phase,
+            rawUserMessage: userMessage,
+            intentText: normalizedMessage,
+            pageContext: pageContext || undefined,
+            sizes: sizeMetrics,
+          } } : {}),
+        });
+      }
+
+      const dispatchStartedAt = nowMs();
+      const dispatched = await dispatchToolCalls(fastPlan.calls, options.onToolCall);
+      timings.dispatchMs = (timings.dispatchMs || 0) + elapsedMs(dispatchStartedAt);
+      const assistantText = dispatched.summary || 'Executed fast path actions.';
+      const formatStartedAt = nowMs();
+      const messages = [textMsg(assistantText), ...formatDispatchMessages(dispatched)];
+      timings.formatMs = (timings.formatMs || 0) + elapsedMs(formatStartedAt);
+      return finalize({
+        response: assistantText,
+        updatedHistory: [
+          ...updatedHistory,
+          { role: 'assistant', content: assistantText },
+        ],
+        messages,
+        modelUsed: 'qwen3',
+        toolsUsed: dispatched.toolsUsed,
+        fallbackUsed: false,
+        ...(includeDebugTrace ? { debugTrace: {
+          route: 'qwen3',
+          routeReason: 'fast_path_intent',
+          modelUsed: 'qwen3',
+          toolBrainName: TOOL_BRAIN_NAME,
+          toolBrainModel: TOOL_BRAIN_MODEL,
+          success: dispatched.success,
+          selectedTools: getSelectedToolsForMessage(),
+          nativeToolCalls: 0,
+          tokenToolCalls: fastPlan.calls.length,
+          toolsUsed: dispatched.toolsUsed,
+          fallbackUsed: false,
+          modelSwitches: [],
+          phase,
+          executedCalls: dispatched.executed.map((x) => ({ name: x.name, args: x.args, ok: x.ok, result: x.result })),
+          rawUserMessage: userMessage,
+          intentText: normalizedMessage,
+          pageContext: pageContext || undefined,
+          sizes: sizeMetrics,
+        } } : {}),
+      });
+    }
+  }
+
+  let route: ModelRoute;
+  let routeReason: string;
+
+  const routeStartedAt = nowMs();
+  if (options.forceModel) {
+    route = options.forceModel;
+    routeReason = 'forced';
+  } else if (!getOllamaReadyFast()) {
+    route = 'openai';
+    routeReason = 'ollama_unavailable';
+  } else {
+    const decision = routeMessage(normalizedMessage);
+    route = decision.model;
+    routeReason = decision.reason;
+  }
+  timings.routeMs = elapsedMs(routeStartedAt);
+  emitPlannerEvent(`Route selected: ${routeReason} (${route}).`);
+
+  if (options.confirmedToolCalls?.length) {
+    const reactStartedAt = nowMs();
+    const result = await handleToolRoute(normalizedMessage, history, options, localHistory, reactConfig, includeDebugTrace, includeHeavyDebug, timings, {
+      ...meta,
+      intentText: normalizedMessage,
+    });
+    timings.reactMs = elapsedMs(reactStartedAt);
+    return finalize(result);
+  }
+
+  if (route === 'qwen3' || phase === 'refining') {
+    emitPlannerEvent('Analyzing request and running ReAct loop...');
+    try {
+      const reactStartedAt = nowMs();
+      const result = await handleToolRoute(normalizedMessage, history, options, localHistory, reactConfig, includeDebugTrace, includeHeavyDebug, timings, {
+        ...meta,
+        intentText: normalizedMessage,
+      });
+      timings.reactMs = elapsedMs(reactStartedAt);
+      return finalize(result);
+    } catch (err) {
+      const failureReason = err instanceof Error ? err.message : 'react_loop_error';
+      recordToolFailure({
+        planner_model: TOOL_BRAIN_MODEL,
+        user_message: normalizedMessage,
+        conversation_tail: localHistory.slice(-4).map((m) => ({ role: m.role, content: m.content })),
+        route_reason: routeReason,
+        selected_tools: [],
+        executed_tools: [],
+        raw_content: '',
+        native_tool_calls: [],
+        token_tool_calls: [],
+        failure_reason: failureReason,
+        outcome: 'failed',
+        recovered_by_gemma: false,
+      });
+      options.onModelSwitch?.('qwen3', 'gemma', 'react_loop_error');
+      route = 'gemma';
+      routeReason = 'react_loop_error_fallback';
+    }
+  }
+
+  const fallbackStartedAt = nowMs();
+  const fallbackResult = await runWithFallback(
+    route,
+    normalizedMessage,
+    localHistory,
+    history,
+    options.onToolCall,
+    options.onModelSwitch
+  );
+  timings.fallbackMs = elapsedMs(fallbackStartedAt);
+
+  const updatedHistory: ChatCompletionMessageParam[] = [
+    ...history,
+    { role: 'user', content: normalizedMessage },
+    { role: 'assistant', content: fallbackResult.response },
+  ];
+
+  return finalize({
+    response: fallbackResult.response,
+    updatedHistory,
+    messages: fallbackResult.messages,
+    modelUsed: fallbackResult.modelUsed,
+    toolsUsed: fallbackResult.toolsUsed,
+    fallbackUsed: fallbackResult.fallbackUsed,
+    ...(includeDebugTrace ? { debugTrace: {
+      route,
+      routeReason,
+      modelUsed: fallbackResult.modelUsed,
+      toolBrainName: TOOL_BRAIN_NAME,
+      toolBrainModel: TOOL_BRAIN_MODEL,
+      success: fallbackResult.success,
+      selectedTools: [],
+      nativeToolCalls: 0,
+      tokenToolCalls: 0,
+      toolsUsed: fallbackResult.toolsUsed,
+      fallbackUsed: fallbackResult.fallbackUsed,
+      modelSwitches: fallbackResult.switches,
+      phase,
+      rawUserMessage: userMessage,
+      intentText: normalizedMessage,
+      pageContext: pageContext || undefined,
+      sizes: sizeMetrics,
+    } } : {}),
+  });
+}
+
+export async function processAction(
+  actionValue: string,
+  conversationHistory: ChatCompletionMessageParam[] = []
+): Promise<ChatEngineResult> {
+  if (actionValue.startsWith('contact_action:')) {
+    const [, action, rawContactId] = actionValue.split(':');
+    const contactId = Number.parseInt(rawContactId || '', 10);
+
+    const contextActions = new Set(['add_to_database', 'add_to_campaign', 'send_email', 'search_salesnav']);
+    if (contextActions.has(action)) {
+      return processMessage(`Execute action "${action}" for contact ID ${contactId}`, {
+        conversationHistory,
+        phase: 'planning',
+      });
+    }
+
+    const directActionTool: Record<string, string> = {
+      sync_salesforce: 'salesforce_search_contact',
+      delete_contact: 'delete_contact',
+    };
+    const toolName = directActionTool[action];
+
+    if (!toolName) {
+      return {
+        response: 'Unknown action.',
+        updatedHistory: conversationHistory,
+        messages: [textMsg('That action is not available.')],
+        modelUsed: 'qwen3',
+        toolsUsed: [],
+        fallbackUsed: false,
+      };
+    }
+
+    try {
+      await executeTool(toolName, { contact_id: contactId });
+      return {
+        response: 'Action completed.',
+        updatedHistory: conversationHistory,
+        messages: [statusMsg(`${action} completed for contact #${contactId}`, 'success')],
+        modelUsed: 'qwen3',
+        toolsUsed: [toolName],
+        fallbackUsed: false,
+      };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      return {
+        response: 'Action failed.',
+        updatedHistory: conversationHistory,
+        messages: [statusMsg(`Action failed: ${message}`, 'error')],
+        modelUsed: 'qwen3',
+        toolsUsed: [],
+        fallbackUsed: false,
+      };
+    }
+  }
+
+  if (actionValue.startsWith('section:')) {
+    return {
+      response: '',
+      updatedHistory: conversationHistory,
+      messages: [],
+      modelUsed: 'qwen3',
+      toolsUsed: [],
+      fallbackUsed: false,
+    };
+  }
+
+  return {
+    response: 'Unknown action.',
+    updatedHistory: conversationHistory,
+    messages: [textMsg('That action is not available.')],
+    modelUsed: 'qwen3',
+    toolsUsed: [],
+    fallbackUsed: false,
+  };
+}
+
+export type { ChatCompletionMessageParam } from './chatEngineTypes';
