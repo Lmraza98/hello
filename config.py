@@ -3,6 +3,7 @@ Configuration for the outreach system.
 All settings can be overridden via environment variables.
 """
 import os
+import json
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -33,8 +34,22 @@ LLM_MODEL_SMART = os.getenv("LLM_MODEL_SMART", "gpt-4o")  # For complex reasonin
 SEARXNG_URL = os.getenv("SEARXNG_URL", "http://localhost:8080")
 # Legacy Tavily support (if you want to use Tavily instead)
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
+TAVILY_COST_PER_REQUEST_USD = float(os.getenv("TAVILY_COST_PER_REQUEST_USD", "0.005"))
 LLM_MAX_INPUT_TOKENS = 800  # Aggressive trim
 LLM_MAX_OUTPUT_TOKENS = 500  # Need enough for full JSON schema
+
+# Cost monitoring config
+_openai_pricing_default = {
+    # USD per 1M tokens
+    "gpt-4o": {"input_per_1m": 5.0, "output_per_1m": 15.0},
+    "gpt-4o-mini": {"input_per_1m": 0.15, "output_per_1m": 0.6},
+}
+try:
+    OPENAI_PRICING_USD_PER_1M = json.loads(
+        os.getenv("OPENAI_PRICING_USD_PER_1M_JSON", json.dumps(_openai_pricing_default))
+    )
+except Exception:
+    OPENAI_PRICING_USD_PER_1M = _openai_pricing_default
 
 # Crawler Settings
 MAX_PAGES_PER_DOMAIN = 8
@@ -74,12 +89,7 @@ DEFAULT_BODY_TEMPLATE = """{personalization}
 
 I help companies like {company} {value_prop}.
 
-Would it make sense to have a brief call this week to see if there's a fit?
-
-Best,
-{sender_name}
-
-{opt_out_line}"""
+Would it make sense to have a brief call this week to see if there's a fit?"""
 
 OPT_OUT_LINE = "Reply 'unsubscribe' to opt out of future messages."
 
@@ -98,3 +108,5 @@ TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
 # PhoneInfoga is CLI-based, no API key needed
 
+# Hybrid search vector backend selector: auto | sqlite_vec | fallback
+VECTOR_BACKEND = os.getenv("VECTOR_BACKEND", "auto").strip().lower()

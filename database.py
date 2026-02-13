@@ -2628,6 +2628,19 @@ def _json_loads_safe(raw: Optional[str], default):
         return default
 
 
+def _delete_semantic_and_index_rows(entity_type: str, entity_id: str):
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "DELETE FROM semantic_chunks WHERE source_type = ? AND source_id = ?",
+            (entity_type, str(entity_id)),
+        )
+        cursor.execute(
+            "DELETE FROM entity_search_index WHERE entity_type = ? AND entity_id = ?",
+            (entity_type, str(entity_id)),
+        )
+
+
 def upsert_semantic_chunk(
     source_type: str,
     source_id: str,
@@ -2848,6 +2861,85 @@ def _upsert_entity_search_index_row(
         )
 
 
+def sync_entity_semantic_index(entity_type: str, entity_id: int | str):
+    normalized_type = (entity_type or "").strip().lower()
+    normalized_id = str(entity_id)
+    text: Optional[str] = None
+    metadata: Dict[str, Any] = {"entity_type": normalized_type, "entity_id": normalized_id}
+
+    if normalized_type == "contact":
+        text = build_contact_embedding_text(int(entity_id))
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT id, name, company_name, title, email_generated, phone, domain FROM linkedin_contacts WHERE id = ?",
+                (entity_id,),
+            )
+            row = cursor.fetchone()
+            if row:
+                _upsert_entity_search_index_row(
+                    "contact",
+                    str(row["id"]),
+                    name=row["name"] or "",
+                    emails=row["email_generated"] or "",
+                    phones=row["phone"] or "",
+                    domain=row["domain"] or "",
+                    keywords=" ".join([row["company_name"] or "", row["title"] or ""]).strip(),
+                )
+                metadata["title"] = f"{row['name'] or 'Unknown'} @ {row['company_name'] or 'Unknown company'}"
+    elif normalized_type == "company":
+        text = build_company_embedding_text(int(entity_id))
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT id, company_name, domain, vertical, target_reason, wedge FROM targets WHERE id = ?",
+                (entity_id,),
+            )
+            row = cursor.fetchone()
+            if row:
+                _upsert_entity_search_index_row(
+                    "company",
+                    str(row["id"]),
+                    name=row["company_name"] or "",
+                    domain=row["domain"] or "",
+                    keywords=" ".join([row["vertical"] or "", row["target_reason"] or "", row["wedge"] or ""]).strip(),
+                )
+                metadata["title"] = row["company_name"] or f"company {row['id']}"
+    elif normalized_type == "campaign":
+        text = build_campaign_embedding_text(int(entity_id))
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, name, description FROM email_campaigns WHERE id = ?", (entity_id,))
+            row = cursor.fetchone()
+            if row:
+                _upsert_entity_search_index_row(
+                    "campaign",
+                    str(row["id"]),
+                    name=row["name"] or "",
+                    keywords=row["description"] or "",
+                )
+                metadata["title"] = row["name"] or f"campaign {row['id']}"
+    elif normalized_type in {"note", "conversation"}:
+        text = build_note_embedding_text(int(entity_id))
+    else:
+        return
+
+    if text and text.strip():
+        upsert_semantic_chunk(
+            source_type=normalized_type,
+            source_id=normalized_id,
+            chunk_type="summary",
+            text=text,
+            metadata=metadata,
+        )
+    else:
+        _delete_semantic_and_index_rows(normalized_type, normalized_id)
+
+
+def delete_entity_semantic_index(entity_type: str, entity_id: int | str):
+    _delete_semantic_and_index_rows((entity_type or "").strip().lower(), str(entity_id))
+
+
 def refresh_entity_search_index(entity_types: Optional[List[str]] = None):
     wanted = set(entity_types or ["contact", "company", "campaign", "email_message", "conversation"])
     if "contact" in wanted:
@@ -2944,6 +3036,125 @@ def refresh_entity_search_index(entity_types: Optional[List[str]] = None):
                         ]
                     ),
                 )
+
+
+class VectorBackend:
+    name = "base"
+
+    def search(
+        self,
+        query: str,
+        query_tokens: set[str],
+        entity_types: set[str],
+        filters: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        raise NotImplementedError
+
+
+class TokenOverlapVectorBackend(VectorBackend):
+    name = "token_overlap"
+
+    def search(
+        self,
+        query: str,
+        query_tokens: set[str],
+        entity_types: set[str],
+        filters: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        time_range = (filters.get("time_range") or "").strip().lower()
+        out: List[Dict[str, Any]] = []
+        with get_db() as conn:
+            cursor = conn.cursor()
+            placeholders = ",".join(["?"] * len(entity_types)) if entity_types else "?"
+            where = [f"source_type IN ({placeholders})"]
+            params: List[Any] = [*entity_types]
+            if time_range in {"last 7 days", "last_7_days"}:
+                where.append("created_at >= datetime('now', '-7 days')")
+            elif time_range in {"last 30 days", "last_30_days"}:
+                where.append("created_at >= datetime('now', '-30 days')")
+            cursor.execute(
+                f"""
+                SELECT chunk_id, source_type, source_id, chunk_type, text, created_at, updated_at, metadata
+                FROM semantic_chunks
+                WHERE {' AND '.join(where)}
+                ORDER BY updated_at DESC
+                LIMIT 400
+                """,
+                params,
+            )
+            for row in cursor.fetchall():
+                text = row["text"] or ""
+                text_tokens = set(_tokenize(text))
+                overlap = len(query_tokens.intersection(text_tokens))
+                if overlap <= 0:
+                    continue
+                vec_score = min(1.0, overlap / max(len(query_tokens), 1))
+                metadata = _json_loads_safe(row["metadata"], {})
+                title = metadata.get("title") or f"{row['source_type']} {row['source_id']}"
+                out.append(
+                    _build_result(
+                        row["source_type"],
+                        row["source_id"],
+                        title,
+                        text[:260],
+                        timestamp=row["updated_at"] or row["created_at"],
+                        source_refs=[
+                            {
+                                "chunk_id": row["chunk_id"],
+                                "source_id": row["source_id"],
+                                "source_type": row["source_type"],
+                                "chunk_type": row["chunk_type"],
+                            }
+                        ],
+                        score_vec=vec_score,
+                    )
+                )
+        return out
+
+
+class SqliteVecVectorBackend(VectorBackend):
+    name = "sqlite_vec"
+
+    def _has_sqlite_vec_tables(self, cursor) -> bool:
+        cursor.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('semantic_embeddings', 'semantic_chunks')"
+        )
+        names = {row[0] for row in cursor.fetchall()}
+        return "semantic_embeddings" in names and "semantic_chunks" in names
+
+    def search(
+        self,
+        query: str,
+        query_tokens: set[str],
+        entity_types: set[str],
+        filters: Dict[str, Any],
+    ) -> List[Dict[str, Any]]:
+        # Adapter scaffold. Query embedding generation/indexing lands in next slice.
+        try:
+            with get_db() as conn:
+                cursor = conn.cursor()
+                if not self._has_sqlite_vec_tables(cursor):
+                    return []
+        except Exception:
+            return []
+        return []
+
+
+def _resolve_vector_backend() -> VectorBackend:
+    mode = (getattr(config, "VECTOR_BACKEND", "auto") or "auto").strip().lower()
+    if mode == "sqlite_vec":
+        return SqliteVecVectorBackend()
+    if mode == "fallback":
+        return TokenOverlapVectorBackend()
+    sqlite_backend = SqliteVecVectorBackend()
+    try:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            if sqlite_backend._has_sqlite_vec_tables(cursor):
+                return sqlite_backend
+    except Exception:
+        pass
+    return TokenOverlapVectorBackend()
 
 
 def _build_result(
@@ -3127,55 +3338,13 @@ def hybrid_search(
                 )
             )
 
-    # C) Semantic/vector-like stage from semantic_chunks (token overlap fallback).
-    time_range = (filters.get("time_range") or "").strip().lower()
-    with get_db() as conn:
-        cursor = conn.cursor()
-        placeholders = ",".join(["?"] * len(allowed_types)) if allowed_types else "?"
-        where = [f"source_type IN ({placeholders})"]
-        params: List[Any] = [*allowed_types]
-        if time_range in {"last 7 days", "last_7_days"}:
-            where.append("created_at >= datetime('now', '-7 days')")
-        elif time_range in {"last 30 days", "last_30_days"}:
-            where.append("created_at >= datetime('now', '-30 days')")
-        cursor.execute(
-            f"""
-            SELECT chunk_id, source_type, source_id, chunk_type, text, created_at, updated_at, metadata
-            FROM semantic_chunks
-            WHERE {' AND '.join(where)}
-            ORDER BY updated_at DESC
-            LIMIT 400
-            """,
-            params,
-        )
-        for row in cursor.fetchall():
-            text = row["text"] or ""
-            text_tokens = set(_tokenize(text))
-            overlap = len(q_tokens.intersection(text_tokens))
-            if overlap <= 0:
-                continue
-            vec_score = min(1.0, overlap / max(len(q_tokens), 1))
-            metadata = _json_loads_safe(row["metadata"], {})
-            title = metadata.get("title") or f"{row['source_type']} {row['source_id']}"
-            snippet = text[:260]
-            _upsert(
-                _build_result(
-                    row["source_type"],
-                    row["source_id"],
-                    title,
-                    snippet,
-                    timestamp=row["updated_at"] or row["created_at"],
-                    source_refs=[
-                        {
-                            "chunk_id": row["chunk_id"],
-                            "source_id": row["source_id"],
-                            "source_type": row["source_type"],
-                            "chunk_type": row["chunk_type"],
-                        }
-                    ],
-                    score_vec=vec_score,
-                )
-            )
+    # C) Semantic/vector stage via backend adapter (sqlite-vec optional).
+    vector_backend = _resolve_vector_backend()
+    vector_results = vector_backend.search(q, q_tokens, allowed_types, filters)
+    if not vector_results and vector_backend.name != "token_overlap":
+        vector_results = TokenOverlapVectorBackend().search(q, q_tokens, allowed_types, filters)
+    for item in vector_results:
+        _upsert(item)
 
     ranked = sorted(
         results_by_key.values(),

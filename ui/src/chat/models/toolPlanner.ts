@@ -418,6 +418,7 @@ export async function runToolPlan(
     `Use chained argument references like "$tool.search_companies.0.vertical" where possible for grounded planning.\n` +
     `If exact filters are unavailable, plan a broader read/collect step first, then a follow-up step.\n` +
     `If local database tools cannot satisfy the request, use research_company/research_person as web-research fallback.\n` +
+    `For factual lookup questions, prefer hybrid_search and keep claims grounded to returned source_refs.\n` +
     `For browser navigation tasks (open/go to/click/type/snapshot/screenshot/tab navigation), use browser_* tools only.\n` +
     `Do not use SalesNav scraping tools for generic site navigation.\n` +
     `If user asks to open/find something on Sales Navigator without explicitly requesting bulk collection/scraping, use browser_navigate + browser_snapshot first.\n` +

@@ -295,10 +295,16 @@ function reactResultToChatResult(
     };
   }
 
+  const grounded = enforceHybridGrounding(
+    result.answer || 'I completed the requested actions.',
+    messages.length > 0 ? messages : [textMsg('I completed the requested actions.')],
+    executed.map((call) => ({ name: call.name, result: call.result }))
+  );
+
   return {
-    response: result.answer || 'I completed the requested actions.',
+    response: grounded.response,
     updatedHistory,
-    messages: messages.length > 0 ? messages : [textMsg('I completed the requested actions.')],
+    messages: grounded.messages,
     modelUsed: 'qwen3',
     toolsUsed: result.toolsUsed,
     fallbackUsed: false,
@@ -336,6 +342,35 @@ function buildPlanSummary(calls: PlannedToolCall[]): string {
       .map((call, idx) => `${idx + 1}. ${call.name}(${formatToolCallArgs(call.args || {})})`)
       .join('\n')
   );
+}
+
+function hasSourceRefs(value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false;
+  const refs = (value as { source_refs?: unknown }).source_refs;
+  return Array.isArray(refs) && refs.length > 0;
+}
+
+function hybridSearchHasEvidence(result: unknown): boolean {
+  if (!result || typeof result !== 'object') return false;
+  const items = (result as { results?: unknown[] }).results;
+  if (!Array.isArray(items) || items.length === 0) return false;
+  return items.some((item) => hasSourceRefs(item));
+}
+
+function enforceHybridGrounding(
+  response: string,
+  messages: ChatMessage[],
+  executedCalls: Array<{ name: string; result?: unknown }>
+): { response: string; messages: ChatMessage[] } {
+  const usedHybrid = executedCalls.some((call) => call.name === 'hybrid_search');
+  if (!usedHybrid) return { response, messages };
+  const hasEvidence = executedCalls
+    .filter((call) => call.name === 'hybrid_search')
+    .some((call) => hybridSearchHasEvidence(call.result));
+  if (hasEvidence) return { response, messages };
+
+  const groundedFailure = 'I cannot verify that from local sources yet. Try refining the query or broadening filters so I can cite evidence references.';
+  return { response: groundedFailure, messages: [textMsg(groundedFailure)] };
 }
 
 async function handleToolRoute(
@@ -468,15 +503,19 @@ export async function processMessage(
       timings.dispatchMs = (timings.dispatchMs || 0) + elapsedMs(dispatchStartedAt);
       const assistantText = dispatched.summary || 'Executed fast path actions.';
       const formatStartedAt = nowMs();
-      const messages = [textMsg(assistantText), ...formatDispatchMessages(dispatched)];
+      const grounded = enforceHybridGrounding(
+        assistantText,
+        [textMsg(assistantText), ...formatDispatchMessages(dispatched)],
+        dispatched.executed.map((x) => ({ name: x.name, result: x.result }))
+      );
       timings.formatMs = (timings.formatMs || 0) + elapsedMs(formatStartedAt);
       return done({
-        response: assistantText,
+        response: grounded.response,
         updatedHistory: [
           ...updatedHistory,
-          { role: 'assistant', content: assistantText },
+          { role: 'assistant', content: grounded.response },
         ],
-        messages,
+        messages: grounded.messages,
         modelUsed: 'qwen3',
         toolsUsed: dispatched.toolsUsed,
         fallbackUsed: false,
@@ -571,15 +610,19 @@ export async function processMessage(
       timings.dispatchMs = (timings.dispatchMs || 0) + elapsedMs(dispatchStartedAt);
       const assistantText = dispatched.summary || 'Executed fast path actions.';
       const formatStartedAt = nowMs();
-      const messages = [textMsg(assistantText), ...formatDispatchMessages(dispatched)];
+      const grounded = enforceHybridGrounding(
+        assistantText,
+        [textMsg(assistantText), ...formatDispatchMessages(dispatched)],
+        dispatched.executed.map((x) => ({ name: x.name, result: x.result }))
+      );
       timings.formatMs = (timings.formatMs || 0) + elapsedMs(formatStartedAt);
       return done({
-        response: assistantText,
+        response: grounded.response,
         updatedHistory: [
           ...updatedHistory,
-          { role: 'assistant', content: assistantText },
+          { role: 'assistant', content: grounded.response },
         ],
-        messages,
+        messages: grounded.messages,
         modelUsed: 'qwen3',
         toolsUsed: dispatched.toolsUsed,
         fallbackUsed: false,

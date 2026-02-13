@@ -15,6 +15,7 @@ vi.mock('../src/chat/fallbackPipeline', () => ({
 import { processMessage } from '../src/chat/chatEngine';
 import * as ollamaStatusModule from '../src/chat/ollamaStatus';
 import * as intentFastPathModule from '../src/chat/intentFastPath';
+import * as toolExecutorModule from '../src/chat/toolExecutor';
 
 describe('processMessage debug gating', () => {
   beforeEach(() => {
@@ -99,5 +100,69 @@ describe('processMessage debug gating', () => {
     expect(result.debugTrace).toBeDefined();
     expect(result.debugTrace?.routeReason).toBe('fast_path_browser_followup');
     expect(typeof result.debugTrace?.timings?.totalMs).toBe('number');
+  });
+
+  it('enforces grounding failure when hybrid_search has no source refs', async () => {
+    vi.spyOn(intentFastPathModule, 'detectFastPathPlan').mockReturnValue({
+      reason: 'test_hybrid_no_refs',
+      calls: [{ name: 'hybrid_search', args: { query: 'Lucas Raza', entity_types: ['contact'], k: 5 } }],
+    });
+    vi.spyOn(toolExecutorModule, 'dispatchToolCalls').mockResolvedValue({
+      success: true,
+      toolsUsed: ['hybrid_search'],
+      executed: [
+        {
+          name: 'hybrid_search',
+          args: { query: 'Lucas Raza' },
+          ok: true,
+          result: { results: [{ entity_type: 'contact', entity_id: '1', title: 'Lucas Raza', snippet: 'test', source_refs: [] }] },
+        },
+      ],
+      summary: 'Executed hybrid_search.',
+    });
+
+    const result = await processMessage('Find Lucas Raza', {
+      requireToolConfirmation: false,
+      phase: 'planning',
+    });
+
+    expect(result.response).toContain('cannot verify');
+  });
+
+  it('allows grounded hybrid_search responses when source refs exist', async () => {
+    vi.spyOn(intentFastPathModule, 'detectFastPathPlan').mockReturnValue({
+      reason: 'test_hybrid_with_refs',
+      calls: [{ name: 'hybrid_search', args: { query: 'Lucas Raza', entity_types: ['contact'], k: 5 } }],
+    });
+    vi.spyOn(toolExecutorModule, 'dispatchToolCalls').mockResolvedValue({
+      success: true,
+      toolsUsed: ['hybrid_search'],
+      executed: [
+        {
+          name: 'hybrid_search',
+          args: { query: 'Lucas Raza' },
+          ok: true,
+          result: {
+            results: [
+              {
+                entity_type: 'contact',
+                entity_id: '1',
+                title: 'Lucas Raza',
+                snippet: 'test',
+                source_refs: [{ row_id: 1, table: 'linkedin_contacts' }],
+              },
+            ],
+          },
+        },
+      ],
+      summary: 'Executed hybrid_search.',
+    });
+
+    const result = await processMessage('Find Lucas Raza', {
+      requireToolConfirmation: false,
+      phase: 'planning',
+    });
+
+    expect(result.response).toContain('Executed hybrid_search');
   });
 });

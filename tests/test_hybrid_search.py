@@ -10,6 +10,7 @@ class HybridSearchTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self._old_db_path = config.DB_PATH
+        self._old_vector_backend = config.VECTOR_BACKEND
         config.DB_PATH = Path(self.tmp.name) / "test_outreach.db"
         db.init_database()
 
@@ -48,6 +49,7 @@ class HybridSearchTests(unittest.TestCase):
 
     def tearDown(self):
         config.DB_PATH = self._old_db_path
+        config.VECTOR_BACKEND = self._old_vector_backend
         self.tmp.cleanup()
 
     def test_exact_contact_match_prioritized(self):
@@ -73,6 +75,16 @@ class HybridSearchTests(unittest.TestCase):
         self.assertIn(top["entity_type"], {"conversation", "contact"})
         has_refs = any(len(item.get("source_refs") or []) > 0 for item in results)
         self.assertTrue(has_refs)
+
+    def test_sqlite_vec_mode_falls_back_without_vec_schema(self):
+        config.VECTOR_BACKEND = "sqlite_vec"
+        results = db.hybrid_search(
+            "outlook permissions",
+            entity_types=["conversation"],
+            k=5,
+        )
+        self.assertGreaterEqual(len(results), 1)
+        self.assertEqual(results[0]["entity_type"], "conversation")
 
 
 if __name__ == "__main__":
