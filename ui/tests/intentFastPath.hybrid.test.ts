@@ -7,6 +7,7 @@ describe('intent fast path hybrid defaults', () => {
     const plan = detectFastPathPlan('Find Lucas Raza');
     expect(plan).toBeTruthy();
     expect(plan?.calls[0]?.name).toBe('hybrid_search');
+    expect(plan?.calls[0]?.args).toMatchObject({ query: 'Lucas Raza' });
   });
 
   it('routes recall/thread intent to hybrid_search', () => {

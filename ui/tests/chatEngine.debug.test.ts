@@ -201,4 +201,31 @@ describe('processMessage debug gating', () => {
     expect(resumeSpy).not.toHaveBeenCalled();
     expect(result.response).toContain('Executed hybrid_search');
   });
+
+  it('does not require confirmation for read-only fast path calls', async () => {
+    vi.spyOn(intentFastPathModule, 'detectFastPathPlan').mockReturnValue({
+      reason: 'test_fast_path_read',
+      calls: [{ name: 'hybrid_search', args: { query: 'Lucas Raza', k: 10 } }],
+    });
+    vi.spyOn(toolExecutorModule, 'dispatchToolCalls').mockResolvedValue({
+      success: true,
+      toolsUsed: ['hybrid_search'],
+      executed: [
+        {
+          name: 'hybrid_search',
+          args: { query: 'Lucas Raza', k: 10 },
+          ok: true,
+          result: { results: [{ entity_type: 'contact', entity_id: '1', title: 'Lucas Raza', snippet: 'ok', source_refs: [{ row_id: 1 }] }] },
+        },
+      ],
+      summary: 'Executed hybrid_search.',
+    });
+
+    const result = await processMessage('Find Lucas Raza', {
+      phase: 'planning',
+    });
+
+    expect(result.confirmation).toBeUndefined();
+    expect(result.response).toContain('Executed hybrid_search');
+  });
 });

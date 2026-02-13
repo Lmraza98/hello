@@ -276,9 +276,10 @@ export function detectFastPathPlan(message: string): { calls: PlannedToolCall[];
   }
 
   if (isRecallLikeLookupIntent(lower)) {
+    const normalizedQuery = stripLeadingVerb(trimmed) || trimmed;
     return {
       reason: 'fast_path_hybrid_recall',
-      calls: [{ name: 'hybrid_search', args: { query: trimmed, k: 10 } }],
+      calls: [{ name: 'hybrid_search', args: { query: normalizedQuery, k: 10 } }],
     };
   }
 

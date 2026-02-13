@@ -125,6 +125,13 @@ const CONFIRMED_READ_ONLY_FASTLANE_TOOLS = new Set<string>([
   'get_dashboard_stats',
 ]);
 
+function shouldRequireToolConfirmation(calls: PlannedToolCall[], options: ChatEngineOptions): boolean {
+  if (options.requireToolConfirmation === false) return false;
+  const hasWriteCall = calls.some((call) => !CONFIRMED_READ_ONLY_FASTLANE_TOOLS.has(call.name));
+  if (!hasWriteCall) return false;
+  return options.requireToolConfirmation ?? true;
+}
+
 const ENABLE_CHAT_ENGINE_DEBUG_TRACE = (
   import.meta.env.VITE_CHAT_DEBUG ||
   import.meta.env.VITE_DEBUG_CHAT_ENGINE ||
@@ -579,7 +586,7 @@ export async function processMessage(
         ...history,
         { role: 'user', content: normalizedMessage },
       ];
-      if (options.requireToolConfirmation ?? true) {
+      if (shouldRequireToolConfirmation(followupFastPlan.calls, options)) {
         const summary = buildPlanSummary(followupFastPlan.calls);
         return done({
           response: '',
@@ -685,7 +692,7 @@ export async function processMessage(
         { role: 'user', content: normalizedMessage },
       ];
 
-      if (options.requireToolConfirmation ?? true) {
+      if (shouldRequireToolConfirmation(fastPlan.calls, options)) {
         const summary = buildPlanSummary(fastPlan.calls);
         return done({
           response: '',
