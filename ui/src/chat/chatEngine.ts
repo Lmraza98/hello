@@ -156,6 +156,16 @@ function buildReActDebugTrace(
   includeHeavy = false,
   meta?: MessageMeta
 ): NonNullable<ChatEngineResult['debugTrace']> {
+  const debugArgsCache = new WeakMap<Record<string, unknown>, string>();
+  const stringifyArgs = (args: Record<string, unknown>): string => {
+    const cached = debugArgsCache.get(args);
+    if (cached) return cached;
+    const built = Object.entries(args)
+      .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
+      .join(', ');
+    debugArgsCache.set(args, built);
+    return built;
+  };
   const base: NonNullable<ChatEngineResult['debugTrace']> = {
     route: 'qwen3',
     routeReason: 'react_loop',
@@ -170,6 +180,9 @@ function buildReActDebugTrace(
     fallbackUsed: false,
     modelSwitches,
     phase: 'executing',
+    executionTrace: executedCalls.map((call, idx) =>
+      `${idx + 1}. ${call.name}(${stringifyArgs(call.args || {})}) -> ${call.ok ? 'ok' : 'failed'}`
+    ),
     executedCalls,
     rawUserMessage: meta?.rawUserMessage,
     intentText: meta?.intentText,
@@ -307,6 +320,21 @@ function buildReActConfig(
   };
 }
 
+function formatToolCallArgs(args: Record<string, unknown>): string {
+  return Object.entries(args || {})
+    .map(([key, value]) => `${key}=${JSON.stringify(value)}`)
+    .join(', ');
+}
+
+function buildPlanSummary(calls: PlannedToolCall[]): string {
+  return (
+    'Planned actions:\n' +
+    calls
+      .map((call, idx) => `${idx + 1}. ${call.name}(${formatToolCallArgs(call.args || {})})`)
+      .join('\n')
+  );
+}
+
 async function handleToolRoute(
   userMessage: string,
   history: ChatCompletionMessageParam[],
@@ -398,11 +426,7 @@ export async function processMessage(
         { role: 'user', content: normalizedMessage },
       ];
       if (options.requireToolConfirmation ?? true) {
-        const summary =
-          'Planned actions:\n' +
-          followupFastPlan.calls
-            .map((call, idx) => `${idx + 1}. ${call.name}(${Object.entries(call.args || {}).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(', ')})`)
-            .join('\n');
+        const summary = buildPlanSummary(followupFastPlan.calls);
         return {
           response: '',
           updatedHistory,
@@ -466,11 +490,7 @@ export async function processMessage(
       ];
 
       if (options.requireToolConfirmation ?? true) {
-        const summary =
-          'Planned actions:\n' +
-          fastPlan.calls
-            .map((call, idx) => `${idx + 1}. ${call.name}(${Object.entries(call.args || {}).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join(', ')})`)
-            .join('\n');
+        const summary = buildPlanSummary(fastPlan.calls);
         return finalize({
           response: '',
           updatedHistory,

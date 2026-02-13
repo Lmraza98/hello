@@ -13,6 +13,8 @@ vi.mock('../src/chat/fallbackPipeline', () => ({
 }));
 
 import { processMessage } from '../src/chat/chatEngine';
+import * as ollamaStatusModule from '../src/chat/ollamaStatus';
+import * as intentFastPathModule from '../src/chat/intentFastPath';
 
 describe('processMessage debug gating', () => {
   beforeEach(() => {
@@ -53,5 +55,24 @@ describe('processMessage debug gating', () => {
     expect(result.debugTrace?.sizes).toBeDefined();
     expect((result.debugTrace?.sizes?.historyChars || 0) > 0).toBe(true);
     expect((result.debugTrace?.sizes?.promptChars || 0) > 0).toBe(true);
+  });
+
+  it('computes local history once per request', async () => {
+    const localHistorySpy = vi.spyOn(ollamaStatusModule, 'toLocalHistory');
+    await processMessage('hello', {
+      forceModel: 'openai',
+      debug: true,
+    });
+    expect(localHistorySpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('computes selected tools once when debug fast path needs them', async () => {
+    const selectToolsSpy = vi.spyOn(intentFastPathModule, 'selectToolsForIntent');
+    await processMessage('find Randy Peterson', {
+      debug: true,
+      requireToolConfirmation: true,
+      phase: 'planning',
+    });
+    expect(selectToolsSpy).toHaveBeenCalledTimes(1);
   });
 });
