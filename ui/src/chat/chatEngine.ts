@@ -25,6 +25,7 @@ export interface ChatEngineOptions {
   pendingPlanSummary?: string;
   _reactTrace?: ReActStep[];
   debug?: boolean;
+  debugHeavy?: boolean;
 }
 
 export interface ChatEngineResult {
@@ -106,6 +107,8 @@ const ENABLE_CHAT_ENGINE_DEBUG_TRACE = (
   import.meta.env.VITE_DEBUG_CHAT_ENGINE ||
   'false'
 ).toLowerCase() === 'true';
+const ENABLE_CHAT_ENGINE_HEAVY_DEBUG_TRACE =
+  (import.meta.env.VITE_CHAT_DEBUG_HEAVY || 'false').toLowerCase() === 'true';
 
 function estimateChars(value: unknown): number {
   if (value == null) return 0;
@@ -375,6 +378,12 @@ export async function processMessage(
   const startedAt = nowMs();
   const timings: ChatEngineTimings = { totalMs: 0 };
   let sizeMetrics: ChatEngineSizeMetrics | undefined;
+  const phase: ChatPhase = options.phase || 'planning';
+  const history = options.conversationHistory || [];
+  const intentText = extractUserIntentText(userMessage);
+  const pageContext = extractPageContext(userMessage);
+  const baseMessage = intentText.trim() || userMessage.trim();
+  const normalizedMessage = phase === 'refining' ? applyRefinementRules(baseMessage) : baseMessage;
   const finalize = (result: ChatEngineResult): ChatEngineResult => {
     timings.totalMs = elapsedMs(startedAt);
     if (!result.debugTrace) return result;
@@ -387,15 +396,13 @@ export async function processMessage(
       },
     };
   };
-  const history = options.conversationHistory || [];
+  const done = (result: ChatEngineResult): ChatEngineResult => finalize(result);
   const localHistory = toLocalHistory(history);
   const historyChars = history.reduce((sum, message) => sum + estimateChars((message as { content?: unknown }).content), 0);
   const localHistoryChars = localHistory.reduce((sum, message) => sum + estimateChars(message.content), 0);
-  const intentText = extractUserIntentText(userMessage);
-  const pageContext = extractPageContext(userMessage);
   const reactConfig = buildReActConfig(options, pageContext);
   const includeDebugTrace = options.debug ?? ENABLE_CHAT_ENGINE_DEBUG_TRACE;
-  const includeHeavyDebug = includeDebugTrace;
+  const includeHeavyDebug = includeDebugTrace && (options.debugHeavy ?? ENABLE_CHAT_ENGINE_HEAVY_DEBUG_TRACE);
   const meta: MessageMeta = { rawUserMessage: userMessage, intentText, pageContext };
   const selectedToolsForMessageCache: { value: string[] | null } = { value: null };
   const getSelectedToolsForMessage = (): string[] => {
@@ -405,9 +412,6 @@ export async function processMessage(
     return selectedToolsForMessageCache.value;
   };
 
-  const phase: ChatPhase = options.phase || 'planning';
-  const baseMessage = intentText.trim() || userMessage.trim();
-  const normalizedMessage = phase === 'refining' ? applyRefinementRules(baseMessage) : baseMessage;
   sizeMetrics = {
     historyChars,
     localHistoryChars,
@@ -427,7 +431,7 @@ export async function processMessage(
       ];
       if (options.requireToolConfirmation ?? true) {
         const summary = buildPlanSummary(followupFastPlan.calls);
-        return {
+        return done({
           response: '',
           updatedHistory,
           messages: [textMsg('Fast plan ready for confirmation.')],
@@ -439,7 +443,25 @@ export async function processMessage(
             summary,
             calls: followupFastPlan.calls,
           },
-        };
+          ...(includeDebugTrace ? { debugTrace: {
+            route: 'qwen3',
+            routeReason: 'fast_path_browser_followup',
+            modelUsed: 'qwen3',
+            toolBrainName: TOOL_BRAIN_NAME,
+            toolBrainModel: TOOL_BRAIN_MODEL,
+            success: true,
+            selectedTools: getSelectedToolsForMessage(),
+            nativeToolCalls: 0,
+            tokenToolCalls: 0,
+            toolsUsed: [],
+            fallbackUsed: false,
+            modelSwitches: [],
+            phase,
+            rawUserMessage: userMessage,
+            intentText: normalizedMessage,
+            pageContext: pageContext || undefined,
+          } } : {}),
+        });
       }
       const dispatchStartedAt = nowMs();
       const dispatched = await dispatchToolCalls(followupFastPlan.calls, options.onToolCall);
@@ -448,7 +470,7 @@ export async function processMessage(
       const formatStartedAt = nowMs();
       const messages = [textMsg(assistantText), ...formatDispatchMessages(dispatched)];
       timings.formatMs = (timings.formatMs || 0) + elapsedMs(formatStartedAt);
-      return {
+      return done({
         response: assistantText,
         updatedHistory: [
           ...updatedHistory,
@@ -458,7 +480,26 @@ export async function processMessage(
         modelUsed: 'qwen3',
         toolsUsed: dispatched.toolsUsed,
         fallbackUsed: false,
-      };
+        ...(includeDebugTrace ? { debugTrace: {
+          route: 'qwen3',
+          routeReason: 'fast_path_browser_followup',
+          modelUsed: 'qwen3',
+          toolBrainName: TOOL_BRAIN_NAME,
+          toolBrainModel: TOOL_BRAIN_MODEL,
+          success: dispatched.success,
+          selectedTools: getSelectedToolsForMessage(),
+          nativeToolCalls: 0,
+          tokenToolCalls: followupFastPlan.calls.length,
+          toolsUsed: dispatched.toolsUsed,
+          fallbackUsed: false,
+          modelSwitches: [],
+          phase,
+          executedCalls: dispatched.executed.map((x) => ({ name: x.name, args: x.args, ok: x.ok, result: x.result })),
+          rawUserMessage: userMessage,
+          intentText: normalizedMessage,
+          pageContext: pageContext || undefined,
+        } } : {}),
+      });
     }
     emitPlannerEvent('Browser follow-up detected. Enforcing tool-grounded ReAct path.');
     const reactStartedAt = nowMs();
@@ -477,7 +518,7 @@ export async function processMessage(
       }
     );
     timings.reactMs = elapsedMs(reactStartedAt);
-    return finalize(result);
+    return done(result);
   }
 
   if (!options.forceModel && phase === 'planning' && !(options.confirmedToolCalls?.length)) {
@@ -491,7 +532,7 @@ export async function processMessage(
 
       if (options.requireToolConfirmation ?? true) {
         const summary = buildPlanSummary(fastPlan.calls);
-        return finalize({
+        return done({
           response: '',
           updatedHistory,
           messages: [textMsg('Fast plan ready for confirmation.')],
@@ -532,7 +573,7 @@ export async function processMessage(
       const formatStartedAt = nowMs();
       const messages = [textMsg(assistantText), ...formatDispatchMessages(dispatched)];
       timings.formatMs = (timings.formatMs || 0) + elapsedMs(formatStartedAt);
-      return finalize({
+      return done({
         response: assistantText,
         updatedHistory: [
           ...updatedHistory,
@@ -591,7 +632,7 @@ export async function processMessage(
       intentText: normalizedMessage,
     });
     timings.reactMs = elapsedMs(reactStartedAt);
-    return finalize(result);
+    return done(result);
   }
 
   if (route === 'qwen3' || phase === 'refining') {
@@ -603,7 +644,7 @@ export async function processMessage(
         intentText: normalizedMessage,
       });
       timings.reactMs = elapsedMs(reactStartedAt);
-      return finalize(result);
+      return done(result);
     } catch (err) {
       const failureReason = err instanceof Error ? err.message : 'react_loop_error';
       recordToolFailure({
@@ -643,7 +684,7 @@ export async function processMessage(
     { role: 'assistant', content: fallbackResult.response },
   ];
 
-  return finalize({
+  return done({
     response: fallbackResult.response,
     updatedHistory,
     messages: fallbackResult.messages,

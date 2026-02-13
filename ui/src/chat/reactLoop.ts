@@ -93,6 +93,12 @@ const SAFE_READ_TOOL_NAMES = new Set<string>([
 
 const MEMORY_KEY = 'chat_react_memory_v1';
 const MEMORY_DAILY_KEY = 'chat_react_memory_daily_v1';
+const ENABLE_REACT_MEMORY =
+  (import.meta.env.VITE_CHAT_REACT_MEMORY || 'false').toLowerCase() === 'true';
+
+function hasLocalStorage(): boolean {
+  return typeof localStorage !== 'undefined';
+}
 
 function isBrowserTool(name: string): boolean {
   return name.startsWith('browser_');
@@ -232,6 +238,7 @@ function compactSteps(steps: ReActStep[]): ReActStep[] {
 }
 
 function getMemory(namespace: string): Array<{ key: string; content: string }> {
+  if (!ENABLE_REACT_MEMORY || !hasLocalStorage()) return [];
   try {
     const raw = localStorage.getItem(memoryKey(MEMORY_KEY, namespace));
     if (!raw) return [];
@@ -243,6 +250,7 @@ function getMemory(namespace: string): Array<{ key: string; content: string }> {
 }
 
 function saveMemory(entries: Array<{ key: string; content: string }>, namespace: string): void {
+  if (!ENABLE_REACT_MEMORY || !hasLocalStorage()) return;
   try {
     localStorage.setItem(memoryKey(MEMORY_KEY, namespace), JSON.stringify(entries.slice(-500)));
   } catch {
@@ -275,6 +283,7 @@ function recallMemory(query: string, limit = 5, namespace = 'default'): string {
 
 function appendDaily(entries: Array<{ key: string; content: string }>, namespace: string): void {
   if (entries.length === 0) return;
+  if (!ENABLE_REACT_MEMORY || !hasLocalStorage()) return;
   try {
     const raw = localStorage.getItem(memoryKey(MEMORY_DAILY_KEY, namespace));
     const existing = raw ? (JSON.parse(raw) as Array<{ ts: string; key: string; content: string }>) : [];
@@ -288,6 +297,7 @@ function appendDaily(entries: Array<{ key: string; content: string }>, namespace
 
 function persistMemoryWrites(entries: Array<{ key: string; content: string }>, namespace: string): void {
   if (entries.length === 0) return;
+  if (!ENABLE_REACT_MEMORY || !hasLocalStorage()) return;
   const current = getMemory(namespace);
   const byKey = new Map(current.map((e) => [e.key.toLowerCase(), e] as const));
   for (const entry of entries) {

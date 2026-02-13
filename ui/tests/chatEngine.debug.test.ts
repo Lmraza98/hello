@@ -68,11 +68,36 @@ describe('processMessage debug gating', () => {
 
   it('computes selected tools once when debug fast path needs them', async () => {
     const selectToolsSpy = vi.spyOn(intentFastPathModule, 'selectToolsForIntent');
+    const fastPathSpy = vi.spyOn(intentFastPathModule, 'detectFastPathPlan').mockReturnValue({
+      reason: 'test_fast_path',
+      calls: [{ name: 'search_contacts', args: { name: 'Randy Peterson' } }],
+    });
     await processMessage('find Randy Peterson', {
       debug: true,
       requireToolConfirmation: true,
       phase: 'planning',
     });
     expect(selectToolsSpy).toHaveBeenCalledTimes(1);
+    expect(fastPathSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('adds debug trace for browser follow-up fast-path confirmation', async () => {
+    vi.spyOn(intentFastPathModule, 'detectFastPathPlan').mockReturnValue({
+      reason: 'test_browser_followup',
+      calls: [{ name: 'browser_health', args: {} }],
+    });
+
+    const result = await processMessage('click on Zco in sales navigator', {
+      debug: true,
+      requireToolConfirmation: true,
+      conversationHistory: [
+        { role: 'assistant', content: 'I completed the browser navigation and kept the session open.' },
+      ],
+    });
+
+    expect(result.confirmation?.required).toBe(true);
+    expect(result.debugTrace).toBeDefined();
+    expect(result.debugTrace?.routeReason).toBe('fast_path_browser_followup');
+    expect(typeof result.debugTrace?.timings?.totalMs).toBe('number');
   });
 });
