@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Clock,
   Cloud,
+  Copy,
   Download,
   ExternalLink,
   Eye,
@@ -24,7 +25,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type {
   BackgroundTask,
   ChatMessage as ChatMessageType,
@@ -32,6 +33,9 @@ import type {
   ContactAction,
   DashboardDataBridge,
   EmbeddedComponentMessage,
+  RetrievalResultItem,
+  RetrievalResultsMessage,
+  ResearchCardMessage,
 } from '../../types/chat';
 import { MetricPill } from '../dashboard/MetricPill';
 import { ActiveConversationsCard } from '../dashboard/ActiveConversationsCard';
@@ -102,6 +106,10 @@ export function ChatMessage({
     }
     case 'contact_card':
       return <ContactCardRenderer message={message} onAction={onAction} />;
+    case 'retrieval_results':
+      return <RetrievalResultsRenderer message={message} onAction={onAction} />;
+    case 'research_card':
+      return <ResearchCardRenderer message={message} />;
     case 'email_preview':
       return (
         <BotBubble>
@@ -285,6 +293,7 @@ export function ChatMessage({
 const contactActionConfig: Record<ContactAction, { label: string; icon: React.ElementType; variant: 'primary' | 'secondary' }> = {
   add_to_campaign: { label: 'Add to Campaign', icon: FolderPlus, variant: 'primary' },
   send_email: { label: 'Email', icon: Mail, variant: 'primary' },
+  delete_contact: { label: 'Delete', icon: Trash2, variant: 'secondary' },
   view_in_salesforce: { label: 'View in SF', icon: ExternalLink, variant: 'secondary' },
   edit_contact: { label: 'Edit', icon: Pencil, variant: 'secondary' },
   search_salesnav: { label: 'Search Sales Nav', icon: Search, variant: 'primary' },
@@ -313,6 +322,12 @@ function ContactCardRenderer({
             </p>
             {contact.email ? (
               <p className="text-xs leading-4 text-text">{contact.email}</p>
+            ) : null}
+            {contact.phone ? (
+              <p className="text-xs leading-4 text-text">{contact.phone}</p>
+            ) : null}
+            {contact.id ? (
+              <p className="text-[11px] leading-4 text-text-dim">ID: {contact.id}</p>
             ) : null}
             {contact.location ? (
               <p className="text-xs leading-4 text-text-dim">{contact.location}</p>
@@ -363,7 +378,255 @@ function ContactCardRenderer({
   );
 }
 
+function RetrievalResultsRenderer({
+  message,
+  onAction,
+}: {
+  message: RetrievalResultsMessage;
+  onAction: (actionValue: string) => void;
+}) {
+  const [typeFilter, setTypeFilter] = useState<'all' | 'contact' | 'company' | 'conversation' | 'email'>('all');
+  const [sort, setSort] = useState<'best' | 'newest' | 'oldest'>('best');
+
+  const filtered = message.items.filter((item) => {
+    if (typeFilter === 'all') return true;
+    if (typeFilter === 'email') return item.entityType === 'email_message' || item.entityType === 'email_thread';
+    return item.entityType === typeFilter;
+  });
+
+  const sorted = [...filtered].sort((a, b) => {
+    if (sort === 'best') return (b.scoreTotal || 0) - (a.scoreTotal || 0);
+    const aTs = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+    const bTs = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+    return sort === 'newest' ? bTs - aTs : aTs - bTs;
+  });
+
+  return (
+    <div className="flex justify-start">
+      <div className="max-w-[95%] w-full rounded-lg border border-border bg-surface overflow-hidden">
+        <div className="px-3 py-2 border-b border-border bg-bg space-y-1.5">
+          <p className="text-sm font-semibold text-text">Results</p>
+          <p className="text-xs text-text-muted">Query interpreted as: {message.query}</p>
+          {message.interpretedAs ? <p className="text-[11px] text-text-dim">{message.interpretedAs}</p> : null}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            {[
+              ['all', 'All'],
+              ['contact', 'Contacts'],
+              ['company', 'Companies'],
+              ['conversation', 'Conversations'],
+              ['email', 'Emails'],
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTypeFilter(id as 'all' | 'contact' | 'company' | 'conversation' | 'email')}
+                className={`rounded-full border px-2 py-0.5 text-[11px] ${
+                  typeFilter === id
+                    ? 'border-accent bg-accent text-white'
+                    : 'border-border text-text-muted hover:bg-surface-hover'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as 'best' | 'newest' | 'oldest')}
+              className="ml-auto rounded-md border border-border bg-surface px-2 py-1 text-[11px] text-text"
+            >
+              <option value="best">Best match</option>
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+            </select>
+          </div>
+        </div>
+        <div className="max-h-[24rem] overflow-y-auto divide-y divide-border">
+          {sorted.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-text-muted">No matches in this view.</p>
+          ) : (
+            sorted.map((item) => (
+              <RetrievalResultCard key={item.id} item={item} onAction={onAction} />
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RetrievalResultCard({
+  item,
+  onAction,
+}: {
+  item: RetrievalResultItem;
+  onAction: (actionValue: string) => void;
+}) {
+  const iconByType: Record<string, React.ReactNode> = {
+    contact: <Users className="h-3.5 w-3.5 text-blue-500" />,
+    company: <Building2 className="h-3.5 w-3.5 text-emerald-500" />,
+    conversation: <MessageCircle className="h-3.5 w-3.5 text-orange-500" />,
+    email_message: <Mail className="h-3.5 w-3.5 text-violet-500" />,
+    email_thread: <Mail className="h-3.5 w-3.5 text-violet-500" />,
+  };
+  const confidenceClass =
+    item.confidence === 'high'
+      ? 'text-green-700 bg-green-100 border-green-200'
+      : item.confidence === 'medium'
+        ? 'text-amber-700 bg-amber-100 border-amber-200'
+        : 'text-zinc-700 bg-zinc-100 border-zinc-200';
+
+  const contactId =
+    item.entityType === 'contact' && item.id.includes(':')
+      ? Number(item.id.split(':')[1] || 0)
+      : 0;
+
+  return (
+    <div className="px-3 py-2.5 space-y-1.5">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            {iconByType[item.entityType] || <Search className="h-3.5 w-3.5 text-text-dim" />}
+            <p className="text-sm font-semibold text-text truncate">{item.title}</p>
+            {item.dedupeCount && item.dedupeCount > 1 ? (
+              <span className="text-[10px] rounded border border-border px-1 py-0.5 text-text-dim">
+                {item.dedupeCount} sources
+              </span>
+            ) : null}
+          </div>
+          {item.subtitle ? <p className="text-[11px] text-text-dim pl-5">{item.subtitle}</p> : null}
+        </div>
+        <span className={`text-[10px] rounded border px-1.5 py-0.5 ${confidenceClass}`}>
+          {item.confidence}
+        </span>
+      </div>
+
+      {item.subject ? <p className="text-xs text-text">Subject: {item.subject}</p> : null}
+      {item.participants ? <p className="text-[11px] text-text-muted">Participants: {item.participants}</p> : null}
+      {item.timestamp ? (
+        <p className="text-[11px] text-text-dim">{new Date(item.timestamp).toLocaleString()}</p>
+      ) : null}
+      {item.snippet ? <p className="text-xs text-text-muted line-clamp-2">{item.snippet}</p> : null}
+
+      <div className="flex flex-wrap gap-1.5">
+        {item.email ? (
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px] text-text hover:bg-surface-hover"
+            onClick={() => navigator.clipboard?.writeText(item.email || '')}
+          >
+            <Copy className="h-3 w-3" />
+            {item.email}
+          </button>
+        ) : null}
+        {item.phone ? (
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px] text-text hover:bg-surface-hover"
+            onClick={() => navigator.clipboard?.writeText(item.phone || '')}
+          >
+            <Copy className="h-3 w-3" />
+            {item.phone}
+          </button>
+        ) : null}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5 pt-1">
+        {item.entityType === 'contact' && contactId > 0 ? (
+          <>
+            <button type="button" onClick={() => onAction('section:contacts')} className="rounded border border-border px-2 py-1 text-[11px] hover:bg-surface-hover">Open</button>
+            <button type="button" onClick={() => onAction(`contact_action:send_email:${contactId}`)} className="rounded border border-border px-2 py-1 text-[11px] hover:bg-surface-hover">Email</button>
+            <button type="button" onClick={() => onAction(`contact_action:add_to_campaign:${contactId}`)} className="rounded border border-border px-2 py-1 text-[11px] hover:bg-surface-hover">Add to Campaign</button>
+            <button type="button" onClick={() => onAction(`contact_action:sync_salesforce:${contactId}`)} className="rounded border border-border px-2 py-1 text-[11px] hover:bg-surface-hover">Sync to SF</button>
+          </>
+        ) : null}
+        {item.entityType === 'conversation' ? (
+          <>
+            <button type="button" onClick={() => onAction('section:conversations')} className="rounded border border-border px-2 py-1 text-[11px] hover:bg-surface-hover">Open thread</button>
+            <button type="button" onClick={() => onAction('section:conversations')} className="rounded border border-border px-2 py-1 text-[11px] hover:bg-surface-hover">Reply</button>
+          </>
+        ) : null}
+        {(item.entityType === 'email_message' || item.entityType === 'email_thread') ? (
+          <>
+            <button type="button" onClick={() => onAction('section:scheduled')} className="rounded border border-border px-2 py-1 text-[11px] hover:bg-surface-hover">Open</button>
+            <button type="button" onClick={() => onAction('section:scheduled')} className="rounded border border-border px-2 py-1 text-[11px] hover:bg-surface-hover">Use as Template</button>
+          </>
+        ) : null}
+      </div>
+
+      {item.sourceRefs.length > 0 ? (
+        <details className="pt-1">
+          <summary className="cursor-pointer text-[11px] text-text-dim">Sources</summary>
+          <div className="mt-1 space-y-0.5">
+            {item.sourceRefs.slice(0, 6).map((ref, idx) => (
+              <p key={`${ref.label}-${ref.value}-${idx}`} className="text-[11px] text-text-dim">
+                {ref.label}: {ref.value}
+              </p>
+            ))}
+          </div>
+        </details>
+      ) : null}
+    </div>
+  );
+}
+
 /* ── Embedded Dashboard Components ── */
+
+function ResearchCardRenderer({
+  message,
+}: {
+  message: ResearchCardMessage;
+}) {
+  const displaySummary = (message.summary || '').trim();
+  const highlights = (message.highlights || []).filter((item) => typeof item === 'string' && item.trim().length > 0);
+  const sources = (message.sources || []).filter((src) => src?.url);
+
+  return (
+    <div className="flex justify-start">
+      <div className="max-w-[90%] rounded-lg border border-border bg-surface overflow-hidden">
+        <div className="px-3 py-2 border-b border-border bg-bg">
+          <p className="text-xs text-text-dim">Research ({message.subject.kind})</p>
+          <p className="text-sm font-semibold text-text">{message.subject.name}</p>
+        </div>
+        <div className="px-3 py-2 space-y-2">
+          {displaySummary ? (
+            <p className="text-xs text-text-muted whitespace-pre-wrap">{displaySummary}</p>
+          ) : null}
+          {highlights.length > 0 ? (
+            <div className="space-y-1">
+              <p className="text-[11px] font-medium text-text">Highlights</p>
+              <ul className="space-y-1">
+                {highlights.slice(0, 5).map((item, idx) => (
+                  <li key={`${idx}-${item.slice(0, 24)}`} className="text-xs text-text-muted">
+                    {idx + 1}. {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {sources.length > 0 ? (
+            <div className="space-y-1">
+              <p className="text-[11px] font-medium text-text">Sources</p>
+              <div className="space-y-1">
+                {sources.slice(0, 5).map((src, idx) => (
+                  <a
+                    key={`${idx}-${src.url}`}
+                    href={ensureProtocol(src.url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[11px] text-accent hover:text-accent-hover"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    <span className="line-clamp-1">{src.title || src.url}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function EmbeddedComponentRenderer({
   message,
@@ -852,6 +1115,13 @@ function StatusBlock({
 }: {
   message: Extract<ChatMessageType, { type: 'status' }>;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasDetails = Boolean(message.details && message.details.trim().length > 0);
+  useEffect(() => {
+    if (message.status === 'loading' && hasDetails) {
+      setExpanded(true);
+    }
+  }, [message.status, hasDetails, message.details]);
   const statusToStyle = {
     loading: {
       className: 'border-amber-300 bg-amber-50 text-amber-800',
@@ -875,10 +1145,22 @@ function StatusBlock({
   return (
     <div className="flex justify-start">
       <div
-        className={`inline-flex items-center gap-2 rounded-md border-l-4 border px-3 py-2 text-xs ${style.className}`}
+        className={`inline-flex flex-col rounded-md border-l-4 border px-3 py-2 text-xs ${style.className}`}
       >
-        {style.icon}
-        <span>{message.content}</span>
+        <button
+          type="button"
+          disabled={!hasDetails}
+          onClick={() => hasDetails && setExpanded((prev) => !prev)}
+          className={`inline-flex items-center gap-2 text-left ${hasDetails ? 'cursor-pointer' : 'cursor-default'}`}
+        >
+          {style.icon}
+          <span>{message.content}</span>
+        </button>
+        {hasDetails && expanded ? (
+          <pre className="mt-2 whitespace-pre-wrap rounded border border-blue-200 bg-white/70 p-2 text-[11px] text-blue-900">
+            {message.details}
+          </pre>
+        ) : null}
       </div>
     </div>
   );

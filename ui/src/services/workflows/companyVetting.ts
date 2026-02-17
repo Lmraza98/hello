@@ -16,7 +16,7 @@ import type {
   StepResult,
   Workflow,
 } from '../../types/chat';
-import { researchCompany, deepResearchCompany, formatDeepResearch } from '../research';
+import { deepResearchCompany, formatDeepResearch } from '../research';
 import { buttonsMsg, msgId, statusMsg, textMsg } from './helpers';
 
 export function createCompanyVettingWorkflow(
@@ -33,28 +33,48 @@ export function createCompanyVettingWorkflow(
       currentIndex: 0,
       approved: [] as any[],
       skipped: [] as any[],
+      vetDecisions: [] as Array<{ company_name: string; company_id?: number; approved: boolean; icp_score?: number }>,
       currentCompany: null as any,
       currentResearch: {} as any,
       existingLookup: null as Record<string, any> | null,
+      researchCache: null as Record<string, any> | null,
     },
     status: 'running',
     createdAt: new Date(),
     steps: [
-      /* ── Step 0: Intro + lookup existing companies ── */
+      /* -- Step 0: Intro ? batch lookup + research via backend workflow -- */
       {
         id: 'intro',
         name: 'Introduce vetting flow',
         type: 'api_call',
         execute: async (ctx): Promise<StepResult> => {
-          // Look up which companies already exist in the DB
           const companyNames = ctx.companies.map(
             (c: any) => c.company_name || c.name || ''
           ).filter(Boolean);
 
+          // Single backend call replaces lookupExistingCompanies + per-company research
           try {
-            ctx.existingLookup = await api.lookupExistingCompanies(companyNames);
+            const result = await api.workflows.lookupAndResearch({
+              company_names: companyNames,
+              icp_context: {
+                industry: ctx.icpContext.industry,
+                location: ctx.icpContext.location,
+              },
+            });
+
+            // Build lookup maps from the batch result
+            ctx.existingLookup = {};
+            ctx.researchCache = {};
+            for (const entry of result.companies || []) {
+              const key = (entry.name || '').toLowerCase();
+              if (entry.existing) {
+                ctx.existingLookup[key] = entry.existing;
+              }
+              ctx.researchCache[key] = entry.research || {};
+            }
           } catch {
             ctx.existingLookup = {};
+            ctx.researchCache = {};
           }
 
           const existingCount = Object.keys(ctx.existingLookup || {}).length;
@@ -75,7 +95,7 @@ export function createCompanyVettingWorkflow(
         },
       },
 
-      /* ── Step 1: Present next company for vetting ── */
+      /* -- Step 1: Present next company for vetting -- */
       {
         id: 'present-company',
         name: 'Present next company for vetting',
@@ -113,29 +133,14 @@ export function createCompanyVettingWorkflow(
 
           const companyName = company.company_name || company.name || 'Unknown';
 
-          // Check if this company already exists in DB
+          // Use pre-fetched data from the batch lookup-and-research call
           const existingInfo = ctx.existingLookup?.[companyName.toLowerCase()] || null;
-
-          // Research the company
-          let research: Record<string, any> = {};
-          try {
-            research = await researchCompany(
-              {
-                name: companyName,
-                industry: company.industry || ctx.icpContext.industry,
-                headcount: company.employee_count || company.headcount,
-                location: company.location,
-              },
-              ctx.icpContext
-            );
-          } catch (err) {
-            console.warn('Research failed for', companyName, err);
-          }
+          const research: Record<string, any> = ctx.researchCache?.[companyName.toLowerCase()] || {};
 
           ctx.currentCompany = company;
           ctx.currentResearch = research;
 
-          // Build actions — existing companies get a re-vet option instead of plain approve
+          // Build actions ? existing companies get a re-vet option instead of plain approve
           const actions: CompanyVetCardMessage['actions'] = existingInfo
             ? ['approve', 'skip', 'more_info', 'skip_rest']
             : ['approve', 'skip', 'more_info', 'skip_rest'];
@@ -181,7 +186,7 @@ export function createCompanyVettingWorkflow(
         },
       },
 
-      /* ── Step 2: Handle vetting decision ── */
+      /* -- Step 2: Handle vetting decision -- */
       {
         id: 'handle-vet-decision',
         name: 'Process user vetting decision',
@@ -194,12 +199,15 @@ export function createCompanyVettingWorkflow(
               ctx.approved.push(ctx.currentCompany);
               ctx.currentIndex++;
 
-              // Mark vetted in DB if this company has an existing record
+              // Collect vetting decision for batch submission later
               const existingInfo = ctx.existingLookup?.[companyName.toLowerCase()];
               const icpScore = ctx.currentResearch?.icp_fit_score;
-              if (existingInfo?.id) {
-                try { await api.markCompanyVetted(existingInfo.id, icpScore); } catch { /* best-effort */ }
-              }
+              ctx.vetDecisions.push({
+                company_name: companyName,
+                company_id: existingInfo?.id,
+                approved: true,
+                icp_score: icpScore,
+              });
 
               return {
                 success: true,
@@ -300,7 +308,7 @@ export function createCompanyVettingWorkflow(
         },
       },
 
-      /* ── Step 3: Completion handler ── */
+      /* -- Step 3: Completion handler -- */
       {
         id: 'completion',
         name: 'Handle post-vetting action',
@@ -308,10 +316,16 @@ export function createCompanyVettingWorkflow(
         execute: async (ctx, userInput): Promise<StepResult> => {
           switch (userInput) {
             case 'start_scraping': {
-              // Determine per-company lead count from context or default
-              const maxPerCompany = ctx.leadsPerCompany || 10;
+              // Submit batch vetting decisions first
+              if (ctx.vetDecisions?.length > 0) {
+                try {
+                  await api.workflows.vetBatch({ decisions: ctx.vetDecisions });
+                } catch { /* best-effort */ }
+              }
 
-              // Emit a "starting" message immediately via callbacks
+              const maxPerCompany = ctx.leadsPerCompany || 10;
+              const companyNames = ctx.approved.map((c: any) => c.company_name || c.name).filter(Boolean);
+
               const emitMessages: ((msgs: any[]) => void) | undefined = ctx._emitMessages;
               emitMessages?.([
                 statusMsg(
@@ -320,7 +334,6 @@ export function createCompanyVettingWorkflow(
                 ),
               ]);
 
-              // Register a background task
               const taskId = `task-scrape-${Date.now()}`;
               ctx._backgroundTask = {
                 id: taskId,
@@ -332,14 +345,9 @@ export function createCompanyVettingWorkflow(
                 startedAt: new Date(),
               };
 
-              // Kick off scraping in the background (non-blocking)
               try {
-                const result = await api.salesnavScrapeLeads({
-                  companies: ctx.approved.map((c: any) => ({
-                    name: c.company_name || c.name,
-                    domain: c.domain,
-                    linkedin_url: c.linkedin_url,
-                  })),
+                const result = await api.workflows.scrapeLeadsBatch({
+                  company_names: companyNames,
                   title_filter: ctx.icpContext.titles?.join(', ') || 'Decision Maker',
                   max_per_company: maxPerCompany,
                 });
@@ -348,7 +356,7 @@ export function createCompanyVettingWorkflow(
                   success: true,
                   messages: [
                     statusMsg(
-                      `Scraped ${result.leads?.length || 0} leads from ${ctx.approved.length} companies`,
+                      `Scraped ${result.leads?.length || 0} leads from ${result.companies_processed} companies`,
                       'success'
                     ),
                     textMsg(

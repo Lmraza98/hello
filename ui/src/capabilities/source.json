@@ -1,0 +1,244 @@
+[
+  {
+    "pageId": "dashboard",
+    "route": "/dashboard",
+    "title": "Dashboard",
+    "description": "Operational overview for outreach volume, replies, scheduled sends, and recent conversations.",
+    "actions": [
+      { "id": "dashboard.navigate", "label": "Go to Dashboard", "description": "Navigate to dashboard overview", "params": [], "category": "navigation" },
+      { "id": "dashboard.poll_replies", "label": "Poll Replies", "description": "Trigger Outlook reply polling", "params": [], "category": "workflow" },
+      { "id": "dashboard.mark_conversation_done", "label": "Mark Conversation Done", "description": "Mark a conversation as handled", "params": [{ "name": "reply_id", "type": "number", "required": true, "description": "Reply identifier" }], "category": "mutation" }
+    ],
+    "filters": [],
+    "displays": [
+      { "id": "dashboard.stat_cards", "type": "card_grid", "description": "Top KPI cards for companies, contacts, reply rate, and meetings" },
+      { "id": "dashboard.email_performance", "type": "chart", "description": "Email performance trend chart" }
+    ]
+  },
+  {
+    "pageId": "companies",
+    "route": "/companies",
+    "title": "Companies",
+    "description": "Manage target companies for outreach. View, filter, add, import, and delete prospect companies.",
+    "actions": [
+      { "id": "companies.navigate", "label": "Go to Companies", "description": "Navigate to companies list", "params": [], "category": "navigation" },
+      { "id": "companies.search", "label": "Search Companies", "description": "Set free-text query filter", "params": [{ "name": "q", "type": "string", "required": true, "description": "Search query text" }], "category": "filter" },
+      { "id": "companies.filter_vertical", "label": "Filter Vertical", "description": "Filter by company vertical", "params": [{ "name": "vertical", "type": "string", "required": true, "description": "Vertical name" }], "category": "filter" },
+      { "id": "companies.filter_tier", "label": "Filter Tier", "description": "Filter by company tier", "params": [{ "name": "tier", "type": "string", "required": true, "description": "Tier value" }], "category": "filter" },
+      { "id": "companies.expand_row", "label": "Expand Company Row", "description": "Select/expand company detail panel", "params": [{ "name": "company_id", "type": "number", "required": true, "description": "Company ID" }], "category": "display" },
+      { "id": "companies.delete_selected", "label": "Delete Selected Companies", "description": "Permanently delete selected companies", "params": [{ "name": "company_ids", "type": "number[]", "required": true, "description": "Company IDs to delete" }], "conditions": [{ "type": "min_selection", "value": 1, "description": "At least one company must be selected" }], "destructive": true, "category": "mutation" },
+      { "id": "companies.reset_all", "label": "Reset All Companies", "description": "Reset all company status values", "params": [], "destructive": true, "category": "mutation" }
+    ],
+    "filters": [
+      { "id": "companies.q", "label": "Search", "type": "search", "description": "Search by name/domain/vertical" },
+      { "id": "companies.vertical", "label": "Vertical", "type": "multi_select", "description": "Filter by industry vertical" },
+      { "id": "companies.tier", "label": "Tier", "type": "multi_select", "description": "Filter by company tier" }
+    ],
+    "displays": [
+      { "id": "companies.table", "type": "table", "description": "Company list table", "columns": ["company_name", "tier", "status", "vertical"], "expandable": true, "selectable": true }
+    ]
+  },
+  {
+    "pageId": "contacts",
+    "route": "/contacts",
+    "title": "Contacts",
+    "description": "Manage contact records and run bulk outreach actions.",
+    "actions": [
+      { "id": "contacts.navigate", "label": "Go to Contacts", "description": "Navigate to contacts page", "params": [], "category": "navigation" },
+      { "id": "contacts.search", "label": "Search Contacts", "description": "Set contacts query filter", "params": [{ "name": "q", "type": "string", "required": true, "description": "Search text" }], "category": "filter" },
+      { "id": "contacts.filter_company", "label": "Filter Company", "description": "Filter contacts by company", "params": [{ "name": "company", "type": "string", "required": true, "description": "Company name" }], "category": "filter" },
+      { "id": "contacts.filter_vertical", "label": "Filter Vertical", "description": "Filter contacts by vertical", "params": [{ "name": "vertical", "type": "string", "required": true, "description": "Vertical value" }], "category": "filter" },
+      { "id": "contacts.select_row", "label": "Select Contact", "description": "Select a contact row by id", "params": [{ "name": "contact_id", "type": "number", "required": true, "description": "Contact ID" }], "category": "display" },
+      { "id": "contacts.bulk_delete", "label": "Delete Contacts", "description": "Delete selected contacts", "params": [{ "name": "contact_ids", "type": "number[]", "required": true, "description": "Contacts to delete" }], "conditions": [{ "type": "min_selection", "value": 1, "description": "At least one contact must be selected" }], "destructive": true, "category": "mutation" },
+      { "id": "contacts.bulk_send_email", "label": "Send Emails", "description": "Send campaign emails to selected contacts", "params": [{ "name": "contact_ids", "type": "number[]", "required": true, "description": "Contacts to email" }], "conditions": [{ "type": "min_selection", "value": 1, "description": "At least one contact must be selected" }], "category": "workflow" },
+      { "id": "contacts.bulk_linkedin_request", "label": "Send LinkedIn Requests", "description": "Send LinkedIn requests to selected contacts", "params": [{ "name": "contact_ids", "type": "number[]", "required": true, "description": "Contacts to request" }], "conditions": [{ "type": "min_selection", "value": 1, "description": "At least one contact must be selected" }], "category": "workflow" }
+    ],
+    "filters": [
+      { "id": "contacts.q", "label": "Search", "type": "search", "description": "Search by name/company/title/email" },
+      { "id": "contacts.company", "label": "Company", "type": "multi_select", "description": "Filter by company" },
+      { "id": "contacts.vertical", "label": "Vertical", "type": "multi_select", "description": "Filter by vertical" },
+      { "id": "contacts.hasEmail", "label": "Has Email", "type": "boolean", "description": "Filter to contacts with email" }
+    ],
+    "displays": [
+      { "id": "contacts.table", "type": "table", "description": "Contact table with expandable details", "columns": ["name", "company_name", "title", "email", "vertical"], "expandable": true, "selectable": true }
+    ]
+  },
+  {
+    "pageId": "email.campaigns",
+    "route": "/email?view=campaigns",
+    "title": "Email Campaigns",
+    "description": "Create and manage campaigns, activation, templates, and sends.",
+    "actions": [
+      { "id": "email.campaigns.navigate", "aliases": ["email.navigate_campaigns"], "label": "Go to Campaigns", "description": "Navigate to email campaigns view", "params": [], "category": "navigation" },
+      { "id": "email.campaigns.create", "aliases": ["email.create_campaign"], "label": "Create Campaign", "description": "Open create campaign modal", "params": [], "category": "mutation" },
+      { "id": "email.campaigns.activate", "aliases": ["email.activate_campaign"], "label": "Activate Campaign", "description": "Activate a campaign by id", "params": [{ "name": "campaign_id", "type": "number", "required": true, "description": "Campaign ID" }], "category": "mutation" },
+      { "id": "email.campaigns.pause", "aliases": ["email.pause_campaign"], "label": "Pause Campaign", "description": "Pause a campaign by id", "params": [{ "name": "campaign_id", "type": "number", "required": true, "description": "Campaign ID" }], "category": "mutation" }
+    ],
+    "filters": [],
+    "displays": [{ "id": "email.campaign_cards", "type": "card_grid", "description": "Campaign cards and stats" }]
+  },
+  {
+    "pageId": "email.review",
+    "route": "/email?view=review",
+    "title": "Email Review Queue",
+    "description": "Review and approve pending generated emails.",
+    "actions": [
+      { "id": "email.review.navigate", "aliases": ["email.navigate_review"], "label": "Go to Review Queue", "description": "Navigate to review queue", "params": [], "category": "navigation" },
+      { "id": "email.review.approve", "aliases": ["email.approve_email"], "label": "Approve Email", "description": "Approve one pending email", "params": [{ "name": "email_id", "type": "number", "required": true, "description": "Email ID" }], "category": "mutation" },
+      { "id": "email.review.reject", "aliases": ["email.reject_email"], "label": "Reject Email", "description": "Reject one pending email", "params": [{ "name": "email_id", "type": "number", "required": true, "description": "Email ID" }], "category": "mutation" }
+    ],
+    "filters": [],
+    "displays": [{ "id": "email.review_table", "type": "table", "description": "Pending review table", "columns": ["contact", "campaign", "subject"] }]
+  },
+  {
+    "pageId": "email.scheduled",
+    "route": "/email?view=scheduled",
+    "title": "Scheduled Emails",
+    "description": "View and reorder scheduled outgoing emails.",
+    "actions": [
+      { "id": "email.scheduled.navigate", "aliases": ["email.navigate_scheduled"], "label": "Go to Scheduled", "description": "Navigate to scheduled emails", "params": [], "category": "navigation" },
+      { "id": "email.scheduled.send_now", "aliases": ["email.send_now"], "label": "Send Email Now", "description": "Send a scheduled email immediately", "params": [{ "name": "email_id", "type": "number", "required": true, "description": "Scheduled email id" }], "category": "workflow" }
+    ],
+    "filters": [],
+    "displays": [{ "id": "email.scheduled_table", "type": "table", "description": "Scheduled sends table", "columns": ["contact", "campaign", "scheduled_send_time"] }]
+  },
+  {
+    "pageId": "email.history",
+    "route": "/email?view=history",
+    "title": "Sent Email History",
+    "description": "Browse historical sent email records.",
+    "actions": [{ "id": "email.history.navigate", "aliases": ["email.navigate_history"], "label": "Go to Sent History", "description": "Navigate to sent history view", "params": [], "category": "navigation" }],
+    "filters": [],
+    "displays": [{ "id": "email.history_table", "type": "table", "description": "Sent email history list", "columns": ["sent_at", "contact", "subject"] }]
+  },
+  {
+    "pageId": "bi.overview",
+    "route": "/bi?tab=overview",
+    "title": "BI Overview",
+    "description": "BI health, freshness, and ingestion summary.",
+    "actions": [{ "id": "bi.navigate_overview", "label": "Go to BI Overview", "description": "Navigate to BI overview tab", "params": [], "category": "navigation" }],
+    "filters": [],
+    "displays": [{ "id": "bi.overview_cards", "type": "card_grid", "description": "BI status cards" }]
+  },
+  {
+    "pageId": "bi.sources",
+    "route": "/bi?tab=sources",
+    "title": "BI Sources",
+    "description": "Per-source ingestion status and configuration controls.",
+    "actions": [
+      { "id": "bi.navigate_sources", "label": "Go to BI Sources", "description": "Navigate to BI sources tab", "params": [], "category": "navigation" },
+      { "id": "bi.save_source_config", "label": "Save Source Config", "description": "Persist BI source settings", "params": [], "category": "mutation" }
+    ],
+    "filters": [],
+    "displays": [{ "id": "bi.sources_cards", "type": "card_grid", "description": "Source status cards" }]
+  },
+  {
+    "pageId": "bi.runs",
+    "route": "/bi?tab=runs",
+    "title": "BI Runs",
+    "description": "Historical BI ingestion runs and counts.",
+    "actions": [
+      { "id": "bi.navigate_runs", "label": "Go to BI Runs", "description": "Navigate to BI runs tab", "params": [], "category": "navigation" },
+      { "id": "bi.filter_run_status", "label": "Filter Run Status", "description": "Filter runs by status", "params": [{ "name": "status", "type": "string", "required": true, "description": "Run status" }], "category": "filter" }
+    ],
+    "filters": [{ "id": "bi.runs.status", "label": "Status", "type": "select", "description": "Filter by run status" }],
+    "displays": [{ "id": "bi.runs_table", "type": "table", "description": "BI runs table", "columns": ["id", "status", "processed", "inserted", "updated"] }]
+  },
+  {
+    "pageId": "bi.companies",
+    "route": "/bi?tab=companies",
+    "title": "BI Companies",
+    "description": "Company-level BI coverage and signal detail.",
+    "actions": [
+      { "id": "bi.navigate_companies", "label": "Go to BI Companies", "description": "Navigate to BI companies tab", "params": [], "category": "navigation" },
+      { "id": "bi.search_company", "label": "Search Company", "description": "Filter BI companies by query", "params": [{ "name": "query", "type": "string", "required": true, "description": "Company query" }], "category": "filter" }
+    ],
+    "filters": [{ "id": "bi.companies.query", "label": "Company Query", "type": "search", "description": "Search by company/domain" }],
+    "displays": [{ "id": "bi.companies_table", "type": "table", "description": "BI companies table", "columns": ["name", "domain", "coverage", "signal_count"], "selectable": true }]
+  },
+  {
+    "pageId": "bi.events",
+    "route": "/bi?tab=events",
+    "title": "BI Events",
+    "description": "Raw source event stream for auditing collection behavior.",
+    "actions": [{ "id": "bi.navigate_events", "label": "Go to BI Events", "description": "Navigate to BI events tab", "params": [], "category": "navigation" }],
+    "filters": [
+      { "id": "bi.events.source", "label": "Source", "type": "search", "description": "Filter by source" },
+      { "id": "bi.events.ok", "label": "Result", "type": "select", "description": "Filter by success/failure", "options": [{ "value": "all", "label": "All" }, { "value": "ok", "label": "Ok" }, { "value": "failed", "label": "Failed" }] }
+    ],
+    "displays": [{ "id": "bi.events_table", "type": "table", "description": "BI event table", "columns": ["source", "query", "ok", "collected", "saved", "started_at"] }]
+  },
+  {
+    "pageId": "bi.errors",
+    "route": "/bi?tab=errors",
+    "title": "BI Errors",
+    "description": "Top error categories and samples by source.",
+    "actions": [{ "id": "bi.navigate_errors", "label": "Go to BI Errors", "description": "Navigate to BI errors tab", "params": [], "category": "navigation" }],
+    "filters": [],
+    "displays": [{ "id": "bi.errors_table", "type": "table", "description": "BI error table", "columns": ["source", "error_type", "count", "last_occurrence"] }]
+  },
+  {
+    "pageId": "tasks",
+    "route": "/tasks",
+    "title": "Tasks",
+    "description": "Live browser task monitor with task table and per-tab screenshots.",
+    "actions": [
+      { "id": "tasks.navigate", "label": "Go to Tasks", "description": "Navigate to tasks monitor page", "params": [], "category": "navigation" },
+      { "id": "tasks.filter_finished", "label": "Toggle Finished Tasks", "description": "Show or hide finished tasks", "params": [{ "name": "show_finished", "type": "boolean", "required": true, "description": "Whether to include finished tasks" }], "category": "filter" }
+    ],
+    "filters": [{ "id": "tasks.show_finished", "label": "Show Finished", "type": "boolean", "description": "Include finished tasks in table" }],
+    "displays": [
+      { "id": "tasks.table", "type": "table", "description": "Task list table", "columns": ["task_id", "status", "stage", "progress_pct", "tab_id"] },
+      { "id": "tasks.monitors", "type": "card_grid", "description": "Live browser tab monitor cards" }
+    ]
+  },
+  {
+    "pageId": "admin.logs",
+    "route": "/admin/logs",
+    "title": "Admin Logs",
+    "description": "Operational logs explorer with correlation and filters.",
+    "actions": [
+      { "id": "admin.navigate_logs", "label": "Go to Admin Logs", "description": "Navigate to admin logs", "params": [], "category": "navigation" },
+      { "id": "admin.logs.search", "label": "Search Logs", "description": "Filter logs by query text", "params": [{ "name": "q", "type": "string", "required": true, "description": "Search string" }], "category": "filter" }
+    ],
+    "filters": [
+      { "id": "admin.logs.q", "label": "Query", "type": "search", "description": "Search message text" },
+      { "id": "admin.logs.level", "label": "Level", "type": "select", "description": "Filter log level" }
+    ],
+    "displays": [{ "id": "admin.logs.table", "type": "table", "description": "Admin logs table", "columns": ["timestamp", "level", "feature", "message", "correlation_id"] }]
+  },
+  {
+    "pageId": "admin.costs",
+    "route": "/admin/costs",
+    "title": "Admin Costs",
+    "description": "Cost breakdown by feature, provider/model, and expensive requests.",
+    "actions": [{ "id": "admin.navigate_costs", "label": "Go to Admin Costs", "description": "Navigate to admin costs", "params": [], "category": "navigation" }],
+    "filters": [{ "id": "admin.costs.range", "label": "Range", "type": "select", "description": "Cost range filter", "options": [{ "value": "today", "label": "Today" }, { "value": "7d", "label": "Last 7d" }, { "value": "30d", "label": "Last 30d" }] }],
+    "displays": [{ "id": "admin.costs.cards", "type": "card_grid", "description": "Summary spend cards" }]
+  },
+  {
+    "pageId": "admin.finetune",
+    "route": "/admin/finetune",
+    "title": "Admin Fine-tune",
+    "description": "Label function-calling failures and export training datasets.",
+    "actions": [
+      { "id": "admin.navigate_finetune", "label": "Go to Fine-tune", "description": "Navigate to fine-tune tooling", "params": [], "category": "navigation" },
+      { "id": "admin.finetune.export_split", "label": "Export SFT Split", "description": "Export train/test split for fine-tuning", "params": [], "category": "workflow" },
+      { "id": "admin.finetune.clear_all", "label": "Clear Captures", "description": "Delete all failure captures and labels", "params": [], "destructive": true, "category": "mutation" }
+    ],
+    "filters": [],
+    "displays": [{ "id": "admin.finetune.table", "type": "table", "description": "Fine-tune capture table", "columns": ["timestamp", "user_message", "failure_reason", "selected_tools"] }]
+  },
+  {
+    "pageId": "admin.tests",
+    "route": "/admin/tests",
+    "title": "Admin Tests",
+    "description": "Run planner regression suite and tool-example override workflows.",
+    "actions": [
+      { "id": "admin.navigate_tests", "label": "Go to Admin Tests", "description": "Navigate to planner tests", "params": [], "category": "navigation" },
+      { "id": "admin.tests.run_suite", "label": "Run Planner Tests", "description": "Run built-in planner test suite", "params": [], "category": "workflow" }
+    ],
+    "filters": [],
+    "displays": [{ "id": "admin.tests.table", "type": "table", "description": "Planner test result table", "columns": ["id", "input", "expected", "actual", "status"] }]
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "query": "SaaS companies specializing in AI-powered cybersecurity for the healthcare industry",
+  "companies": [],
+  "filters_applied": {
+    "industry": [
+      "Hospitals and Health Care"
+    ],
+    "headquarters_location": [],
+    "company_headcount": null,
+    "annual_revenue": null,
+    "company_headcount_growth": null,
+    "number_of_followers": null,
+    "keywords": [
+      "AI cybersecurity SaaS"
+    ]
+  },
+  "status": "empty",
+  "error": null
+}

@@ -1,11 +1,10 @@
 import type { ChatMessage, ContactAction } from '../types/chat';
-import { textMsg } from '../services/workflows/helpers';
+import { textMsg } from '../services/messageHelpers';
 import { dispatchToolCalls } from './toolExecutor';
 import {
   asObject,
   extractCompaniesFromResult,
   extractContactsFromResult,
-  extractSalesNavProfilesFromResult,
   removeEmptyArgs,
   type CompanyLike,
 } from './resultExtractors';
@@ -18,8 +17,113 @@ type HybridSearchItem = {
   entity_id?: string;
   title?: string;
   snippet?: string;
+  timestamp?: string | null;
+  score_total?: number;
+  score_exact?: number;
+  score_lex?: number;
+  score_vec?: number;
   source_refs?: unknown[];
 };
+
+type RetrievalEntityType =
+  | 'contact'
+  | 'company'
+  | 'conversation'
+  | 'email_message'
+  | 'email_thread'
+  | 'campaign'
+  | 'note'
+  | 'file_chunk'
+  | 'unknown';
+
+function parseSnippetMeta(snippet: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const token of snippet.split(',')) {
+    const [rawKey, ...rest] = token.split('=');
+    const key = (rawKey || '').trim().toLowerCase();
+    const value = rest.join('=').trim();
+    if (!key || !value) continue;
+    out[key] = value;
+  }
+  return out;
+}
+
+function normalizeEntityType(value: unknown): RetrievalEntityType {
+  const text = String(value || '').trim().toLowerCase();
+  if ([
+    'contact',
+    'company',
+    'conversation',
+    'email_message',
+    'email_thread',
+    'campaign',
+    'note',
+    'file_chunk',
+  ].includes(text)) {
+    return text as RetrievalEntityType;
+  }
+  return 'unknown';
+}
+
+function confidenceFromScores(item: HybridSearchItem): 'high' | 'medium' | 'low' {
+  const exact = Number(item.score_exact || 0);
+  const total = Number(item.score_total || 0);
+  if (exact >= 0.99 || total >= 90) return 'high';
+  if (total >= 45) return 'medium';
+  return 'low';
+}
+
+function toSourceRefLabels(refs: unknown[] | undefined): Array<{ label: string; value: string }> {
+  if (!Array.isArray(refs)) return [];
+  const out: Array<{ label: string; value: string }> = [];
+  for (const ref of refs) {
+    const row = asObject(ref);
+    if (!row) continue;
+    if (row.chunk_id) {
+      out.push({ label: 'Chunk', value: String(row.chunk_id) });
+      continue;
+    }
+    if (row.row_id && row.table) {
+      out.push({ label: String(row.table), value: String(row.row_id) });
+      continue;
+    }
+    if (row.field) {
+      out.push({ label: 'Matched on', value: String(row.field) });
+      continue;
+    }
+  }
+  return out;
+}
+
+function dedupeRetrievalItems(items: HybridSearchItem[]): HybridSearchItem[] {
+  const byKey = new Map<string, HybridSearchItem & { dedupeCount?: number }>();
+  for (const item of items) {
+    const entityType = normalizeEntityType(item.entity_type);
+    const snippetMeta = parseSnippetMeta(String(item.snippet || ''));
+    const email = (snippetMeta.email || '').toLowerCase();
+    const key =
+      entityType === 'contact'
+        ? email || `${entityType}:${String(item.entity_id || '').toLowerCase()}:${String(item.title || '').toLowerCase()}`
+        : `${entityType}:${String(item.entity_id || '').toLowerCase()}:${String(item.title || '').toLowerCase()}`;
+    const prev = byKey.get(key);
+    if (!prev) {
+      byKey.set(key, { ...item, dedupeCount: 1 });
+      continue;
+    }
+    prev.dedupeCount = (prev.dedupeCount || 1) + 1;
+    prev.source_refs = [...(prev.source_refs || []), ...(item.source_refs || [])];
+    if ((Number(item.score_total || 0) > Number(prev.score_total || 0))) {
+      prev.score_total = item.score_total;
+      prev.score_exact = item.score_exact;
+      prev.score_lex = item.score_lex;
+      prev.score_vec = item.score_vec;
+      prev.snippet = item.snippet || prev.snippet;
+      prev.timestamp = item.timestamp || prev.timestamp;
+      prev.title = item.title || prev.title;
+    }
+  }
+  return [...byKey.values()];
+}
 
 function formatFilterValues(dispatched: DispatchResult): ChatMessage[] | null {
   const call = [...dispatched.executed]
@@ -158,39 +262,6 @@ function formatSearchCompanies(dispatched: DispatchResult): ChatMessage[] | null
   ];
 }
 
-function formatSalesNavPeople(dispatched: DispatchResult): ChatMessage[] | null {
-  const peopleCall = [...dispatched.executed]
-    .reverse()
-    .find((item) => item.name === 'salesnav_person_search' && item.ok);
-  if (!peopleCall) return null;
-
-  const profiles = extractSalesNavProfilesFromResult(peopleCall.result);
-  if (profiles.length === 0) return [textMsg('No matching profiles found in Sales Navigator.')];
-
-  const cards = profiles.slice(0, 5).map((profile, idx) => ({
-    id: `salesnav-profile-card-${Date.now()}-${idx}`,
-    type: 'contact_card' as const,
-    sender: 'bot' as const,
-    timestamp: new Date(),
-    contact: {
-      name: profile.name || 'Unknown',
-      title: profile.title || undefined,
-      company: profile.company || 'Unknown company',
-      linkedin_url: profile.linkedin_url || undefined,
-      location: profile.location || undefined,
-      source: 'Sales Navigator',
-    },
-    actions: [],
-  }));
-
-  const header =
-    profiles.length === 1
-      ? 'Found 1 matching profile in Sales Navigator:'
-      : `Found ${profiles.length} matching profiles in Sales Navigator${profiles.length > 5 ? ' (showing first 5)' : ''}:`;
-
-  return [textMsg(header), ...cards];
-}
-
 function formatSearchContacts(dispatched: DispatchResult): ChatMessage[] | null {
   const searchCall = [...dispatched.executed].reverse().find((item) => item.name === 'search_contacts' && item.ok);
   const researchCall = [...dispatched.executed]
@@ -235,35 +306,110 @@ function formatSearchContacts(dispatched: DispatchResult): ChatMessage[] | null 
   return [textMsg(header), ...cards];
 }
 
+function formatCompoundWorkflowStatus(dispatched: DispatchResult): ChatMessage[] | null {
+  const statusCall = [...dispatched.executed].reverse().find((item) => item.name === 'compound_workflow_status' && item.ok);
+  if (!statusCall || !statusCall.result || typeof statusCall.result !== 'object') return null;
+  const payload = statusCall.result as Record<string, unknown>;
+  const id = typeof payload.id === 'string' ? payload.id : '';
+  const status = String(payload.status || '').toLowerCase();
+  const phase = typeof payload.current_phase_id === 'string' ? payload.current_phase_id : '';
+  const completed = Number(payload.completed_phases || 0);
+  const total = Number(payload.total_phases || 0);
+  if (status === 'failed') {
+    const err = asObject(payload.error);
+    const code = typeof err?.code === 'string' ? err.code : '';
+    const msg = typeof err?.message === 'string' ? err.message : '';
+    const summary = [code, msg].filter(Boolean).join(': ') || 'Unknown failure';
+    return [textMsg(`Workflow ${id || '(unknown)'} failed${phase ? ` in phase "${phase}"` : ''}: ${summary}`)];
+  }
+  if (status === 'completed') {
+    return [textMsg(`Workflow ${id || '(unknown)'} completed (${completed}/${total} phases).`)];
+  }
+  return [textMsg(`Workflow ${id || '(unknown)'} is ${status || 'running'} (${completed}/${total} phases${phase ? `, phase "${phase}"` : ''}).`)];
+}
+
+function formatCompoundWorkflowRun(dispatched: DispatchResult): ChatMessage[] | null {
+  const runCall = [...dispatched.executed].reverse().find((item) => item.name === 'compound_workflow_run' && item.ok);
+  if (!runCall || !runCall.result || typeof runCall.result !== 'object') return null;
+  const payload = runCall.result as Record<string, unknown>;
+  const id = typeof payload.workflow_id === 'string' ? payload.workflow_id : '';
+  const status = String(payload.status || 'running').toLowerCase();
+  if (!id) return null;
+  if (status === 'failed') {
+    const err = asObject(payload.error);
+    const msg = typeof err?.message === 'string' ? err.message : 'Workflow failed to start.';
+    return [textMsg(`Compound workflow ${id} failed: ${msg}`)];
+  }
+  return [textMsg(`Compound workflow ${id} started in background (status: ${status}).`)];
+}
+
 function formatHybridSearch(dispatched: DispatchResult): ChatMessage[] | null {
   const searchCall = [...dispatched.executed].reverse().find((item) => item.name === 'hybrid_search' && item.ok);
   if (!searchCall || !searchCall.result || typeof searchCall.result !== 'object') return null;
   const payload = searchCall.result as { results?: HybridSearchItem[] };
-  const results = Array.isArray(payload.results) ? payload.results : [];
+  const results = dedupeRetrievalItems(Array.isArray(payload.results) ? payload.results : []);
   if (results.length === 0) return [textMsg('No grounded local matches found for that query.')];
-
-  const lines = results.slice(0, 8).map((item, idx) => {
-    const kind = String(item.entity_type || 'item');
-    const id = String(item.entity_id || '');
-    const title = String(item.title || `${kind} ${id}`).trim();
+  const query = String(searchCall.args?.query || '').trim();
+  const interpretedAs = (() => {
+    const et = Array.isArray(searchCall.args?.entity_types)
+      ? (searchCall.args?.entity_types as unknown[]).map((x) => String(x)).join(', ')
+      : '';
+    return et ? `entity types: ${et}` : undefined;
+  })();
+  const items = results.slice(0, 40).map((item) => {
+    const entityType = normalizeEntityType(item.entity_type);
     const snippet = String(item.snippet || '').trim();
-    const refsCount = Array.isArray(item.source_refs) ? item.source_refs.length : 0;
-    return `${idx + 1}. [${kind}] ${title}${snippet ? ` - ${snippet}` : ''}${refsCount > 0 ? ` (refs: ${refsCount})` : ''}`;
+    const snippetMeta = parseSnippetMeta(snippet);
+    const title = String(item.title || `${entityType} ${item.entity_id || ''}`).trim();
+    const subtitleBits: string[] = [];
+    if (entityType === 'contact') {
+      const company = title.includes('@') ? title.split('@')[1]?.trim() : '';
+      if (company) subtitleBits.push(company);
+    }
+    if (snippetMeta.domain) subtitleBits.push(snippetMeta.domain);
+    const subtitle = subtitleBits.join(' • ') || undefined;
+    return {
+      id: `${entityType}:${String(item.entity_id || title)}`,
+      entityType,
+      title,
+      subtitle,
+      snippet,
+      timestamp: item.timestamp || null,
+      confidence: confidenceFromScores(item),
+      scoreTotal: Number(item.score_total || 0),
+      scoreExact: Number(item.score_exact || 0),
+      scoreLex: Number(item.score_lex || 0),
+      scoreVec: Number(item.score_vec || 0),
+      email: snippetMeta.email,
+      phone: snippetMeta.phone,
+      company: snippetMeta.company,
+      subject: snippetMeta.subject,
+      participants: snippetMeta.participants,
+      sourceRefs: toSourceRefLabels(item.source_refs),
+      dedupeCount: Number((item as { dedupeCount?: number }).dedupeCount || 1),
+    };
   });
-
   return [
-    textMsg(`Found ${results.length} grounded match${results.length === 1 ? '' : 'es'}:`),
-    textMsg(lines.join('\n')),
+    {
+      id: `retrieval-results-${Date.now()}`,
+      type: 'retrieval_results',
+      sender: 'bot',
+      timestamp: new Date(),
+      query: query || 'search',
+      interpretedAs,
+      items,
+    },
   ];
 }
 
 export function formatDispatchMessages(dispatched: DispatchResult): ChatMessage[] {
   const formatters = [
+    formatCompoundWorkflowStatus,
+    formatCompoundWorkflowRun,
     formatHybridSearch,
     formatFilterValues,
     formatCollectedCompanies,
     formatSearchCompanies,
-    formatSalesNavPeople,
     formatSearchContacts,
   ] as const;
 

@@ -2,7 +2,7 @@
 Email discovery command.
 """
 import sys
-from services.email_discoverer import process_linkedin_contacts_with_patterns
+from services.email.discoverer import process_linkedin_contacts_with_patterns
 
 
 def cmd_discover_emails(args):
@@ -22,7 +22,7 @@ def cmd_discover_emails(args):
             workers=workers
         )
         
-        print(f"\n✓ Success!")
+        print("\n[OK] Success!")
         print(f"  Contacts processed: {result['contacts']}")
         print(f"  Companies: {result['companies']}")
         print(f"  Output: {result['output_path']}")
@@ -31,7 +31,7 @@ def cmd_discover_emails(args):
         if result.get('patterns'):
             print("\nPatterns discovered:")
             for company, info in list(result['patterns'].items())[:5]:
-                domain_mark = "✓" if info.get('domain_discovered') else "?"
+                domain_mark = "OK" if info.get('domain_discovered') else "?"
                 print(f"  {company}: {info['pattern']} @ {info.get('domain', 'unknown')} [{domain_mark}]")
             if len(result['patterns']) > 5:
                 print(f"  ... and {len(result['patterns']) - 5} more")

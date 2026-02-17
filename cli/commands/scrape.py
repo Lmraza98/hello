@@ -23,17 +23,7 @@ def cmd_scrape_and_enrich(args):
     print(f"LinkedIn workers: {num_workers}")
     print(f"Email discovery: Running in parallel\n")
     
-    # Get pending companies
-    with db.get_db() as conn:
-        cursor = conn.cursor()
-        query = "SELECT id, company_name, domain, tier FROM targets WHERE status = 'pending'"
-        params = []
-        if tier:
-            query += " AND tier = ?"
-            params.append(tier)
-        query += " ORDER BY tier, company_name LIMIT 50"
-        cursor.execute(query, params)
-        companies = [dict(row) for row in cursor.fetchall()]
+    companies = db.get_pending_targets(limit=50, tier=tier)
     
     if not companies:
         print("No pending companies found.")
@@ -58,12 +48,11 @@ async def _scrape_companies_parallel_with_email(companies: list, max_contacts: i
     - Sales Navigator scraping (extracts contacts + public URLs in one pass)
     - Email pattern discovery (thread pool)
     """
-    from services.linkedin import SalesNavigatorScraper, save_linkedin_contacts
-    from services.email_discoverer import discover_email_pattern, generate_email
-    from services.name_normalizer import normalize_name
+    from services.linkedin import SalesNavigatorScraper
+    from services.contacts import save_linkedin_contacts
+    from services.email.discoverer import discover_email_pattern, generate_email
     from playwright.async_api import async_playwright
     from concurrent.futures import ThreadPoolExecutor
-    import threading
     
     print("=== Parallel Scraping + Email Discovery ===")
     print(f"Starting {num_workers} Sales Nav browsers + email thread pool...")
@@ -278,14 +267,7 @@ async def _scrape_companies_parallel_with_email(companies: list, max_contacts: i
                 print(f"[Email] No domain found for {company_name}, skipping")
                 return 0
             
-            # Get contacts for this company from database
-            with db.get_db() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT id, name FROM linkedin_contacts 
-                    WHERE company_name = ? AND (email_generated IS NULL OR email_generated = '')
-                """, (company_name,))
-                contacts = cursor.fetchall()
+            contacts = db.get_contacts_missing_generated_email(company_name)
             
             if not contacts:
                 print(f"[Email] No contacts to process for {company_name}")
@@ -293,20 +275,14 @@ async def _scrape_companies_parallel_with_email(companies: list, max_contacts: i
             
             # Generate emails for each contact
             generated = 0
-            with db.get_db() as conn:
-                cursor = conn.cursor()
-                for contact in contacts:
-                    contact_id = contact['id']
-                    name = contact['name']
-                    
-                    email = generate_email(name, pattern, email_domain)
-                    if email:
-                        cursor.execute("""
-                            UPDATE linkedin_contacts 
-                            SET email_generated = ?, email_pattern = ?, email_confidence = ?
-                            WHERE id = ?
-                        """, (email, pattern, int(confidence * 100), contact_id))
-                        generated += 1
+            for contact in contacts:
+                contact_id = contact['id']
+                name = contact['name']
+
+                email = generate_email(name, pattern, email_domain)
+                if email:
+                    db.update_contact_generated_email(contact_id, email, pattern, int(confidence * 100))
+                    generated += 1
             
             print(f"[Email] ✓ {company_name}: {generated} emails generated ({pattern} @ {email_domain})")
             return generated
@@ -342,7 +318,7 @@ async def _scrape_companies_parallel_with_email(companies: list, max_contacts: i
                     db.update_target_status(company_name=company_name, status='processing')
                     
                     # Scrape contacts AND extract public LinkedIn URLs directly from Sales Nav
-                    result = await scraper.scrape_company_contacts(
+                    result = await scraper.scrape_company_contacts_raw(
                         company_name=company_name,
                         domain=domain,
                         max_contacts=max_contacts,

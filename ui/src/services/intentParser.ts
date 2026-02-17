@@ -1,9 +1,17 @@
+/**
+ * @deprecated Legacy regex-based intent parser — used only by workflowEngine.ts.
+ *
+ * For new intent classification, use the assistant-core skill matcher
+ * (`matchMessage()` from `assistant-core/skills/registry`) or the LLM-based
+ * intent classifier in `chat/chatEngine/intentClassifier.ts`.
+ */
+
 import type { ParsedIntent } from '../types/chat';
 
 export function parseIntent(message: string): ParsedIntent {
   const lower = message.toLowerCase().trim();
 
-  // ── Check job / background task status ──
+  // -- Check job / background task status --
   if (isCheckJobIntent(lower)) {
     return {
       intent: 'check_job',
@@ -13,7 +21,7 @@ export function parseIntent(message: string): ParsedIntent {
     };
   }
 
-  // ── Company research ("tell me about Acme Corp", "research MasTec") ──
+  // -- Company research ("tell me about Acme Corp", "research MasTec") --
   const companyResearchMatch = extractCompanyResearchTarget(message, lower);
   if (companyResearchMatch) {
     return {
@@ -24,7 +32,7 @@ export function parseIntent(message: string): ParsedIntent {
     };
   }
 
-  // ── Lead generation (must check before contact_lookup to avoid false matches) ──
+  // -- Lead generation (must check before contact_lookup to avoid false matches) --
   if (isLeadGenerationIntent(lower)) {
     return {
       intent: 'lead_generation',
@@ -129,7 +137,7 @@ export function parseIntent(message: string): ParsedIntent {
   return { intent: 'unknown', entities: {}, confidence: 0, raw: message };
 }
 
-/* ── Lead generation intent detection ── */
+/* -- Lead generation intent detection -- */
 
 function isLeadGenerationIntent(text: string): boolean {
   // Explicit lead generation phrases
@@ -226,7 +234,7 @@ function extractTitles(text: string): string[] {
   return found;
 }
 
-/* ── Check job intent detection ── */
+/* -- Check job intent detection -- */
 
 function isCheckJobIntent(text: string): boolean {
   if (/\b(check|status|progress|how.?s)\b.*\b(job|task|scraping|scrape|background|running)\b/.test(text)) return true;
@@ -236,7 +244,7 @@ function isCheckJobIntent(text: string): boolean {
   return false;
 }
 
-/* ── Company research intent detection ── */
+/* -- Company research intent detection -- */
 
 function extractCompanyResearchTarget(original: string, _lower: string): string | null {
   // "tell me about [Company]"

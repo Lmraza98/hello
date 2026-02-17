@@ -5,16 +5,16 @@ const { runToolPlanMock, dispatchToolCallsMock } = vi.hoisted(() => ({
   dispatchToolCallsMock: vi.fn(),
 }));
 
-vi.mock('../src/chat/models/toolPlanner', () => ({
-  runToolPlan: runToolPlanMock,
-}));
+vi.mock('../src/chat/models/toolPlanner', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/chat/models/toolPlanner')>();
+  return {
+    ...actual,
+    runToolPlan: runToolPlanMock,
+  };
+});
 
 vi.mock('../src/chat/toolExecutor', () => ({
   dispatchToolCalls: dispatchToolCallsMock,
-}));
-
-vi.mock('../src/chat/intentFastPath', () => ({
-  selectToolsForIntent: vi.fn(() => Array.from({ length: 30 }, (_, i) => `tool_${i + 1}`)),
 }));
 
 import { resumeReActLoop, type ReActStep } from '../src/chat/reactLoop';
@@ -57,15 +57,16 @@ describe('reactLoop prompt compression', () => {
     );
 
     const prompt = String(runToolPlanMock.mock.calls[0]?.[0] || '');
+    const allowedTools = (runToolPlanMock.mock.calls[0]?.[3] as string[] | undefined) || [];
     expect(prompt).toContain('State summary:');
     expect(prompt).not.toContain('Key findings:');
     expect(prompt).not.toContain('old step 1');
     expect(prompt).not.toContain('old step 2');
     expect(prompt).toContain('old step 4');
     expect(prompt).toContain('Executing user-confirmed actions.');
-    expect(prompt).toContain('tool_1');
-    expect(prompt).toContain('tool_20');
-    expect(prompt).not.toContain('tool_30');
+    expect(prompt).toContain('Allowed tools for this request:');
+    expect(allowedTools.length).toBeGreaterThan(0);
+    expect(allowedTools.length).toBeLessThanOrEqual(12);
     expect(prompt.length).toBeLessThan(6000);
   });
 });

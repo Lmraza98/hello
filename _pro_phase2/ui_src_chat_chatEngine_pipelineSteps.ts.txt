@@ -1,0 +1,830 @@
+﻿==================== ui/src/chat/chatEngine/pipelineSteps.ts ====================
+/**
+ * Chat engine message pipeline.
+ *
+ * Ordered steps (early-return):
+ * A) buildPipelineContext
+ * B) trySkillFirst
+ * C) conversationalShortCircuit
+ * D) activeTaskAndSkillResume
+ * E) sessionCoreferenceAndDisambiguation
+ * F) pendingTaskPlanResume
+ * G) taskDecomposition
+ * H) browserFollowUp
+ * I) modelFastPath
+ * J) paramCollectionGate
+ * K) genericRetrievalBootstrap
+ * L) routeAndRunPlannerOrFallback
+ */
+
+import { textMsg } from '../../services/workflows/helpers';
+import type { ChatCompletionMessageParam, ChatPhase } from '../chatEngineTypes';
+import { extractUserIntentText, extractPageContext, applyRefinementRules } from '../messageParsing';
+import { toLocalHistory, getOllamaReadyFast } from '../ollamaStatus';
+import { nowMs, elapsedMs } from '../timing';
+import { compactPlannerHistoryByTurns, CHAT_PLANNER_MAX_USER_TURNS } from '../runtimeGuards';
+import { estimateChars } from '../chatEngineDebug';
+import { withSessionContext } from '../sessionState';
+import { routeMessage, type ModelRoute } from '../router';
+import { recordToolFailure } from '../finetuneCapture';
+import { runWithFallback } from '../fallbackPipeline';
+import { ollamaChat } from '../models/ollamaClient';
+import { runToolPlan } from '../models/toolPlanner';
+import { analyzeTaskRequirements } from '../taskClassifiers';
+import { createTask, isTaskActive, transitionTask, type ParamRequest } from '../taskState';
+import { handleActiveTask, EXECUTE_TASK_SENTINEL, generateParamRequest } from '../taskHandler';
+import { hasOpenBrowserSessionSignal, isBrowserFollowUpIntent } from '../chatEnginePolicy';
+import { TOOLS } from '../tools';
+
+import { TOOL_BRAIN_MODEL, TOOL_BRAIN_NAME } from '../models/toolBrainConfig';
+import { AVOID_DUPLICATE_PLANNER_PASSES, CONVERSATION_MODEL, ENABLE_CHAT_ENGINE_DEBUG_TRACE, ENABLE_CHAT_ENGINE_HEAVY_DEBUG_TRACE, ENABLE_CHAT_MODEL_FAST_PATH, ENABLE_GENERIC_RETRIEVAL_BOOTSTRAP, ENABLE_OPENAI_FALLBACK, MODEL_FAST_PATH_ALLOWED_TOOLS } from './env';
+import { attachTimingsAndSizes } from './dispatchResponse';
+import { buildSessionEntityChoices, resolveSessionCoreference } from './coreference';
+import { decomposeTask } from './taskDecomposer';
+import { executeFastPathPlan } from './fastPath';
+import { handleToolRoute, buildReActConfig } from './reactAdapter';
+import { trySkillFirst, resumeSkillWorkItem } from './skillAdapter';
+import { deserializeStepContext, serializeStepContext } from './stepContext';
+import { executeTaskPlan } from './taskPlanExecutor';
+import { classifyIntent } from './intentClassifier';
+
+import type { ChatEngineOptions, ChatEngineResult, ChatEngineSizeMetrics, ChatEngineTimings, MessageMeta, PipelineContext, StepResult } from './pipelineTypes';
+
+function buildSelectedToolsGetter() {
+  const selectedToolsForMessageCache: { value: string[] | null } = { value: null };
+  return (): string[] => {
+    if (!selectedToolsForMessageCache.value) {
+      selectedToolsForMessageCache.value = TOOLS.map((tool) => tool.function.name);
+    }
+    return selectedToolsForMessageCache.value;
+  };
+}
+
+function finalizeResult(ctx: PipelineContext, startedAt: number, result: ChatEngineResult): ChatEngineResult {
+  ctx.timings.totalMs = elapsedMs(startedAt);
+
+  // Auto-complete executing tasks when we reach a final result.
+  if (result.sessionState?.activeTask?.status === 'executing') {
+    result = {
+      ...result,
+      sessionState: {
+        ...result.sessionState,
+        activeTask: transitionTask(result.sessionState.activeTask, 'completed', 'execution_finished'),
+      },
+    };
+  }
+
+  if (!result.debugTrace) return result;
+  return {
+    ...result,
+    debugTrace: attachTimingsAndSizes(result.debugTrace, ctx.timings, ctx.sizeMetrics),
+  };
+}
+
+export function buildPipelineContext(
+  userMessage: string,
+  options: ChatEngineOptions
+): {
+  ctx: PipelineContext;
+  startedAt: number;
+  emitPlannerEvent: (msg: string) => void;
+} {
+  const emitPlannerEvent = (msg: string) => options.onPlannerEvent?.(msg);
+  const startedAt = nowMs();
+  const timings: ChatEngineTimings = { totalMs: 0 };
+  const phase: ChatPhase = options.phase || 'planning';
+  const history = options.conversationHistory || [];
+  const includeDebugTrace = options.debug ?? ENABLE_CHAT_ENGINE_DEBUG_TRACE;
+  const includeHeavyDebug = includeDebugTrace && (options.debugHeavy ?? ENABLE_CHAT_ENGINE_HEAVY_DEBUG_TRACE);
+  const intentText = extractUserIntentText(userMessage);
+  const pageContext = extractPageContext(userMessage);
+  const baseMessage = intentText.trim() || userMessage.trim();
+  const normalizedMessage = phase === 'refining' ? applyRefinementRules(baseMessage) : baseMessage;
+
+  const localHistory = toLocalHistory(history);
+  const plannerHistory = compactPlannerHistoryByTurns(localHistory, CHAT_PLANNER_MAX_USER_TURNS);
+
+  const historyChars = history.reduce((sum, message) => sum + estimateChars((message as { content?: unknown }).content), 0);
+  const localHistoryChars = localHistory.reduce((sum, message) => sum + estimateChars(message.content), 0);
+
+  const sizeMetrics: ChatEngineSizeMetrics = {
+    historyChars,
+    localHistoryChars,
+    promptChars: normalizedMessage.length + localHistoryChars,
+  };
+
+  const sessionContext = options.sessionState && options.sessionState.entities.length > 0
+    ? withSessionContext('Recent resolved entities for this conversation.', options.sessionState)
+    : '';
+
+  const reactConfig = buildReActConfig(options, pageContext, sessionContext);
+
+  const meta: MessageMeta = { rawUserMessage: userMessage, intentText, pageContext };
+
+  const ctx: PipelineContext = {
+    userMessage,
+    history,
+    localHistory,
+    phase,
+    options,
+    sessionState: options.sessionState,
+    intentText,
+    pageContext,
+    normalizedMessage,
+    includeDebugTrace,
+    includeHeavyDebug,
+    timings,
+    sizeMetrics,
+    plannerHistory,
+    reactConfig,
+    meta,
+    getSelectedToolsForMessage: buildSelectedToolsGetter(),
+  };
+
+  return { ctx, startedAt, emitPlannerEvent };
+}
+
+async function stepTrySkillFirst(ctx: PipelineContext): Promise<StepResult> {
+  try {
+    return await trySkillFirst(ctx);
+  } catch {
+    return null;
+  }
+}
+
+async function stepConversationalShortCircuit(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
+  if (ctx.intentKind !== 'conversational') return null;
+  emitPlannerEvent?.('Conversational Ã¢â‚¬â€ skipping tool planning.');
+  try {
+    const started = nowMs();
+    const resp = await ollamaChat({
+      model: CONVERSATION_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a helpful sales development assistant. Answer naturally and concisely. ' +
+            'You can help with: finding contacts and companies, searching Sales Navigator, ' +
+            'managing campaigns, sending emails, and browser automation on any website. ' +
+            'If the user asks for up-to-date public internet facts (e.g., YouTube view counts), ' +
+            "do not guess: explain you can't verify live values unless a tool/skill is used.",
+        },
+        ...ctx.localHistory.slice(-6),
+        { role: 'user', content: ctx.normalizedMessage },
+      ],
+      temperature: 0.7,
+      numPredict: 512,
+    });
+    ctx.timings.fallbackMs = elapsedMs(started);
+    const text =
+      (resp.message.content || '').trim() ||
+      "I'm a sales assistant. I can search contacts/companies, navigate Sales Navigator, manage campaigns, and help with browser automation.";
+    const updatedHistory: ChatCompletionMessageParam[] = [
+      ...ctx.history,
+      { role: 'user', content: ctx.userMessage },
+      { role: 'assistant', content: text },
+    ];
+
+    return {
+      response: text,
+      updatedHistory,
+      messages: [textMsg(text)],
+      modelUsed: 'gemma',
+      toolsUsed: [],
+      fallbackUsed: false,
+      sessionState: ctx.options.sessionState,
+      ...(ctx.includeDebugTrace
+        ? {
+            debugTrace: {
+              route: 'gemma',
+              routeReason: 'conversational',
+              modelUsed: 'gemma',
+              toolBrainName: TOOL_BRAIN_NAME,
+              toolBrainModel: TOOL_BRAIN_MODEL,
+              success: true,
+              selectedTools: [],
+              nativeToolCalls: 0,
+              tokenToolCalls: 0,
+              toolsUsed: [],
+              fallbackUsed: false,
+              modelSwitches: [],
+              phase: ctx.phase,
+              rawUserMessage: ctx.userMessage,
+              intentText: ctx.normalizedMessage,
+              pageContext: ctx.pageContext || undefined,
+            },
+          }
+        : {}),
+    };
+  } catch {
+    // If conversational response fails, fall through to the normal pipeline.
+    return null;
+  }
+}
+
+async function stepActiveTaskAndSkillResume(ctx: PipelineContext): Promise<StepResult> {
+  const activeTask = ctx.options.sessionState?.activeTask;
+  if (!(activeTask && isTaskActive(activeTask) && ctx.phase === 'planning')) return null;
+
+  const taskResult = await handleActiveTask(
+    ctx.normalizedMessage,
+    activeTask,
+    ctx.history,
+    ctx.options
+  );
+
+  if (taskResult === null) {
+    // new_topic: park and fall through
+    if (ctx.options.sessionState) {
+      ctx.options.sessionState = {
+        ...ctx.options.sessionState,
+        activeTask: transitionTask(activeTask, 'paused', 'user_changed_topic'),
+      };
+      ctx.sessionState = ctx.options.sessionState;
+    }
+    return null;
+  }
+
+  // Task handler consumed the message
+  if (taskResult.result.response === EXECUTE_TASK_SENTINEL) {
+    const skillResumed = await resumeSkillWorkItem({ ctx: { ...ctx, sessionState: ctx.options.sessionState }, updatedTask: taskResult.updatedTask });
+    if (skillResumed) return skillResumed;
+
+    // Non-skill task execution Ã¢â‚¬â€ build synthetic message and recurse
+    const syntheticMessage =
+      (typeof taskResult.updatedTask.params._syntheticMessage === 'string'
+        ? taskResult.updatedTask.params._syntheticMessage
+        : `${taskResult.updatedTask.goal}\nParameters: ${JSON.stringify(taskResult.updatedTask.params)}`);
+
+    const updatedSession = {
+      ...(ctx.options.sessionState || { entities: [] }),
+      activeTask: taskResult.updatedTask,
+    };
+
+    return await processMessagePipeline(syntheticMessage, {
+      ...ctx.options,
+      sessionState: updatedSession,
+      _skipTaskDecomposition: true,
+    });
+  }
+
+  const updatedSession = {
+    ...(ctx.options.sessionState || { entities: [] }),
+    activeTask: taskResult.updatedTask,
+  };
+  return {
+    ...taskResult.result,
+    sessionState: updatedSession,
+  };
+}
+
+async function stepSessionCoreferenceAndDisambiguation(ctx: PipelineContext): Promise<StepResult> {
+  const sessionResolution = await resolveSessionCoreference(ctx.normalizedMessage, ctx.options.sessionState);
+  ctx.resolvedMessage = sessionResolution.normalizedMessage;
+  ctx.plannerMessage = withSessionContext(ctx.resolvedMessage, ctx.options.sessionState);
+  ctx.sessionContext = ctx.options.sessionState && ctx.options.sessionState.entities.length > 0
+    ? withSessionContext('Recent resolved entities for this conversation.', ctx.options.sessionState)
+    : '';
+
+  // Update prompt size metrics now that resolvedMessage is known.
+  if (ctx.sizeMetrics) {
+    ctx.sizeMetrics = {
+      ...ctx.sizeMetrics,
+      promptChars: (ctx.resolvedMessage || ctx.normalizedMessage).length + ctx.sizeMetrics.localHistoryChars,
+    };
+  }
+
+  if (ctx.phase === 'planning' && !(ctx.options.confirmedToolCalls?.length) && sessionResolution.ambiguous) {
+    const sessionChoices = buildSessionEntityChoices(ctx.options.sessionState);
+    if (sessionChoices.length >= 2) {
+      const prompt = 'I found multiple entities in this conversation. Which one should I use?';
+      return {
+        response: prompt,
+        updatedHistory: [
+          ...ctx.history,
+          { role: 'user', content: ctx.normalizedMessage },
+          { role: 'assistant', content: prompt },
+        ],
+        messages: [
+          textMsg(prompt),
+          {
+            id: `entity-disambiguation-${Date.now()}`,
+            type: 'action_buttons',
+            sender: 'bot',
+            content: 'Pick an entity:',
+            timestamp: new Date(),
+            buttons: sessionChoices.map((choice) => ({
+              label: choice.label.length > 56 ? `${choice.label.slice(0, 53)}...` : choice.label,
+              value: `pick_entity:${choice.entityType}:${choice.entityId}`,
+              variant: 'primary' as const,
+            })),
+          },
+        ],
+        modelUsed: 'qwen3',
+        toolsUsed: [],
+        fallbackUsed: false,
+        sessionState: ctx.options.sessionState,
+      };
+    }
+  }
+
+  return null;
+}
+
+async function stepPendingTaskPlanResume(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
+  if (
+    ctx.phase !== 'executing' ||
+    !(ctx.options.confirmedToolCalls?.length) ||
+    !ctx.options.pendingTaskPlan ||
+    ctx.options.pendingTaskPlan.steps.length === 0
+  ) {
+    return null;
+  }
+
+  emitPlannerEvent('Resuming pending multi-step task plan after confirmation.');
+  const reactStartedAt = nowMs();
+  const confirmedStepResult = await handleToolRoute({
+    ctx,
+    userMessage: ctx.plannerMessage || ctx.normalizedMessage,
+    history: ctx.history,
+    options: { ...ctx.options, _skipTaskDecomposition: true, debug: true },
+    plannerHistory: ctx.plannerHistory,
+    reactConfig: ctx.reactConfig,
+    includeDebugTrace: true, // capture executedCalls for downstream steps
+    includeHeavyDebug: false,
+    timings: ctx.timings,
+    meta: { ...ctx.meta, intentText: ctx.resolvedMessage || ctx.normalizedMessage },
+    previousSessionState: ctx.options.sessionState,
+  });
+  ctx.timings.reactMs = elapsedMs(reactStartedAt);
+
+  if (confirmedStepResult.confirmation?.required) {
+    return confirmedStepResult;
+  }
+
+  const pending = ctx.options.pendingTaskPlan;
+  const nextIndex = Math.min(pending.nextStepIndex + 1, pending.steps.length);
+
+  const prevStructured = deserializeStepContext(pending.contextSnippets);
+  const confirmedExecuted = confirmedStepResult.debugTrace?.executedCalls || [];
+  if (confirmedExecuted.length > 0) {
+    const confirmedStep = pending.steps[pending.nextStepIndex];
+    prevStructured.push({
+      stepId: confirmedStep?.id || `s${pending.nextStepIndex + 1}`,
+      stepIntent: confirmedStep?.intent || 'confirmed step',
+      toolResults: confirmedExecuted.map((call) => ({
+        name: call.name,
+        ok: call.ok,
+        result: call.result,
+      })),
+    });
+  }
+  const nextSnippets = serializeStepContext(prevStructured);
+
+  const remaining = pending.steps.slice(nextIndex);
+  if (remaining.length === 0) {
+    return confirmedStepResult;
+  }
+
+  const continued = await executeTaskPlan({
+    rootMessage: pending.rootMessage,
+    steps: remaining,
+    history: confirmedStepResult.updatedHistory,
+    options: { ...ctx.options, confirmedToolCalls: undefined, pendingTaskPlan: undefined },
+    plannerHistory: ctx.plannerHistory,
+    reactConfig: ctx.reactConfig,
+    includeDebugTrace: ctx.includeDebugTrace,
+    includeHeavyDebug: ctx.includeHeavyDebug,
+    timings: ctx.timings,
+    contextSnippets: nextSnippets,
+    startingSessionState: confirmedStepResult.sessionState ?? ctx.options.sessionState,
+    historyMode: 'replace_last_assistant',
+  });
+
+  return {
+    ...continued,
+    modelUsed: continued.modelUsed,
+    toolsUsed: [...new Set([...(confirmedStepResult.toolsUsed || []), ...(continued.toolsUsed || [])])],
+    fallbackUsed: confirmedStepResult.fallbackUsed || continued.fallbackUsed,
+    sessionState: continued.sessionState ?? confirmedStepResult.sessionState,
+  };
+}
+
+async function stepTaskDecomposition(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
+  if (
+    ctx.phase !== 'planning' ||
+    ctx.options._skipTaskDecomposition ||
+    ctx.options.confirmedToolCalls?.length ||
+    ctx.options.pendingTaskPlan
+  ) {
+    return null;
+  }
+
+  try {
+    const steps = await decomposeTask(ctx.resolvedMessage || ctx.normalizedMessage, ctx.plannerHistory, ctx.options.sessionState, ctx.intentKind, emitPlannerEvent);
+    if (steps.length > 1) {
+      emitPlannerEvent(`Task decomposed into ${steps.length} steps.`);
+      const executed = await executeTaskPlan({
+        rootMessage: ctx.normalizedMessage,
+        steps,
+        history: ctx.history,
+        options: { ...ctx.options, _skipTaskDecomposition: true },
+        plannerHistory: ctx.plannerHistory,
+        reactConfig: ctx.reactConfig,
+        includeDebugTrace: ctx.includeDebugTrace,
+        includeHeavyDebug: ctx.includeHeavyDebug,
+        timings: ctx.timings,
+        contextSnippets: [],
+        startingSessionState: ctx.options.sessionState,
+        historyMode: 'append_root',
+      });
+      return executed;
+    }
+  } catch {
+    // Decomposition should never be a hard failure; fall through.
+  }
+  return null;
+}
+
+async function stepBrowserFollowUp(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
+  const browserActive = Boolean(ctx.options.sessionState?.browser?.active);
+  const isAffirmativeFollowUp = (() => {
+    const normalized = (ctx.resolvedMessage || ctx.normalizedMessage).trim().toLowerCase().replace(/[.!?]+$/g, '');
+    const affirmatives = new Set([
+      'yes',
+      'y',
+      'yeah',
+      'yep',
+      'ok',
+      'okay',
+      'sure',
+      'go ahead',
+      'do it',
+      'proceed',
+      'continue',
+    ]);
+    if (!affirmatives.has(normalized)) return false;
+    const lastAssistant = [...ctx.history].reverse().find((m) => m.role === 'assistant' && typeof m.content === 'string');
+    const last = (typeof lastAssistant?.content === 'string' ? lastAssistant.content : '').toLowerCase();
+    return /\b(would you like me to proceed|should i proceed|do you want me to proceed|confirm to run|confirm|proceed)\b/i.test(last);
+  })();
+
+  const browserFollowUp =
+    (browserActive || hasOpenBrowserSessionSignal(ctx.history)) &&
+    (isBrowserFollowUpIntent(ctx.resolvedMessage || ctx.normalizedMessage) || isAffirmativeFollowUp);
+
+  if (!browserFollowUp || ctx.options.confirmedToolCalls?.length) return null;
+
+  emitPlannerEvent('Browser follow-up detected. Enforcing tool-grounded ReAct path.');
+  const reactStartedAt = nowMs();
+  const result = await handleToolRoute({
+    ctx,
+    userMessage: `${ctx.plannerMessage || (ctx.resolvedMessage || ctx.normalizedMessage)}\n\nUse browser tools against the live page session. Do not invent results; only report observed data.`,
+    history: ctx.history,
+    options: ctx.options,
+    plannerHistory: ctx.plannerHistory,
+    reactConfig: ctx.reactConfig,
+    includeDebugTrace: ctx.includeDebugTrace,
+    includeHeavyDebug: ctx.includeHeavyDebug,
+    timings: ctx.timings,
+    meta: {
+      ...ctx.meta,
+      intentText: ctx.resolvedMessage || ctx.normalizedMessage,
+    },
+    previousSessionState: ctx.options.sessionState,
+  });
+  ctx.timings.reactMs = elapsedMs(reactStartedAt);
+  return result;
+}
+
+async function stepModelFastPath(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
+  const browserFollowUp = Boolean((ctx.options.sessionState?.browser?.active || hasOpenBrowserSessionSignal(ctx.history)) &&
+    isBrowserFollowUpIntent(ctx.resolvedMessage || ctx.normalizedMessage));
+
+  const canUseModelFastPath =
+    ENABLE_CHAT_MODEL_FAST_PATH &&
+    ctx.phase === 'planning' &&
+    !(ctx.options.confirmedToolCalls?.length) &&
+    !browserFollowUp &&
+    (ctx.options.forceModel === 'qwen3' || (!ctx.options.forceModel && getOllamaReadyFast()));
+
+  if (!canUseModelFastPath) return null;
+
+  ctx.modelFastPathAttempted = true;
+  try {
+    const plannerStartedAt = nowMs();
+    const fastPlan = await runToolPlan(
+      ctx.plannerMessage || (ctx.resolvedMessage || ctx.normalizedMessage),
+      ctx.plannerHistory,
+      emitPlannerEvent,
+      MODEL_FAST_PATH_ALLOWED_TOOLS,
+      { quick: true }
+    );
+    ctx.timings.plannerMs = (ctx.timings.plannerMs || 0) + elapsedMs(plannerStartedAt);
+    if (fastPlan.success && fastPlan.plannedCalls.length > 0) {
+      ctx.modelFastPathSucceeded = true;
+      emitPlannerEvent(`Model fast path planned ${fastPlan.plannedCalls.length} action(s).`);
+      return await executeFastPathPlan({
+        ctx,
+        fastPlan: { reason: 'model_fast_path', calls: fastPlan.plannedCalls },
+        routeReason: 'model_fast_path',
+        selectedTools: fastPlan.selectedTools,
+        userMessageForHistory: ctx.resolvedMessage || ctx.normalizedMessage,
+        normalizedMessageForSynthesis: ctx.resolvedMessage || ctx.normalizedMessage,
+        previousSessionState: ctx.options.sessionState,
+      });
+    }
+    emitPlannerEvent(
+      `Model fast path returned no executable plan${fastPlan.failureReason ? ` (${fastPlan.failureReason})` : ''}.`
+    );
+    ctx.modelFastPathFailed = true;
+  } catch {
+    emitPlannerEvent('Model fast path planner failed. Falling back to full routing.');
+    ctx.modelFastPathFailed = true;
+  }
+  return null;
+}
+
+async function stepParamCollectionGate(ctx: PipelineContext): Promise<StepResult> {
+  if (
+    ctx.intentKind !== 'single' ||
+    ctx.phase !== 'planning' ||
+    ctx.options._skipTaskDecomposition ||
+    ctx.options.confirmedToolCalls?.length ||
+    ctx.options.sessionState?.activeTask ||
+    !ctx.modelFastPathAttempted ||
+    ctx.modelFastPathSucceeded
+  ) {
+    return null;
+  }
+
+  try {
+    const requirements = await analyzeTaskRequirements(ctx.resolvedMessage || ctx.normalizedMessage, {
+      ...(ctx.options.sessionState?.activeEntity
+        ? {
+            activeEntity: {
+              type: ctx.options.sessionState.activeEntity.entityType,
+              id: ctx.options.sessionState.activeEntity.entityId,
+              label: ctx.options.sessionState.activeEntity.label,
+            },
+          }
+        : {}),
+    });
+
+    if (!requirements.canExecuteImmediately && requirements.missingParams.length > 0) {
+      const task = createTask(ctx.resolvedMessage || ctx.normalizedMessage);
+      task.missingParams = requirements.missingParams.map((p) => ({
+        name: p.name,
+        description: p.description,
+        type: p.type as ParamRequest['type'],
+        required: p.required,
+      }));
+      if (requirements.suggestedTool) {
+        task.steps = [
+          {
+            id: 's1',
+            intent: ctx.resolvedMessage || ctx.normalizedMessage,
+            toolCall: { name: requirements.suggestedTool, args: {} },
+            status: 'pending',
+            dependsOn: [],
+          },
+        ];
+      }
+
+      const askText = await generateParamRequest(task);
+      const updatedSession = {
+        ...(ctx.options.sessionState || { entities: [] }),
+        activeTask: task,
+      };
+
+      return {
+        response: askText,
+        updatedHistory: [
+          ...ctx.history,
+          { role: 'user', content: ctx.userMessage },
+          { role: 'assistant', content: askText },
+        ],
+        messages: [textMsg(askText)],
+        modelUsed: 'qwen3',
+        toolsUsed: [],
+        fallbackUsed: false,
+        sessionState: updatedSession,
+      };
+    }
+  } catch {
+    // Non-fatal: fall through.
+  }
+  return null;
+}
+
+async function stepGenericRetrievalBootstrap(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
+  const useGenericRetrievalBootstrap =
+    ENABLE_GENERIC_RETRIEVAL_BOOTSTRAP &&
+    ctx.phase === 'planning' &&
+    !(ctx.options.confirmedToolCalls?.length) &&
+    ctx.modelFastPathAttempted &&
+    !ctx.modelFastPathSucceeded &&
+    Boolean(ctx.modelFastPathFailed);
+
+  if (!useGenericRetrievalBootstrap) return null;
+
+  emitPlannerEvent('Falling back to generic retrieval bootstrap (hybrid_search).');
+  return await executeFastPathPlan({
+    ctx,
+    fastPlan: {
+      reason: 'model_fast_path',
+      calls: [{ name: 'hybrid_search', args: { query: ctx.resolvedMessage || ctx.normalizedMessage, k: 10 } }],
+    },
+    routeReason: 'model_fast_path',
+    selectedTools: ['hybrid_search'],
+    userMessageForHistory: ctx.resolvedMessage || ctx.normalizedMessage,
+    normalizedMessageForSynthesis: ctx.resolvedMessage || ctx.normalizedMessage,
+    previousSessionState: ctx.options.sessionState,
+  });
+}
+
+async function stepRouteAndRunPlannerOrFallback(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
+  let route: ModelRoute;
+  let routeReason: string;
+
+  const routeStartedAt = nowMs();
+  if (ctx.options.forceModel) {
+    route = ctx.options.forceModel;
+    routeReason = 'forced';
+  } else if (!getOllamaReadyFast()) {
+    route = ENABLE_OPENAI_FALLBACK ? 'openai' : 'gemma';
+    routeReason = ENABLE_OPENAI_FALLBACK ? 'ollama_unavailable_openai' : 'ollama_unavailable_local';
+  } else {
+    const decision = routeMessage(ctx.resolvedMessage || ctx.normalizedMessage);
+    route = decision.model;
+    routeReason = decision.reason;
+  }
+  ctx.timings.routeMs = elapsedMs(routeStartedAt);
+  emitPlannerEvent(`Route selected: ${routeReason} (${route}).`);
+
+  if (ctx.options.confirmedToolCalls?.length) {
+    const reactStartedAt = nowMs();
+    const result = await handleToolRoute({
+      ctx,
+      userMessage: ctx.plannerMessage || (ctx.resolvedMessage || ctx.normalizedMessage),
+      history: ctx.history,
+      options: ctx.options,
+      plannerHistory: ctx.plannerHistory,
+      reactConfig: ctx.reactConfig,
+      includeDebugTrace: ctx.includeDebugTrace,
+      includeHeavyDebug: ctx.includeHeavyDebug,
+      timings: ctx.timings,
+      meta: {
+        ...ctx.meta,
+        intentText: ctx.resolvedMessage || ctx.normalizedMessage,
+      },
+      previousSessionState: ctx.options.sessionState,
+    });
+    ctx.timings.reactMs = elapsedMs(reactStartedAt);
+    return result;
+  }
+
+  const skipDuplicatePlannerPass =
+    AVOID_DUPLICATE_PLANNER_PASSES &&
+    ctx.modelFastPathAttempted &&
+    !ctx.modelFastPathSucceeded &&
+    route === 'qwen3' &&
+    ctx.phase === 'planning';
+  if (skipDuplicatePlannerPass) {
+    emitPlannerEvent('Skipping duplicate ReAct planner pass after model fast-path attempt.');
+  }
+
+  if ((route === 'qwen3' || ctx.phase === 'refining') && !skipDuplicatePlannerPass) {
+    emitPlannerEvent('Analyzing request and running ReAct loop...');
+    try {
+      const reactStartedAt = nowMs();
+      const result = await handleToolRoute({
+        ctx,
+        userMessage: ctx.plannerMessage || (ctx.resolvedMessage || ctx.normalizedMessage),
+        history: ctx.history,
+        options: ctx.options,
+        plannerHistory: ctx.plannerHistory,
+        reactConfig: ctx.reactConfig,
+        includeDebugTrace: ctx.includeDebugTrace,
+        includeHeavyDebug: ctx.includeHeavyDebug,
+        timings: ctx.timings,
+        meta: {
+          ...ctx.meta,
+          intentText: ctx.resolvedMessage || ctx.normalizedMessage,
+        },
+        previousSessionState: ctx.options.sessionState,
+      });
+      ctx.timings.reactMs = elapsedMs(reactStartedAt);
+      return result;
+    } catch (err) {
+      const failureReason = err instanceof Error ? err.message : 'react_loop_error';
+      recordToolFailure({
+        planner_model: TOOL_BRAIN_MODEL,
+        user_message: ctx.resolvedMessage || ctx.normalizedMessage,
+        conversation_tail: ctx.localHistory.slice(-4).map((m) => ({ role: m.role, content: m.content })),
+        route_reason: routeReason,
+        selected_tools: [],
+        executed_tools: [],
+        raw_content: '',
+        native_tool_calls: [],
+        token_tool_calls: [],
+        failure_reason: failureReason,
+        outcome: 'failed',
+        recovered_by_gemma: false,
+      });
+      ctx.options.onModelSwitch?.('qwen3', 'gemma', 'react_loop_error');
+      route = 'gemma';
+      routeReason = 'react_loop_error_fallback';
+    }
+  }
+
+  const fallbackStartedAt = nowMs();
+  const fallbackResult = await runWithFallback(
+    route,
+    ctx.plannerMessage || (ctx.resolvedMessage || ctx.normalizedMessage),
+    ctx.localHistory,
+    ctx.history,
+    ctx.options.onToolCall,
+    ctx.options.onModelSwitch
+  );
+  ctx.timings.fallbackMs = elapsedMs(fallbackStartedAt);
+
+  const updatedHistory: ChatCompletionMessageParam[] = [
+    ...ctx.history,
+    { role: 'user', content: ctx.normalizedMessage },
+    { role: 'assistant', content: fallbackResult.response },
+  ];
+
+  return {
+    response: fallbackResult.response,
+    updatedHistory,
+    messages: fallbackResult.messages,
+    modelUsed: fallbackResult.modelUsed,
+    toolsUsed: fallbackResult.toolsUsed,
+    fallbackUsed: fallbackResult.fallbackUsed,
+    sessionState: ctx.options.sessionState,
+    ...(ctx.includeDebugTrace ? { debugTrace: {
+      route,
+      routeReason,
+      modelUsed: fallbackResult.modelUsed,
+      toolBrainName: TOOL_BRAIN_NAME,
+      toolBrainModel: TOOL_BRAIN_MODEL,
+      success: fallbackResult.success,
+      selectedTools: [],
+      nativeToolCalls: 0,
+      tokenToolCalls: 0,
+      toolsUsed: fallbackResult.toolsUsed,
+      fallbackUsed: fallbackResult.fallbackUsed,
+      modelSwitches: fallbackResult.switches,
+      phase: ctx.phase,
+      rawUserMessage: ctx.userMessage,
+      intentText: ctx.normalizedMessage,
+      pageContext: ctx.pageContext || undefined,
+      sizes: ctx.sizeMetrics,
+    } } : {}),
+  };
+}
+
+export async function processMessagePipeline(
+  userMessage: string,
+  options: ChatEngineOptions = {}
+): Promise<ChatEngineResult> {
+  const { ctx, startedAt, emitPlannerEvent } = buildPipelineContext(userMessage, options);
+
+  // Early intent classification:
+  // - conversational: answer directly (no tool planning)
+  // - single/multi: continue with normal tool/routing pipeline
+  ctx.intentKind = ctx.phase === 'planning' && !(ctx.options.confirmedToolCalls?.length)
+    ? await classifyIntent(ctx.normalizedMessage, emitPlannerEvent)
+    : 'single';
+
+  const steps: Array<() => Promise<StepResult>> = [
+    () => stepTrySkillFirst(ctx),                                           // B
+    () => stepConversationalShortCircuit(ctx, emitPlannerEvent),             // C
+    () => stepActiveTaskAndSkillResume(ctx),                                 // D
+    () => stepSessionCoreferenceAndDisambiguation(ctx),                      // E
+    () => stepPendingTaskPlanResume(ctx, emitPlannerEvent),                  // F
+    () => stepTaskDecomposition(ctx, emitPlannerEvent),                      // G
+    () => stepBrowserFollowUp(ctx, emitPlannerEvent),                        // H
+    () => stepModelFastPath(ctx, emitPlannerEvent),                          // I
+    () => stepParamCollectionGate(ctx),                                      // J
+    () => stepGenericRetrievalBootstrap(ctx, emitPlannerEvent),              // K
+    () => stepRouteAndRunPlannerOrFallback(ctx, emitPlannerEvent),           // L
+  ];
+
+  for (const runStep of steps) {
+    const result = await runStep();
+    if (result) return finalizeResult(ctx, startedAt, result);
+  }
+
+  // Should never happen: route step should always return.
+  return finalizeResult(ctx, startedAt, {
+    response: 'Something went wrong.',
+    updatedHistory: ctx.history,
+    messages: [textMsg('Something went wrong.')],
+    modelUsed: 'qwen3',
+    toolsUsed: [],
+    fallbackUsed: false,
+    sessionState: ctx.options.sessionState,
+  });
+}

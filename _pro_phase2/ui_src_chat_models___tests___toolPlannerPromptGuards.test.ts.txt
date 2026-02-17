@@ -1,0 +1,50 @@
+﻿==================== ui/src/chat/models/__tests__/toolPlannerPromptGuards.test.ts ====================
+import { describe, expect, test } from 'vitest';
+
+import { buildPlannerExamplesBlock, PLANNER_TOOL_USAGE_RULES } from '../../toolExamples';
+import { buildSystemPromptForTier } from '../toolPlanner/prompt';
+
+function hasExamplesMarkers(text: string): boolean {
+  const lower = text.toLowerCase();
+  // Keep these markers loose so the test isn't brittle to content edits.
+  return lower.includes('examples') || lower.includes('example:') || lower.includes('tool examples');
+}
+
+describe('toolPlanner prompt guards', () => {
+  test('full includes PLANNER_TOOL_USAGE_RULES', () => {
+    const prompt = buildSystemPromptForTier('full');
+    expect(prompt).toContain(PLANNER_TOOL_USAGE_RULES.trim().slice(0, 24));
+  });
+
+  test('minimal excludes PLANNER_TOOL_USAGE_RULES', () => {
+    const prompt = buildSystemPromptForTier('minimal');
+    expect(prompt).not.toContain(PLANNER_TOOL_USAGE_RULES.trim().slice(0, 24));
+  });
+
+  test('full includes examples block header markers', () => {
+    const prompt = buildSystemPromptForTier('full');
+    // Use the builder so we assert real markers currently used by the codebase.
+    const examples = buildPlannerExamplesBlock([]);
+    const marker = (examples.split('\n').find((l) => l.trim().length > 0) || '').trim();
+    // Fallback if no examples are configured for the empty tool list in tests.
+    if (marker.length > 0) expect(prompt).toContain(marker);
+    expect(hasExamplesMarkers(prompt)).toBe(true);
+  });
+
+  test('minimal excludes examples block markers', () => {
+    const prompt = buildSystemPromptForTier('minimal');
+    expect(hasExamplesMarkers(prompt)).toBe(false);
+  });
+
+  test('tiered prompts have expected size tiers (line count thresholds)', () => {
+    const minimal = buildSystemPromptForTier('minimal').split('\n').length;
+    const standard = buildSystemPromptForTier('standard').split('\n').length;
+    const full = buildSystemPromptForTier('full').split('\n').length;
+
+    expect(minimal).toBeGreaterThan(5);
+    expect(standard).toBeGreaterThan(minimal);
+    expect(full).toBeGreaterThan(standard);
+    // Ensure "full" is materially larger than minimal without snapshotting.
+    expect(full - minimal).toBeGreaterThan(20);
+  });
+});

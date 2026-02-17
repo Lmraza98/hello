@@ -1,3 +1,12 @@
+/**
+ * Email Service — provider-agnostic interface + default HTTP implementation.
+ *
+ * The `EmailProvider` interface defines the contract that any email backend
+ * must satisfy.  The default export (`emailApi`) is wired to the local API
+ * server.  To swap providers (e.g. SendGrid, Mailgun) implement
+ * `EmailProvider` and call `setEmailProvider(myProvider)`.
+ */
+
 import type {
   EmailCampaign,
   EmailTemplate,
@@ -8,317 +17,256 @@ import type {
   EmailConfig,
   ScheduledEmail,
   EmailDetail,
-  CampaignScheduleSummary
+  CampaignScheduleSummary,
 } from '../types/email';
 
-const API_BASE = '/api/emails';
+// ── Provider interface ──────────────────────────────────────
 
-export const emailApi = {
-  getCampaigns: async (status?: string): Promise<EmailCampaign[]> => {
-    try {
-      const url = status ? `${API_BASE}/campaigns?status=${status}` : `${API_BASE}/campaigns`;
-      const res = await fetch(url);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return [];
-    }
-  },
-  
-  getCampaign: async (id: number): Promise<EmailCampaign | null> => {
-    try {
-      const res = await fetch(`${API_BASE}/campaigns/${id}`);
-      if (!res.ok) return null;
-      return res.json();
-    } catch {
-      return null;
-    }
-  },
-  
-  createCampaign: async (data: Partial<EmailCampaign>): Promise<EmailCampaign> => {
-    const res = await fetch(`${API_BASE}/campaigns`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to create campaign');
-    return res.json();
-  },
-  
-  updateCampaign: async (id: number, data: Partial<EmailCampaign>): Promise<EmailCampaign> => {
-    const res = await fetch(`${API_BASE}/campaigns/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to update campaign');
-    return res.json();
-  },
-  
-  deleteCampaign: async (id: number): Promise<void> => {
-    const res = await fetch(`${API_BASE}/campaigns/${id}`, { method: 'DELETE' });
-    if (!res.ok) throw new Error('Failed to delete campaign');
-  },
-  
-  activateCampaign: async (id: number): Promise<void> => {
-    const res = await fetch(`${API_BASE}/campaigns/${id}/activate`, { method: 'POST' });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.detail || 'Failed to activate campaign');
-    }
-  },
-  
-  pauseCampaign: async (id: number): Promise<void> => {
-    const res = await fetch(`${API_BASE}/campaigns/${id}/pause`, { method: 'POST' });
-    if (!res.ok) throw new Error('Failed to pause campaign');
-  },
-  
-  getTemplates: async (campaignId: number): Promise<EmailTemplate[]> => {
-    try {
-      const res = await fetch(`${API_BASE}/campaigns/${campaignId}/templates`);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return [];
-    }
-  },
-  
-  saveTemplates: async (campaignId: number, templates: Partial<EmailTemplate>[]): Promise<void> => {
-    const res = await fetch(`${API_BASE}/campaigns/${campaignId}/templates/bulk`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(templates)
-    });
-    if (!res.ok) throw new Error('Failed to save templates');
-  },
-  
-  getCampaignContacts: async (campaignId: number): Promise<CampaignContact[]> => {
-    try {
-      const res = await fetch(`${API_BASE}/campaigns/${campaignId}/contacts`);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return [];
-    }
-  },
-  
-  enrollContacts: async (campaignId: number, contactIds: number[]): Promise<{ enrolled: number; skipped: number }> => {
-    const res = await fetch(`${API_BASE}/campaigns/${campaignId}/enroll`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contact_ids: contactIds })
-    });
-    if (!res.ok) throw new Error('Failed to enroll contacts');
-    return res.json();
-  },
-  
-  sendEmails: async (campaignId?: number, limit?: number, reviewMode: boolean = true): Promise<{ success: boolean; message?: string; error?: string; ready_count?: number }> => {
-    try {
-      const res = await fetch(`${API_BASE}/send`, {
+export interface EmailProvider {
+  // Campaigns
+  getCampaigns(status?: string): Promise<EmailCampaign[]>;
+  getCampaign(id: number): Promise<EmailCampaign | null>;
+  createCampaign(data: Partial<EmailCampaign>): Promise<EmailCampaign>;
+  updateCampaign(id: number, data: Partial<EmailCampaign>): Promise<EmailCampaign>;
+  deleteCampaign(id: number): Promise<void>;
+  activateCampaign(id: number): Promise<void>;
+  pauseCampaign(id: number): Promise<void>;
+
+  // Templates
+  getTemplates(campaignId: number): Promise<EmailTemplate[]>;
+  saveTemplates(campaignId: number, templates: Partial<EmailTemplate>[]): Promise<void>;
+
+  // Contacts & enrollment
+  getCampaignContacts(campaignId: number): Promise<CampaignContact[]>;
+  enrollContacts(campaignId: number, contactIds: number[]): Promise<{ enrolled: number; skipped: number }>;
+
+  // Sending
+  sendEmails(campaignId?: number, limit?: number, reviewMode?: boolean): Promise<{ success: boolean; message?: string; error?: string; ready_count?: number }>;
+
+  // Sent / queue
+  getSentEmails(campaignId?: number, limit?: number): Promise<SentEmail[]>;
+  getQueue(campaignId?: number): Promise<CampaignContact[]>;
+
+  // Stats
+  getStats(): Promise<GlobalStats>;
+
+  // Review queue
+  getReviewQueue(): Promise<ReviewQueueItem[]>;
+  approveEmail(emailId: number, subject?: string, body?: string): Promise<void>;
+  rejectEmail(emailId: number): Promise<void>;
+  approveAll(emailIds: number[]): Promise<void>;
+  prepareBatch(): Promise<{ success: boolean; drafts_created?: number; message?: string; error?: string }>;
+
+  // Tracking
+  getTrackingStatus(days?: number): Promise<unknown>;
+
+  // Scheduled
+  getScheduled(): Promise<SentEmail[]>;
+  getAllScheduledEmails(campaignId?: number): Promise<ScheduledEmail[]>;
+  getEmailDetail(emailId: number): Promise<EmailDetail | null>;
+  sendEmailNow(emailId: number): Promise<{ success: boolean; message?: string; error?: string; contact_name?: string; company_name?: string }>;
+  rescheduleEmail(emailId: number, sendTime: string): Promise<void>;
+  reorderEmails(emailIds: number[], startTime?: string): Promise<void>;
+  getCampaignScheduleSummary(): Promise<CampaignScheduleSummary[]>;
+
+  // Config
+  getConfig(): Promise<EmailConfig | null>;
+  updateConfig(data: Partial<EmailConfig>): Promise<void>;
+
+  // Salesforce upload
+  uploadToSalesforce(campaignId: number): Promise<{ success: boolean; message?: string; error?: string; exported?: number }>;
+}
+
+// ── Helpers ─────────────────────────────────────────────────
+
+async function safeFetch<T>(url: string, fallback: T, init?: RequestInit): Promise<T> {
+  try {
+    const res = await fetch(url, init);
+    if (!res.ok) return fallback;
+    const data = await res.json();
+    return data as T;
+  } catch {
+    return fallback;
+  }
+}
+
+async function strictFetch<T>(url: string, init?: RequestInit, errorMsg?: string): Promise<T> {
+  const res = await fetch(url, {
+    headers: { 'Content-Type': 'application/json' },
+    ...init,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error((body as Record<string, string>).detail || errorMsg || `Request failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+// ── Default HTTP implementation ─────────────────────────────
+
+function createHttpEmailProvider(baseUrl: string): EmailProvider {
+  return {
+    getCampaigns: (status) =>
+      safeFetch(status ? `${baseUrl}/campaigns?status=${status}` : `${baseUrl}/campaigns`, []),
+
+    getCampaign: (id) =>
+      safeFetch(`${baseUrl}/campaigns/${id}`, null),
+
+    createCampaign: (data) =>
+      strictFetch(`${baseUrl}/campaigns`, { method: 'POST', body: JSON.stringify(data) }, 'Failed to create campaign'),
+
+    updateCampaign: (id, data) =>
+      strictFetch(`${baseUrl}/campaigns/${id}`, { method: 'PUT', body: JSON.stringify(data) }, 'Failed to update campaign'),
+
+    deleteCampaign: async (id) => {
+      await strictFetch<void>(`${baseUrl}/campaigns/${id}`, { method: 'DELETE' }, 'Failed to delete campaign');
+    },
+
+    activateCampaign: async (id) => {
+      await strictFetch<void>(`${baseUrl}/campaigns/${id}/activate`, { method: 'POST' }, 'Failed to activate campaign');
+    },
+
+    pauseCampaign: async (id) => {
+      await strictFetch<void>(`${baseUrl}/campaigns/${id}/pause`, { method: 'POST' }, 'Failed to pause campaign');
+    },
+
+    getTemplates: (campaignId) =>
+      safeFetch(`${baseUrl}/campaigns/${campaignId}/templates`, []),
+
+    saveTemplates: async (campaignId, templates) => {
+      await strictFetch<void>(`${baseUrl}/campaigns/${campaignId}/templates/bulk`, {
+        method: 'POST',
+        body: JSON.stringify(templates),
+      }, 'Failed to save templates');
+    },
+
+    getCampaignContacts: (campaignId) =>
+      safeFetch(`${baseUrl}/campaigns/${campaignId}/contacts`, []),
+
+    enrollContacts: (campaignId, contactIds) =>
+      strictFetch(`${baseUrl}/campaigns/${campaignId}/enroll`, {
+        method: 'POST',
+        body: JSON.stringify({ contact_ids: contactIds }),
+      }, 'Failed to enroll contacts'),
+
+    sendEmails: (campaignId, limit, reviewMode = true) =>
+      safeFetch(`${baseUrl}/send`, { success: false, error: 'Request failed' }, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ campaign_id: campaignId, limit, review_mode: reviewMode })
-      });
-      return res.json();
-    } catch (e) {
-      return { success: false, error: String(e) };
-    }
-  },
-  
-  getSentEmails: async (campaignId?: number, limit?: number): Promise<SentEmail[]> => {
-    try {
+        body: JSON.stringify({ campaign_id: campaignId, limit, review_mode: reviewMode }),
+      }),
+
+    getSentEmails: (campaignId, limit) => {
       const params = new URLSearchParams();
       if (campaignId) params.set('campaign_id', String(campaignId));
       if (limit) params.set('limit', String(limit));
-      const res = await fetch(`${API_BASE}/sent?${params}`);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return [];
-    }
-  },
-  
-  getStats: async (): Promise<GlobalStats> => {
-    try {
-      const res = await fetch(`${API_BASE}/stats`);
-      if (!res.ok) return { total_campaigns: 0, active_campaigns: 0, total_contacts_enrolled: 0, total_sent: 0, sent_today: 0 };
-      return res.json();
-    } catch {
-      return { total_campaigns: 0, active_campaigns: 0, total_contacts_enrolled: 0, total_sent: 0, sent_today: 0 };
-    }
-  },
-  
-  getQueue: async (campaignId?: number): Promise<CampaignContact[]> => {
-    try {
-      const params = campaignId ? `?campaign_id=${campaignId}` : '';
-      const res = await fetch(`${API_BASE}/queue${params}`);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return [];
-    }
-  },
-  
-  uploadToSalesforce: async (campaignId: number): Promise<{ success: boolean; message?: string; error?: string; exported?: number }> => {
-    try {
-      const res = await fetch(`${API_BASE}/campaigns/${campaignId}/salesforce-upload`, {
-        method: 'POST'
-      });
-      return res.json();
-    } catch (e) {
-      return { success: false, error: String(e) };
-    }
-  },
+      return safeFetch(`${baseUrl}/sent?${params}`, []);
+    },
 
-  getReviewQueue: async (): Promise<ReviewQueueItem[]> => {
-    try {
-      const res = await fetch(`${API_BASE}/review-queue`);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return [];
-    }
+    getStats: () =>
+      safeFetch(`${baseUrl}/stats`, { total_campaigns: 0, active_campaigns: 0, total_contacts_enrolled: 0, total_sent: 0, sent_today: 0 }),
+
+    getQueue: (campaignId) =>
+      safeFetch(`${baseUrl}/queue${campaignId ? `?campaign_id=${campaignId}` : ''}`, []),
+
+    uploadToSalesforce: (campaignId) =>
+      safeFetch(`${baseUrl}/campaigns/${campaignId}/salesforce-upload`, { success: false, error: 'Request failed' }, { method: 'POST' }),
+
+    getReviewQueue: () =>
+      safeFetch(`${baseUrl}/review-queue`, []),
+
+    approveEmail: async (emailId, subject, body) => {
+      await strictFetch<void>(`${baseUrl}/review-queue/${emailId}/approve`, {
+        method: 'POST',
+        body: JSON.stringify({ subject, body }),
+      }, 'Failed to approve email');
+    },
+
+    rejectEmail: async (emailId) => {
+      await strictFetch<void>(`${baseUrl}/review-queue/${emailId}/reject`, { method: 'POST' }, 'Failed to reject email');
+    },
+
+    approveAll: async (emailIds) => {
+      await strictFetch<void>(`${baseUrl}/review-queue/approve-all`, {
+        method: 'POST',
+        body: JSON.stringify({ email_ids: emailIds }),
+      }, 'Failed to bulk approve');
+    },
+
+    prepareBatch: () =>
+      safeFetch(`${baseUrl}/prepare-batch`, { success: false, error: 'Request failed' }, { method: 'POST' }),
+
+    getTrackingStatus: (days = 7) =>
+      safeFetch(`${baseUrl}/tracking-status?days=${days}`, null),
+
+    getScheduled: () =>
+      safeFetch(`${baseUrl}/scheduled`, []),
+
+    getConfig: () =>
+      safeFetch(`${baseUrl}/config`, null),
+
+    updateConfig: async (data) => {
+      await strictFetch<void>(`${baseUrl}/config`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }, 'Failed to update config');
+    },
+
+    getAllScheduledEmails: (campaignId) =>
+      safeFetch(`${baseUrl}/scheduled-emails${campaignId ? `?campaign_id=${campaignId}` : ''}`, []),
+
+    getEmailDetail: (emailId) =>
+      safeFetch(`${baseUrl}/scheduled-emails/${emailId}`, null),
+
+    sendEmailNow: (emailId) =>
+      safeFetch(`${baseUrl}/scheduled-emails/${emailId}/send-now`, { success: false, error: 'Request failed' }, { method: 'POST' }),
+
+    rescheduleEmail: async (emailId, sendTime) => {
+      await strictFetch<void>(`${baseUrl}/scheduled-emails/${emailId}/reschedule`, {
+        method: 'PUT',
+        body: JSON.stringify({ send_time: sendTime }),
+      }, 'Failed to reschedule email');
+    },
+
+    reorderEmails: async (emailIds, startTime) => {
+      await strictFetch<void>(`${baseUrl}/scheduled-emails/reorder`, {
+        method: 'PUT',
+        body: JSON.stringify({ email_ids: emailIds, start_time: startTime }),
+      }, 'Failed to reorder emails');
+    },
+
+    getCampaignScheduleSummary: () =>
+      safeFetch(`${baseUrl}/campaign-schedule-summary`, []),
+  };
+}
+
+// ── Singleton + provider swap ───────────────────────────────
+
+let _provider: EmailProvider = createHttpEmailProvider('/api/emails');
+
+/**
+ * Replace the active email provider at runtime.
+ * Useful for tests or for swapping to a different email backend
+ * (SendGrid, Mailgun, etc.).
+ */
+export function setEmailProvider(provider: EmailProvider): void {
+  _provider = provider;
+}
+
+/** Get the current email provider (for testing / inspection). */
+export function getEmailProvider(): EmailProvider {
+  return _provider;
+}
+
+/**
+ * Email API — delegates to the current `EmailProvider`.
+ *
+ * All consumers should import `emailApi` and call methods on it.
+ * The underlying provider can be swapped via `setEmailProvider()`.
+ */
+export const emailApi: EmailProvider = new Proxy({} as EmailProvider, {
+  get(_target, prop: string) {
+    return (...args: unknown[]) =>
+      (_provider as unknown as Record<string, (...a: unknown[]) => unknown>)[prop](...args);
   },
-
-  approveEmail: async (emailId: number, subject?: string, body?: string): Promise<void> => {
-    const res = await fetch(`${API_BASE}/review-queue/${emailId}/approve`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subject, body })
-    });
-    if (!res.ok) throw new Error('Failed to approve email');
-  },
-
-  rejectEmail: async (emailId: number): Promise<void> => {
-    const res = await fetch(`${API_BASE}/review-queue/${emailId}/reject`, { method: 'POST' });
-    if (!res.ok) throw new Error('Failed to reject email');
-  },
-
-  approveAll: async (emailIds: number[]): Promise<void> => {
-    const res = await fetch(`${API_BASE}/review-queue/approve-all`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email_ids: emailIds })
-    });
-    if (!res.ok) throw new Error('Failed to bulk approve');
-  },
-
-  prepareBatch: async (): Promise<{ success: boolean; drafts_created?: number; message?: string; error?: string }> => {
-    try {
-      const res = await fetch(`${API_BASE}/prepare-batch`, { method: 'POST' });
-      return res.json();
-    } catch (e) {
-      return { success: false, error: String(e) };
-    }
-  },
-
-  getTrackingStatus: async (days: number = 7) => {
-    try {
-      const res = await fetch(`${API_BASE}/tracking-status?days=${days}`);
-      if (!res.ok) return null;
-      return res.json();
-    } catch {
-      return null;
-    }
-  },
-
-  getScheduled: async (): Promise<SentEmail[]> => {
-    try {
-      const res = await fetch(`${API_BASE}/scheduled`);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return [];
-    }
-  },
-
-  getConfig: async (): Promise<EmailConfig | null> => {
-    try {
-      const res = await fetch(`${API_BASE}/config`);
-      if (!res.ok) return null;
-      return res.json();
-    } catch {
-      return null;
-    }
-  },
-
-  updateConfig: async (data: Partial<EmailConfig>): Promise<void> => {
-    const res = await fetch(`${API_BASE}/config`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to update config');
-  },
-
-  // === Scheduled Emails (full timeline) ===
-
-  getAllScheduledEmails: async (campaignId?: number): Promise<ScheduledEmail[]> => {
-    try {
-      const params = campaignId ? `?campaign_id=${campaignId}` : '';
-      const res = await fetch(`${API_BASE}/scheduled-emails${params}`);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return [];
-    }
-  },
-
-  getEmailDetail: async (emailId: number): Promise<EmailDetail | null> => {
-    try {
-      const res = await fetch(`${API_BASE}/scheduled-emails/${emailId}`);
-      if (!res.ok) return null;
-      return res.json();
-    } catch {
-      return null;
-    }
-  },
-
-  sendEmailNow: async (emailId: number): Promise<{ success: boolean; message?: string; error?: string; contact_name?: string; company_name?: string }> => {
-    try {
-      const res = await fetch(`${API_BASE}/scheduled-emails/${emailId}/send-now`, {
-        method: 'POST'
-      });
-      return res.json();
-    } catch (e) {
-      return { success: false, error: String(e) };
-    }
-  },
-
-  rescheduleEmail: async (emailId: number, sendTime: string): Promise<void> => {
-    const res = await fetch(`${API_BASE}/scheduled-emails/${emailId}/reschedule`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ send_time: sendTime })
-    });
-    if (!res.ok) throw new Error('Failed to reschedule email');
-  },
-
-  reorderEmails: async (emailIds: number[], startTime?: string): Promise<void> => {
-    const res = await fetch(`${API_BASE}/scheduled-emails/reorder`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email_ids: emailIds, start_time: startTime })
-    });
-    if (!res.ok) throw new Error('Failed to reorder emails');
-  },
-
-  getCampaignScheduleSummary: async (): Promise<CampaignScheduleSummary[]> => {
-    try {
-      const res = await fetch(`${API_BASE}/campaign-schedule-summary`);
-      if (!res.ok) return [];
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch {
-      return [];
-    }
-  }
-};
+});

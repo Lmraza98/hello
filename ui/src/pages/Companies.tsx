@@ -1,4 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
+import { usePageContext } from '../contexts/PageContextProvider';
+import { normalizeQueryFilterParam } from '../utils/filterNormalization';
 import {
   useReactTable,
   getCoreRowModel,
@@ -24,6 +27,8 @@ import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { ConfirmDialog } from '../components/shared/ConfirmDialog';
 import { createCompanyColumns } from '../components/companies/tableColumns';
 import { Upload, Building2, Plus, RotateCcw, X, Trash2 } from 'lucide-react';
+import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
+import { getPageCapability } from '../capabilities/catalog';
 
 /* ── Constants ─────────────────────────── */
 
@@ -34,6 +39,8 @@ const EXPANDED_HEIGHT = 160;
 
 export default function Companies({ openAddModal, onModalOpened }: { openAddModal?: boolean; onModalOpened?: () => void }) {
   const isMobile = useIsMobile();
+  const location = useLocation();
+  const { setPageContext } = usePageContext();
   const {
     companies,
     companiesLoading: isLoading,
@@ -54,6 +61,7 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
   const [sorting, setSorting] = useState<SortingState>([]);
   const [expanded, setExpanded] = useState<ExpandedState>({});
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  useRegisterCapabilities(getPageCapability('companies'));
   const fileInputRef = useRef<HTMLInputElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -64,6 +72,19 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
       onModalOpened?.();
     }
   }, [openAddModal, onModalOpened]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    setGlobalFilter(params.get('q') || '');
+    const nextFilters: ColumnFiltersState = [];
+    const company = normalizeQueryFilterParam('company', params.get('company'));
+    const vertical = normalizeQueryFilterParam('vertical', params.get('vertical'));
+    const tier = normalizeQueryFilterParam('tier', params.get('tier'));
+    if (company) nextFilters.push({ id: 'company_name', value: company });
+    if (vertical) nextFilters.push({ id: 'vertical', value: vertical });
+    if (tier) nextFilters.push({ id: 'tier', value: tier });
+    setColumnFilters(nextFilters);
+  }, [location.search]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -169,6 +190,16 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
       ))}
     </colgroup>
   ) : null;
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const selectedCompanyId = Number(params.get('selectedCompanyId'));
+    setPageContext({
+      listContext: 'companies',
+      selected: Number.isFinite(selectedCompanyId) ? { companyId: selectedCompanyId } : {},
+      loadedIds: { companyIds: companies.slice(0, 200).map((c) => c.id) },
+    });
+  }, [companies, location.search, setPageContext]);
 
   /* ── Render ── */
 

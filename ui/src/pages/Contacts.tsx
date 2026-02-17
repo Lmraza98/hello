@@ -1,4 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
+import { usePageContext } from '../contexts/PageContextProvider';
+import { normalizeQueryFilterParam } from '../utils/filterNormalization';
 import {
   useReactTable,
   getCoreRowModel,
@@ -28,6 +31,8 @@ import { ConfirmDialog } from '../components/shared/ConfirmDialog';
 import { CampaignEnrollmentModal } from '../components/contacts/CampaignEnrollmentModal';
 import { createContactColumns } from '../components/contacts/tableColumns';
 import { Users, Download, Plus, X } from 'lucide-react';
+import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
+import { getPageCapability } from '../capabilities/catalog';
 
 /* ── Constants ─────────────────────────── */
 
@@ -40,6 +45,8 @@ const MOBILE_EXPANDED_HEIGHT = 320;
 
 export default function Contacts({ openAddModal, onModalOpened }: { openAddModal?: boolean; onModalOpened?: () => void }) {
   const isMobile = useIsMobile();
+  const location = useLocation();
+  const { setPageContext } = usePageContext();
   const { addNotification, updateNotification } = useNotificationContext();
   const {
     contacts,
@@ -66,6 +73,7 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [campaignFilterId, setCampaignFilterId] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  useRegisterCapabilities(getPageCapability('contacts'));
   const filterRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -84,6 +92,22 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
       onModalOpened?.();
     }
   }, [openAddModal, onModalOpened]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    setGlobalFilter(normalizeQueryFilterParam('q', params.get('q')) || '');
+    setCampaignFilterId(params.get('campaignId') || '');
+
+    const nextFilters: ColumnFiltersState = [];
+    const company = normalizeQueryFilterParam('company', params.get('company'));
+    const vertical = normalizeQueryFilterParam('vertical', params.get('vertical'));
+    const hasEmail = normalizeQueryFilterParam('hasEmail', params.get('hasEmail'));
+    if (company) nextFilters.push({ id: 'company_name', value: company });
+    if (vertical) nextFilters.push({ id: 'vertical', value: vertical });
+    if (hasEmail === 'true') nextFilters.push({ id: 'hasEmail', value: 'yes' });
+    if (hasEmail === 'false') nextFilters.push({ id: 'hasEmail', value: 'no' });
+    setColumnFilters(nextFilters);
+  }, [location.search]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -113,7 +137,17 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     if (hasEmailFilter === 'yes') data = data.filter(c => !!c.email);
     else if (hasEmailFilter === 'no') data = data.filter(c => !c.email);
     const verticalFilter = columnFilters.find(f => f.id === 'vertical')?.value as string | undefined;
-    if (verticalFilter) data = data.filter(c => c.vertical === verticalFilter);
+    if (verticalFilter) {
+      const selected = verticalFilter
+        .trim()
+        .toLowerCase()
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean);
+      if (selected.length > 0) {
+        data = data.filter(c => selected.includes((c.vertical || '').toLowerCase().trim()));
+      }
+    }
     return data;
   }, [contacts, campaignFilterId, campaignContactIds, columnFilters]);
 
@@ -279,6 +313,16 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     }
     return pills;
   }, [columnFilters, campaignFilterId, campaigns]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const selectedContactId = Number(params.get('selectedContactId'));
+    setPageContext({
+      listContext: 'contacts',
+      selected: Number.isFinite(selectedContactId) ? { contactId: selectedContactId } : {},
+      loadedIds: { contactIds: contacts.slice(0, 200).map((c) => c.id) },
+    });
+  }, [contacts, location.search, setPageContext]);
 
   /* ── Synced column widths (desktop) ── */
 

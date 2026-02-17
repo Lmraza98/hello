@@ -16,29 +16,7 @@ def cmd_backfill_linkedin_urls(args):
     
     print(f"\n=== Backfill LinkedIn URLs ===")
     
-    # Find contacts missing public URLs
-    with db.get_db() as conn:
-        cursor = conn.cursor()
-        
-        query = """
-            SELECT id, name, company_name, title, linkedin_url
-            FROM linkedin_contacts 
-            WHERE (linkedin_url IS NULL 
-                   OR linkedin_url = '' 
-                   OR linkedin_url LIKE '%/sales/lead/%'
-                   OR linkedin_url LIKE '%/sales/people/%')
-        """
-        params = []
-        
-        if company_filter:
-            query += " AND company_name = ?"
-            params.append(company_filter)
-        
-        query += " ORDER BY company_name, name LIMIT ?"
-        params.append(limit)
-        
-        cursor.execute(query, params)
-        contacts = [dict(row) for row in cursor.fetchall()]
+    contacts = db.get_contacts_missing_public_urls(limit=limit, company_name=company_filter)
     
     if not contacts:
         print("No contacts found with missing LinkedIn URLs.")
@@ -68,7 +46,7 @@ async def _backfill_urls(companies: dict):
     Opens each company's decision makers and extracts public URLs.
     """
     from services.linkedin.scraper import SalesNavigatorScraper
-    from services.linkedin.contacts import update_contact_linkedin_url
+    from services.contacts import update_contact_linkedin_url
     import random
     
     scraper = SalesNavigatorScraper()

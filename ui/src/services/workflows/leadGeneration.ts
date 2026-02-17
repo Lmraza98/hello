@@ -30,7 +30,7 @@ export function createLeadGenerationWorkflow(
     status: 'running',
     createdAt: new Date(),
     steps: [
-      /* ── Step 0: Collect industry ── */
+      /* -- Step 0: Collect industry -- */
       {
         id: 'collect-industry',
         name: 'Collect target industry',
@@ -49,7 +49,7 @@ export function createLeadGenerationWorkflow(
             ctx.industry = userInput.trim();
             return {
               success: true,
-              messages: [textMsg(`Got it — targeting **${ctx.industry}** companies.`)],
+              messages: [textMsg(`Got it ? targeting **${ctx.industry}** companies.`)],
             };
           }
 
@@ -73,7 +73,7 @@ export function createLeadGenerationWorkflow(
         },
       },
 
-      /* ── Step 1: Collect location ── */
+      /* -- Step 1: Collect location -- */
       {
         id: 'collect-location',
         name: 'Collect target location',
@@ -116,7 +116,7 @@ export function createLeadGenerationWorkflow(
         },
       },
 
-      /* ── Step 2: Collect titles ── */
+      /* -- Step 2: Collect titles -- */
       {
         id: 'collect-titles',
         name: 'Collect target titles',
@@ -159,7 +159,7 @@ export function createLeadGenerationWorkflow(
         },
       },
 
-      /* ── Step 3: Confirm parameters ── */
+      /* -- Step 3: Confirm parameters -- */
       {
         id: 'confirm-search',
         name: 'Confirm search parameters',
@@ -200,7 +200,7 @@ export function createLeadGenerationWorkflow(
         },
       },
 
-      /* ── Step 4: Search companies ── */
+      /* -- Step 4: Search companies via backend workflow -- */
       {
         id: 'search-companies',
         name: 'Search companies on Sales Navigator',
@@ -214,22 +214,24 @@ export function createLeadGenerationWorkflow(
           openViewer?.();
 
           try {
-            const result = await api.salesnavSearchCompanies({
+            const result = await api.workflows.prospect({
               query,
+              industry: ctx.industry,
+              location: ctx.location,
               max_companies: 50,
               save_to_db: true,
             });
 
-            if (result.status === 'error') {
+            if (result.error) {
               return {
                 success: false,
-                messages: [statusMsg(result.error || 'Company search failed.', 'error')],
+                messages: [statusMsg(result.error, 'error')],
                 done: true,
               };
             }
 
             ctx.companies = result.companies || [];
-            ctx.filtersApplied = result.filters_applied;
+            ctx.existingCompanies = result.existing_companies || {};
 
             if (ctx.companies.length === 0) {
               return {
@@ -243,11 +245,15 @@ export function createLeadGenerationWorkflow(
               };
             }
 
+            const existingNote = result.existing_count > 0
+              ? ` (${result.existing_count} already in your database)`
+              : '';
+
             return {
               success: true,
               data: { companies: ctx.companies },
               messages: [
-                statusMsg(`Found ${ctx.companies.length} companies`, 'success'),
+                statusMsg(`Found ${ctx.companies.length} companies${existingNote}`, 'success'),
               ],
               closeBrowserViewer: true,
             };
@@ -262,7 +268,7 @@ export function createLeadGenerationWorkflow(
         },
       },
 
-      /* ── Step 5: Present companies + ask to scrape or vet ── */
+      /* -- Step 5: Present companies + ask to scrape or vet -- */
       {
         id: 'present-companies',
         name: 'Show companies and ask to proceed',
@@ -309,7 +315,7 @@ export function createLeadGenerationWorkflow(
             };
           }
 
-          // Show ALL companies — the vetting flow will tag existing ones
+          // Show ALL companies ? the vetting flow will tag existing ones
           // with their DB info and contact counts.
           const companies = ctx.companies as any[];
 
@@ -349,26 +355,23 @@ export function createLeadGenerationWorkflow(
         },
       },
 
-      /* ── Step 6: Scrape leads from companies ── */
+      /* -- Step 6: Scrape leads via backend workflow -- */
       {
         id: 'scrape-leads',
         name: 'Scrape leads from companies',
         type: 'api_call',
         execute: async (ctx): Promise<StepResult> => {
-          const companies = (ctx.companies as any[]).slice(0, 25); // Cap at 25 for time
+          const companies = (ctx.companies as any[]).slice(0, 25);
           const titleFilter = (ctx.titles as string[]).join(', ');
+          const companyNames = companies.map((c: any) => c.company_name || c.name).filter(Boolean);
 
           // Open browser viewer so user can watch the automation
           const openViewer: (() => void) | undefined = ctx._openBrowserViewer;
           openViewer?.();
 
           try {
-            const result = await api.salesnavScrapeLeads({
-              companies: companies.map((c: any) => ({
-                name: c.company_name || c.name,
-                domain: c.domain,
-                linkedin_url: c.linkedin_url,
-              })),
+            const result = await api.workflows.scrapeLeadsBatch({
+              company_names: companyNames,
               title_filter: titleFilter,
               max_per_company: 10,
             });
@@ -391,7 +394,7 @@ export function createLeadGenerationWorkflow(
             return {
               success: true,
               messages: [
-                statusMsg(`Scraped ${leads.length} leads from ${companies.length} companies`, 'success'),
+                statusMsg(`Scraped ${leads.length} leads from ${result.companies_processed} companies`, 'success'),
                 textMsg(`**${saved}** contacts saved to your database. Titles targeted: ${titleFilter}`),
                 buttonsMsg('What next?', [
                   { label: 'Add to Campaign', value: 'add_leads_to_campaign', variant: 'primary' },
@@ -417,7 +420,7 @@ export function createLeadGenerationWorkflow(
         },
       },
 
-      /* ── Step 7: Post-scrape actions ── */
+      /* -- Step 7: Post-scrape actions -- */
       {
         id: 'post-scrape',
         name: 'Handle post-scrape actions',
@@ -452,7 +455,7 @@ export function createLeadGenerationWorkflow(
   };
 }
 
-/* ── Helpers ── */
+/* -- Helpers -- */
 
 const LOCATION_LABELS: Record<string, string> = {
   new_england: 'New England',

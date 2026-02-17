@@ -39,9 +39,9 @@ export function createCheckJobWorkflow(
               ? ` (${task.progress.current}/${task.progress.total})`
               : '';
             const statusIcon =
-              task.status === 'running' ? '🔄' :
-              task.status === 'completed' ? '✅' :
-              task.status === 'failed' ? '❌' : '⏳';
+              task.status === 'running' ? '??' :
+              task.status === 'completed' ? '?' :
+              task.status === 'failed' ? '?' : '?';
 
             lines.push(`${statusIcon} **${task.label}**${progress}`);
             if (task.status === 'running') {

@@ -1,11 +1,13 @@
-/* ── Message Types ── */
+/* -- Message Types -- */
 
 export type ChatMessage =
   | TextMessage
   | ActionButtonsMessage
   | StatusMessage
   | SalesforceUrlPromptMessage
+  | RetrievalResultsMessage
   | ContactCardMessage
+  | ResearchCardMessage
   | EmailPreviewMessage
   | CampaignListMessage
   | ConversationCardMessage
@@ -41,6 +43,7 @@ export interface ActionButton {
 export interface StatusMessage extends BaseMessage {
   type: 'status';
   content: string;
+  details?: string;
   status: 'loading' | 'success' | 'error' | 'info';
   sender: 'bot';
 }
@@ -62,6 +65,7 @@ export interface ContactCardMessage extends BaseMessage {
     title?: string;
     company: string;
     email?: string;
+    phone?: string;
     linkedin_url?: string;
     location?: string;
     source?: string;
@@ -71,9 +75,65 @@ export interface ContactCardMessage extends BaseMessage {
   sender: 'bot';
 }
 
+export type RetrievalEntityType =
+  | 'contact'
+  | 'company'
+  | 'conversation'
+  | 'email_message'
+  | 'email_thread'
+  | 'campaign'
+  | 'note'
+  | 'file_chunk'
+  | 'unknown';
+
+export interface RetrievalResultItem {
+  id: string;
+  entityType: RetrievalEntityType;
+  title: string;
+  subtitle?: string;
+  snippet?: string;
+  timestamp?: string | null;
+  confidence: 'high' | 'medium' | 'low';
+  scoreTotal?: number;
+  scoreExact?: number;
+  scoreLex?: number;
+  scoreVec?: number;
+  email?: string;
+  phone?: string;
+  company?: string;
+  subject?: string;
+  participants?: string;
+  sourceRefs: Array<{
+    label: string;
+    value: string;
+  }>;
+  dedupeCount?: number;
+}
+
+export interface RetrievalResultsMessage extends BaseMessage {
+  type: 'retrieval_results';
+  sender: 'bot';
+  query: string;
+  interpretedAs?: string;
+  items: RetrievalResultItem[];
+}
+
+export interface ResearchCardMessage extends BaseMessage {
+  type: 'research_card';
+  sender: 'bot';
+  subject: {
+    kind: 'company' | 'person';
+    name: string;
+  };
+  summary?: string;
+  highlights: string[];
+  sources?: ResearchSource[];
+}
+
 export type ContactAction =
   | 'add_to_campaign'
   | 'send_email'
+  | 'delete_contact'
   | 'view_in_salesforce'
   | 'edit_contact'
   | 'search_salesnav'
@@ -151,7 +211,7 @@ export interface EmbeddedComponentMessage extends BaseMessage {
   props: Record<string, any>;
 }
 
-/* ── Company Vet Card ── */
+/* -- Company Vet Card -- */
 
 export interface ResearchSource {
   title: string;
@@ -181,7 +241,7 @@ export interface CompanyVetCardMessage extends BaseMessage {
     talking_points?: string[];
     sources?: ResearchSource[];
   };
-  /** Info about existing DB record — shown when company already collected */
+  /** Info about existing DB record - shown when company already collected */
   existing?: {
     id: number;
     contact_count: number;
@@ -196,7 +256,7 @@ export interface CompanyVetCardMessage extends BaseMessage {
   actions: ('approve' | 'skip' | 'more_info' | 'skip_rest' | 're_vet')[];
 }
 
-/* ── Background Task Message ── */
+/* -- Background Task Message -- */
 
 export interface BackgroundTaskMessage extends BaseMessage {
   type: 'background_task';
@@ -204,7 +264,7 @@ export interface BackgroundTaskMessage extends BaseMessage {
   task: BackgroundTask;
 }
 
-/* ── Background Tasks ── */
+/* -- Background Tasks -- */
 
 export interface BackgroundTask {
   id: string;
@@ -217,7 +277,7 @@ export interface BackgroundTask {
   completedAt?: Date;
 }
 
-/* ── Alert System ── */
+/* -- Alert System -- */
 
 export interface AlertState {
   conversations: { count: number; isNew: boolean };
@@ -228,7 +288,7 @@ export interface AlertState {
   overview: { hasUpdate: boolean };
 }
 
-/* ── Dashboard Data Bridge ── */
+/* -- Dashboard Data Bridge -- */
 
 export interface DashboardDataBridge {
   // Overview
@@ -266,7 +326,7 @@ export interface DashboardDataBridge {
   cancelOutlookAuth: () => void;
 }
 
-/* ── Intent Types ── */
+/* -- Intent Types -- */
 
 export interface ParsedIntent {
   intent: IntentType;
@@ -293,7 +353,7 @@ export type IntentType =
   | 'help'
   | 'unknown';
 
-/* ── Workflow Types ── */
+/* -- Workflow Types -- */
 
 export interface Workflow {
   id: string;

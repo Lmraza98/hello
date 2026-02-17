@@ -52,12 +52,16 @@ export const TOOLS: ToolDefinition[] = [
     function: {
       name: 'search_contacts',
       description:
-        "Search contacts in the database. Filter by contact name, company name, email presence, or today's additions. Returns array of contacts with id, name, company, title, email, phone, linkedin_url, salesforce_url, etc.",
+        "Search contacts in the database. Use 'query' for broad free-text search across company name, contact name, title, domain, and vertical/industry " +
+        "(e.g. query='banks' finds contacts at bank companies, with banking titles, etc.). " +
+        "Use specific filters (name, company, vertical) to narrow further. Returns array of contacts with id, name, company, title, email, vertical, etc.",
       parameters: {
         type: 'object',
         properties: {
-          name: { type: 'string', description: 'Filter by contact name' },
-          company: { type: 'string', description: 'Filter by company name' },
+          query: { type: 'string', description: "Free-text search across company name, contact name, title, domain, and vertical. Use this for industry/category searches like 'banks', 'veterinary', 'construction'." },
+          name: { type: 'string', description: 'Filter by exact contact name' },
+          company: { type: 'string', description: 'Filter by exact company name' },
+          vertical: { type: 'string', description: "Filter by exact vertical/industry field value, e.g. 'Veterinary Services'" },
           has_email: { type: 'boolean', description: 'Only contacts with email addresses' },
           today_only: { type: 'boolean', description: "Only contacts added today" },
         },
@@ -68,14 +72,33 @@ export const TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'get_contact',
-      description: 'Get a single contact by their database ID. Re-prompts the user if not enough information is provided. Returns full contact record.',
+      description: 'Get a single contact by their database ID. Returns full contact record.',
       parameters: {
         type: 'object',
         properties: {
-          name: { type: 'string', description: 'Full name' },
-          company_name: { type: 'string', description: 'Company they work at' }, 
           contact_id: { type: 'number', description: 'Contact database ID' },
         },
+        required: ['contact_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'create_note',
+      description:
+        'Create a note attached to an entity (contact/company/campaign/etc). Use this to store user/assistant annotations for later retrieval.',
+      parameters: {
+        type: 'object',
+        properties: {
+          entity_type: {
+            type: 'string',
+            description: 'Entity type: contact|company|campaign|conversation|email_thread|email_message',
+          },
+          entity_id: { type: 'string', description: 'Entity ID (string or numeric id serialized as string)' },
+          content: { type: 'string', description: 'Note content' },
+        },
+        required: ['entity_type', 'entity_id', 'content'],
       },
     },
   },
@@ -433,6 +456,29 @@ export const TOOLS: ToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'enroll_contacts_by_filter',
+      description:
+        'Enroll all contacts matching filter criteria into a campaign. ' +
+        'Use this instead of enroll_contacts_in_campaign when enrolling many contacts by industry, company, or other filter. ' +
+        "The 'query' parameter does broad text search across company name, title, domain, and vertical " +
+        "(e.g. query='banks' finds all banking-related contacts). " +
+        'The server queries and enrolls contacts in one operation — no need to pass individual IDs.',
+      parameters: {
+        type: 'object',
+        properties: {
+          campaign_id: { type: 'number', description: 'Campaign ID to enroll contacts into' },
+          query: { type: 'string', description: "Free-text search across company name, title, domain, vertical. Use for industry searches like 'banks', 'veterinary', 'construction'." },
+          vertical: { type: 'string', description: "Filter by exact vertical/industry field value" },
+          company: { type: 'string', description: 'Filter by company name' },
+          has_email: { type: 'boolean', description: 'Only contacts with email addresses' },
+        },
+        required: ['campaign_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'get_campaign_contacts',
       description: 'Get contacts enrolled in a campaign with their enrollment status.',
       parameters: {
@@ -536,6 +582,22 @@ export const TOOLS: ToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'approve_campaign_review_queue',
+      description:
+        'Approve all review-queue emails for a specific campaign (up to limit).',
+      parameters: {
+        type: 'object',
+        properties: {
+          campaign_id: { type: 'number', description: 'Campaign ID' },
+          limit: { type: 'number', description: 'Max review items to approve (default 50)' },
+        },
+        required: ['campaign_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'send_campaign_emails',
       description:
         'Trigger sending campaign emails via Salesforce automation. Launches browser automation in a background process.',
@@ -572,6 +634,23 @@ export const TOOLS: ToolDefinition[] = [
           campaign_id: { type: 'number', description: 'Filter by campaign' },
           limit: { type: 'number', description: 'Max results (default 200)' },
         },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'reschedule_campaign_emails',
+      description:
+        'Reschedule approved pending emails in a campaign to N days from now.',
+      parameters: {
+        type: 'object',
+        properties: {
+          campaign_id: { type: 'number', description: 'Campaign ID' },
+          days_from_now: { type: 'number', description: 'Days from now to schedule sends' },
+          limit: { type: 'number', description: 'Max scheduled emails to reschedule (default 200)' },
+        },
+        required: ['campaign_id', 'days_from_now'],
       },
     },
   },
@@ -713,24 +792,6 @@ export const TOOLS: ToolDefinition[] = [
   {
     type: 'function',
     function: {
-      name: 'salesnav_person_search',
-      description:
-        'Search for a person on LinkedIn Sales Navigator by name. Returns profile cards with name, title, company, linkedin_url, location.',
-      parameters: {
-        type: 'object',
-        properties: {
-          first_name: { type: 'string', description: 'First name' },
-          last_name: { type: 'string', description: 'Last name' },
-          company: { type: 'string', description: 'Company name to narrow search' },
-          max_results: { type: 'number', description: 'Max results (default 5)' },
-        },
-        required: ['first_name', 'last_name'],
-      },
-    },
-  },
-  {
-    type: 'function',
-    function: {
       name: 'salesnav_scrape_leads',
       description:
         'Scrape decision-maker contacts from companies via Sales Navigator. For each company, finds leadership and saves contacts to database.',
@@ -772,6 +833,100 @@ export const TOOLS: ToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'browser_tasks_status',
+      description:
+        'List browser automation tasks and their current status/progress. Use this to check running tasks before retrying or when user asks what is still running.',
+      parameters: {
+        type: 'object',
+        properties: {
+          include_finished: { type: 'boolean', description: 'Include finished/failed tasks (default false).' },
+          limit: { type: 'number', description: 'Max tasks to return (default 50).' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'compound_workflow_run',
+      description:
+        'Create and start a multi-phase compound browser workflow in the background. Use this for complex chained requests requiring multiple website steps.',
+      parameters: {
+        type: 'object',
+        properties: {
+          spec: {
+            type: 'object',
+            description: 'Compound workflow spec with constraints and ordered phases.',
+          },
+          user_id: { type: 'string', description: 'Optional user/session id for ownership tracking.' },
+        },
+        required: ['spec'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'compound_workflow_status',
+      description:
+        'Get status/progress/events for a compound workflow by workflow_id.',
+      parameters: {
+        type: 'object',
+        properties: {
+          workflow_id: { type: 'string', description: 'Workflow id returned from compound_workflow_run/create.' },
+        },
+        required: ['workflow_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'compound_workflow_continue',
+      description:
+        'Continue a paused compound workflow after a checkpoint prompt.',
+      parameters: {
+        type: 'object',
+        properties: {
+          workflow_id: { type: 'string', description: 'Paused workflow id.' },
+        },
+        required: ['workflow_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'compound_workflow_cancel',
+      description:
+        'Cancel a running or paused compound workflow.',
+      parameters: {
+        type: 'object',
+        properties: {
+          workflow_id: { type: 'string', description: 'Workflow id.' },
+        },
+        required: ['workflow_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'compound_workflow_list',
+      description:
+        'List compound workflows with optional status filter.',
+      parameters: {
+        type: 'object',
+        properties: {
+          status: { type: 'string', description: 'Optional status filter: pending|running|paused|completed|failed|cancelled.' },
+          limit: { type: 'number', description: 'Max rows to return (default 50).' },
+        },
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'browser_tabs',
       description:
         'List open browser tabs from the browser control gateway. Use this before navigation when tab context is unclear.',
@@ -807,7 +962,11 @@ export const TOOLS: ToolDefinition[] = [
         type: 'object',
         properties: {
           tab_id: { type: 'string', description: 'Optional tab id from browser_tabs' },
-          mode: { type: 'string', description: 'Snapshot style: ai or role' },
+          mode: {
+            type: 'string',
+            enum: ['role', 'ai'],
+            description: 'Snapshot style. Use "role" for stable refs.',
+          },
         },
       },
     },
@@ -822,7 +981,11 @@ export const TOOLS: ToolDefinition[] = [
         type: 'object',
         properties: {
           ref: { type: 'string', description: 'Element ref from browser_snapshot (for numeric refs pass as string)' },
-          action: { type: 'string', description: 'Action type: click, type, fill, press, hover, select' },
+          action: {
+            type: 'string',
+            enum: ['click', 'type', 'fill', 'press', 'hover', 'select', 'scroll'],
+            description: 'Action type.',
+          },
           value: { type: 'string', description: 'Optional value for type/fill/select/press actions' },
           tab_id: { type: 'string', description: 'Optional tab id from browser_tabs' },
         },
@@ -882,14 +1045,78 @@ export const TOOLS: ToolDefinition[] = [
   {
     type: 'function',
     function: {
-      name: 'browser_extract_companies',
+      name: 'browser_search_and_extract',
       description:
-        'Extract top company search results from the current Sales Navigator account-search page.',
+        'Run a generic, skill-driven website workflow: navigate to the skill entry URL (if needed), fill the skill-defined search input, apply optional filters, then extract structured items. Prefer this over manual browser_* steps when you want structured results.',
       parameters: {
         type: 'object',
         properties: {
+          task: { type: 'string', description: 'Skill task name (e.g. salesnav_search_account, salesnav_people_search)' },
+          query: { type: 'string', description: 'Search query/keywords to enter' },
+          filters: { type: 'object', description: 'Optional filters: { filter_name: value }. Values may be strings or arrays.' },
+          click_target: { type: 'string', description: 'Optional item label/name to click/navigate to after extraction' },
+          extract_type: { type: 'string', description: 'Optional extraction kind (auto-detected from skill when omitted)' },
           tab_id: { type: 'string', description: 'Optional tab id from browser_tabs' },
-          limit: { type: 'number', description: 'Max companies to extract (default 5)' },
+          limit: { type: 'number', description: 'Max extracted items (default 25, max 200)' },
+          wait_ms: { type: 'number', description: 'Wait after search submit (ms). Use 800-2500 for most sites.' },
+        },
+        required: ['task', 'query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'google_search_browser',
+      description:
+        'Search Google in a live browser session, wait for AI Overview if available, then return citations plus organic fallback results.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Google query text' },
+          tab_id: { type: 'string', description: 'Optional existing browser tab id' },
+          max_results: { type: 'number', description: 'Max organic fallback results (default 5, max 20)' },
+          wait_for_ai_overview_ms: { type: 'number', description: 'How long to wait for AI Overview before fallback (default 8000ms)' },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'browser_list_sub_items',
+      description:
+        'Run a skill-driven sub-items workflow: optionally navigate to a parent item, open a sub-items view, then extract structured rows. IMPORTANT: only use args defined in this schema — do NOT add selector, css_selector, or other invented args.',
+      parameters: {
+        type: 'object',
+        properties: {
+          task: { type: 'string', description: 'Skill task name for the sub-items view (e.g. salesnav_list_employees). Must be a registered skill task — use browser_skill_list to discover available tasks.' },
+          tab_id: { type: 'string', description: 'Optional tab id from browser_tabs' },
+          parent_query: { type: 'string', description: 'Optional parent name to search/click before listing sub-items' },
+          parent_task: { type: 'string', description: 'Optional parent task used to find the parent (e.g. salesnav_search_account)' },
+          parent_filters: { type: 'object', description: 'Optional filters for the parent search step' },
+          entrypoint_action: { type: 'string', description: 'Action name used to open the sub-items page (from the skill Action Hints)' },
+          extract_type: { type: 'string', description: 'Extraction kind for sub-items (default lead)' },
+          limit: { type: 'number', description: 'Max extracted items (default 100, max 200)' },
+          wait_ms: { type: 'number', description: 'Wait after opening sub-items view (ms)' },
+        },
+        required: ['task'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'browser_skill_list',
+      description:
+        'List browser website skills stored as markdown files, optionally with best-match scoring for url/task/query.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'Optional current page URL to compute best match' },
+          task: { type: 'string', description: 'Optional workflow task name (for example: salesnav_search_account)' },
+          query: { type: 'string', description: 'Optional user query/context to improve matching' },
         },
       },
     },
@@ -897,19 +1124,82 @@ export const TOOLS: ToolDefinition[] = [
   {
     type: 'function',
     function: {
-      name: 'browser_salesnav_search_account',
+      name: 'browser_skill_match',
       description:
-        'One-shot Sales Navigator account search: opens account search, submits query, optionally clicks best matching company, and returns top extracted companies.',
+        'Return the single best matching browser website skill for a URL/task/query triplet.',
       parameters: {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'Account search text to submit' },
-          click_company: { type: 'string', description: 'Optional company name to click from results' },
-          wait_ms: { type: 'number', description: 'Optional wait after submit before extraction (default 3000)' },
-          limit: { type: 'number', description: 'Max extracted companies (default 5)' },
-          tab_id: { type: 'string', description: 'Optional tab id from browser_tabs' },
+          url: { type: 'string', description: 'Current page URL' },
+          task: { type: 'string', description: 'Task name (for example: salesnav_search_account)' },
+          query: { type: 'string', description: 'User query/context' },
         },
-        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'browser_skill_get',
+      description:
+        'Get one browser website skill markdown file by skill_id, including parsed action hints.',
+      parameters: {
+        type: 'object',
+        properties: {
+          skill_id: { type: 'string', description: 'Skill id (file name without .md)' },
+        },
+        required: ['skill_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'browser_skill_upsert',
+      description:
+        'Create or update a browser website skill markdown file. Use this to define reusable automation behavior for any site.',
+      parameters: {
+        type: 'object',
+        properties: {
+          skill_id: { type: 'string', description: 'Skill id (file name without .md)' },
+          content: { type: 'string', description: 'Full markdown content with optional frontmatter and Action Hints section' },
+        },
+        required: ['skill_id', 'content'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'browser_skill_delete',
+      description:
+        'Delete a browser website skill markdown file by skill_id.',
+      parameters: {
+        type: 'object',
+        properties: {
+          skill_id: { type: 'string', description: 'Skill id (file name without .md)' },
+        },
+        required: ['skill_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'browser_skill_repair',
+      description:
+        'Append a repair log note to a browser website skill and optionally upsert an action hint discovered during runtime.',
+      parameters: {
+        type: 'object',
+        properties: {
+          skill_id: { type: 'string', description: 'Skill id (file name without .md)' },
+          issue: { type: 'string', description: 'Short repair issue code or message' },
+          context: { type: 'object', description: 'Optional key/value context for the repair note' },
+          action: { type: 'string', description: 'Optional action hint key to upsert' },
+          role: { type: 'string', description: 'Optional role for action hint (input/button/link/etc)' },
+          text: { type: 'string', description: 'Optional visible text for action hint upsert' },
+        },
+        required: ['skill_id', 'issue'],
       },
     },
   },
@@ -991,6 +1281,147 @@ export const TOOLS: ToolDefinition[] = [
       description:
         "Get high-level stats: total companies, total contacts, contacts with email, contacts added today.",
       parameters: { type: 'object', properties: {} },
+    },
+  },
+
+  // ── Workflow tools (multi-step backend operations) ──
+
+  {
+    type: 'function',
+    function: {
+      name: 'workflow_resolve_contact',
+      description:
+        'Search for a contact by name across the local database and Sales Navigator. Returns candidates from both sources plus a best-match suggestion.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Person name to search for' },
+          company: { type: 'string', description: 'Company name (optional, improves matching)' },
+        },
+        required: ['name'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'workflow_enroll_and_draft',
+      description:
+        'Enroll a contact in a campaign and generate an email draft. Optionally creates the contact first.',
+      parameters: {
+        type: 'object',
+        properties: {
+          campaign_id: { type: 'number', description: 'Campaign ID to enroll in' },
+          contact_id: { type: 'number', description: 'Contact ID (if already exists)' },
+          create_if_missing: {
+            type: 'object',
+            description: 'Contact data if the contact needs to be created first',
+            properties: {
+              name: { type: 'string' },
+              company_name: { type: 'string' },
+              title: { type: 'string' },
+              email: { type: 'string' },
+              linkedin_url: { type: 'string' },
+            },
+          },
+        },
+        required: ['campaign_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'workflow_prospect',
+      description:
+        'Search for target companies via Sales Navigator. Returns company list with deduplication against existing DB companies.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Natural language search query (e.g. "construction companies in New England")' },
+          industry: { type: 'string', description: 'Target industry keyword' },
+          location: { type: 'string', description: 'Target location' },
+          max_companies: { type: 'number', description: 'Maximum companies to return', default: 10 },
+          save_to_db: { type: 'boolean', description: 'Whether to save found companies to the database', default: true },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'workflow_scrape_leads_batch',
+      description:
+        'Scrape decision-makers from multiple companies in one call. Contacts are saved to the database.',
+      parameters: {
+        type: 'object',
+        properties: {
+          company_names: {
+            type: 'array',
+            description: 'List of company names to scrape leads from',
+            items: { type: 'string' },
+          },
+          title_filter: { type: 'string', description: 'Comma-separated title keywords to filter (e.g. "VP, Director, CTO")' },
+          max_per_company: { type: 'number', description: 'Max leads per company', default: 5 },
+        },
+        required: ['company_names'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'workflow_lookup_and_research',
+      description:
+        'Batch-lookup companies in the database and run web research + ICP assessment for each. Returns all data needed for vetting.',
+      parameters: {
+        type: 'object',
+        properties: {
+          company_names: {
+            type: 'array',
+            description: 'List of company names to research',
+            items: { type: 'string' },
+          },
+          icp_context: {
+            type: 'object',
+            description: 'ICP context for the assessment',
+            properties: {
+              industry: { type: 'string' },
+              location: { type: 'string' },
+            },
+          },
+        },
+        required: ['company_names'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'workflow_vet_batch',
+      description:
+        'Record vetting decisions (approve / skip) for a batch of companies.',
+      parameters: {
+        type: 'object',
+        properties: {
+          decisions: {
+            type: 'array',
+            description: 'List of vetting decisions',
+            items: {
+              type: 'object',
+              properties: {
+                company_name: { type: 'string' },
+                company_id: { type: 'number' },
+                approved: { type: 'boolean' },
+                icp_score: { type: 'number' },
+              },
+              required: ['company_name', 'approved'],
+            },
+          },
+        },
+        required: ['decisions'],
+      },
     },
   },
 ];

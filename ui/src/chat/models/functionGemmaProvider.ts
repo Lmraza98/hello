@@ -1,5 +1,5 @@
 import type { ChatMessage } from '../../types/chat';
-import { textMsg } from '../../services/workflows/helpers';
+import { textMsg } from '../../services/messageHelpers';
 import { executeTool } from '../toolExecutor';
 import { TOOLS } from '../tools';
 import type { ToolCall } from '../chatEngineTypes';
@@ -17,7 +17,16 @@ Classify each request into one of: research, draft, follow_up, objection, enrich
 Think through the plan internally, then emit only function calls that advance the request.
 
 Return only function calls when tools are needed.
-For CRM lookups (find/search contact/person/lead/company), call resolve_entity or hybrid_search first.
+For CRM lookups (find/search contact/person/lead/company) in our database, call resolve_entity or hybrid_search first.
+
+If the user explicitly mentions live browser work (e.g. "on SalesNav", "on Sales Navigator", "on LinkedIn", provides a URL, or says navigate/click/type/screenshot),
+then treat it as LIVE BROWSER AUTOMATION. Do NOT use search_contacts/search_companies/hybrid_search/resolve_entity for that.
+For live browser work, prefer the generic skill-driven workflow tools:
+- browser_search_and_extract
+- browser_list_sub_items
+If a workflow tool cannot express the request, fall back to the OpenClaw-style primitives:
+- browser_health, browser_tabs, browser_navigate, browser_snapshot, browser_find_ref, browser_act, browser_wait, browser_screenshot.
+Always base claims on observed page data from browser_snapshot (or structured outputs from the browser workflow tools).
 Do not call auth/status/integration tools unless the user explicitly asks about auth, login, connection, token, or status.
 Never claim an action happened unless you emitted a function call for it.`;
 
@@ -131,6 +140,10 @@ function selectToolsForMessage(userMessage: string): (typeof TOOLS)[number][] {
     /\b(sales\s*navigator|salesnav|linkedin)\b/i.test(msg) &&
     /\b(find|search|show|get)\b/i.test(msg) &&
     !/\b(scrape|decision maker|decision-makers|leads?\s+from)\b/i.test(msg);
+  const liveBrowserIntent =
+    /https?:\/\//i.test(msg) ||
+    /\b(on\s+salesnav|on\s+sales\s*navigator|on\s+linkedin)\b/i.test(msg) ||
+    /\b(browser|tab|screenshot|snapshot|navigate|open|go to|click|type|fill|scroll)\b/i.test(msg);
   const hasExplicitCompaniesInput =
     /\b(companies?|company list|these companies|selected companies)\b/i.test(msg);
   if (msgTokens.size === 0) return TOOLS;
@@ -201,12 +214,36 @@ function selectToolsForMessage(userMessage: string): (typeof TOOLS)[number][] {
       if (toolNameLower === 'get_review_queue') score += 40;
       if (toolNameLower === 'get_scheduled_emails') score += 40;
     }
-    // SalesNav query routing: prefer company search over scrape-leads
-    // unless the user explicitly provides a company list.
+    // SalesNav routing: only prefer collection when the user explicitly asks to collect/scrape.
     if (salesNavCompanySearchIntent) {
-      if (toolNameLower === 'collect_companies_from_salesnav') score += 220;
+      const wantsCollect = /\b(collect|scrape|harvest|bulk|discover|ingest)\b/.test(msg);
+      // Prefer the generic skill-driven workflow for interactive SalesNav searches.
+      if (toolNameLower === 'browser_search_and_extract') score += wantsCollect ? -40 : 260;
+      if (toolNameLower === 'collect_companies_from_salesnav') score += wantsCollect ? 220 : -120;
       if (toolNameLower === 'salesnav_scrape_leads' && !hasExplicitCompaniesInput) score -= 220;
-      if (toolNameLower === 'salesnav_person_search') score -= 80;
+      if (toolNameLower === 'salesnav_person_search') score -= 120;
+    }
+
+    // If the user explicitly asked to do this on SalesNav/LinkedIn (live browser),
+    // strongly bias toward OpenClaw browser primitives and away from local DB search tools.
+    if (liveBrowserIntent && messageDomains.has('salesnav')) {
+      if (toolNameLower.startsWith('browser_')) score += 220;
+      if (toolNameLower === 'browser_search_and_extract') score += 200;
+      if (toolNameLower === 'browser_list_sub_items') score += 180;
+      // Prefer generic workflows over legacy SalesNav-specific adapters.
+      if (
+        toolNameLower === 'salesnav_search_account' ||
+        toolNameLower === 'salesnav_list_employees' ||
+        toolNameLower === 'salesnav_extract_leads' ||
+        toolNameLower === 'salesnav_person_search'
+      ) {
+        score -= 180;
+      }
+      if (toolNameLower === 'collect_companies_from_salesnav') score -= 80;
+      if (toolNameLower === 'search_contacts') score -= 250;
+      if (toolNameLower === 'search_companies') score -= 250;
+      if (toolNameLower === 'hybrid_search') score -= 250;
+      if (toolNameLower === 'resolve_entity') score -= 250;
     }
 
     return { tool, score };
@@ -638,7 +675,7 @@ export async function runFunctionGemma(
           content:
             IS_DEVSTRAL_BRAIN
               ? `${userMessage}\n\nReturn valid JSON only. Do not return empty output.`
-              : `${userMessage}\n\nReturn a function call only. If this is a contact/company lookup, call resolve_entity or hybrid_search. If this is campaign creation, call create_campaign. If this is adding someone to a campaign, call hybrid_search or list_campaigns first to gather IDs.`,
+              : `${userMessage}\n\nReturn a function call only. If this is live browser work (SalesNav/LinkedIn/URL/navigate/click/type), use browser_* tools. If this is a contact/company lookup in our database, call resolve_entity or hybrid_search. If this is campaign creation, call create_campaign. If this is adding someone to a campaign, call hybrid_search or list_campaigns first to gather IDs.`,
         },
       ];
 

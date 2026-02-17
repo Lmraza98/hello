@@ -1,3 +1,16 @@
+/**
+ * @deprecated Legacy workflow engine — prefer assistant-core skills for new capabilities.
+ *
+ * This engine is still used for slash-command workflows and will be maintained
+ * until all workflows are migrated to the skill system.  New feature work
+ * should add skills in `assistant-core/skills/handlers/` instead.
+ *
+ * Migration tracker:
+ *   Migrated:  campaign-create-and-enroll, prospect-companies-and-draft-emails
+ *   Remaining: status_check, contact_lookup, contact_outreach, campaign_list,
+ *              conversation_list, lead_generation, company_research, check_job, help
+ */
+
 import type {
   BackgroundTask,
   ChatMessage,
@@ -5,8 +18,9 @@ import type {
   StepResult,
   Workflow,
 } from '../types/chat';
+import { api } from '../api';
 import { parseIntent } from './intentParser';
-import { statusMsg, textMsg } from './workflows/helpers';
+import { statusMsg, textMsg } from './messageHelpers';
 import { createCampaignListWorkflow } from './workflows/campaignList';
 import { createCheckJobWorkflow } from './workflows/checkJob';
 import { createCompanyResearchWorkflow } from './workflows/companyResearch';
@@ -71,18 +85,18 @@ export async function processAction(
   activeWorkflow: Workflow | null,
   callbacks?: EngineCallbacks
 ): Promise<EngineResult> {
-  // ── Context action from a contact card ──
+  // -- Context action from a contact card --
   if (actionValue.startsWith('contact_action:')) {
     const [, action, contactIdStr] = actionValue.split(':');
     return handleContactAction(action, parseInt(contactIdStr, 10));
   }
 
-  // ── Section button clicks are handled in the UI layer ──
+  // -- Section button clicks are handled in the UI layer --
   if (actionValue.startsWith('section:')) {
     return { messages: [], workflow: null };
   }
 
-  // ── Resume active workflow ──
+  // -- Resume active workflow --
   if (activeWorkflow && activeWorkflow.status === 'waiting_user') {
     injectCallbacks(activeWorkflow, callbacks);
     return resumeWorkflow(activeWorkflow, actionValue);
@@ -118,10 +132,55 @@ async function handleContactAction(
     }
 
     case 'send_email': {
-      const workflow = createContactOutreachWorkflow('', '');
-      workflow.context.contact = { id: contactId };
-      workflow.currentStepIndex = 2;
-      return runWorkflow(workflow);
+      try {
+        const contact = await api.getContact(contactId);
+        const emailValue = (contact.email || '').trim();
+        if (!emailValue) {
+          return {
+            messages: [
+              statusMsg(
+                `Cannot send yet for contact #${contactId}: no email is saved.`,
+                'info'
+              ),
+              textMsg('Use "Sync to SF" or collect an email for this contact, then try send email again.'),
+              {
+                id: `email-missing-actions-${Date.now()}`,
+                type: 'action_buttons',
+                sender: 'bot',
+                content: 'Choose next step:',
+                timestamp: new Date(),
+                buttons: [
+                  { label: 'Run Email Discovery', value: `email_discovery_for_contact:${contactId}`, variant: 'primary' },
+                  { label: 'Retry Send', value: `retry_send_email_contact:${contactId}`, variant: 'secondary' },
+                  { label: 'Cancel', value: 'dismiss_email_discovery', variant: 'danger' },
+                ],
+              },
+            ],
+            workflow: null,
+          };
+        }
+        const result = await api.sendEmailsToContacts([contactId]);
+        const sent = Number(result.sent ?? result.processed ?? 0);
+        const total = Number(result.total ?? 1);
+        return {
+          messages: [
+            statusMsg(
+              sent > 0
+                ? `Email send started via Salesforce for contact #${contactId} (${sent}/${total}).`
+                : `No email was sent for contact #${contactId}.`,
+              sent > 0 ? 'success' : 'info'
+            ),
+            ...(result.message ? [textMsg(result.message)] : []),
+          ],
+          workflow: null,
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to send email';
+        return {
+          messages: [statusMsg(`Failed to send email for contact #${contactId}: ${message}`, 'error')],
+          workflow: null,
+        };
+      }
     }
 
     case 'view_in_salesforce':
@@ -135,6 +194,20 @@ async function handleContactAction(
         messages: [statusMsg(`Queued Salesforce sync for contact #${contactId}.`, 'info')],
         workflow: null,
       };
+
+    case 'delete_contact':
+      try {
+        await api.deleteContact(contactId);
+        return {
+          messages: [statusMsg(`Deleted contact #${contactId}.`, 'success')],
+          workflow: null,
+        };
+      } catch {
+        return {
+          messages: [statusMsg(`Failed to delete contact #${contactId}.`, 'error')],
+          workflow: null,
+        };
+      }
 
     default:
       return {

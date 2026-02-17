@@ -1,0 +1,89 @@
+﻿== chatEngine tree ==
+[FILE] C:\Users\lmraz\Hello\ui\src\chat\chatEngine\actionRouter.ts (4852 bytes)
+[FILE] C:\Users\lmraz\Hello\ui\src\chat\chatEngine\coreference.ts (5459 bytes)
+[FILE] C:\Users\lmraz\Hello\ui\src\chat\chatEngine\dispatchResponse.ts (13579 bytes)
+[FILE] C:\Users\lmraz\Hello\ui\src\chat\chatEngine\env.ts (2931 bytes)
+[FILE] C:\Users\lmraz\Hello\ui\src\chat\chatEngine\fastPath.ts (11218 bytes)
+[FILE] C:\Users\lmraz\Hello\ui\src\chat\chatEngine\intentClassifier.ts (5195 bytes)
+[FILE] C:\Users\lmraz\Hello\ui\src\chat\chatEngine\pipelineSteps.ts (31233 bytes)
+[FILE] C:\Users\lmraz\Hello\ui\src\chat\chatEngine\pipelineTypes.ts (4624 bytes)
+[FILE] C:\Users\lmraz\Hello\ui\src\chat\chatEngine\reactAdapter.ts (9951 bytes)
+[FILE] C:\Users\lmraz\Hello\ui\src\chat\chatEngine\skillAdapter.ts (9927 bytes)
+[FILE] C:\Users\lmraz\Hello\ui\src\chat\chatEngine\stepContext.ts (4276 bytes)
+[FILE] C:\Users\lmraz\Hello\ui\src\chat\chatEngine\taskDecomposer.ts (2061 bytes)
+[FILE] C:\Users\lmraz\Hello\ui\src\chat\chatEngine\taskPlanExecutor.ts (8526 bytes)
+
+== exports/signatures (chatEngine/*.ts) ==
+
+--- C:\Users\lmraz\Hello\ui\src\chat\chatEngine\actionRouter.ts ---
+export async function processAction(
+
+--- C:\Users\lmraz\Hello\ui\src\chat\chatEngine\coreference.ts ---
+export type SessionEntityChoice = {
+export type SessionResolution = {
+export function buildSessionEntityChoices(sessionState: ChatSessionState | undefined, limit = 5): SessionEntityChoice[] {
+export function tokenizeLowerWords(value: string): string[] {
+export async function resolveSessionCoreference(
+
+--- C:\Users\lmraz\Hello\ui\src\chat\chatEngine\dispatchResponse.ts ---
+export function dedupeConsecutiveTextMessages(messages: ChatMessage[]): ChatMessage[] {
+export function replaceLastAssistantMessage(history: ChatCompletionMessageParam[], content: string): ChatCompletionMessageParam[] {
+export function isGenericDispatchSummary(summary: string | undefined): boolean {
+export function shouldSkipSynthesisForDispatch(dispatched: ToolDispatchResult): boolean {
+export function mergeSessionFromDispatch(previous: ChatSessionState | undefined, dispatched: ToolDispatchResult): ChatSessionState | undefined {
+export function appendBrowserSessionNoteIfActive(dispatched: ToolDispatchResult, assistantText: string): string {
+export async function synthesizeDispatchResponse(params: {
+export function baseDebugTrace(_ctx: PipelineContext, fields: {
+export function attachTimingsAndSizes(
+export async function dispatchPlanAndBuildResult(params: {
+
+--- C:\Users\lmraz\Hello\ui\src\chat\chatEngine\env.ts ---
+export function getEnvBool(name: string, defaultValue: boolean): boolean {
+export function getEnvInt(name: string, defaultValue: number): number {
+
+--- C:\Users\lmraz\Hello\ui\src\chat\chatEngine\fastPath.ts ---
+export async function executeFastPathPlan(params: {
+
+--- C:\Users\lmraz\Hello\ui\src\chat\chatEngine\intentClassifier.ts ---
+export type IntentKind = 'conversational' | 'single' | 'multi';
+export function hasExplicitMultiStepMarkers(message: string): boolean {
+export async function classifyIntent(message: string, onProgress?: (msg: string) => void): Promise<IntentKind> {
+
+--- C:\Users\lmraz\Hello\ui\src\chat\chatEngine\pipelineSteps.ts ---
+export function buildPipelineContext(
+export async function processMessagePipeline(
+
+--- C:\Users\lmraz\Hello\ui\src\chat\chatEngine\pipelineTypes.ts ---
+export interface ChatEngineOptions {
+export type ChatEngineTimings = {
+export type ChatEngineSizeMetrics = {
+export interface ChatEngineResult {
+export interface MessageMeta {
+export type StepResult = ChatEngineResult | null;
+export type PipelineContext = {
+
+--- C:\Users\lmraz\Hello\ui\src\chat\chatEngine\reactAdapter.ts ---
+export function buildReActConfig(
+export async function reactResultToChatResult(
+export async function handleToolRoute(params: {
+
+--- C:\Users\lmraz\Hello\ui\src\chat\chatEngine\skillAdapter.ts ---
+export function buildSkillWorkItemFromPendingConfirmation(params: {
+export function buildSkillConfirmationResult(params: {
+export function clearExpiredSkillWorkItemResult(params: {
+export async function trySkillFirst(ctx: PipelineContext): Promise<ChatEngineResult | null> {
+export async function resumeSkillWorkItem(params: {
+
+--- C:\Users\lmraz\Hello\ui\src\chat\chatEngine\stepContext.ts ---
+export type StepContextEntry = {
+export function serializeStepContext(entries: StepContextEntry[]): string[] {
+export function deserializeStepContext(snippets: string[]): StepContextEntry[] {
+export function summarizeToolResult(toolName: string, ok: boolean, result: unknown): string {
+export function buildStepMessage(step: TaskStep, structuredContext: StepContextEntry[]): string {
+
+--- C:\Users\lmraz\Hello\ui\src\chat\chatEngine\taskDecomposer.ts ---
+export function heuristicDecomposeSteps(message: string): TaskStep[] {
+export async function decomposeTask(
+
+--- C:\Users\lmraz\Hello\ui\src\chat\chatEngine\taskPlanExecutor.ts ---
+export async function executeTaskPlan(params: {

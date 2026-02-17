@@ -12,12 +12,20 @@ export const PLANNER_TOOL_USAGE_RULES = [
   'Extract names, companies, and filters from natural language. Do NOT invent args the user did not mention.',
   'If the user does not mention a company, do NOT add one.',
   'Each tool call must be based on the CURRENT user message only.',
+  'For browser_search_and_extract, the "task" arg MUST be a real website-skill task string. Do NOT invent task names.',
+  'If the user asks to Google a topic or check hard facts on Google, prefer google_search_browser over manual browser steps.',
+  'If the user says to visit/open/go to a website (e.g., "visit youtube"), use browser_navigate (and optionally browser_snapshot) instead of hybrid_search.',
   'Find [person] defaults to resolve_entity or hybrid_search unless user explicitly says SalesNav/LinkedIn person search.',
   'Find [industry] companies defaults to search_companies using q or vertical, never tier.',
-  'Use collect_companies_from_salesnav only for explicit scraping/collection requests, not for simple navigation.',
-  'For website navigation/interaction, use browser_* tools (health/tabs/navigate/snapshot/find_ref/act/wait/screenshot/salesnav_search_account) rather than scrape tools.',
+  'Use collect_companies_from_salesnav only for explicit scraping/collection or save-to-database requests.',
+  'If the user says "on SalesNav" / "on Sales Navigator" / "on LinkedIn Sales Navigator", treat it as live browser automation. Prefer browser_search_and_extract / browser_list_sub_items, and do NOT use search_contacts/search_companies/hybrid_search for that.',
+  'For browser automation on any website, prefer the OpenClaw-style primitives: browser_tabs, browser_navigate, browser_snapshot, browser_find_ref, browser_act, browser_wait, browser_screenshot.',
+  'Prefer generic browser workflow tools when available (browser_search_and_extract, browser_list_sub_items). Avoid site-specific adapters.',
+  'For reusable website automation memory, use browser_skill_* tools (list/match/get/upsert/repair/delete).',
   'Send email to [person] starts with hybrid_search as step 1.',
   'Add [person] to campaign starts with hybrid_search as step 1.',
+  'To enroll contacts by industry/category/vertical into a campaign, use enroll_contacts_by_filter with ONLY the query parameter (e.g. query="bank"). Do NOT also add vertical, company, or has_email unless the user explicitly asked for those filters. Do NOT use search_contacts then enroll_contacts_in_campaign for bulk industry enrollment.',
+  'search_contacts has a query parameter for broad text search across company name, title, domain, and vertical. Use query for industry searches like "banks", "veterinary", "construction". When using query, do NOT also set vertical or company — query already searches those fields.',
 ].join('\n');
 
 const CURATED_EXAMPLES: Record<string, ToolCallExample[]> = {
@@ -27,6 +35,9 @@ const CURATED_EXAMPLES: Record<string, ToolCallExample[]> = {
     { user: 'show me contacts at RussElectric', calls: [{ name: 'search_contacts', args: { company: 'RussElectric' } }] },
     { user: 'find contacts with emails', calls: [{ name: 'search_contacts', args: { has_email: true } }] },
     { user: "show me today's new contacts", calls: [{ name: 'search_contacts', args: { today_only: true } }] },
+    { user: 'find banking contacts', calls: [{ name: 'search_contacts', args: { query: 'bank' } }] },
+    { user: 'show me contacts in veterinary services', calls: [{ name: 'search_contacts', args: { query: 'veterinary' } }] },
+    { user: 'search for contacts in construction', calls: [{ name: 'search_contacts', args: { query: 'construction' } }] },
   ],
   search_companies: [
     { user: 'Find construction companies', calls: [{ name: 'search_companies', args: { q: 'construction' } }] },
@@ -41,10 +52,106 @@ const CURATED_EXAMPLES: Record<string, ToolCallExample[]> = {
     { user: 'search salesnav for tech companies in Boston', calls: [{ name: 'collect_companies_from_salesnav', args: { query: 'tech companies in Boston' } }] },
     { user: 'Find me smallish companies like Zco Corporation', calls: [{ name: 'collect_companies_from_salesnav', args: { query: 'small software development companies similar to Zco Corporation' } }] },
   ],
-  salesnav_person_search: [
-    { user: 'search for John Smith on sales navigator', calls: [{ name: 'salesnav_person_search', args: { first_name: 'John', last_name: 'Smith' } }] },
-    { user: 'find Randy Peterson on LinkedIn', calls: [{ name: 'salesnav_person_search', args: { first_name: 'Randy', last_name: 'Peterson' } }] },
-    { user: 'look up Lucas Raza on salesnav at Zco', calls: [{ name: 'salesnav_person_search', args: { first_name: 'Lucas', last_name: 'Raza', company: 'Zco' } }] },
+  browser_search_and_extract: [
+    {
+      user: 'Find construction companies on Sales Navigator',
+      calls: [{ name: 'browser_search_and_extract', args: { task: 'salesnav_search_account', query: 'construction', limit: 20 } }],
+    },
+    {
+      user: 'Search Sales Navigator for healthcare companies in United States',
+      calls: [
+        {
+          name: 'browser_search_and_extract',
+          args: {
+            task: 'salesnav_search_account',
+            query: 'healthcare',
+            filters: {
+              industry: 'Hospitals and Health Care',
+              headquarters_location: 'United States',
+              company_headcount: '1-10',
+            },
+            limit: 10,
+          },
+        },
+      ],
+    },
+    {
+      user: 'Find Lucas Raza on LinkedIn Sales Navigator',
+      calls: [{ name: 'browser_search_and_extract', args: { task: 'salesnav_people_search', query: 'Lucas Raza', limit: 10 } }],
+    },
+    {
+      user: 'search youtube and tell me how many views gangnam style has',
+      calls: [{ name: 'browser_search_and_extract', args: { task: 'youtube_video_views', query: 'Gangnam Style', limit: 1 } }],
+    },
+    {
+      user: 'How many views does Gangnam Style currently have on YouTube?',
+      calls: [{ name: 'browser_search_and_extract', args: { task: 'youtube_video_views', query: 'Gangnam Style', limit: 1 } }],
+    },
+  ],
+  browser_list_sub_items: [
+    {
+      user: 'List employees for Zco on Sales Navigator',
+      calls: [
+        {
+          name: 'browser_list_sub_items',
+          args: { task: 'salesnav_list_employees', parent_query: 'Zco', parent_task: 'salesnav_search_account', limit: 60 },
+        },
+      ],
+    },
+  ],
+  google_search_browser: [
+    {
+      user: 'google latest nist password guidance',
+      calls: [{ name: 'google_search_browser', args: { query: 'latest NIST password guidance', max_results: 5 } }],
+    },
+    {
+      user: 'search google for pci dss 4.0 requirement 8 summary',
+      calls: [{ name: 'google_search_browser', args: { query: 'PCI DSS 4.0 requirement 8 summary', max_results: 5, wait_for_ai_overview_ms: 9000 } }],
+    },
+    {
+      user: 'look up fda 510k timeline on google',
+      calls: [{ name: 'google_search_browser', args: { query: 'FDA 510(k) timeline', max_results: 5 } }],
+    },
+  ],
+  // Person lookup in Sales Navigator should use skill-driven people search.
+  browser_skill_list: [
+    { user: 'list browser website skills', calls: [{ name: 'browser_skill_list', args: {} }] },
+    { user: 'find best website skill for linkedin salesnav account search', calls: [{ name: 'browser_skill_list', args: { url: 'https://www.linkedin.com/sales/search/company', task: 'salesnav_search_account', query: 'find manufacturing companies in united states' } }] },
+  ],
+  browser_skill_match: [
+    { user: 'match a skill for this salesnav page and task', calls: [{ name: 'browser_skill_match', args: { url: 'https://www.linkedin.com/sales/search/company', task: 'salesnav_search_account', query: 'computer manufacturers in united states' } }] },
+  ],
+  browser_skill_get: [
+    { user: 'show me the linkedin-salesnav-accounts browser skill', calls: [{ name: 'browser_skill_get', args: { skill_id: 'linkedin-salesnav-accounts' } }] },
+  ],
+  browser_skill_upsert: [
+    { user: 'create a browser skill for app store search', calls: [{ name: 'browser_skill_upsert', args: { skill_id: 'apple-app-store-search', content: '---\\nname: Apple App Store Search\\ndescription: Find and extract app results.\\ndomains:\\n  - apps.apple.com\\ntasks:\\n  - appstore_search\\ntags:\\n  - appstore\\n  - ios\\nversion: 1\\n---\\n\\n## Action Hints\\n- search_input | role=input | text=Search\\n' } }] },
+  ],
+  browser_skill_repair: [
+    { user: 'add a repair note for linkedin skill when search input was not found', calls: [{ name: 'browser_skill_repair', args: { skill_id: 'linkedin-salesnav-accounts', issue: 'search_input_not_found', context: { task: 'salesnav_search_account' } } }] },
+  ],
+  browser_skill_delete: [
+    { user: 'delete browser skill apple-app-store-search', calls: [{ name: 'browser_skill_delete', args: { skill_id: 'apple-app-store-search' } }] },
+  ],
+  browser_navigate: [
+    {
+      user: 'Open https://example.com',
+      calls: [
+        { name: 'browser_health', args: {} },
+        { name: 'browser_tabs', args: {} },
+        { name: 'browser_navigate', args: { url: 'https://example.com' } },
+        { name: 'browser_snapshot', args: { mode: 'role' } },
+      ],
+    },
+    {
+      user: 'visit youtube',
+      calls: [
+        { name: 'browser_health', args: {} },
+        { name: 'browser_tabs', args: {} },
+        { name: 'browser_navigate', args: { url: 'https://www.youtube.com' } },
+        { name: 'browser_snapshot', args: { mode: 'role' } },
+      ],
+    },
   ],
   list_campaigns: [
     { user: 'show me our campaigns', calls: [{ name: 'list_campaigns', args: {} }] },
@@ -67,6 +174,12 @@ const CURATED_EXAMPLES: Record<string, ToolCallExample[]> = {
   enroll_contacts_in_campaign: [
     { user: 'Yes, enroll them in campaign 5', calls: [{ name: 'enroll_contacts_in_campaign', args: { campaign_id: 5, contact_ids: [2976, 2974] } }] },
     { user: 'enroll these contacts in campaign 3', calls: [{ name: 'enroll_contacts_in_campaign', args: { campaign_id: 3, contact_ids: [2976] } }] },
+  ],
+  enroll_contacts_by_filter: [
+    { user: 'enroll all banking contacts into campaign 27', calls: [{ name: 'enroll_contacts_by_filter', args: { campaign_id: 27, query: 'bank' } }] },
+    { user: 'add all veterinary contacts to campaign 5', calls: [{ name: 'enroll_contacts_by_filter', args: { campaign_id: 5, query: 'veterinary' } }] },
+    { user: 'enroll construction contacts in campaign 12', calls: [{ name: 'enroll_contacts_by_filter', args: { campaign_id: 12, query: 'construction' } }] },
+    { user: 'Enroll all contacts matching bank into the campaign created in s1', calls: [{ name: 'enroll_contacts_by_filter', args: { campaign_id: 27, query: 'bank' } }] },
   ],
   get_campaign: [
     { user: 'show campaign 3', calls: [{ name: 'get_campaign', args: { campaign_id: 3 } }] },
@@ -311,6 +424,16 @@ const STRING_SAMPLES: Record<string, string[]> = {
   arg_name: ['vertical', 'tier', 'status'],
   tool_name: ['search_companies', 'search_contacts', 'list_campaigns'],
   starts_with: ['con', 'vet', 'bank'],
+  skill_id: ['linkedin-salesnav-accounts', 'google-news-monitor', 'apple-app-store-search'],
+  task: ['salesnav_search_account', 'google_news_collect', 'appstore_search'],
+  action: ['search_input', 'headquarters_location_input', 'result_link'],
+  role: ['input', 'button', 'link'],
+  text: ['Search', 'Headquarters location', 'Add locations'],
+  content: [
+    '---\nname: Example Skill\ndescription: Example website skill.\ndomains:\n  - example.com\ntasks:\n  - example_task\ntags:\n  - example\nversion: 1\n---\n\n## Action Hints\n- search_input | role=input | text=Search\n',
+    '---\nname: LinkedIn SalesNav Accounts\ndescription: Sales Navigator account search helper.\ndomains:\n  - linkedin.com/sales/search/company\ntasks:\n  - salesnav_search_account\ntags:\n  - salesnav\n  - linkedin\nversion: 1\n---\n\n## Action Hints\n- search_input | role=input | text=Search\n',
+    '---\nname: Google News Monitor\ndescription: Collect links from Google News results.\ndomains:\n  - news.google.com\ntasks:\n  - google_news_collect\ntags:\n  - news\nversion: 1\n---\n\n## Action Hints\n- search_input | role=input | text=Search\n',
+  ],
   context: [
     'small software companies similar to Zco',
     'contacts in automotive with email',
@@ -376,14 +499,38 @@ function renderUtterance(
   args: Record<string, unknown>,
   variant: number
 ): string {
+  // Try to generate a natural-language utterance from the args.
+  // Priority: use the most meaningful arg values as the core of the sentence.
   const readable = toolName.replace(/_/g, ' ');
+
+  // Pick the most descriptive arg value for the utterance.
+  const meaningfulKeys = ['query', 'q', 'name', 'company', 'vertical', 'title', 'description'];
+  const primaryArg = meaningfulKeys.find((k) => k in args && typeof args[k] === 'string' && (args[k] as string).trim());
+  const primaryValue = primaryArg ? String(args[primaryArg]) : null;
+
+  // ID-like args to mention by number.
+  const idKeys = Object.entries(args)
+    .filter(([k, v]) => k.endsWith('_id') && typeof v === 'number')
+    .map(([k, v]) => `${k.replace(/_id$/, '')} ${v}`);
+  const idPhrase = idKeys.length > 0 ? ` for ${idKeys.join(' and ')}` : '';
+
+  if (primaryValue) {
+    const templates = [
+      `${readable} "${primaryValue}"${idPhrase}`,
+      `${primaryValue}${idPhrase ? ` — ${readable}${idPhrase}` : ''}`,
+      `${readable} with ${primaryValue}${idPhrase}`,
+    ];
+    return templates[variant % templates.length] as string;
+  }
+
+  // Fallback: compact format
   const compactArgs = Object.entries(args)
     .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
     .join(', ');
   const prompts = [
-    `Please ${readable} with ${compactArgs}.`,
-    `Can you ${readable} using ${compactArgs}?`,
-    `${readable} now: ${compactArgs}.`,
+    `${readable} ${compactArgs}`,
+    `${readable}: ${compactArgs}`,
+    `Please ${readable} with ${compactArgs}`,
   ];
   return prompts[variant % prompts.length] as string;
 }

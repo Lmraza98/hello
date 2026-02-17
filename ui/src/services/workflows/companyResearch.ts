@@ -10,7 +10,7 @@
  */
 import type { CompanyVetCardMessage, StepResult, Workflow } from '../../types/chat';
 import { researchCompany, deepResearchCompany, formatDeepResearch } from '../research';
-import { buttonsMsg, msgId, statusMsg, textMsg } from './helpers';
+import { msgId, statusMsg, textMsg } from './helpers';
 
 export function createCompanyResearchWorkflow(
   companyName: string
@@ -25,7 +25,7 @@ export function createCompanyResearchWorkflow(
     status: 'running',
     createdAt: new Date(),
     steps: [
-      /* ── Step 0: Research ── */
+      /* -- Step 0: Research -- */
       {
         id: 'research',
         name: 'Research company',
@@ -88,7 +88,7 @@ export function createCompanyResearchWorkflow(
         },
       },
 
-      /* ── Step 1: Handle follow-up ── */
+      /* -- Step 1: Handle follow-up -- */
       {
         id: 'follow-up',
         name: 'Handle research follow-up',

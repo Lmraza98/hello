@@ -1,0 +1,275 @@
+﻿==================== ui/src/chat/chatEngine/reactAdapter.ts ====================
+/**
+ * Adapter layer between the chat engine pipeline and the ReAct loop/tool execution.
+ *
+ * This module primarily moves logic out of `chatEngine.ts` with minimal changes.
+ */
+
+import { textMsg } from '../../services/workflows/helpers';
+import type { ChatCompletionMessageParam } from '../chatEngineTypes';
+import { formatDispatchMessages } from '../dispatchFormatter';
+import { enforceHybridGrounding } from '../chatGrounding';
+import { buildReActDebugTrace } from '../chatEngineDebug';
+import { extractBrowserSessionFromObservations, extractEntitiesFromObservations, mergeSessionState, type ChatSessionState } from '../sessionState';
+import { TOOL_BRAIN_MODEL, TOOL_BRAIN_NAME } from '../models/toolBrainConfig';
+import { runReActLoop, resumeReActLoop, type ReActConfig, type ReActResult } from '../reactLoop';
+import { elapsedMs, nowMs } from '../timing';
+import { synthesizeAnswer } from '../chatSynthesis';
+import type { ModelRoute } from '../router';
+import { CONFIRMED_READ_ONLY_FASTLANE_TOOLS } from '../chatEnginePolicy';
+import type { compactPlannerHistoryByTurns } from '../runtimeGuards';
+import { dedupeConsecutiveTextMessages, dispatchPlanAndBuildResult } from './dispatchResponse';
+import type { ChatEngineOptions, ChatEngineResult, ChatEngineTimings, MessageMeta, PipelineContext } from './pipelineTypes';
+
+export function buildReActConfig(
+  options: ChatEngineOptions,
+  pageContext?: string | null,
+  sessionContext?: string
+): ReActConfig {
+  return {
+    maxIterations: 3,
+    maxToolCalls: 10,
+    iterationTimeoutMs: 30_000,
+    contextTokenBudget: 6_000,
+    onToolCall: options.onToolCall,
+    onReasoningEvent: options.onPlannerEvent,
+    requireWriteConfirmation: options.requireToolConfirmation ?? true,
+    ...(sessionContext ? { memoryContext: sessionContext } : {}),
+    memoryDir: import.meta.env.VITE_CHAT_MEMORY_DIR || 'crm-assistant',
+    pageContext: pageContext || undefined,
+  };
+}
+
+export async function reactResultToChatResult(
+  result: ReActResult,
+  userMessage: string,
+  history: ChatCompletionMessageParam[],
+  modelSwitches: Array<{ from: ModelRoute; to: ModelRoute; reason: string }>,
+  includeDebugTrace = false,
+  includeHeavyDebug = false,
+  timings?: ChatEngineTimings,
+  meta?: MessageMeta,
+  previousSessionState?: ChatSessionState
+): Promise<ChatEngineResult> {
+  const lastObservedStep = [...result.trace].reverse().find((s) => s.observations.length > 0);
+  const executed = (lastObservedStep?.observations || []).map((o) => ({
+    name: o.name,
+    args: o.args,
+    result: o.result,
+    ok: o.ok,
+  }));
+
+  const firstFailure = executed.find((x) => !x.ok);
+  const failureMessage = (() => {
+    if (!firstFailure || !firstFailure.result || typeof firstFailure.result !== 'object') return '';
+    const obj = firstFailure.result as Record<string, unknown>;
+    if (typeof obj.message === 'string' && obj.message.trim()) return obj.message;
+    if (typeof obj.error === 'string' && obj.error.trim()) return obj.error;
+    if (obj.detail != null) return typeof obj.detail === 'string' ? obj.detail : JSON.stringify(obj.detail);
+    return '';
+  })();
+
+  const dispatchedLike = {
+    success: executed.length > 0 && executed.every((x) => x.ok),
+    toolsUsed: result.toolsUsed,
+    executed,
+    summary:
+      result.answer ||
+      (firstFailure
+        ? `Tool ${firstFailure.name} failed${failureMessage ? `: ${failureMessage}` : '.'}`
+        : executed.length > 0
+          ? 'Executed tool calls.'
+          : 'No tool calls executed.'),
+  };
+
+  if (result.pendingConfirmation) {
+    const pendingHistory: ChatCompletionMessageParam[] = [
+      ...history,
+      { role: 'user', content: userMessage },
+      { role: 'assistant', content: result.answer || '' },
+    ];
+    return {
+      response: '',
+      updatedHistory: pendingHistory,
+      messages: [textMsg('I prepared the next step. Confirm to continue.')],
+      modelUsed: 'qwen3',
+      toolsUsed: result.toolsUsed,
+      fallbackUsed: false,
+      confirmation: {
+        required: true,
+        summary: result.pendingConfirmation.summary,
+        calls: result.pendingConfirmation.calls,
+        traceSnapshot: result.pendingConfirmation.traceSnapshot || result.trace,
+      },
+      ...(includeDebugTrace ? { debugTrace: {
+        route: 'qwen3',
+        routeReason: 'react_loop',
+        modelUsed: 'qwen3',
+        toolBrainName: TOOL_BRAIN_NAME,
+        toolBrainModel: TOOL_BRAIN_MODEL,
+        success: !result.hitLimit,
+        selectedTools: [],
+        nativeToolCalls: 0,
+        tokenToolCalls: result.trace.reduce((sum, step) => sum + step.actions.length, 0),
+        toolsUsed: result.toolsUsed,
+        fallbackUsed: false,
+        modelSwitches,
+        phase: 'executing',
+        rawUserMessage: meta?.rawUserMessage,
+        intentText: meta?.intentText,
+        pageContext: meta?.pageContext || undefined,
+        synthesized: false,
+      } } : {}),
+    };
+  }
+
+  const synthesisStartedAt = nowMs();
+  let synthesized = {
+    response: result.answer || dispatchedLike.summary,
+    modelUsed: 'qwen3' as ModelRoute,
+    promptChars: 0,
+    synthesized: false,
+  };
+  try {
+    synthesized = await synthesizeAnswer({
+      userMessage: meta?.rawUserMessage || userMessage,
+      normalizedMessage: meta?.intentText,
+      intentText: meta?.intentText,
+      pageContext: meta?.pageContext,
+      sessionState: previousSessionState,
+      executedCalls: executed.map((call) => ({
+        name: call.name,
+        args: call.args || {},
+        ok: call.ok,
+        result: call.result,
+        durationMs: undefined,
+      })),
+      fallbackResponse: result.answer || dispatchedLike.summary,
+    });
+  } catch {
+    // Keep legacy fallback text if synthesis fails unexpectedly.
+  }
+  if (timings) {
+    timings.synthesisMs = (timings.synthesisMs || 0) + elapsedMs(synthesisStartedAt);
+  }
+
+  const formatStartedAt = nowMs();
+  const richMessages = executed.length > 0
+    ? formatDispatchMessages(dispatchedLike as Awaited<ReturnType<typeof import('../toolExecutor').dispatchToolCalls>>)
+    : [];
+  if (timings) {
+    timings.formatMs = elapsedMs(formatStartedAt);
+    timings.dispatchMs = (timings.dispatchMs || 0) + (result.metrics?.dispatchMs || 0);
+    timings.plannerMs = (timings.plannerMs || 0) + (result.metrics?.plannerMs || 0);
+  }
+  const messages = dedupeConsecutiveTextMessages([
+    ...(synthesized.response.trim() ? [textMsg(synthesized.response.trim())] : []),
+    ...richMessages,
+  ]);
+
+  let debugTrace: ChatEngineResult['debugTrace'];
+  if (includeDebugTrace) {
+    const debugStartedAt = nowMs();
+    debugTrace = buildReActDebugTrace(result, modelSwitches, executed, includeHeavyDebug, meta);
+    debugTrace.synthesisMs = timings?.synthesisMs;
+    debugTrace.synthesisModelUsed = synthesized.modelUsed;
+    debugTrace.synthesized = synthesized.synthesized;
+    debugTrace.synthesisPromptChars = synthesized.promptChars;
+    if (timings) {
+      timings.debugMs = elapsedMs(debugStartedAt);
+    }
+  }
+
+  const grounded = enforceHybridGrounding(
+    synthesized.response || 'I completed the requested actions.',
+    messages.length > 0 ? messages : [textMsg('I completed the requested actions.')],
+    executed.map((call) => ({ name: call.name, result: call.result }))
+  );
+  const nextSessionState = mergeSessionState(
+    previousSessionState,
+    extractEntitiesFromObservations(executed),
+    extractBrowserSessionFromObservations(executed)
+  );
+  const updatedHistory: ChatCompletionMessageParam[] = [
+    ...history,
+    { role: 'user', content: userMessage },
+    { role: 'assistant', content: grounded.response },
+  ];
+
+  return {
+    response: grounded.response,
+    updatedHistory,
+    messages: grounded.messages,
+    modelUsed: 'qwen3',
+    toolsUsed: result.toolsUsed,
+    fallbackUsed: false,
+    sessionState: nextSessionState,
+    ...(debugTrace ? { debugTrace } : {}),
+  };
+}
+
+export async function handleToolRoute(params: {
+  ctx: PipelineContext;
+  userMessage: string;
+  history: ChatCompletionMessageParam[];
+  options: ChatEngineOptions;
+  plannerHistory: ReturnType<typeof compactPlannerHistoryByTurns>;
+  reactConfig: ReActConfig;
+  includeDebugTrace: boolean;
+  includeHeavyDebug: boolean;
+  timings: ChatEngineTimings;
+  meta: MessageMeta;
+  previousSessionState?: ChatSessionState;
+}): Promise<ChatEngineResult> {
+  const {
+    ctx,
+    userMessage,
+    history,
+    options,
+    plannerHistory,
+    reactConfig,
+    includeDebugTrace,
+    includeHeavyDebug,
+    timings,
+    meta,
+    previousSessionState,
+  } = params;
+
+  const modelSwitches: Array<{ from: ModelRoute; to: ModelRoute; reason: string }> = [];
+
+  if (options.confirmedToolCalls?.length) {
+    const allReadOnly = options.confirmedToolCalls.every((call) =>
+      CONFIRMED_READ_ONLY_FASTLANE_TOOLS.has(call.name)
+    );
+    if (allReadOnly) {
+      return await dispatchPlanAndBuildResult({
+        ctx: { ...ctx, includeDebugTrace, includeHeavyDebug, timings },
+        calls: options.confirmedToolCalls,
+        routeReason: 'confirmed_read_only_fastlane',
+        selectedTools: [...new Set(options.confirmedToolCalls.map((x) => x.name))],
+        allowSkipSynthesis: true,
+        previousSessionState,
+        phaseOverride: 'executing',
+        userMessageForHistory: userMessage,
+        metaOverride: meta,
+        defaultResponse: 'Executed confirmed actions.',
+      });
+    }
+
+    const result = await resumeReActLoop(
+      userMessage,
+      options.confirmedToolCalls,
+      options._reactTrace || [],
+      plannerHistory,
+      reactConfig
+    );
+    return await reactResultToChatResult(result, userMessage, history, modelSwitches, includeDebugTrace, includeHeavyDebug, timings, meta, previousSessionState);
+  }
+
+  const result = await runReActLoop(
+    userMessage,
+    plannerHistory,
+    reactConfig
+  );
+  return await reactResultToChatResult(result, userMessage, history, modelSwitches, includeDebugTrace, includeHeavyDebug, timings, meta, previousSessionState);
+}

@@ -73,13 +73,21 @@ export function createCompanyColumns(onDelete: (id: number, name: string) => voi
     columnHelper.accessor('tier', {
       header: ({ column }) => <SortableHeader column={column}>Tier</SortableHeader>,
       cell: ({ getValue }) => <TierBadge tier={getValue()} />,
-      filterFn: (row, _id, value) => !value || row.original.tier === value,
+      filterFn: (row, _id, value) => {
+        const normalized = String(value || '').trim().toLowerCase();
+        if (!normalized || normalized === 'all') return true;
+        return String(row.original.tier || '').trim().toLowerCase() === normalized;
+      },
       size: 80,
     }),
     columnHelper.accessor('status', {
       header: ({ column }) => <SortableHeader column={column}>Status</SortableHeader>,
       cell: ({ getValue }) => <StatusBadge status={getValue()} />,
-      filterFn: (row, _id, value) => !value || (row.original.status || 'pending') === value,
+      filterFn: (row, _id, value) => {
+        const normalized = String(value || '').trim().toLowerCase();
+        if (!normalized || normalized === 'all') return true;
+        return String(row.original.status || 'pending').trim().toLowerCase() === normalized;
+      },
       size: 120,
     }),
     columnHelper.accessor('vertical', {
@@ -89,7 +97,17 @@ export function createCompanyColumns(onDelete: (id: number, name: string) => voi
           {getValue() || '—'}
         </span>
       ),
-      filterFn: (row, _id, value) => !value || row.original.vertical === value,
+      filterFn: (row, _id, value) => {
+        const normalized = String(value || '').trim().toLowerCase();
+        if (!normalized || normalized === 'all') return true;
+        const selected = normalized
+          .split(',')
+          .map((x) => x.trim())
+          .filter(Boolean);
+        const current = String(row.original.vertical || '').trim().toLowerCase();
+        if (selected.length === 0) return true;
+        return selected.includes(current);
+      },
       size: 150,
     }),
     columnHelper.display({

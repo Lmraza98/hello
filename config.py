@@ -15,11 +15,15 @@ DATA_DIR = BASE_DIR / "data"
 PAGES_DIR = DATA_DIR / "pages"
 SCREENSHOTS_DIR = DATA_DIR / "screenshots"
 DB_PATH = DATA_DIR / "outreach.db"
+BROWSER_SKILLS_DIR = Path(
+    os.getenv("BROWSER_SKILLS_DIR", str(BASE_DIR / "skills" / "websites"))
+)
 
 # Ensure directories exist
 DATA_DIR.mkdir(exist_ok=True)
 PAGES_DIR.mkdir(exist_ok=True)
 SCREENSHOTS_DIR.mkdir(exist_ok=True)
+BROWSER_SKILLS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Salesforce
 SALESFORCE_URL = os.getenv("SALESFORCE_URL", "https://login.salesforce.com")
@@ -28,12 +32,13 @@ SALESFORCE_STORAGE_STATE = DATA_DIR / "salesforce_auth.json"
 # LLM Settings
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")  # Cost-effective for extraction
-LLM_MODEL_SMART = os.getenv("LLM_MODEL_SMART", "gpt-4o")  # For complex reasoning
+LLM_MODEL_SMART = os.getenv("LLM_MODEL_SMART", "gpt-4o-mini")  # For complex reasoning
 
 # Web Search (SearXNG - self-hosted search engine)
 SEARXNG_URL = os.getenv("SEARXNG_URL", "http://localhost:8080")
 # Legacy Tavily support (if you want to use Tavily instead)
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
+TAVILY_ENABLED = os.getenv("TAVILY_ENABLED", "false").strip().lower() == "true"
 TAVILY_COST_PER_REQUEST_USD = float(os.getenv("TAVILY_COST_PER_REQUEST_USD", "0.005"))
 LLM_MAX_INPUT_TOKENS = 800  # Aggressive trim
 LLM_MAX_OUTPUT_TOKENS = 500  # Need enough for full JSON schema
@@ -82,6 +87,13 @@ LINKEDIN_WORKERS = 2         # LinkedIn workers (2-3 is usually safe)
 HEADLESS_MODE = False        # Set True for background operation (after auth)
 AUTH_TIMEOUT_MINUTES = 15    # How long to wait for Salesforce login
 LINKEDIN_TIMEOUT_MINUTES = 15  # How long to wait for LinkedIn login
+SALESNAV_INIT_SCRIPT_ENABLED = os.getenv("SALESNAV_INIT_SCRIPT_ENABLED", "true").strip().lower() == "true"
+SALESNAV_STEALTH_ARGS_ENABLED = os.getenv("SALESNAV_STEALTH_ARGS_ENABLED", "true").strip().lower() == "true"
+SALESNAV_SLOW_MO_MS = int(os.getenv("SALESNAV_SLOW_MO_MS", "100"))
+SALESNAV_PACING_BASE_SECONDS = float(os.getenv("SALESNAV_PACING_BASE_SECONDS", "0.8"))
+SALESNAV_PACING_VARIANCE_SECONDS = float(os.getenv("SALESNAV_PACING_VARIANCE_SECONDS", "0.3"))
+SALESNAV_PACING_MIN_SECONDS = float(os.getenv("SALESNAV_PACING_MIN_SECONDS", "0.1"))
+SALESNAV_PACING_MAX_SECONDS = float(os.getenv("SALESNAV_PACING_MAX_SECONDS", "5.0"))
 
 # Templates
 DEFAULT_SUBJECT_TEMPLATE = "Quick question for {company}"
@@ -110,3 +122,6 @@ TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
 
 # Hybrid search vector backend selector: auto | sqlite_vec | fallback
 VECTOR_BACKEND = os.getenv("VECTOR_BACKEND", "auto").strip().lower()
+
+# Entity search refresh policy on read: missing | stale | off
+ENTITY_SEARCH_REFRESH_MODE = os.getenv("ENTITY_SEARCH_REFRESH_MODE", "missing").strip().lower()

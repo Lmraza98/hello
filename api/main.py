@@ -22,18 +22,25 @@ from api.observability import clear_request_context, set_request_context
 # Import routes
 from api.routes import (
     admin,
+    bi,
     browser_nav,
+    browser_skills,
+    browser_workflows,
     browser_stream,
     chat,
     companies,
+    compound_workflow,
     contacts,
     emails,
+    google,
+    notes,
     pipeline,
     research,
     search,
     salesforce,
     salesnav,
     stats,
+    workflows,
 )
 from services.salesforce.lookup_queue import (
     start_salesforce_lookup_worker,
@@ -244,17 +251,24 @@ db.init_database()
 # Register routes
 app.include_router(companies.router)
 app.include_router(contacts.router)
+app.include_router(compound_workflow.router)
+app.include_router(notes.router)
 app.include_router(stats.router)
 app.include_router(pipeline.router)
 app.include_router(emails.router)
 app.include_router(salesnav.router)
 app.include_router(browser_stream.router)
 app.include_router(browser_nav.router)
+app.include_router(browser_skills.router)
+app.include_router(browser_workflows.router)
 app.include_router(salesforce.router)
 app.include_router(research.router)
+app.include_router(google.router)
 app.include_router(search.router)
 app.include_router(chat.router)
 app.include_router(admin.router)
+app.include_router(bi.router)
+app.include_router(workflows.router)
 
 # ============================================
 # Frontend serving (MUST be last - catch-all)

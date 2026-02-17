@@ -1,8 +1,22 @@
 """
 Pydantic models for API requests and responses.
 """
+from typing import Any, Literal, Optional
+
 from pydantic import BaseModel
-from typing import Optional
+
+
+class ErrorDetail(BaseModel):
+    code: str
+    message: str
+    details: Optional[Any] = None
+
+
+class ErrorEnvelope(BaseModel):
+    success: Literal[False] = False
+    error: ErrorDetail
+    # Kept for backward compatibility with existing clients expecting `detail`.
+    detail: Optional[Any] = None
 
 class Company(BaseModel):
     id: Optional[int] = None

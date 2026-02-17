@@ -1,0 +1,86 @@
+import type { ChatMessage } from '../types/chat';
+import { textMsg } from '../services/messageHelpers';
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function hasSourceRefs(value: unknown): boolean {
+  const row = asRecord(value);
+  if (!row) return false;
+  const candidates = [row.source_refs, row.sourceRefs, row.refs, row.evidence];
+  return candidates.some((refs) => {
+    if (Array.isArray(refs)) return refs.length > 0;
+    if (refs && typeof refs === 'object') return Object.keys(refs as Record<string, unknown>).length > 0;
+    return false;
+  });
+}
+
+function hasStructuredHybridIdentity(value: unknown): boolean {
+  const row = asRecord(value);
+  if (!row) return false;
+  const entityTypeValue = row.entity_type ?? row.entityType ?? row.type;
+  const entityIdValue = row.entity_id ?? row.entityId ?? row.id;
+  const titleValue = row.title ?? row.name ?? row.label ?? row.subject;
+  const entityType = typeof entityTypeValue === 'string' ? entityTypeValue.trim() : '';
+  const entityId = entityIdValue == null ? '' : String(entityIdValue).trim();
+  const title = typeof titleValue === 'string' ? titleValue.trim() : '';
+  return Boolean(entityType && entityId && title);
+}
+
+function extractHybridRows(result: unknown): unknown[] {
+  if (Array.isArray(result)) return result;
+  const obj = asRecord(result);
+  if (!obj) return [];
+  return [
+    ...asArray(obj.results),
+    ...asArray(obj.items),
+    ...asArray(obj.hits),
+    ...asArray(obj.matches),
+  ];
+}
+
+function hybridSearchHasEvidence(result: unknown): boolean {
+  const items = extractHybridRows(result);
+  if (items.length === 0) return false;
+  return items.some((item) => hasSourceRefs(item) || hasStructuredHybridIdentity(item));
+}
+
+export function enforceHybridGrounding(
+  response: string,
+  messages: ChatMessage[],
+  executedCalls: Array<{ name: string; result?: unknown }>
+): { response: string; messages: ChatMessage[] } {
+  const usedHybrid = executedCalls.some((call) => call.name === 'hybrid_search');
+  if (!usedHybrid) return { response, messages };
+  const hybridFailure = executedCalls
+    .filter((call) => call.name === 'hybrid_search')
+    .some((call) => {
+      const result = call.result as Record<string, unknown> | undefined;
+      if (!result || typeof result !== 'object') return false;
+      return Boolean(result.error) || typeof result.status === 'number';
+    });
+  if (hybridFailure) return { response, messages };
+  const hasEvidence = executedCalls
+    .filter((call) => call.name === 'hybrid_search')
+    .some((call) => hybridSearchHasEvidence(call.result));
+  const deterministicFallbackFound = executedCalls.some((call) => {
+    if (!['search_contacts', 'search_companies', 'resolve_entity'].includes(call.name)) return false;
+    if (Array.isArray(call.result)) return call.result.length > 0;
+    if (call.result && typeof call.result === 'object') {
+      const obj = call.result as { results?: unknown[]; id?: unknown };
+      if (Array.isArray(obj.results)) return obj.results.length > 0;
+      return obj.id != null;
+    }
+    return false;
+  });
+  if (hasEvidence || deterministicFallbackFound) return { response, messages };
+
+  const groundedFailure = 'I cannot verify that from local sources yet. Try refining the query or broadening filters so I can cite evidence references.';
+  return { response: groundedFailure, messages: [textMsg(groundedFailure)] };
+}

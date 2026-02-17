@@ -11,7 +11,9 @@ class HybridSearchTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self._old_db_path = config.DB_PATH
         self._old_vector_backend = config.VECTOR_BACKEND
+        self._old_refresh_mode = getattr(config, "ENTITY_SEARCH_REFRESH_MODE", "missing")
         config.DB_PATH = Path(self.tmp.name) / "test_outreach.db"
+        config.ENTITY_SEARCH_REFRESH_MODE = "missing"
         db.init_database()
 
         with db.get_db() as conn:
@@ -50,6 +52,7 @@ class HybridSearchTests(unittest.TestCase):
     def tearDown(self):
         config.DB_PATH = self._old_db_path
         config.VECTOR_BACKEND = self._old_vector_backend
+        config.ENTITY_SEARCH_REFRESH_MODE = self._old_refresh_mode
         self.tmp.cleanup()
 
     def test_exact_contact_match_prioritized(self):
@@ -71,6 +74,14 @@ class HybridSearchTests(unittest.TestCase):
         }
         self.assertTrue(required_keys.issubset(set(results[0].keys())))
         self.assertTrue(isinstance(results[0]["source_refs"], list) and len(results[0]["source_refs"]) > 0)
+
+    def test_natural_language_contact_lookup_is_grounded(self):
+        results = db.hybrid_search("Who is Lucas Raza", entity_types=["contact"], k=5)
+        self.assertGreaterEqual(len(results), 1)
+        top = results[0]
+        self.assertEqual(top["entity_type"], "contact")
+        self.assertIn("Lucas", top["title"])
+        self.assertTrue(isinstance(top.get("source_refs"), list) and len(top["source_refs"]) > 0)
 
     def test_lexical_company_fallback(self):
         results = db.hybrid_search("compliance pain", entity_types=["company"], k=5)
@@ -99,6 +110,36 @@ class HybridSearchTests(unittest.TestCase):
         )
         self.assertGreaterEqual(len(results), 1)
         self.assertEqual(results[0]["entity_type"], "conversation")
+
+    def test_missing_mode_does_not_rebuild_when_index_present(self):
+        original_refresh = db.refresh_entity_search_index
+        calls: list[list[str]] = []
+
+        def _record_refresh(entity_types=None):
+            calls.append(list(entity_types or []))
+            return original_refresh(entity_types)
+
+        db.refresh_entity_search_index = _record_refresh
+        try:
+            timings: dict = {}
+            results = db.hybrid_search(
+                "Lucas Raza",
+                entity_types=["contact", "company", "campaign"],
+                k=5,
+                debug_timing=timings,
+            )
+            self.assertGreaterEqual(len(results), 1)
+            self.assertEqual(calls, [])
+            self.assertFalse(timings.get("index_refreshed"))
+            self.assertEqual(timings.get("index_refresh_mode"), "missing")
+        finally:
+            db.refresh_entity_search_index = original_refresh
+
+    def test_resolve_entity_partial_contact_name_fallback(self):
+        results = db.resolve_entity("Lucas", entity_types=["contact"], limit=5)
+        self.assertGreaterEqual(len(results), 1)
+        self.assertEqual(results[0]["entity_type"], "contact")
+        self.assertIn("Lucas", results[0]["title"])
 
 
 if __name__ == "__main__":

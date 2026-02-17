@@ -1,0 +1,27 @@
+{
+  "name": "zco-bi-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone BI platform for Zco sales intelligence",
+  "scripts": {
+    "ingest": "ts-node scripts/ingest.ts",
+    "score": "ts-node scripts/score.ts",
+    "server": "ts-node query/server.ts",
+    "worker": "ts-node scripts/worker.ts",
+    "collect:once": "ts-node scripts/worker.ts --once",
+    "bi:status": "ts-node scripts/status.ts",
+    "bi:top": "python -c \"import sqlite3; c=sqlite3.connect('..\\\\data\\\\outreach.db'); c.row_factory=sqlite3.Row; cur=c.cursor(); cur.execute('SELECT name,vertical,tier,status,prospect_score FROM bi_top_prospects LIMIT 20'); rows=cur.fetchall(); [print(dict(r)) for r in rows]; c.close()\""
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pg": "^8.13.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.5",
+    "@types/pg": "^8.11.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}

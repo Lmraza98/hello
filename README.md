@@ -25,6 +25,20 @@ This system automates B2B outreach by:
 └─────────────┘     └─────────────┘     └─────────────┘
 ```
 
+## Documentation Architecture
+
+The repository now follows an OpenClaw-style self-documenting pattern:
+
+- Docs config: `docs/docs.json` (Mintlify nav + redirects)
+- Docs index pages: `docs/index.md`, `docs/start/docs-directory.md`, `docs/start/hubs.md`
+- Page metadata via frontmatter (`summary`, `read_when`, `title`)
+- Tooling scripts:
+  - `python scripts/docs_list.py`
+  - `python scripts/docs_link_audit.py`
+  - `python scripts/export_api_docs.py`
+  - `python scripts/docs_ci.py`
+  - `python scripts/docs_guard.py`
+
 ## Quick Start
 
 ### 1. Install Dependencies
@@ -113,6 +127,24 @@ LLM_MODEL = "gpt-4o-mini"       # Cost-effective model
 LLM_MAX_INPUT_TOKENS = 800      # Aggressive trimming
 LLM_MAX_OUTPUT_TOKENS = 120     # Concise outputs
 ```
+
+### Chat Tool Brain (UI)
+
+To switch the local tool-calling/intent-routing model between FunctionGemma and Devstral, set UI env vars in `ui/.env`:
+
+```env
+VITE_TOOL_BRAIN=functiongemma
+# or
+VITE_TOOL_BRAIN=devstral-small-2
+```
+
+Optional explicit model tag override:
+
+```env
+VITE_OLLAMA_TOOL_BRAIN_MODEL=devstral-small-2:latest
+```
+
+This model is used for API tool interaction (intent routing, tool selection, structured arguments, and multi-step tool planning).
 
 ## Cost Management
 
@@ -252,7 +284,32 @@ Check `data/screenshots/` for failure screenshots and HTML dumps.
 3. Skip personalization: modify `planner.py` to set `personalize_top_n=0`
 
 ### Salesforce UI changes
-Update selectors in `services/salesforce_pages.py`. The page object pattern isolates these changes.
+Update selectors in `services/salesforce/pages.py`. The page object pattern isolates these changes.
+
+### Sales Navigator API lifecycle
+
+SalesNav endpoints now use centralized lifecycle wrappers in `api/routes/salesnav.py` so browser state and automation events are handled consistently.
+
+- `_automation_scope(action, payload)`:
+  - emits `browser_automation_start`
+  - clears active browser page on exit
+  - emits `browser_automation_stop`
+- `_managed_scraper(action, payload)`:
+  - wraps `_automation_scope`
+  - starts/stops `SalesNavigatorScraper`
+  - sets active browser page when available
+
+Event flow by endpoint:
+- `POST /api/salesnav/search`
+  - one start event, one stop event
+- `POST /api/salesnav/search-companies`
+  - one start event, one stop event (collector owns scraping internals)
+- `POST /api/salesnav/scrape-leads`
+  - one start event, one stop event
+  - per-company progress events via `browser_automation_progress` with:
+    - `action`, `message`, `company`, `index`, `total`
+
+This keeps start/stop semantics clean and makes progress updates explicit for UI consumers.
 
 ### System running slow with 30 browsers
 Reduce workers: `python main.py send --workers 10`

@@ -1,10 +1,11 @@
 import type { PlannedToolCall } from './chatEngineTypes';
+import type { ChatAction } from './actions';
 import type { LocalChatMessage } from './models/ollamaClient';
 import { TOOLS } from './tools';
-import { runToolPlan } from './models/toolPlanner';
+import { classifyQueryTier, runToolPlan, selectToolNamesForMessage } from './models/toolPlanner';
 import { dispatchToolCalls } from './toolExecutor';
-import { selectToolsForIntent } from './intentFastPath';
 import { elapsedMs, nowMs } from './timing';
+import { checkPlanDestructive } from './planDestructiveCheck';
 
 export type ReActObservation = {
   name: string;
@@ -37,8 +38,10 @@ export type ReActResult = {
   answer: string;
   trace: ReActStep[];
   toolsUsed: string[];
+  appActions?: ChatAction[];
   pendingConfirmation?: {
     summary: string;
+    uiActions?: ChatAction[];
     calls: PlannedToolCall[];
     traceSnapshot?: ReActStep[];
   };
@@ -55,48 +58,17 @@ type Scratchpad = {
   steps: ReActStep[];
   totalToolCalls: number;
   findings: Map<string, string>;
-  triedActions: Set<string>;
+  actionAttempts: Map<string, { attempts: number; lastOk: boolean }>;
   estimatedTokens: number;
   durableMemory: Array<{ key: string; content: string }>;
 };
-
-const SAFE_READ_TOOL_NAMES = new Set<string>([
-  'list_filter_values',
-  'resolve_entity',
-  'hybrid_search',
-  'search_contacts',
-  'get_contact',
-  'search_companies',
-  'get_pending_companies_count',
-  'list_campaigns',
-  'get_campaign',
-  'get_campaign_contacts',
-  'get_campaign_stats',
-  'get_email_dashboard_metrics',
-  'get_review_queue',
-  'get_scheduled_emails',
-  'get_active_conversations',
-  'get_conversation_thread',
-  'preview_email',
-  'get_pipeline_status',
-  'get_salesforce_auth_status',
-  'get_dashboard_stats',
-  'browser_health',
-  'browser_tabs',
-  'browser_navigate',
-  'browser_snapshot',
-  'browser_act',
-  'browser_find_ref',
-  'browser_wait',
-  'browser_screenshot',
-  'browser_extract_companies',
-  'browser_salesnav_search_account',
-]);
 
 const MEMORY_KEY = 'chat_react_memory_v1';
 const MEMORY_DAILY_KEY = 'chat_react_memory_daily_v1';
 const ENABLE_REACT_MEMORY =
   (import.meta.env.VITE_CHAT_REACT_MEMORY || 'false').toLowerCase() === 'true';
+const REACT_TRACE_PROMPT_MAX_CHARS = Number.parseInt(import.meta.env.VITE_CHAT_REACT_TRACE_MAX_CHARS || '1600', 10);
+const REACT_STATE_SUMMARY_MAX_CHARS = Number.parseInt(import.meta.env.VITE_CHAT_REACT_STATE_SUMMARY_MAX_CHARS || '900', 10);
 
 function hasLocalStorage(): boolean {
   return typeof localStorage !== 'undefined';
@@ -138,24 +110,10 @@ function createScratchpad(goal: string): Scratchpad {
     steps: [],
     totalToolCalls: 0,
     findings: new Map(),
-    triedActions: new Set(),
+    actionAttempts: new Map(),
     estimatedTokens: 0,
     durableMemory: [],
   };
-}
-
-function summarizeExtractedCompanies(observations: ReActObservation[]): string | null {
-  const extractObs = observations.find((o) => o.name === 'browser_extract_companies' && o.ok);
-  if (!extractObs || !extractObs.result || typeof extractObs.result !== 'object') return null;
-  const obj = extractObs.result as Record<string, unknown>;
-  const companies = Array.isArray(obj.companies) ? (obj.companies as Array<Record<string, unknown>>) : [];
-  if (companies.length === 0) return null;
-  const top = companies
-    .slice(0, 3)
-    .map((c) => String(c?.name || '').trim())
-    .filter((x) => x.length > 0);
-  if (top.length === 0) return null;
-  return `I found these top account matches: ${top.join(', ')}. The browser session is still open. What do you want to do next?`;
 }
 
 function compactJSON(value: unknown, maxLen = 480): string {
@@ -170,6 +128,12 @@ function compactJSON(value: unknown, maxLen = 480): string {
   }
   if (typeof value === 'object') {
     const obj = value as Record<string, unknown>;
+    const heavyFields = ['details', 'raw', 'html', 'content', 'payload', 'trace', 'messages', 'body'];
+    const hasHeavy = heavyFields.some((k) => obj[k] != null);
+    if (hasHeavy) {
+      const labels = heavyFields.filter((k) => obj[k] != null).join(', ');
+      return `{omitted heavy fields: ${labels}}`;
+    }
     const keys = ['name', 'company_name', 'person', 'company', 'title', 'email', 'industry', 'vertical', 'location', 'answer', 'error'];
     const picked: string[] = [];
     for (const k of keys) {
@@ -209,16 +173,23 @@ function isEmptyLike(value: unknown): boolean {
   return false;
 }
 
-function isWriteCall(call: PlannedToolCall): boolean {
-  return !SAFE_READ_TOOL_NAMES.has(call.name);
-}
-
 function actionKey(call: PlannedToolCall): string {
   return JSON.stringify({ name: call.name, args: call.args || {} });
 }
 
 function deduplicateActions(proposed: PlannedToolCall[], pad: Scratchpad): PlannedToolCall[] {
-  return proposed.filter((call) => !pad.triedActions.has(actionKey(call)));
+  const maxAttemptsFor = (name: string): number => {
+    // Browser/SalesNav automation is often flaky; allow one retry.
+    if (name.startsWith('browser_') || name.startsWith('salesnav_')) return 2;
+    return 1;
+  };
+  return proposed.filter((call) => {
+    const key = actionKey(call);
+    const prev = pad.actionAttempts.get(key);
+    if (!prev) return true;
+    if (prev.lastOk) return false;
+    return prev.attempts < maxAttemptsFor(call.name);
+  });
 }
 
 function estimateTokens(text: string): number {
@@ -311,7 +282,8 @@ function persistMemoryWrites(entries: Array<{ key: string; content: string }>, n
 }
 
 function selectRelevantToolNames(goal: string): Set<string> {
-  const selected = selectToolsForIntent(goal);
+  const tier = classifyQueryTier(goal);
+  const selected = selectToolNamesForMessage(goal, undefined, tier);
   return new Set(selected);
 }
 
@@ -350,7 +322,41 @@ function buildStateSummary(pad: Scratchpad): string {
     `Recent step stats:\n${recentSteps.length > 0 ? recentSteps.join('\n') : 'none'}`,
     `Top findings:\n${findingLines.length > 0 ? findingLines.join('\n') : 'none'}`,
   ];
-  return limitText(sections.join('\n\n'), 1200);
+  return limitText(sections.join('\n\n'), REACT_STATE_SUMMARY_MAX_CHARS);
+}
+
+function summarizeActionArgs(args: Record<string, unknown>): string {
+  const parts: string[] = [];
+  let count = 0;
+  for (const [key, value] of Object.entries(args || {})) {
+    if (count >= 4) {
+      parts.push('...');
+      break;
+    }
+    if (value == null) {
+      parts.push(`${key}=null`);
+      count += 1;
+      continue;
+    }
+    if (typeof value === 'string') {
+      parts.push(`${key}="${limitText(value, 24)}"`);
+      count += 1;
+      continue;
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      parts.push(`${key}=${String(value)}`);
+      count += 1;
+      continue;
+    }
+    if (Array.isArray(value)) {
+      parts.push(`${key}=[${value.length}]`);
+      count += 1;
+      continue;
+    }
+    parts.push(`${key}={...}`);
+    count += 1;
+  }
+  return parts.join(', ');
 }
 
 function buildIterationPrompt(
@@ -366,7 +372,9 @@ function buildIterationPrompt(
       ? 'No actions taken yet.'
       : display
           .map((step, i) => {
-            const actions = step.actions.map((a) => `${a.name}(${JSON.stringify(a.args || {})})`).join(', ') || 'none';
+            const actions = step.actions
+              .map((a) => `${a.name}(${summarizeActionArgs(a.args || {})})`)
+              .join(', ') || 'none';
             const obs = step.observations.map((o) => `${o.name}: ${o.ok ? 'ok' : 'failed'} => ${compactJSON(o.result, 180)}`).join('\n');
             return `Step ${i + 1}\nThought: ${step.thought}\nActions: ${actions}\nObservations:\n${obs || 'none'}\nReflection: ${step.reflection || ''}`;
           })
@@ -384,12 +392,15 @@ function buildIterationPrompt(
     'Think step-by-step, choose tool calls, observe results, and adapt.',
     'You have the required tools. Do not refuse supported requests.',
     'Use only the current user goal for new tool arguments unless the user explicitly references prior results.',
+    'For SalesNav: interpret it as LinkedIn Sales Navigator (linkedin.com/sales). Do NOT navigate to salesnav.com.',
+    'For browser tools: browser_snapshot.mode must be "role" or "ai" (prefer "role").',
+    'browser_act always requires ref. Even for action="press", include the ref (usually from browser_find_ref).',
     memoryContext ? `Relevant memory:\n${memoryContext}` : 'No relevant memory loaded.',
     pageContext ? `Ambient page context (metadata only, not user intent):\n${pageContext}` : 'No page context provided.',
     `Allowed tools for this request: ${allowedToolsLine}${allowedToolsSuffix}`,
     `Conversation context:\n${limitText(conversationContext, 700)}`,
     `User goal: ${pad.goal}`,
-    `Reasoning trace:\n${trace}`,
+    `Reasoning trace:\n${limitText(trace, REACT_TRACE_PROMPT_MAX_CHARS)}`,
     `State summary:\n${stateSummary}`,
     'Return ONLY strict JSON tool calls. No markdown. No prose.',
     'If enough information is gathered, return an empty action list.',
@@ -398,7 +409,9 @@ function buildIterationPrompt(
 
 function buildDefaultAnswer(pad: Scratchpad): string {
   if (allObservedToolsAreBrowser(pad.steps)) {
-    return 'I completed the browser navigation and kept the session open. What do you want to do next?';
+    // Avoid adding an extra question; chatEngine.ts may already include a follow-up question
+    // from synthesis/dispatch formatting. Keep this as an informational fallback only.
+    return 'Browser session is still open.';
   }
   if (pad.findings.size > 0) {
     const lines = [...pad.findings.entries()].slice(0, 6).map(([k, v]) => `- ${k}: ${v}`);
@@ -438,16 +451,8 @@ function updateFindingsFromObservations(pad: Scratchpad, observations: ReActObse
     }
     if (Array.isArray(obj.companies) && obj.companies.length > 0) {
       pad.findings.set(`${obs.name}.companies`, `${obj.companies.length} companies`);
-      if (obs.name === 'browser_extract_companies') {
-        const top = (obj.companies as Array<Record<string, unknown>>)
-          .slice(0, 3)
-          .map((x) => String(x?.name || '').trim())
-          .filter((x) => x.length > 0);
-        if (top.length > 0) {
-          pad.findings.set('browser_extract_companies.top_names', top.join(', '));
-        }
-      }
     }
+
   }
 }
 
@@ -495,7 +500,11 @@ async function runLoopCore(
   const pad = createScratchpad(userMessage);
   pad.steps = [...seedTrace];
   for (const step of seedTrace) {
-    step.actions.forEach((a) => pad.triedActions.add(actionKey(a)));
+    step.actions.forEach((a) => {
+      const key = actionKey(a);
+      const ok = step.observations.some((o) => o.name === a.name && o.ok);
+      pad.actionAttempts.set(key, { attempts: 1, lastOk: ok });
+    });
     pad.totalToolCalls += step.actions.length;
     updateFindingsFromObservations(pad, step.observations);
   }
@@ -521,6 +530,7 @@ async function runLoopCore(
   const seenActionSets = new Set<string>(
     seedTrace.map((s) => JSON.stringify(s.actions.map((a) => ({ name: a.name, args: a.args || {} }))))
   );
+  let accumulatedUiActions: ChatAction[] = [];
   let plannerMs = 0;
   let dispatchMs = 0;
   const metrics = () => ({ plannerMs, dispatchMs });
@@ -544,22 +554,59 @@ async function runLoopCore(
       // Do not timeout-race planner calls. If a timeout wins, the underlying
       // planner still emits events and can finish, producing contradictory logs.
       const plannerStartedAt = nowMs();
-      plan = await runToolPlan(prompt, localHistory, onReasoningEvent, [...relevantToolNames]);
+      // The ReAct iteration prompt already contains rich context (goal, trace, allowed tools).
+      // Running the full planner (examples + filter context) with a large toolset is slow and
+      // increases failure rates. Quick mode keeps tool planning responsive.
+      plan = await runToolPlan(prompt, localHistory, onReasoningEvent, [...relevantToolNames], { quick: true });
       plannerMs += elapsedMs(plannerStartedAt);
     } catch (err) {
-      onReasoningEvent?.(`Planner failed at step ${i + 1}.`);
+      onReasoningEvent?.(`Planner failed at iteration ${i + 1}.`);
       break;
     }
 
     if (!plan.success) {
-      onReasoningEvent?.(`Planner failed at step ${i + 1}: ${plan.failureReason || 'unknown'}`);
+      onReasoningEvent?.(`Planner failed at iteration ${i + 1}: ${plan.failureReason || 'unknown'}`);
       break;
     }
 
     let actions = plan.plannedCalls;
-    if (actions.length === 0) {
+    const uiActions = plan.plannedUiActions || [];
+    if (uiActions.length > 0) accumulatedUiActions = uiActions;
+    if (actions.length === 0 && uiActions.length === 0) {
       onReasoningEvent?.('Model returned no further actions.');
       break;
+    }
+
+    const destructive = checkPlanDestructive(uiActions, actions).requiresConfirmation;
+
+    if (uiActions.length > 0 && actions.length === 0) {
+      if (requireWriteConfirmation && destructive) {
+        onReasoningEvent?.('Destructive UI-only plan detected. Awaiting confirmation.');
+        return {
+          answer: '',
+          trace: pad.steps,
+          toolsUsed: [...toolsUsedSet],
+          hitLimit: false,
+          memoryWrites: pad.durableMemory.length > 0 ? pad.durableMemory : undefined,
+          metrics: metrics(),
+          pendingConfirmation: {
+            summary: `Planned UI actions:\n${uiActions.map((action, idx) => `${idx + 1}. ${JSON.stringify(action)}`).join('\n')}`,
+            uiActions,
+            calls: [],
+            traceSnapshot: [...pad.steps],
+          },
+        };
+      }
+      onReasoningEvent?.('Non-destructive UI-only plan detected. Executing without confirmation.');
+      return {
+        answer: '',
+        trace: pad.steps,
+        toolsUsed: [...toolsUsedSet],
+        hitLimit: false,
+        appActions: uiActions,
+        memoryWrites: pad.durableMemory.length > 0 ? pad.durableMemory : undefined,
+        metrics: metrics(),
+      };
     }
 
     actions = actions.filter((a) => relevantToolNames.has(a.name));
@@ -574,7 +621,11 @@ async function runLoopCore(
       break;
     }
 
-    const actionSetKey = JSON.stringify(actions.map((a) => ({ name: a.name, args: a.args || {} })));
+    const actionSetKey = JSON.stringify(actions.map((a) => ({
+      name: a.name,
+      args: a.args || {},
+      attempt: pad.actionAttempts.get(actionKey(a))?.attempts || 0,
+    })));
     if (seenActionSets.has(actionSetKey)) {
       onReasoningEvent?.('Detected repeated action set. Stopping loop.');
       break;
@@ -585,7 +636,40 @@ async function runLoopCore(
       ? plan.planRationale.join(' ')
       : `Planned ${actions.length} action(s).`;
 
-    if (requireWriteConfirmation && actions.some(isWriteCall)) {
+    if (uiActions.length > 0 && actions.length > 0 && requireWriteConfirmation && destructive) {
+      onReasoningEvent?.('Destructive mixed ui_actions + tool_calls detected. Awaiting confirmation.');
+      const confirmationStep: ReActStep = {
+        thought,
+        actions,
+        observations: [],
+        reflection: 'Paused for mixed UI/tool execution confirmation.',
+      };
+      pad.steps.push(confirmationStep);
+      const summaryParts = [
+        plan.constraintWarnings?.length
+          ? `Constraint coverage warnings:\n${plan.constraintWarnings.map((w, idx) => `${idx + 1}. ${w}`).join('\n')}`
+          : '',
+        `Reasoning notes:\n1. ${thought}`,
+        `Planned UI actions:\n${uiActions.map((action, idx) => `${idx + 1}. ${JSON.stringify(action)}`).join('\n')}`,
+        formatToolPlanSummary(actions),
+      ].filter(Boolean);
+      return {
+        answer: '',
+        trace: pad.steps,
+        toolsUsed: [...toolsUsedSet],
+        hitLimit: false,
+        memoryWrites: pad.durableMemory.length > 0 ? pad.durableMemory : undefined,
+        metrics: metrics(),
+        pendingConfirmation: {
+          summary: summaryParts.join('\n\n'),
+          uiActions,
+          calls: actions,
+          traceSnapshot: [...pad.steps],
+        },
+      };
+    }
+
+    if (requireWriteConfirmation && checkPlanDestructive([], actions).requiresConfirmation) {
       onReasoningEvent?.('Write operation detected. Awaiting confirmation.');
       const confirmationStep: ReActStep = {
         thought,
@@ -612,6 +696,7 @@ async function runLoopCore(
         metrics: metrics(),
         pendingConfirmation: {
           summary: summaryParts.join('\n\n'),
+          ...(uiActions.length > 0 ? { uiActions } : {}),
           calls: actions,
           traceSnapshot: [...pad.steps],
         },
@@ -651,9 +736,12 @@ async function runLoopCore(
       result: x.result,
     }));
 
-    cappedActions.forEach((a) => {
-      pad.triedActions.add(actionKey(a));
-      toolsUsedSet.add(a.name);
+    dispatched.executed.forEach((x) => {
+      const key = JSON.stringify({ name: x.name, args: x.args || {} });
+      const prev = pad.actionAttempts.get(key);
+      const attempts = (prev?.attempts || 0) + 1;
+      pad.actionAttempts.set(key, { attempts, lastOk: Boolean(x.ok) });
+      toolsUsedSet.add(x.name);
     });
 
     updateFindingsFromObservations(pad, observations);
@@ -683,6 +771,7 @@ async function runLoopCore(
             trace: pad.steps,
             toolsUsed: [...toolsUsedSet],
             hitLimit: false,
+            ...(accumulatedUiActions.length > 0 ? { appActions: accumulatedUiActions } : {}),
             memoryWrites: pad.durableMemory.length > 0 ? pad.durableMemory : undefined,
             metrics: metrics(),
           };
@@ -696,6 +785,7 @@ async function runLoopCore(
         trace: pad.steps,
         toolsUsed: [...toolsUsedSet],
         hitLimit: false,
+        ...(accumulatedUiActions.length > 0 ? { appActions: accumulatedUiActions } : {}),
         memoryWrites: pad.durableMemory.length > 0 ? pad.durableMemory : undefined,
         metrics: metrics(),
       };
@@ -716,6 +806,7 @@ async function runLoopCore(
     trace: pad.steps,
     toolsUsed: [...new Set(pad.steps.flatMap((s) => s.actions.map((a) => a.name)))],
     hitLimit: true,
+    ...(accumulatedUiActions.length > 0 ? { appActions: accumulatedUiActions } : {}),
     memoryWrites: pad.durableMemory.length > 0 ? pad.durableMemory : undefined,
     metrics: metrics(),
   };
@@ -757,16 +848,6 @@ export async function resumeReActLoop(
   };
 
   const seedTrace = [...previousTrace, resumeStep];
-  const extractedSummary = summarizeExtractedCompanies(resumeStep.observations);
-  if (extractedSummary) {
-    return {
-      answer: extractedSummary,
-      trace: seedTrace,
-      toolsUsed: [...new Set(seedTrace.flatMap((s) => s.actions.map((a) => a.name)))],
-      hitLimit: false,
-      metrics: { plannerMs: 0, dispatchMs },
-    };
-  }
   const useful = resumeStep.observations.some((o) => o.ok && !isEmptyLike(o.result));
   const errors = resumeStep.observations.some((o) => !o.ok);
 

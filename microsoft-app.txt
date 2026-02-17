@@ -1,9 +1,0 @@
-Display name
-Lead Engine Outlook Integration
-Application (client) ID
-32547efa-377d-44b7-95de-29664cf800d6
-Object ID
-288a3591-6d82-408d-ab35-34ebf790618b
-Directory (tenant) ID
-5b9e54d1-e719-4b6e-a4e4-5afb715bbe7e
-Supported account types

@@ -1,3 +1,11 @@
+---
+summary: "Unified retrieval API across CRM entities, conversations, and semantic chunks."
+read_when:
+  - You are implementing or debugging hybrid retrieval
+  - You need ranking/scoring details for search results
+title: "Hybrid Search"
+---
+
 # Hybrid Search
 
 `hybrid_search` provides one retrieval API/tool across CRM entities, emails, conversations, notes, and semantic chunks.

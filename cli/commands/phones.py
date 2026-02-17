@@ -3,7 +3,7 @@ Phone discovery command.
 """
 import sys
 import asyncio
-from services.phone_discoverer import process_linkedin_contacts_for_phones
+from services.phone.discoverer import process_linkedin_contacts_for_phones
 
 
 def cmd_discover_phones(args):
@@ -25,7 +25,7 @@ def cmd_discover_phones(args):
             max_workers=workers
         ))
         
-        print(f"\n✓ Success!")
+        print("\n[OK] Success!")
         print(f"  Contacts processed: {result['total']}")
         print(f"  Phones found: {result['found']}")
         print(f"  Database updated: {result['updated']}")

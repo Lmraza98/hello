@@ -1,34 +1,38 @@
-import { useState, useCallback, useMemo } from 'react';
-import { api, type ReplyPreview } from '../api';
+import { useEffect, useMemo, useState } from 'react';
+import { Building2, Mail, MessageCircle, TrendingUp, Users } from 'lucide-react';
+import type { ReplyPreview } from '../api';
 import { useDashboard } from '../hooks/useDashboard';
-import { useToasts } from '../hooks/useToasts';
 import { useDerivedDashboardData } from '../hooks/useDerivedDashboardData';
-import { useAlerts } from '../hooks/useAlerts';
-import { useChat } from '../hooks/useChat';
-import { ConfirmDialog } from '../components/shared/ConfirmDialog';
+import { useToasts } from '../hooks/useToasts';
 import { ConnectionStatus } from '../components/dashboard/ConnectionStatus';
+import { ActiveConversationsCard } from '../components/dashboard/ActiveConversationsCard';
+import { ScheduledSendsCard } from '../components/dashboard/ScheduledSendsCard';
+import { MiniLineChart } from '../components/dashboard/MiniLineChart';
+import { LiveContacts } from '../components/dashboard/LiveContacts';
 import { ConversationPanel } from '../components/dashboard/ConversationPanel';
 import { ToastContainer } from '../components/dashboard/Toast';
-import { ChatContainer } from '../components/chat/ChatContainer';
-import { BrowserViewer } from '../components/chat/BrowserViewer';
-import { SectionBar } from '../components/chat/SectionBar';
-import type { DashboardDataBridge } from '../types/chat';
-
-/* ── Main Dashboard ────────────────────────────────────── */
+import { StatCard } from '../components/dashboard/StatCard';
+import { usePageContext } from '../contexts/PageContextProvider';
+import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
+import { getPageCapability } from '../capabilities/catalog';
 
 export default function Dashboard() {
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const { setPageContext } = usePageContext();
   const [selectedConversation, setSelectedConversation] = useState<ReplyPreview | null>(null);
+  useRegisterCapabilities(getPageCapability('dashboard'));
   const [removingIds, setRemovingIds] = useState<Set<number>>(new Set());
+  const { toasts, addToast, dismissToast } = useToasts();
 
   const {
-    stats, emailStats, todaysContacts, scheduledEmails,
-    clearTodaysContacts, outlookAuthFlow,
-    connectOutlook, connectOutlookLoading, disconnectOutlook, cancelOutlookAuth,
-    pollReplies, pollRepliesLoading, markConversationHandled,
+    stats,
+    emailStats,
+    todaysContacts,
+    scheduledEmails,
+    pollReplies,
+    pollRepliesLoading,
+    disconnectOutlook,
+    markConversationHandled,
   } = useDashboard();
-
-  const { toasts, addToast, dismissToast } = useToasts();
 
   const {
     replyRate,
@@ -40,35 +44,9 @@ export default function Dashboard() {
     nextSends,
   } = useDerivedDashboardData(emailStats, scheduledEmails);
 
-  const {
-    messages,
-    isTyping,
-    sendMessage,
-    handleAction,
-    handleSectionClick,
-    browserViewerOpen,
-    closeBrowserViewer,
-    salesforceSaveUrl,
-    salesforceSearch,
-    salesforceSkip,
-    backgroundTasks,
-  } = useChat({
-    recentReplies,
-    stats,
-    emailStats,
-    onBrowserViewerOpen: () => {},
-    onBrowserViewerClose: () => {},
-  });
+  const totalScheduled = scheduledEmails?.length ?? 0;
 
-  const { alerts, markSeen } = useAlerts({
-    recentReplies,
-    nextSends,
-    todaysContacts,
-    daily,
-    backgroundTasks,
-  });
-
-  const handleMarkDone = useCallback(async (replyId: number) => {
+  const handleMarkDone = async (replyId: number) => {
     setRemovingIds((prev) => new Set(prev).add(replyId));
     if (selectedConversation?.reply_id === replyId) {
       setSelectedConversation(null);
@@ -78,125 +56,88 @@ export default function Dashboard() {
       addToast('Conversation marked as handled');
     } catch {
       addToast('Failed to mark as handled', 'info');
+    } finally {
+      setTimeout(() => {
+        setRemovingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(replyId);
+          return next;
+        });
+      }, 300);
     }
-    setTimeout(() => {
-      setRemovingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(replyId);
-        return next;
-      });
-    }, 400);
-  }, [markConversationHandled, addToast, selectedConversation]);
+  };
 
-  /* ── Dashboard data bridge (live data for embedded components) ── */
-  const dashboardData: DashboardDataBridge = useMemo(() => ({
-    stats: stats ?? null,
-    replyRate,
-    meetingRate,
-    activeConversations,
-    recentReplies,
-    outlookConnected,
-    pollReplies,
-    pollRepliesLoading,
-    disconnectOutlook,
-    onSelectConversation: setSelectedConversation,
-    onMarkDone: handleMarkDone,
-    removingIds: Array.from(removingIds),
-    nextSends,
-    totalScheduled: scheduledEmails?.length ?? 0,
-    daily,
-    todaysContacts,
-    onExportContacts: () => api.exportContacts(true),
-    onClearContacts: () => setShowClearConfirm(true),
-    outlookAuthFlow,
-    connectOutlook,
-    connectOutlookLoading,
-    cancelOutlookAuth,
-  }), [
-    stats, replyRate, meetingRate, activeConversations,
-    recentReplies, outlookConnected, pollReplies, pollRepliesLoading,
-    disconnectOutlook, handleMarkDone, removingIds,
-    nextSends, scheduledEmails, daily, todaysContacts,
-    outlookAuthFlow, connectOutlook, connectOutlookLoading, cancelOutlookAuth,
-  ]);
+  const statItems = useMemo(
+    () => [
+      { label: 'Companies', value: stats?.total_companies ?? 0, icon: Building2 },
+      { label: 'Contacts', value: stats?.total_contacts ?? 0, icon: Users },
+      { label: 'Reply Rate %', value: replyRate, icon: Mail },
+      { label: 'Active Conversations', value: activeConversations, icon: MessageCircle },
+      { label: 'Meeting Rate %', value: meetingRate, icon: TrendingUp },
+    ],
+    [activeConversations, meetingRate, replyRate, stats?.total_companies, stats?.total_contacts]
+  );
 
-  /* ── Section bar badges ── */
-  const sectionBadges = useMemo(() => ({
-    conversations: activeConversations > 0 ? activeConversations : undefined,
-    scheduled: nextSends.length > 0 ? nextSends.length : undefined,
-    contacts: todaysContacts.length > 0 ? todaysContacts.length : undefined,
-    emailDays: daily.length > 0 ? daily.length : undefined,
-  }), [activeConversations, nextSends.length, todaysContacts.length, daily.length]);
-
-  const handleSectionClickWithAlerts = useCallback((section: string) => {
-    markSeen(section);
-    handleSectionClick(section);
-  }, [markSeen, handleSectionClick]);
+  useEffect(() => {
+    setPageContext({ listContext: 'dashboard' });
+  }, [setPageContext]);
 
   return (
-    <div className="flex h-full max-w-7xl flex-col p-4 md:p-6">
-      {/* Header */}
-      <div className="mb-3 flex items-center justify-between gap-3">
+    <div className="h-full overflow-y-auto p-4 md:p-6">
+      <div className="mb-4 flex items-center justify-between">
         <h1 className="text-lg md:text-xl font-semibold text-text">Dashboard</h1>
         <ConnectionStatus />
       </div>
 
-      {/* Browser Viewer (shown above chat when active) */}
-      {browserViewerOpen && (
-        <div className="mb-2">
-          <BrowserViewer isOpen={browserViewerOpen} onClose={closeBrowserViewer} />
-        </div>
-      )}
-
-      {/* Chat — takes all remaining space */}
-      <div className="flex-1 min-h-0 flex flex-col">
-        <ChatContainer
-          messages={messages}
-          isTyping={isTyping}
-          onSendMessage={sendMessage}
-          onAction={handleAction}
-          onSalesforceSaveUrl={salesforceSaveUrl}
-          onSalesforceSearch={salesforceSearch}
-          onSalesforceSkip={salesforceSkip}
-          dashboardData={dashboardData}
-          sectionBar={
-            <SectionBar
-              onSectionClick={handleSectionClickWithAlerts}
-              badges={sectionBadges}
-              alerts={alerts}
-            />
-          }
-        />
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+        {statItems.map((item) => (
+          <StatCard key={item.label} label={item.label} value={item.value} icon={item.icon} />
+        ))}
       </div>
 
-      {/* Conversation Side Panel */}
-      {selectedConversation && (
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="bg-surface border border-border rounded-lg p-3">
+          <ActiveConversationsCard
+            activeConversations={activeConversations}
+            recentReplies={recentReplies}
+            outlookConnected={outlookConnected}
+            pollReplies={pollReplies}
+            pollRepliesLoading={pollRepliesLoading}
+            disconnectOutlook={disconnectOutlook}
+            onSelectConversation={setSelectedConversation}
+            onMarkDone={handleMarkDone}
+            removingIds={Array.from(removingIds)}
+          />
+        </div>
+
+        <div className="bg-surface border border-border rounded-lg p-3">
+          <ScheduledSendsCard nextSends={nextSends} totalScheduled={totalScheduled} />
+        </div>
+
+        <div className="bg-surface border border-border rounded-lg p-3">
+          <h3 className="text-sm font-medium text-text mb-2">Email Performance</h3>
+          {daily.length > 1 ? (
+            <MiniLineChart data={daily} />
+          ) : (
+            <p className="text-xs text-text-muted">Send campaigns to generate performance trends.</p>
+          )}
+        </div>
+
+        <div className="bg-surface border border-border rounded-lg p-3">
+          <h3 className="text-sm font-medium text-text mb-2">Today&apos;s Contacts</h3>
+          <LiveContacts contacts={todaysContacts} />
+        </div>
+      </div>
+
+      {selectedConversation ? (
         <ConversationPanel
           reply={selectedConversation}
           onClose={() => setSelectedConversation(null)}
-          onMarkDone={(replyId) => {
-            handleMarkDone(replyId);
-            setSelectedConversation(null);
-          }}
+          onMarkDone={(replyId) => void handleMarkDone(replyId)}
         />
-      )}
+      ) : null}
 
-      {/* Toast notifications */}
       <ToastContainer messages={toasts} onDismiss={dismissToast} />
-
-      {/* Confirm dialog */}
-      <ConfirmDialog
-        open={showClearConfirm}
-        title="Clear today's contacts?"
-        message="All contacts scraped today will be permanently deleted."
-        confirmLabel="Clear"
-        variant="danger"
-        onConfirm={async () => {
-          await clearTodaysContacts();
-          setShowClearConfirm(false);
-        }}
-        onCancel={() => setShowClearConfirm(false)}
-      />
     </div>
   );
 }

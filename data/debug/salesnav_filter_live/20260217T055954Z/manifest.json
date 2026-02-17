@@ -1,0 +1,484 @@
+{
+  "started_at": "20260217T055954Z",
+  "task": "salesnav_search_account",
+  "results": [
+    {
+      "filter": "annual_revenue",
+      "value": "10M-50M",
+      "index": 1,
+      "ok": true,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/search/company?viewAllFilters=true",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/01_annual_revenue_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/01_annual_revenue_after.jpg",
+      "debug": {
+        "value": "10M-50M",
+        "ok": true,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "annual_revenue_filter",
+            "ok": true
+          },
+          {
+            "step": "select_range",
+            "value": "10M-50M",
+            "ok": true
+          },
+          {
+            "step": "collapse_toggle",
+            "action": "annual_revenue_filter",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "filter": "company_headcount",
+      "value": "1-10",
+      "index": 2,
+      "ok": true,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/search/company?viewAllFilters=true",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/02_company_headcount_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/02_company_headcount_after.jpg",
+      "debug": {
+        "value": "1-10",
+        "ok": true,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "company_headcount_filter",
+            "ok": true
+          },
+          {
+            "step": "select_range",
+            "value": "1-10",
+            "ok": true
+          },
+          {
+            "step": "collapse_toggle",
+            "action": "company_headcount_filter",
+            "ok": true
+          },
+          {
+            "step": "verify",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "filter": "company_headcount_growth",
+      "value": "10-20%",
+      "index": 3,
+      "ok": true,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/lead/ACwAACljRTcBD__qIaWK86iJSV-A0huTvLFIubU,NAME_SEARCH,ehGs",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/03_company_headcount_growth_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/03_company_headcount_growth_after.jpg",
+      "debug": {
+        "value": "10-20%",
+        "ok": true,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "company_headcount_growth_filter",
+            "ok": true
+          },
+          {
+            "step": "select_range",
+            "value": "10-20%",
+            "ok": true
+          },
+          {
+            "step": "collapse_toggle",
+            "action": "company_headcount_growth_filter",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "filter": "fortune",
+      "value": "Fortune 500",
+      "index": 4,
+      "ok": true,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/search/company?viewAllFilters=true",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/04_fortune_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/04_fortune_after.jpg",
+      "debug": {
+        "value": "Fortune 500",
+        "ok": true,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "fortune_filter",
+            "ok": true
+          },
+          {
+            "step": "select_range",
+            "value": "Fortune 500",
+            "ok": true
+          },
+          {
+            "step": "collapse_escape",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "filter": "headquarters_location",
+      "value": "United States",
+      "index": 5,
+      "ok": true,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/search/company?query=(filters%3AList((type%3AREGION%2Cvalues%3AList((id%3A103644278%2Ctext%3AUnited%2520States%2CselectionType%3AINCLUDED)))))&sessionId=BoWvJCKyQCyxVQc17IO1JQ%3D%3D&viewAllFilters=true",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/05_headquarters_location_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/05_headquarters_location_after.jpg",
+      "debug": {
+        "value": "United States",
+        "ok": true,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "headquarters_location_filter",
+            "ok": true
+          },
+          {
+            "step": "type",
+            "action": "headquarters_location_input",
+            "ok": true,
+            "submit": true
+          },
+          {
+            "step": "confirm",
+            "action": "headquarters_location_include_button",
+            "ok": true
+          },
+          {
+            "step": "collapse_toggle",
+            "action": "headquarters_location_filter",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "filter": "industry",
+      "value": "Hospitals and Health Care",
+      "index": 6,
+      "ok": true,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/search/company?query=(filters%3AList((type%3AREGION%2Cvalues%3AList((id%3A103644278%2Ctext%3AUnited%2520States%2CselectionType%3AINCLUDED)))%2C(type%3AINDUSTRY%2Cvalues%3AList((id%3A14%2Ctext%3AHospitals%2520and%2520Health%2520Care%2CselectionType%3AINCLUDED)%2C(id%3A2050%2Ctext%3AOptometrists%2CselectionType%3AINCLUDED)%2C(id%3A2048%2Ctext%3AChiropractors%2CselectionType%3AINCLUDED)))))&sessionId=BoWvJCKyQCyxVQc17IO1JQ%3D%3D&viewAllFilters=true",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/06_industry_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/06_industry_after.jpg",
+      "debug": {
+        "value": "Hospitals and Health Care",
+        "ok": true,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "industry_filter",
+            "ok": true
+          },
+          {
+            "step": "type",
+            "action": "industry_input",
+            "ok": true,
+            "submit": false
+          },
+          {
+            "step": "select_option",
+            "role": null,
+            "ok": true
+          },
+          {
+            "step": "confirm",
+            "action": "industry_include_button",
+            "ok": true
+          },
+          {
+            "step": "collapse_toggle",
+            "action": "industry_filter",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "filter": "number_of_followers",
+      "value": "1001-5000",
+      "index": 7,
+      "ok": true,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/search/company?query=(filters%3AList((type%3AINDUSTRY%2Cvalues%3AList((id%3A14%2Ctext%3AHospitals%2520and%2520Health%2520Care%2CselectionType%3AINCLUDED)%2C(id%3A2050%2Ctext%3AOptometrists%2CselectionType%3AINCLUDED)%2C(id%3A2048%2Ctext%3AChiropractors%2CselectionType%3AINCLUDED)))))&sessionId=BoWvJCKyQCyxVQc17IO1JQ%3D%3D&viewAllFilters=true",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/07_number_of_followers_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/07_number_of_followers_after.jpg",
+      "debug": {
+        "value": "1001-5000",
+        "ok": true,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "number_of_followers_filter",
+            "ok": true
+          },
+          {
+            "step": "select_range",
+            "value": "1001-5000",
+            "ok": true
+          },
+          {
+            "step": "collapse_toggle",
+            "action": "number_of_followers_filter",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "filter": "department_headcount",
+      "value": "Marketing 1-10",
+      "index": 8,
+      "ok": true,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/search/company?query=(filters%3AList((type%3AINDUSTRY%2Cvalues%3AList((id%3A14%2Ctext%3AHospitals%2520and%2520Health%2520Care%2CselectionType%3AINCLUDED)%2C(id%3A2050%2Ctext%3AOptometrists%2CselectionType%3AINCLUDED)%2C(id%3A2048%2Ctext%3AChiropractors%2CselectionType%3AINCLUDED)))%2C(type%3ACOMPANY_HEADCOUNT%2Cvalues%3AList((id%3AB%2Ctext%3A1-10%2CselectionType%3AINCLUDED)))))&sessionId=BoWvJCKyQCyxVQc17IO1JQ%3D%3D&viewAllFilters=true",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/08_department_headcount_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/08_department_headcount_after.jpg",
+      "debug": {
+        "value": "Marketing 1-10",
+        "ok": true,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "department_headcount_filter",
+            "ok": true
+          },
+          {
+            "step": "select_range",
+            "value": "Marketing 1-10",
+            "ok": true
+          },
+          {
+            "step": "collapse_toggle",
+            "action": "department_headcount_filter",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "filter": "department_headcount_growth",
+      "value": "Marketing 10-20%",
+      "index": 9,
+      "ok": true,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/search/company?query=(filters%3AList((type%3AINDUSTRY%2Cvalues%3AList((id%3A14%2Ctext%3AHospitals%2520and%2520Health%2520Care%2CselectionType%3AINCLUDED)%2C(id%3A2050%2Ctext%3AOptometrists%2CselectionType%3AINCLUDED)%2C(id%3A2048%2Ctext%3AChiropractors%2CselectionType%3AINCLUDED)))%2C(type%3ACOMPANY_HEADCOUNT%2Cvalues%3AList((id%3AB%2Ctext%3A1-10%2CselectionType%3AINCLUDED)))))&sessionId=BoWvJCKyQCyxVQc17IO1JQ%3D%3D&viewAllFilters=true",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/09_department_headcount_growth_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/09_department_headcount_growth_after.jpg",
+      "debug": {
+        "value": "Marketing 10-20%",
+        "ok": true,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "department_headcount_growth_filter",
+            "ok": true
+          },
+          {
+            "step": "select_range",
+            "value": "Marketing 10-20%",
+            "ok": true
+          },
+          {
+            "step": "collapse_toggle",
+            "action": "department_headcount_growth_filter",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "filter": "job_opportunities",
+      "value": "Has job opportunities",
+      "index": 10,
+      "ok": true,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/search/company?query=(filters%3AList((type%3AINDUSTRY%2Cvalues%3AList((id%3A14%2Ctext%3AHospitals%2520and%2520Health%2520Care%2CselectionType%3AINCLUDED)%2C(id%3A2050%2Ctext%3AOptometrists%2CselectionType%3AINCLUDED)%2C(id%3A2048%2Ctext%3AChiropractors%2CselectionType%3AINCLUDED)))%2C(type%3ACOMPANY_HEADCOUNT%2Cvalues%3AList((id%3AB%2Ctext%3A1-10%2CselectionType%3AINCLUDED)))))&sessionId=BoWvJCKyQCyxVQc17IO1JQ%3D%3D&viewAllFilters=true",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/10_job_opportunities_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/10_job_opportunities_after.jpg",
+      "debug": {
+        "value": "Has job opportunities",
+        "ok": true,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "job_opportunities_filter",
+            "ok": true
+          },
+          {
+            "step": "select_range",
+            "value": "Has job opportunities",
+            "ok": true
+          },
+          {
+            "step": "collapse_toggle",
+            "action": "job_opportunities_filter",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "filter": "recent_activities",
+      "value": "Posted on LinkedIn in last 30 days",
+      "index": 11,
+      "ok": true,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/search/company?query=(filters%3AList((type%3AINDUSTRY%2Cvalues%3AList((id%3A14%2Ctext%3AHospitals%2520and%2520Health%2520Care%2CselectionType%3AINCLUDED)%2C(id%3A2050%2Ctext%3AOptometrists%2CselectionType%3AINCLUDED)%2C(id%3A2048%2Ctext%3AChiropractors%2CselectionType%3AINCLUDED)))%2C(type%3ACOMPANY_HEADCOUNT%2Cvalues%3AList((id%3AB%2Ctext%3A1-10%2CselectionType%3AINCLUDED)))))&sessionId=BoWvJCKyQCyxVQc17IO1JQ%3D%3D&viewAllFilters=true",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/11_recent_activities_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/11_recent_activities_after.jpg",
+      "debug": {
+        "value": "Posted on LinkedIn in last 30 days",
+        "ok": true,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "recent_activities_filter",
+            "ok": true
+          },
+          {
+            "step": "select_range",
+            "value": "Posted on LinkedIn in last 30 days",
+            "ok": true
+          },
+          {
+            "step": "collapse_toggle",
+            "action": "recent_activities_filter",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "filter": "connection",
+      "value": "2nd degree",
+      "index": 12,
+      "ok": true,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/search/company?query=(filters%3AList((type%3AINDUSTRY%2Cvalues%3AList((id%3A14%2Ctext%3AHospitals%2520and%2520Health%2520Care%2CselectionType%3AINCLUDED)%2C(id%3A2050%2Ctext%3AOptometrists%2CselectionType%3AINCLUDED)%2C(id%3A2048%2Ctext%3AChiropractors%2CselectionType%3AINCLUDED)))%2C(type%3ACOMPANY_HEADCOUNT%2Cvalues%3AList((id%3AB%2Ctext%3A1-10%2CselectionType%3AINCLUDED)))))&sessionId=BoWvJCKyQCyxVQc17IO1JQ%3D%3D&viewAllFilters=true",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/12_connection_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/12_connection_after.jpg",
+      "debug": {
+        "value": "2nd degree",
+        "ok": true,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "connection_filter",
+            "ok": true
+          },
+          {
+            "step": "select_range",
+            "value": "2nd degree",
+            "ok": true
+          },
+          {
+            "step": "collapse_toggle",
+            "action": "connection_filter",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "filter": "companies_in_crm",
+      "value": "In CRM",
+      "index": 13,
+      "ok": false,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/search/company?query=(filters%3AList((type%3AINDUSTRY%2Cvalues%3AList((id%3A14%2Ctext%3AHospitals%2520and%2520Health%2520Care%2CselectionType%3AINCLUDED)%2C(id%3A2050%2Ctext%3AOptometrists%2CselectionType%3AINCLUDED)%2C(id%3A2048%2Ctext%3AChiropractors%2CselectionType%3AINCLUDED)))%2C(type%3ACOMPANY_HEADCOUNT%2Cvalues%3AList((id%3AB%2Ctext%3A1-10%2CselectionType%3AINCLUDED)))))&sessionId=BoWvJCKyQCyxVQc17IO1JQ%3D%3D&viewAllFilters=true",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/13_companies_in_crm_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/13_companies_in_crm_after.jpg",
+      "debug": {
+        "value": "In CRM",
+        "ok": false,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "companies_in_crm_filter",
+            "ok": false
+          },
+          {
+            "step": "select_range",
+            "value": "In CRM",
+            "ok": false,
+            "error": "exception"
+          }
+        ]
+      }
+    },
+    {
+      "filter": "saved_accounts",
+      "value": "Saved",
+      "index": 14,
+      "ok": true,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/search/company?query=(filters%3AList((type%3AINDUSTRY%2Cvalues%3AList((id%3A14%2Ctext%3AHospitals%2520and%2520Health%2520Care%2CselectionType%3AINCLUDED)%2C(id%3A2050%2Ctext%3AOptometrists%2CselectionType%3AINCLUDED)%2C(id%3A2048%2Ctext%3AChiropractors%2CselectionType%3AINCLUDED)))%2C(type%3ACOMPANY_HEADCOUNT%2Cvalues%3AList((id%3AB%2Ctext%3A1-10%2CselectionType%3AINCLUDED)))))&sessionId=BoWvJCKyQCyxVQc17IO1JQ%3D%3D&viewAllFilters=true",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/14_saved_accounts_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/14_saved_accounts_after.jpg",
+      "debug": {
+        "value": "Saved",
+        "ok": true,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "saved_accounts_filter",
+            "ok": true
+          },
+          {
+            "step": "select_range",
+            "value": "Saved",
+            "ok": true
+          },
+          {
+            "step": "collapse_toggle",
+            "action": "saved_accounts_filter",
+            "ok": true
+          }
+        ]
+      }
+    },
+    {
+      "filter": "account_lists",
+      "value": "Target Accounts",
+      "index": 15,
+      "ok": false,
+      "tab_id": "tab-0",
+      "url": "https://www.linkedin.com/sales/search/company?query=(filters%3AList((type%3AINDUSTRY%2Cvalues%3AList((id%3A14%2Ctext%3AHospitals%2520and%2520Health%2520Care%2CselectionType%3AINCLUDED)%2C(id%3A2050%2Ctext%3AOptometrists%2CselectionType%3AINCLUDED)%2C(id%3A2048%2Ctext%3AChiropractors%2CselectionType%3AINCLUDED)))%2C(type%3ACOMPANY_HEADCOUNT%2Cvalues%3AList((id%3AB%2Ctext%3A1-10%2CselectionType%3AINCLUDED)))))&sessionId=BoWvJCKyQCyxVQc17IO1JQ%3D%3D&viewAllFilters=true",
+      "before_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/15_account_lists_before.jpg",
+      "after_screenshot": "data/debug/salesnav_filter_live/20260217T055954Z/15_account_lists_after.jpg",
+      "debug": {
+        "value": "Target Accounts",
+        "ok": false,
+        "steps": [
+          {
+            "step": "expand",
+            "action": "account_lists_filter",
+            "ok": false
+          },
+          {
+            "step": "select_range",
+            "value": "Target Accounts",
+            "ok": false,
+            "error": "exception"
+          }
+        ]
+      }
+    }
+  ],
+  "finished_at": "2026-02-17T06:05:28Z"
+}

@@ -8,22 +8,11 @@ Commands:
   init                Initialize database
   status              Show status
   collect             Collect companies from LinkedIn Sales Navigator
-  
-Phone Database Commands (PhoneInfoga OSINT - FREE):
-  build-phone-database   Build phone database for area codes
-  phone-database-stats   Show database statistics
-  lookup-phone           Lookup phone in local database
-  reverse-lookup         Reverse lookup using PhoneInfoga (find owner name)
-  batch-reverse-lookup   Batch reverse lookup from file
-  search-name            Search database by owner name
-  show-names             Show all numbers with identified owner names
-  export-phones          Export database to CSV
 """
 import argparse
 import sys
 
 from cli.commands import init, scrape, emails, status, phones, collect, backfill
-from cli.commands.phone_database import setup_phone_database_commands
 from cli.commands.db import setup_db_commands
 
 
@@ -32,21 +21,10 @@ def main():
         description="Hello Lead Engine CLI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Phone Database Commands (PhoneInfoga - FREE OSINT):
-  build-phone-database   Build phone database for area codes
-  phone-database-stats   Show database statistics  
-  lookup-phone           Lookup phone in local database
-  reverse-lookup         Reverse lookup using PhoneInfoga (find owner name)
-  batch-reverse-lookup   Batch reverse lookup from file
-  search-name            Search database by owner name
-  show-names             Show all numbers with identified owner names
-  export-phones          Export database to CSV
-
 Examples:
-  hello build-phone-database --region new_england --max-per-area 1000
-  hello reverse-lookup 617-555-1234 --save
-  hello search-name "John Smith"
-  hello show-names --limit 50
+  hello scrape-and-enrich --max-contacts 25
+  hello discover-emails --workers 5
+  hello discover-phones --workers 10
 """
     )
     subparsers = parser.add_subparsers(dest='command', help='Commands')
@@ -108,9 +86,6 @@ Examples:
     backfill_parser.add_argument('--limit', '-l', type=int, default=100,
         help='Maximum contacts to process (default: 100)')
     backfill_parser.set_defaults(func=backfill.cmd_backfill_linkedin_urls)
-    
-    # Setup all phone database commands
-    setup_phone_database_commands(subparsers)
     
     # Setup database utility commands
     setup_db_commands(subparsers)

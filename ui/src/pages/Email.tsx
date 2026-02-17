@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
+import { usePageContext } from '../contexts/PageContextProvider';
 import { Mail, Plus, CalendarClock, CheckCircle, FileText, Settings } from 'lucide-react';
 import { useNotificationContext } from '../contexts/NotificationContext';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -10,15 +12,18 @@ import { ReviewQueueView } from '../components/email/ReviewQueueView';
 import { SentEmailsList } from '../components/email/SentEmailsList';
 import { ScheduledView } from '../components/email/ScheduledView';
 import { SettingsPanel } from '../components/email/SettingsPanel';
-import { NextScheduledSends } from '../components/email/NextScheduledSends';
 import { EmailDetailModal } from '../components/email/EmailDetailModal';
 import { SendNowConfirm } from '../components/email/SendNowConfirm';
 import type { EmailCampaign, ScheduledEmail } from '../types/email';
+import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
+import { getPageCapability } from '../capabilities/catalog';
 
 /* ── Main Email Page ───────────────────────────────── */
 
 export default function Email({ openAddModal, onModalOpened }: { openAddModal?: boolean; onModalOpened?: () => void }) {
   const isMobile = useIsMobile();
+  const location = useLocation();
+  const { setPageContext } = usePageContext();
   const { addNotification } = useNotificationContext();
   const [view, setView] = useState<'campaigns' | 'review' | 'history' | 'scheduled'>('campaigns');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -27,6 +32,7 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
   const [showSettings, setShowSettings] = useState(false);
   const [viewingEmail, setViewingEmail] = useState<ScheduledEmail | null>(null);
   const [sendNowTarget, setSendNowTarget] = useState<ScheduledEmail | null>(null);
+  useRegisterCapabilities(getPageCapability(`email.${view}`));
 
   const {
     campaigns,
@@ -62,6 +68,21 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
       onModalOpened?.();
     }
   }, [openAddModal, onModalOpened]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const nextView = params.get('view');
+    if (nextView === 'campaigns' || nextView === 'review' || nextView === 'history' || nextView === 'scheduled') {
+      setView(nextView);
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    setPageContext({
+      listContext: 'email',
+      loadedIds: { campaignIds: campaigns.slice(0, 200).map((c) => c.id) },
+    });
+  }, [campaigns, setPageContext]);
 
   const handleCreateCampaign = (data: Partial<EmailCampaign>) => {
     createCampaign.mutate(data);
@@ -152,8 +173,8 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
           {[
             { id: 'campaigns', label: 'Campaigns', icon: Mail, shortLabel: 'All' },
             { id: 'review', label: `Review${reviewQueue.length > 0 ? ` (${reviewQueue.length})` : ''}`, icon: CheckCircle, shortLabel: reviewQueue.length > 0 ? `Review (${reviewQueue.length})` : 'Review' },
-            { id: 'history', label: 'Sent History', icon: FileText, shortLabel: 'Sent' },
-            { id: 'scheduled', label: `Scheduled (${allScheduled.length})`, icon: CalendarClock, shortLabel: `Sched (${allScheduled.length})` }
+            { id: 'scheduled', label: `Scheduled (${allScheduled.length})`, icon: CalendarClock, shortLabel: `Sched (${allScheduled.length})` },
+            { id: 'history', label: 'Sent History', icon: FileText, shortLabel: 'Sent' }
           ].map(tab => {
             const Icon = tab.icon;
             const displayLabel = isMobile ? tab.shortLabel : tab.label;
@@ -196,13 +217,13 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
       {view === 'campaigns' && (
         <>
           {/* Next Scheduled Sends Widget */}
-          <NextScheduledSends
+          {/* <NextScheduledSends
             scheduledEmails={allScheduled}
             onViewEmail={setViewingEmail}
             onEditEmail={setViewingEmail}
             onSendNow={handleSendNowRequest}
             onViewAll={() => setView('scheduled')}
-          />
+          /> */}
 
           <CampaignsView
             campaigns={campaigns}

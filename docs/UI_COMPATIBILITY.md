@@ -1,3 +1,11 @@
+---
+summary: "Verification notes that UI endpoints remain compatible with refactored backend APIs."
+read_when:
+  - You are validating frontend impact after backend refactors
+  - You need the known-good UI endpoint list
+title: "UI Compatibility"
+---
+
 # UI Compatibility with Refactored API
 
 ## ✅ Status: FULLY COMPATIBLE

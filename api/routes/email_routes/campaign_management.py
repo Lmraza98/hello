@@ -26,6 +26,8 @@ from api.routes.email_routes.models import (
     EmailPreviewResponse,
     EmailTemplateCreate,
     EmailTemplateRecord,
+    EnrollByFilterResponse,
+    EnrollContactsByFilterRequest,
     EnrollContactsRequest,
     EnrollContactsResponse,
 )
@@ -45,7 +47,28 @@ def get_campaigns(status: Optional[str] = None):
 
 @router.post("/campaigns", response_model=EmailCampaignRecord, responses=COMMON_ERROR_RESPONSES)
 def create_campaign(data: EmailCampaignCreate):
-    """Create a new email campaign."""
+    """Create a new email campaign.
+
+    Returns 409 Conflict if a campaign with the same name already exists
+    (case-insensitive match).  The response body contains the existing campaign
+    so callers can reuse it instead of creating a duplicate.
+    """
+    # Duplicate detection: check for existing campaign with same name
+    existing = db.get_email_campaigns()
+    for campaign in existing:
+        if campaign.get("name", "").strip().lower() == data.name.strip().lower():
+            # Return 409 with the existing campaign data so the caller
+            # can use its ID instead of creating a duplicate.
+            campaign["stats"] = db.get_email_campaign_stats(campaign["id"])
+            campaign["templates"] = db.get_email_templates(campaign["id"])
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "message": f"Campaign '{data.name}' already exists",
+                    "existing_campaign": campaign,
+                },
+            )
+
     campaign_id = db.create_email_campaign(
         name=data.name,
         description=data.description,
@@ -200,6 +223,93 @@ def enroll_contacts(campaign_id: int, data: EnrollContactsRequest):
     """Enroll contacts in a campaign."""
     require_campaign(campaign_id)
     return db.enroll_contacts_in_campaign(campaign_id, data.contact_ids)
+
+
+@router.post(
+    "/campaigns/{campaign_id}/enroll-by-filter",
+    response_model=EnrollByFilterResponse,
+    responses=COMMON_ERROR_RESPONSES,
+)
+def enroll_contacts_by_filter(campaign_id: int, data: EnrollContactsByFilterRequest):
+    """Enroll all contacts matching the given filters into a campaign.
+
+    Two search strategies:
+    - When ``query`` is provided: uses ``hybrid_search`` (lexical + semantic
+      across the enriched entity_search_index and semantic_chunks).  This finds
+      contacts by industry/category even when the vertical field is sparse.
+    - When only structured filters: uses ``get_contacts`` (direct SQL LIKE).
+    """
+    require_campaign(campaign_id)
+
+    # At least one filter must be provided to avoid enrolling ALL contacts.
+    if not any([data.query, data.vertical, data.company, data.has_email is not None, data.today_only]):
+        raise HTTPException(
+            status_code=400,
+            detail="At least one filter (query, vertical, company, has_email, today_only) must be provided.",
+        )
+
+    contact_ids: list[int] = []
+    total_matched = 0
+
+    if data.query and data.query.strip():
+        # Use hybrid_search for broad semantic matching.
+        # When query is the primary filter, hybrid_search already searches
+        # across company_name, title, domain, vertical, and keywords.
+        # Structured filters (vertical, company) that merely echo the query
+        # term are redundant and would over-narrow results, so we skip them.
+        # Only has_email is a genuinely additive filter worth intersecting.
+        results = db.hybrid_search(
+            query=data.query.strip(),
+            entity_types=["contact"],
+            k=500,
+        )
+        for item in results:
+            eid = item.get("entity_id")
+            if eid is not None:
+                try:
+                    contact_ids.append(int(eid))
+                except (ValueError, TypeError):
+                    pass
+        total_matched = len(contact_ids)
+
+        # Only apply has_email as an additional structural filter.
+        # vertical/company filters are redundant when query is provided
+        # since hybrid_search already covers those fields.
+        if contact_ids and data.has_email is True:
+            from api.routes.contact_routes.read import get_contacts
+            structured = get_contacts(has_email=True)
+            structured_ids = {c["id"] for c in structured if isinstance(c, dict) and c.get("id") is not None}
+            contact_ids = [cid for cid in contact_ids if cid in structured_ids]
+            total_matched = len(contact_ids)
+    else:
+        # Structured-only filters: use direct SQL.
+        from api.routes.contact_routes.read import get_contacts
+        contacts = get_contacts(
+            query=None,
+            company=data.company,
+            has_email=data.has_email,
+            today_only=data.today_only,
+            vertical=data.vertical,
+        )
+        contact_ids = [c["id"] for c in contacts if isinstance(c, dict) and c.get("id") is not None]
+        total_matched = len(contact_ids)
+
+    if total_matched == 0:
+        return {
+            "enrolled": 0,
+            "skipped": 0,
+            "total_matched": 0,
+            "filter_used": data.model_dump(exclude_none=True),
+        }
+
+    result = db.enroll_contacts_in_campaign(campaign_id, contact_ids)
+
+    return {
+        "enrolled": result.get("enrolled", 0),
+        "skipped": result.get("skipped", 0),
+        "total_matched": total_matched,
+        "filter_used": data.model_dump(exclude_none=True),
+    }
 
 
 @router.delete(

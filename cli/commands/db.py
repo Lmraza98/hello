@@ -7,93 +7,44 @@ import database as db
 
 def cmd_reset_queue(args):
     """Clear all pending items from send queue."""
-    conn = db.get_connection()
-    c = conn.cursor()
-    c.execute("DELETE FROM send_queue WHERE status='pending'")
-    conn.commit()
-    count = c.rowcount
-    conn.close()
+    count = db.clear_pending_send_queue()
     print(f"Cleared {count} pending items from send queue")
 
 
 def cmd_reset_company_status(args):
     """Reset all company targets back to 'pending' status."""
-    with db.get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute("UPDATE targets SET status = 'pending'")
-        count = cursor.rowcount
+    count = db.reset_all_target_statuses(status='pending')
     print(f"Reset {count} companies to 'pending' status")
 
 
 def cmd_reset_salesforce(args):
     """Reset contacts marked as 'uploaded' back to 'pending'."""
-    conn = db.get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        UPDATE linkedin_contacts 
-        SET salesforce_status = 'pending', 
-            salesforce_uploaded_at = NULL, 
-            salesforce_upload_batch = NULL 
-        WHERE salesforce_status = 'uploaded'
-    """)
-    count = cursor.rowcount
-    conn.commit()
-    conn.close()
+    count = db.reset_uploaded_salesforce_contacts()
     print(f"Reset {count} contacts from 'uploaded' back to 'pending'")
 
 
 def cmd_clear_contacts(args):
     """Delete all LinkedIn contacts from database."""
-    conn = db.get_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT COUNT(*) as cnt FROM linkedin_contacts")
-    count = cursor.fetchone()['cnt']
+    count = db.count_linkedin_contacts()
     print(f"Total LinkedIn contacts in DB: {count}")
     
     if count > 0:
         if not getattr(args, 'confirm', False):
             print("Use --confirm flag to actually delete contacts")
-            conn.close()
             return
         
-        cursor.execute("DELETE FROM linkedin_contacts")
-        conn.commit()
-        print(f"Deleted all {count} contacts")
+        deleted = db.clear_all_linkedin_contacts()
+        print(f"Deleted all {deleted} contacts")
     else:
         print("Database already empty")
-    
-    conn.close()
 
 
 def cmd_db_stats(args):
     """Show database statistics."""
-    conn = db.get_connection()
-    cursor = conn.cursor()
-    
-    # Contacts
-    cursor.execute("SELECT COUNT(*) FROM linkedin_contacts")
-    contacts = cursor.fetchone()[0]
-    
-    # Companies
-    cursor.execute("SELECT COUNT(*) FROM targets")
-    companies = cursor.fetchone()[0]
-    
-    # Campaigns
-    try:
-        cursor.execute("SELECT COUNT(*) FROM email_campaigns")
-        campaigns = cursor.fetchone()[0]
-    except:
-        campaigns = 0
-    
-    # Sent emails
-    try:
-        cursor.execute("SELECT COUNT(*) FROM sent_emails")
-        sent = cursor.fetchone()[0]
-    except:
-        sent = 0
-    
-    conn.close()
+    contacts = db.count_linkedin_contacts()
+    companies = db.count_targets()
+    campaigns = db.count_email_campaigns()
+    sent = db.count_sent_emails()
     
     print(f"\nDatabase Statistics:")
     print(f"  Contacts: {contacts}")

@@ -1,0 +1,110 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Outreach Automation",
+  "description": "Self-documenting architecture for outreach automation, BI ingestion, and agent-driven workflows.",
+  "theme": "mint",
+  "icons": {
+    "library": "lucide"
+  },
+  "colors": {
+    "primary": "#0F766E",
+    "light": "#0EA5A4",
+    "dark": "#115E59"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Overview",
+        "groups": [
+          {
+            "group": "Start Here",
+            "pages": [
+              "index",
+              "start/docs-directory",
+              "start/hubs"
+            ]
+          },
+          {
+            "group": "Architecture",
+            "pages": [
+              "concepts/architecture",
+              "concepts/bi-layer",
+              "concepts/browser-automation",
+              "concepts/browser-website-skills",
+              "concepts/task-decomposition",
+              "concepts/chat-model-routing",
+              "concepts/tool-planner-tiering"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Data Layer",
+        "groups": [
+          {
+            "group": "Collection and Search",
+            "pages": [
+              "SALESNAV_AUTOMATION",
+              "hybrid_search"
+            ]
+          },
+          {
+            "group": "API Surface",
+            "pages": [
+              "api/endpoints"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Engineering",
+        "groups": [
+          {
+            "group": "Refactors and Compatibility",
+            "pages": [
+              "REFACTORING_NOTES",
+              "UI_COMPATIBILITY"
+            ]
+          },
+          {
+            "group": "Model Tooling",
+            "pages": [
+              "FUNCTIONGEMMA_FINETUNE"
+            ]
+          },
+          {
+            "group": "Documentation",
+            "pages": [
+              "help/documentation-workflow",
+              "help/bi-operations",
+              "help/context-recovery",
+              "reference/repository-map"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "redirects": [
+    {
+      "source": "/docs",
+      "destination": "/start/docs-directory"
+    },
+    {
+      "source": "/architecture",
+      "destination": "/concepts/architecture"
+    },
+    {
+      "source": "/bi",
+      "destination": "/concepts/bi-layer"
+    },
+    {
+      "source": "/salesnav",
+      "destination": "/SALESNAV_AUTOMATION"
+    },
+    {
+      "source": "/search/hybrid",
+      "destination": "/hybrid_search"
+    }
+  ]
+}
