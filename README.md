@@ -146,6 +146,13 @@ VITE_OLLAMA_TOOL_BRAIN_MODEL=devstral-small-2:latest
 
 This model is used for API tool interaction (intent routing, tool selection, structured arguments, and multi-step tool planning).
 
+If you run a local `llama.cpp` server (OpenAI-compatible API) instead of Ollama:
+
+```env
+VITE_OLLAMA_URL=http://127.0.0.1:8080
+VITE_LOCAL_LLM_API=openai
+```
+
 Qwen2.5-Coder 32B profile for structured reasoning and extraction:
 
 ```env
@@ -167,6 +174,7 @@ VITE_CHAT_BENCHMARK_NUM_PREDICT=256
 Saved local llama.cpp profile (Qwen2.5-Coder-32B GGUF):
 
 - Script: `scripts/run_qwen25_coder_32b_llama_cli.ps1`
+- Server script (OpenAI-compatible API for UI): `scripts/run_qwen25_coder_32b_llama_server.ps1`
 - Env path vars: `LLAMA_CPP_TOOL_BRAIN_DIR`, `LLAMA_CPP_TOOL_BRAIN_MODEL_PATH`, `VITE_LLAMA_CPP_TOOL_BRAIN_MODEL_PATH`
 
 Command:
