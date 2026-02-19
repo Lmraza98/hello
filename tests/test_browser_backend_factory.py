@@ -1,4 +1,4 @@
-from services.browser_backends.factory import get_browser_backend, reset_browser_backend_for_tests
+from services.web_automation.browser.backends.factory import get_browser_backend, reset_browser_backend_for_tests
 
 
 def test_factory_selects_camoufox_backend(monkeypatch):

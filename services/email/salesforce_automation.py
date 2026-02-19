@@ -18,7 +18,7 @@ from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 
 import config
 import database as db
-from services.salesforce.pages import GlobalSearch, EmailComposer
+from services.web_automation.salesforce.pages import GlobalSearch, EmailComposer
 
 
 class SalesforceSender:
@@ -114,7 +114,7 @@ class SalesforceSender:
         if 'login' in current_url.lower() or 'my.salesforce.com' in current_url:
             # Try to auto-fill credentials
             try:
-                from services.salesforce.credentials import get_credentials
+                from services.web_automation.salesforce.credentials import get_credentials
                 creds = get_credentials()
                 if creds:
                     print("[SFSender] Auto-filling login credentials...")

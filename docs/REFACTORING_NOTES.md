@@ -8,6 +8,51 @@ title: "Refactoring Notes"
 
 # Refactoring Notes
 
+## 2026-02-19 - Service Layer Slimming (Safe Pass)
+
+- Fixed stale runtime import in `database.py` from deprecated `services.linkedin.*` to `services.web_automation.linkedin.*`.
+- Updated legacy SalesNav scripts to current browser workflow import paths under `services.web_automation.browser.*`.
+- Removed dead modules:
+  - `services/testing/*`
+  - `services/identity/name_normalizer.py`
+- Expanded `scripts/check_service_boundaries.py` scan scope beyond `services/` so deprecated `services.*` roots are now flagged in:
+  - `api/`
+  - `scripts/`
+  - `tests/`
+  - root backend entrypoints (`database.py`, `main.py`, `app.py`)
+
+## Service Path Migration Note (2026-02-19)
+
+Historical entries below may reference pre-restructure paths. Use this mapping when reading older notes:
+
+- `services/linkedin/*` -> `services/web_automation/linkedin/*`
+- `services/google/*` -> `services/web_automation/google/*`
+- `services/salesforce/*` -> `services/web_automation/salesforce/*`
+- `services/browser_backends/*` -> `services/web_automation/browser/backends/*`
+- `services/browser_skills/*` -> `services/web_automation/browser/skills/*`
+- `services/browser_workflows/*` -> `services/web_automation/browser/workflows/*`
+- `services/browser_workflow.py` -> `services/web_automation/browser/core/workflow.py`
+- `services/browser_policy.py` -> `services/web_automation/browser/core/policy.py`
+- `services/browser_stealth.py` -> `services/web_automation/browser/core/stealth.py`
+- `services/challenge_*` and related challenge modules -> `services/web_automation/browser/challenges/*`
+- `services/workflows/*` -> `services/orchestration/workflows/*`
+- `services/compound_workflow/*` -> `services/orchestration/compound/*`
+- `services/runners/*` -> `services/orchestration/runners/*`
+- `services/phone/*` -> `services/enrichment/phone/*`
+
+## 2026-02-19 - Ingestion-Time LLM Name Normalization
+
+- Added `services/identity/name_classifier.py` as the ingestion-time name normalizer/classifier.
+- Normalization now happens when contacts are written to `linkedin_contacts` (not at export/use time).
+- Extended `linkedin_contacts` schema with preserved raw/structured name fields:
+  - `name_raw`, `name_first`, `name_middle`, `name_last`,
+  - `name_prefix`, `name_suffix`, `name_confidence`, `name_review_reason`.
+- Updated ingestion paths to use normalized storage:
+  - `database.save_linkedin_contacts(...)`,
+  - `database.add_linkedin_contact(...)` (new),
+  - manual contact creation and outreach create-if-missing flows now route through DB ingestion helper.
+- Removed runtime name re-normalization from Salesforce upload/export/email-discovery consumers; these now use stored normalized components with lightweight fallback splitting only.
+
 ## Current Baseline (2026-02-10)
 
 This baseline was generated from:
@@ -158,6 +203,30 @@ eactAdapter.ts to use it.
   - `ui/tests/skillProspectingFlow.test.ts`
   - extended `ui/tests/skillSystem.test.ts` for matching and deterministic plan checks.
 
+## 2026-02-17 - Admin IA cleanup (tests-first, fine-tune advanced)
+
+- Changed primary admin entry to planner tests:
+  - sidebar `Admin` nav now targets `/admin/tests`,
+  - added `/admin` route redirect to `/admin/tests`.
+- Reordered admin top tabs to emphasize day-to-day operations:
+  - primary tabs now show `Tests`, `Logs`, `Costs`.
+- Kept `Fine-tune` route and functionality intact but demoted it to an advanced tab action:
+  - labeled as `Advanced: Fine-tune` in `ui/src/pages/admin/Admin.tsx`.
+
+## 2026-02-17 - Email campaigns list refactor to table model
+
+- Refactored `ui/src/components/email/CampaignsView.tsx` from status-grouped cards to a table-first layout aligned with Companies/Contacts page structure.
+- Added shared toolbar behavior for campaigns:
+  - global search,
+  - filter panel toggle,
+  - active filter pills with per-filter clear.
+- Added campaign filters for:
+  - status,
+  - template mode (`linked`/`copied`),
+  - review queue state (has/no pending review).
+- Added sortable table columns with row-level actions preserved (`edit templates`, `upload to Salesforce`, `activate/pause`, `send`, `delete`).
+- Kept non-campaign email views unchanged (`Review`, `Scheduled`, `Sent History`).
+
 ## UI Planner Refactor Notes (2026-02-16)
 - Removed deprecated ui/src/chat/models/toolPlanner/parseNormalize.ts after splitting parse/normalize responsibilities into parse.ts and normalize.ts.
 - Restored regex/escape semantics in ui/src/chat/models/toolPlanner/parse.ts and ui/src/chat/models/toolPlanner/normalize.ts so fenced JSON extraction and browser normalization behavior match intended planner behavior.
@@ -203,7 +272,7 @@ eactAdapter.ts to use it.
 - Normalized mojibake-affected log output and bullet parsing handling for both proper and mojibake bullet characters.
 - Removed legacy contact-storage coupling from `services.linkedin`:
   - deleted `services/linkedin/contacts.py` compatibility shim,
-  - updated API/CLI imports to use `services.contacts` directly,
+  - updated API/CLI imports to use `database.py` contact helpers directly,
   - removed contact function re-exports from `services/linkedin/__init__.py`.
 - Standardized CLI data access on `database.py` for SalesNav scrape/backfill flows:
   - added `database.py` helpers for pending target retrieval with tier filters,

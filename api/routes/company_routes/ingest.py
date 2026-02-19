@@ -11,8 +11,8 @@ import database as db
 from api.routes._helpers import COMMON_ERROR_RESPONSES
 from api.routes.company_routes.models import CompanyCollectionRequest
 from api.routes.company_routes.models import CompanyCollectResponse, CompanyImportResponse
-from services.linkedin.salesnav.flows.company_collection import collect_companies_from_query
-from services.linkedin.salesnav.filter_parser import infer_company_vertical_if_missing
+from services.web_automation.linkedin.salesnav.flows.company_collection import collect_companies_from_query
+from services.web_automation.linkedin.salesnav.filter_parser import infer_company_vertical_if_missing
 
 router = APIRouter()
 

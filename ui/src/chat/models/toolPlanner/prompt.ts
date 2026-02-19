@@ -94,6 +94,11 @@ export function buildTieredSystemPrompt(
       `Do NOT use browser_navigate for internal relative routes like "/campaigns"; use ui action (e.g., email.campaigns.navigate).\n` +
       `Only use browser_navigate for absolute external URLs (http/https).\n` +
       `For person/contact/company lookup requests, start with hybrid_search.\n` +
+      `For questions about uploaded files/documents, use ask_documents first (optionally search_documents to locate files).\n` +
+      `For ask_documents: do NOT invent document_ids or filenames.\n` +
+      `Only set ask_documents.document_ids when the user explicitly provided a file/doc reference in this turn, or a prior tool result returned concrete IDs.\n` +
+      `If reference is ambiguous (e.g., partial filename fragment), prefer ask_documents without document_ids and let retrieval resolve broadly.\n` +
+      `For follow-up authorship questions like "who drafted it", keep scope broad unless user explicitly names a file or document ID.\n` +
       `Each tool call must be based ONLY on the current user request. Do not reuse stale arguments from prior turns unless explicitly requested.\n` +
       `When multiple constraints apply to the same search tool, prefer one call with merged args (AND semantics), unless user explicitly asks for OR alternatives.\n` +
       `If the user message contains a line starting with "User goal:", treat that as the ONLY goal and ignore other meta-instructions.\n` +
@@ -110,6 +115,7 @@ export function buildTieredSystemPrompt(
       `Canonical examples:\n` +
       `- "Show me my email campaigns on the page" => {"ui_actions":[{"action":"email.campaigns.navigate"}],"tool_calls":[]}\n` +
       `- "Find Lucas Raza" => [{"name":"hybrid_search","args":{"query":"Lucas Raza","entity_types":["contact"],"k":10}}]\n` +
+      `- "What does UnitFlow_Workflow_Document_V1.2.docx say about workflow stages?" => [{"name":"ask_documents","args":{"question":"What are the workflow stages in UnitFlow_Workflow_Document_V1.2.docx?"}}]\n` +
       `- "Find construction companies" => [{"name":"search_companies","args":{"vertical":"Construction"}}]\n` +
       `- "Find Lucas Raza on Sales Navigator" => [{"name":"browser_search_and_extract","args":{"task":"salesnav_people_search","query":"Lucas Raza","limit":10}}]\n` +
       `- "Find construction companies on Sales Navigator" => [{"name":"browser_search_and_extract","args":{"task":"salesnav_search_account","query":"construction","limit":20}}]\n` +
@@ -155,7 +161,12 @@ export function buildTieredSystemPrompt(
     `browser_snapshot.mode must be "role" or "ai". Prefer "role". Do NOT use values like "full_page" (that's for browser_screenshot.full_page).\n` +
     `browser_act always requires ref. Even for action="press", include ref from browser_find_ref.\n` +
     `Navigation loop pattern: browser_health -> browser_tabs -> browser_navigate -> browser_snapshot -> browser_find_ref -> browser_act -> browser_snapshot.\n` +
-    `For person/contact/company lookup requests, start with hybrid_search.\n`;
+    `For person/contact/company lookup requests, start with hybrid_search.\n` +
+    `For uploaded-document questions, use ask_documents instead of hybrid_search(company).\n` +
+    `For ask_documents: do NOT invent document_ids or filenames.\n` +
+    `Only set ask_documents.document_ids when the user explicitly provided a file/doc reference in this turn, or prior tool output provided concrete IDs.\n` +
+    `If the request is about "that/the document" without an explicit reference, omit document_ids and search broadly.\n` +
+    `For follow-up authorship questions ("who drafted/wrote it"), do not force a single prior source document unless user gives an explicit file/ID.\n`;
 
   const fullPlannerExtras =
     `Each tool call must be based ONLY on the current user request. Do not reuse stale arguments from prior turns unless explicitly requested.\n` +
@@ -172,6 +183,7 @@ export function buildTieredSystemPrompt(
     `If exact filters are unavailable, plan a broader read/collect step first, then a follow-up step.\n` +
     `If local database tools cannot satisfy the request, use research_company/research_person as web-research fallback.\n` +
     `For factual lookup questions, prefer hybrid_search and keep claims grounded to returned source_refs.\n` +
+    `For factual lookup in uploaded files, prefer ask_documents and keep claims grounded to document sources.\n` +
     `For reusable website workflow memory, use browser_skill_* tools to list/match/get/upsert/repair/delete markdown skills.\n` +
     `Do not use SalesNav scraping tools for generic site navigation.\n` +
     `Navigation loop pattern: browser_health -> browser_tabs -> browser_navigate -> browser_snapshot -> browser_find_ref -> browser_act -> browser_snapshot.\n` +
@@ -180,6 +192,7 @@ export function buildTieredSystemPrompt(
     `Canonical examples:\n` +
     `- "Show me my email campaigns on the page" => {"ui_actions":[{"action":"email.campaigns.navigate"}],"tool_calls":[]}\n` +
     `- "Find Lucas Raza" => [{"name":"hybrid_search","args":{"query":"Lucas Raza","entity_types":["contact"],"k":10}}]\n` +
+    `- "What does UnitFlow_Workflow_Document_V1.2.docx say about workflow stages?" => [{"name":"ask_documents","args":{"question":"What are the workflow stages in UnitFlow_Workflow_Document_V1.2.docx?"}}]\n` +
     `- "Find construction companies" => [{"name":"search_companies","args":{"vertical":"Construction"}}]\n` +
     `- "Find construction companies on Sales Navigator" => [{"name":"browser_search_and_extract","args":{"task":"salesnav_search_account","query":"construction","limit":20}}]\n` +
     `- "Google FDA 510(k) timeline" => [{"name":"google_search_browser","args":{"query":"FDA 510(k) timeline","max_results":5}}]\n` +

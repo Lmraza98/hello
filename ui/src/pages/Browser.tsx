@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Activity, Clock3, ExternalLink, Loader2, Monitor, RefreshCw } from 'lucide-react';
-import { api, type BrowserTab, type BrowserWorkflowTask, type CompoundWorkflowSummary } from '../api';
+import { Activity, Clock3, RefreshCw } from 'lucide-react';
+import { api, type BrowserWorkflowTask, type CompoundWorkflowSummary } from '../api';
 import { DataTable, type ColumnDef } from '../components/DataTable';
+import { PageHeader } from '../components/shared/PageHeader';
 import { usePageContext } from '../contexts/PageContextProvider';
 import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
 import { getPageCapability } from '../capabilities/catalog';
@@ -95,73 +96,6 @@ function statusPillClass(status: string): string {
   return 'bg-accent/10 text-accent';
 }
 
-function LiveTabCard({ tab }: { tab: BrowserTab }) {
-  const [img, setImg] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [err, setErr] = useState<string | null>(null);
-
-  useEffect(() => {
-    let stopped = false;
-    let timer: number | null = null;
-
-    const load = async () => {
-      try {
-        const shot = await api.getBrowserScreenshot(tab.id);
-        const base64 =
-          (typeof shot.base64 === 'string' && shot.base64) ||
-          (typeof shot.image === 'string' && shot.image) ||
-          '';
-        const mime = typeof shot.mime === 'string' && shot.mime ? shot.mime : 'image/jpeg';
-        if (!stopped) {
-          setImg(base64 ? `data:${mime};base64,${base64}` : null);
-          setErr(base64 ? null : 'No frame yet');
-          setLoading(false);
-        }
-      } catch (e) {
-        if (!stopped) {
-          setErr(e instanceof Error ? e.message : 'Screenshot failed');
-          setLoading(false);
-        }
-      }
-      if (!stopped) timer = window.setTimeout(load, 1200);
-    };
-
-    void load();
-    return () => {
-      stopped = true;
-      if (timer) window.clearTimeout(timer);
-    };
-  }, [tab.id]);
-
-  return (
-    <div className="rounded-lg border border-border bg-surface p-2">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="rounded bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">{tab.id}</span>
-          {tab.active ? <span className="text-[11px] text-green-600">active</span> : null}
-        </div>
-        <span className="max-w-[45%] truncate text-[11px] text-text-dim">{tab.title || tab.url || 'Untitled tab'}</span>
-      </div>
-      <div className="h-44 overflow-hidden rounded border border-border bg-bg">
-        {img ? (
-          <img src={img} alt={`Live browser tab ${tab.id}`} className="h-full w-full object-contain" />
-        ) : (
-          <div className="flex h-full items-center justify-center text-xs text-text-dim">
-            {loading ? (
-              <span className="inline-flex items-center gap-1">
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading...
-              </span>
-            ) : (
-              err || 'No frame'
-            )}
-          </div>
-        )}
-      </div>
-      <div className="mt-2 truncate text-[11px] text-text-dim">{tab.url || 'about:blank'}</div>
-    </div>
-  );
-}
-
 export default function TasksPage() {
   const { setPageContext } = usePageContext();
   const [showFinished, setShowFinished] = useState(true);
@@ -171,12 +105,6 @@ export default function TasksPage() {
   useEffect(() => {
     setPageContext({ listContext: 'tasks' });
   }, [setPageContext]);
-
-  const tabsQ = useQuery({
-    queryKey: ['browser', 'tabs'],
-    queryFn: () => api.getBrowserTabs(),
-    refetchInterval: 2000,
-  });
 
   const tasksQ = useQuery({
     queryKey: ['browser', 'workflowTasks', showFinished],
@@ -241,18 +169,6 @@ export default function TasksPage() {
     return [...compoundRows, ...browserRows];
   }, [browserTasks, compoundTasks]);
 
-  const tabTasks = useMemo(() => {
-    const map = new Map<string, BrowserWorkflowTask[]>();
-    for (const t of browserTasks) {
-      const tabId = resolveTaskTabId(t);
-      if (!tabId) continue;
-      const arr = map.get(tabId) || [];
-      arr.push(t);
-      map.set(tabId, arr);
-    }
-    return map;
-  }, [browserTasks]);
-
   const columns: ColumnDef<UnifiedTaskRow>[] = useMemo(
     () => [
       { key: 'id', label: 'Task ID', className: 'w-[20%]' },
@@ -269,25 +185,25 @@ export default function TasksPage() {
   );
 
   return (
-    <div className="h-full overflow-y-auto p-4 md:p-6">
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Monitor className="h-4 w-4 text-accent" />
-          <h1 className="text-lg font-semibold text-text">Tasks</h1>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            void tabsQ.refetch();
-            void tasksQ.refetch();
-            void compoundQ.refetch();
-          }}
-          className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-hover"
-        >
-          <RefreshCw className="h-3.5 w-3.5" />
-          Refresh
-        </button>
-      </div>
+    <div className="h-full overflow-y-auto">
+      <div className="pt-5 px-4 md:pt-8 md:px-8 pb-4 md:pb-8">
+      <PageHeader
+        title="Tasks"
+        subtitle="Browser and compound workflow task monitoring"
+        desktopActions={(
+          <button
+            type="button"
+            onClick={() => {
+              void tasksQ.refetch();
+              void compoundQ.refetch();
+            }}
+            className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-hover"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Refresh
+          </button>
+        )}
+      />
 
       <div className="mb-4 rounded-lg border border-border bg-surface p-3">
         <div className="mb-2 flex items-center justify-between">
@@ -302,7 +218,7 @@ export default function TasksPage() {
         <DataTable<UnifiedTaskRow>
           columns={columns}
           data={tasks}
-          maxHeight="420px"
+          maxHeight="620px"
           minWidth="1200px"
           emptyState={<div className="text-xs text-text-dim">No tasks found.</div>}
           isLoading={tasksQ.isLoading || compoundQ.isLoading}
@@ -363,50 +279,12 @@ export default function TasksPage() {
 
       <div className="mb-3 rounded-lg border border-border bg-surface p-3">
         <h2 className="mb-2 inline-flex items-center gap-1 text-sm font-semibold text-text">
-          <Clock3 className="h-4 w-4" /> Browser Tabs
+          <Clock3 className="h-4 w-4" /> Summary
         </h2>
         <div className="text-xs text-text-dim">
-          {tabsQ.data?.tabs?.length || 0} open tab(s), mode: {tabsQ.data?.mode || 'unknown'}
+          Browser tasks: {browserTasks.length} | Compound workflows: {compoundTasks.length}
         </div>
-        {tabsQ.isLoading ? <div className="mt-2 text-xs text-text-dim">Loading tabs...</div> : null}
-        {tabsQ.isError ? (
-          <div className="mt-2 text-xs text-red-600">
-            Failed to load tabs: {tabsQ.error instanceof Error ? tabsQ.error.message : 'Unknown error'}
-          </div>
-        ) : null}
       </div>
-
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-        {(tabsQ.data?.tabs || []).map((tab) => (
-          <div key={tab.id} className="space-y-2">
-            <LiveTabCard tab={tab} />
-            {(tabTasks.get(tab.id) || []).length > 0 ? (
-              <div className="rounded border border-border/80 bg-surface p-2">
-                <div className="mb-1 text-xs font-medium text-text">Tasks on this tab</div>
-                <div className="space-y-1">
-                  {(tabTasks.get(tab.id) || []).map((task) => (
-                    <div key={task.task_id} className="text-[11px] text-text-dim">
-                      <span className="mr-1 rounded bg-accent/10 px-1.5 py-0.5 text-accent">{task.status}</span>
-                      {task.stage} ({task.progress_pct}%)
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-[11px] text-text-dim">No tracked tasks on this tab.</div>
-            )}
-            {tab.url ? (
-              <a
-                href={tab.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-[11px] text-accent hover:underline"
-              >
-                Open URL <ExternalLink className="h-3 w-3" />
-              </a>
-            ) : null}
-          </div>
-        ))}
       </div>
     </div>
   );

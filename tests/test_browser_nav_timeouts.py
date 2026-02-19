@@ -1,7 +1,7 @@
 import asyncio
 
 from api.routes import browser_nav
-from services.browser_workflows.task_manager import workflow_task_manager
+from services.web_automation.browser.workflows.task_manager import workflow_task_manager
 
 
 def _run(coro):

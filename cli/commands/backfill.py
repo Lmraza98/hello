@@ -45,8 +45,7 @@ async def _backfill_urls(companies: dict):
     Backfill LinkedIn URLs using Sales Navigator.
     Opens each company's decision makers and extracts public URLs.
     """
-    from services.linkedin.scraper import SalesNavigatorScraper
-    from services.contacts import update_contact_linkedin_url
+    from services.web_automation.linkedin.scraper import SalesNavigatorScraper
     import random
     
     scraper = SalesNavigatorScraper()
@@ -123,7 +122,7 @@ async def _backfill_urls(companies: dict):
                     
                     if found_url:
                         # Update database
-                        update_contact_linkedin_url(contact_id, found_url)
+                        db.update_contact_linkedin_url(contact_id, found_url)
                         print(f"  ✓ {contact_name}: {found_url}")
                         total_found += 1
                     else:

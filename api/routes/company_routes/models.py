@@ -57,21 +57,6 @@ class CompanyPendingDeleteResponse(BaseModel):
 class CompanyPendingCountResponse(BaseModel):
     pending: int
 
-
-class CompanyBiProfileResponse(BaseModel):
-    linked: bool
-    company_key: Optional[str] = None
-    match_method: Optional[str] = None
-    match_confidence: Optional[float] = None
-    bi_company: Optional[dict[str, Any]] = None
-    signals: list[dict[str, Any]] = Field(default_factory=list)
-    coverage: dict[str, int] = Field(default_factory=dict)
-    app_evidence: list[dict[str, Any]] = Field(default_factory=list)
-    collection_logs: list[dict[str, Any]] = Field(default_factory=list)
-    source_links: list[dict[str, Any]] = Field(default_factory=list)
-    prospect_score: Optional[dict[str, Any]] = None
-
-
 class CompanyCollectResponse(BaseModel):
     status: Optional[str] = None
     query: Optional[str] = None

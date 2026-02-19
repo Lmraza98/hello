@@ -6,6 +6,13 @@ venv/
 # Data (contains sensitive info)
 data/outreach.db
 data/salesforce_auth.json
+data/salesforce_credentials.json
+data/linkedin_auth.json
+data/linkedin_regular_auth.json
+data/ms_graph_token_cache.json
+data/debug/
+data/documents/
+data/logs/
 data/pages/
 data/screenshots/
 data/reports/
@@ -45,6 +52,24 @@ wheels/
 # OS
 .DS_Store
 Thumbs.db
+
+# Node / Frontend
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build and test outputs
+coverage/
+out/
+.next/
+.nuxt/
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 
 

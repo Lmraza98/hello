@@ -35,39 +35,41 @@ async def add_contact(contact: ContactCreateRequest):
     salesforce_url = (contact.salesforce_url or "").strip() or None
     salesforce_status = "uploaded" if salesforce_url else None
 
+    new_id = db.add_linkedin_contact(
+        company_name=company_name,
+        domain=domain,
+        name=name,
+        title=(contact.title or "").strip() or None,
+        email_generated=(contact.email or "").strip() or None,
+        linkedin_url=(contact.linkedin_url or "").strip() or None,
+        phone=(contact.phone or "").strip() or None,
+        salesforce_url=salesforce_url,
+        salesforce_status=salesforce_status,
+    )
     with db.get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO linkedin_contacts
-            (company_name, domain, name, title, email_generated, linkedin_url, phone, salesforce_url, salesforce_status, scraped_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        """,
-            (
-                company_name,
-                domain,
-                name,
-                (contact.title or "").strip() or None,
-                (contact.email or "").strip() or None,
-                (contact.linkedin_url or "").strip() or None,
-                (contact.phone or "").strip() or None,
-                salesforce_url,
-                salesforce_status,
-            ),
+            SELECT name, title, email_generated, linkedin_url, salesforce_url, salesforce_status
+            FROM linkedin_contacts
+            WHERE id = ?
+            """,
+            (new_id,),
         )
-        new_id = cursor.lastrowid
+        saved = cursor.fetchone()
+
     db.sync_entity_semantic_index("contact", new_id)
 
     return {
         "id": new_id,
         "company_name": company_name,
         "domain": domain,
-        "name": name,
-        "title": contact.title,
-        "email": contact.email,
-        "linkedin_url": contact.linkedin_url,
-        "salesforce_url": salesforce_url,
-        "salesforce_status": salesforce_status,
+        "name": saved["name"] if saved else name,
+        "title": saved["title"] if saved else contact.title,
+        "email": saved["email_generated"] if saved else contact.email,
+        "linkedin_url": saved["linkedin_url"] if saved else contact.linkedin_url,
+        "salesforce_url": saved["salesforce_url"] if saved else salesforce_url,
+        "salesforce_status": saved["salesforce_status"] if saved else salesforce_status,
     }
 
 

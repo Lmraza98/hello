@@ -18,7 +18,8 @@ export const TOOLS: ToolDefinition[] = [
           },
           filters: {
             type: 'object',
-            description: 'Optional filters (time_range, campaign_id, company_id, contact_id, domain, folder, scope)',
+            description:
+              'Optional filters (time_range, campaign_id, company_id, contact_id, domain, folder, scope, document_ids, document_type, document_status, per_doc_cap, max_evidence_tokens, rerank)',
           },
           k: { type: 'number', description: 'Max results to return (default 10)' },
         },
@@ -44,6 +45,82 @@ export const TOOLS: ToolDefinition[] = [
           k: { type: 'number', description: 'Max results to return (default 10)' },
         },
         required: ['name_or_identifier'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'ask_documents',
+      description:
+        'Answer questions from uploaded documents using retrieval with source citations. Use this first when user asks about file/document contents.',
+      parameters: {
+        type: 'object',
+        properties: {
+          question: { type: 'string', description: 'Question to answer from indexed documents' },
+          document_ids: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Optional specific document IDs to scope retrieval',
+          },
+          company_id: { type: 'number', description: 'Optional company scope for linked documents' },
+          contact_id: { type: 'number', description: 'Optional contact scope for linked documents' },
+          limit_chunks: { type: 'number', description: 'Max chunks to retrieve (default 5)' },
+          per_doc_cap: { type: 'number', description: 'Max chunks per document (default 3)' },
+          max_evidence_tokens: { type: 'number', description: 'Evidence token budget (default ~2800)' },
+          rerank: { type: 'boolean', description: 'Enable reranking (default true)' },
+        },
+        required: ['question'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_documents',
+      description:
+        'Search uploaded documents by filename/content/summary and metadata. Use to locate relevant files before ask_documents when scope is unclear.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search query across document metadata/content' },
+          document_type: {
+            type: 'string',
+            description: 'Optional type filter: proposal|contract|transcript|meeting_notes|email_thread|linkedin_export|contact_list|invoice|report|other',
+          },
+          company_id: { type: 'number', description: 'Optional linked company filter' },
+          limit: { type: 'number', description: 'Max results (default 10)' },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_document_summary',
+      description: 'Get summary and metadata for a specific uploaded document.',
+      parameters: {
+        type: 'object',
+        properties: {
+          document_id: { type: 'string', description: 'Document ID' },
+        },
+        required: ['document_id'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_company_documents',
+      description: 'List uploaded documents linked to a specific company.',
+      parameters: {
+        type: 'object',
+        properties: {
+          company_id: { type: 'number', description: 'Company ID' },
+          limit: { type: 'number', description: 'Max results (default 100)' },
+        },
+        required: ['company_id'],
       },
     },
   },

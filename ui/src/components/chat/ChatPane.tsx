@@ -1,15 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ChatContainer } from './ChatContainer';
 import { BrowserViewer } from './BrowserViewer';
-import { RunTracePanel } from './RunTracePanel';
+import { ChatTopBar } from './ChatTopBar';
+import { TraceDrawer } from './TraceDrawer';
 import { useChatProvider } from '../../contexts/chatContext';
 
 export function ChatPane() {
   const [traceOpen, setTraceOpen] = useState(false);
+  const headerRef = useRef<HTMLDivElement | null>(null);
+  const [streamTopOffsetPx, setStreamTopOffsetPx] = useState(28);
   const {
     messages,
+    thoughtState,
     isTyping,
+    assistantStreamingText,
     sendMessage,
+    uploadFiles,
+    stopAssistantResponse,
     handleAction,
     browserViewerOpen,
     closeBrowserViewer,
@@ -18,35 +25,43 @@ export function ChatPane() {
     salesforceSkip,
   } = useChatProvider();
 
+  useEffect(() => {
+    const compute = () => {
+      const headerHeight = headerRef.current?.getBoundingClientRect().height ?? 0;
+      setStreamTopOffsetPx(Math.round(headerHeight + 12));
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, []);
+
   return (
-    <div className="h-full min-h-0 flex flex-col p-3 md:p-4 border-r border-border bg-surface">
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-text">Assistant</h2>
-        <button
-          type="button"
-          onClick={() => setTraceOpen((prev) => !prev)}
-          className="rounded border border-border px-2 py-1 text-[11px] text-text-muted hover:bg-surface-hover"
-        >
-          {traceOpen ? 'Hide Trace' : 'Show Trace'}
-        </button>
+    <div className="h-full min-h-0 flex flex-col bg-surface">
+      <div ref={headerRef}>
+        <ChatTopBar traceOpen={traceOpen} onToggleTrace={() => setTraceOpen((prev) => !prev)} />
       </div>
-      <RunTracePanel expanded={traceOpen} />
       {browserViewerOpen ? (
-        <div className="mb-2">
+        <div className="px-3 pt-2 md:px-4">
           <BrowserViewer isOpen={browserViewerOpen} onClose={closeBrowserViewer} />
         </div>
       ) : null}
       <div className="flex-1 min-h-0">
         <ChatContainer
           messages={messages}
+          thoughtState={thoughtState}
           isTyping={isTyping}
+          typingText={assistantStreamingText}
+          streamTopOffsetPx={streamTopOffsetPx}
           onSendMessage={sendMessage}
+          onUploadFiles={uploadFiles}
+          onStopStreaming={stopAssistantResponse}
           onAction={handleAction}
           onSalesforceSaveUrl={salesforceSaveUrl}
           onSalesforceSearch={salesforceSearch}
           onSalesforceSkip={salesforceSkip}
         />
       </div>
+      <TraceDrawer open={traceOpen} onClose={() => setTraceOpen(false)} />
     </div>
   );
 }

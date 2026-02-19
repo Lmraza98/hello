@@ -13,8 +13,8 @@ title: "Docs Hubs"
 - [Documentation home](/)
 - [Docs directory](/start/docs-directory)
 - [System architecture](/concepts/architecture)
-- [BI layer architecture](/concepts/bi-layer)
 - [Browser automation](/concepts/browser-automation)
+- [Workflow builder plan](/concepts/workflow-builder-plan)
 - [Chat model routing](/concepts/chat-model-routing)
 - [Tool planner tiering](/concepts/tool-planner-tiering)
 
@@ -22,6 +22,7 @@ title: "Docs Hubs"
 
 - [Sales Navigator automation](/SALESNAV_AUTOMATION)
 - [Hybrid search](/hybrid_search)
+- [Documents and RAG](/documents-rag)
 
 ## API
 
@@ -34,6 +35,6 @@ title: "Docs Hubs"
 - [UI compatibility](/UI_COMPATIBILITY)
 - [FunctionGemma fine-tune workflow](/FUNCTIONGEMMA_FINETUNE)
 - [Documentation workflow](/help/documentation-workflow)
-- [BI operations runbook](/help/bi-operations)
+- [Workflow Builder E2E testing](/help/workflow-builder-e2e-testing)
 - [Context recovery](/help/context-recovery)
 - [Repository map](/reference/repository-map)

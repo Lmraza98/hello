@@ -2,9 +2,9 @@ import asyncio
 from pathlib import Path
 from uuid import uuid4
 
-from services.challenge_detector import detect_challenge
-from services.challenge_handler import handle_challenge_if_present
-from services.challenge_resolver_config import ChallengeResolverConfig
+from services.web_automation.browser.challenges.detector import detect_challenge
+from services.web_automation.browser.challenges.handler import handle_challenge_if_present
+from services.web_automation.browser.challenges.resolver_config import ChallengeResolverConfig
 
 
 class _FakeMouse:

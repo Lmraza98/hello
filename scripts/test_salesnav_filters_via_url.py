@@ -15,7 +15,7 @@ from typing import Any
 from urllib.parse import quote, unquote
 
 from api.routes.browser_nav import BrowserActRequest, BrowserScreenshotRequest, browser_act, browser_screenshot
-from services.browser_workflow import BrowserWorkflow
+from services.web_automation.browser.core.workflow import BrowserWorkflow
 
 BASE_SEARCH_URL = "https://www.linkedin.com/sales/search/company"
 

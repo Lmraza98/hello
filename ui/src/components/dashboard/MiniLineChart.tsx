@@ -9,13 +9,23 @@ export interface DailyPoint {
 
 type MiniLineChartProps = {
   data: DailyPoint[];
+  secondaryData?: DailyPoint[];
+  compact?: boolean;
+  hideLegend?: boolean;
+  focusMetric?: keyof DailyPoint | null;
 };
 
-export function MiniLineChart({ data }: MiniLineChartProps) {
+export function MiniLineChart({
+  data,
+  secondaryData,
+  compact = false,
+  hideLegend = false,
+  focusMetric = null,
+}: MiniLineChartProps) {
   const [hovered, setHovered] = useState<number | null>(null);
 
   const chartW = 500;
-  const chartH = 140;
+  const chartH = compact ? 100 : 140;
   const padL = 0;
   const padR = 0;
   const padT = 8;
@@ -23,10 +33,10 @@ export function MiniLineChart({ data }: MiniLineChartProps) {
   const innerW = chartW - padL - padR;
   const innerH = chartH - padT - padB;
 
-  const maxVal = useMemo(
-    () => Math.max(1, ...data.map((d) => Math.max(d.sent, d.viewed, d.responded))),
-    [data]
-  );
+  const maxVal = useMemo(() => {
+    const values = [...data, ...(secondaryData || [])];
+    return Math.max(1, ...values.map((d) => Math.max(d.sent, d.viewed, d.responded)));
+  }, [data, secondaryData]);
 
   const xStep = data.length > 1 ? innerW / (data.length - 1) : innerW;
   const yScale = (v: number) => padT + innerH - (v / maxVal) * innerH;
@@ -45,19 +55,20 @@ export function MiniLineChart({ data }: MiniLineChartProps) {
 
   return (
     <div className="relative select-none">
-      {/* Legend */}
-      <div className="flex items-center gap-4 mb-2">
-        {lines.map((l) => (
-          <div key={l.key} className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: l.color }} />
-            <span className="text-[11px] text-text-muted">{l.label}</span>
-          </div>
-        ))}
-      </div>
+      {!hideLegend ? (
+        <div className="mb-2 flex items-center gap-4">
+          {lines.map((l) => (
+            <div key={l.key} className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: l.color }} />
+              <span className="text-[11px] text-text-muted">{l.label}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       <svg
         viewBox={`0 0 ${chartW} ${chartH}`}
-        className="w-full"
+        className="h-full w-full"
         preserveAspectRatio="none"
         onMouseLeave={() => setHovered(null)}
       >
@@ -78,13 +89,45 @@ export function MiniLineChart({ data }: MiniLineChartProps) {
           );
         })}
 
+        {/* Secondary lines (faded baseline) */}
+        {secondaryData && secondaryData.length === data.length
+          ? lines.map((l) => {
+              const secondaryPath = secondaryData
+                .map(
+                  (d, i) =>
+                    `${i === 0 ? 'M' : 'L'}${xScale(i).toFixed(1)},${yScale(d[l.key] as number).toFixed(1)}`
+                )
+                .join(' ');
+              return (
+                <path
+                  key={`secondary-${l.key}`}
+                  d={secondaryPath}
+                  fill="none"
+                  stroke={l.color}
+                  strokeOpacity={0.2}
+                  strokeWidth="1.5"
+                  strokeDasharray="4 3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              );
+            })
+          : null}
+
         {/* Area fills (very subtle) */}
         {lines.map((l) => {
           const path = data
             .map((d, i) => `${i === 0 ? 'M' : 'L'}${xScale(i).toFixed(1)},${yScale(d[l.key] as number).toFixed(1)}`)
             .join(' ');
           const areaPath = `${path} L${xScale(data.length - 1).toFixed(1)},${padT + innerH} L${xScale(0).toFixed(1)},${padT + innerH} Z`;
-          return <path key={l.key} d={areaPath} fill={l.color} opacity={0.04} />;
+          return (
+            <path
+              key={l.key}
+              d={areaPath}
+              fill={l.color}
+              opacity={focusMetric && focusMetric !== l.key ? 0.015 : 0.04}
+            />
+          );
         })}
 
         {/* Lines */}
@@ -94,6 +137,7 @@ export function MiniLineChart({ data }: MiniLineChartProps) {
             d={makePath(l.key)}
             fill="none"
             stroke={l.color}
+            strokeOpacity={focusMetric && focusMetric !== l.key ? 0.28 : 1}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"

@@ -4,13 +4,13 @@ from fastapi import APIRouter, HTTPException
 
 from api.routes._helpers import COMMON_ERROR_RESPONSES
 from api.routes.salesforce_routes.models import AuthStatusResponse, ReauthResponse
-from services.salesforce.auth_manager import (
+from services.web_automation.salesforce.auth_manager import (
     SalesforceAuthStatus,
     get_auth_status,
     is_reauth_in_progress,
     trigger_reauth,
 )
-from services.salesforce.credentials import credentials_configured, get_credentials
+from services.web_automation.salesforce.credentials import credentials_configured, get_credentials
 
 router = APIRouter()
 

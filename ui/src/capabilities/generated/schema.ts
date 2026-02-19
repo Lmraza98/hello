@@ -85,6 +85,97 @@ export interface Action_CONTACTS_BULK_LINKEDIN_REQUEST {
   contact_ids: number[];
 }
 
+export interface Action_DOCUMENTS_NAVIGATE {
+  action: 'documents.navigate';
+}
+
+export interface Action_DOCUMENTS_SEARCH {
+  action: 'documents.search';
+  q: string;
+}
+
+export interface Action_DOCUMENTS_SELECT_ROW {
+  action: 'documents.select_row';
+  document_id: string;
+}
+
+export interface Action_DOCUMENTS_ASK {
+  action: 'documents.ask';
+  question: string;
+  document_ids?: string[];
+}
+
+export interface Action_DOCUMENTS_LINK_ENTITIES {
+  action: 'documents.link_entities';
+  document_id: string;
+  company_id?: number;
+  contact_ids?: number[];
+}
+
+export interface Action_DOCUMENTS_RETRY_PROCESSING {
+  action: 'documents.retry_processing';
+  document_id: string;
+}
+
+export interface Action_TEMPLATES_NAVIGATE {
+  action: 'templates.navigate';
+}
+
+export interface Action_TEMPLATES_SEARCH {
+  action: 'templates.search';
+  q: string;
+}
+
+export interface Action_TEMPLATES_CREATE {
+  action: 'templates.create';
+  name: string;
+  subject: string;
+  html_body: string;
+  preheader?: string;
+  from_name?: string;
+  from_email?: string;
+  reply_to?: string;
+  text_body?: string;
+}
+
+export interface Action_TEMPLATES_UPDATE {
+  action: 'templates.update';
+  template_id: number;
+  name?: string;
+  subject?: string;
+  html_body?: string;
+  preheader?: string;
+  from_name?: string;
+  from_email?: string;
+  reply_to?: string;
+  text_body?: string;
+  status?: string;
+}
+
+export interface Action_TEMPLATES_DUPLICATE {
+  action: 'templates.duplicate';
+  template_id: number;
+}
+
+export interface Action_TEMPLATES_ARCHIVE {
+  action: 'templates.archive';
+  template_id: number;
+}
+
+export interface Action_TEMPLATES_VALIDATE {
+  action: 'templates.validate';
+  subject: string;
+  html: string;
+  from_email?: string;
+}
+
+export interface Action_TEMPLATES_TEST_SEND {
+  action: 'templates.test_send';
+  template_id: number;
+  to_email: string;
+  contact_id?: number;
+}
+
 export interface Action_EMAIL_CAMPAIGNS_NAVIGATE {
   action: 'email.campaigns.navigate';
 }
@@ -130,42 +221,21 @@ export interface Action_EMAIL_HISTORY_NAVIGATE {
   action: 'email.history.navigate';
 }
 
-export interface Action_BI_NAVIGATE_OVERVIEW {
-  action: 'bi.navigate_overview';
+export interface Action_BROWSER_NAVIGATE {
+  action: 'browser.navigate';
 }
 
-export interface Action_BI_NAVIGATE_SOURCES {
-  action: 'bi.navigate_sources';
+export interface Action_BROWSER_OBSERVE {
+  action: 'browser.observe';
 }
 
-export interface Action_BI_SAVE_SOURCE_CONFIG {
-  action: 'bi.save_source_config';
+export interface Action_BROWSER_ANNOTATE {
+  action: 'browser.annotate';
+  href_pattern: string;
 }
 
-export interface Action_BI_NAVIGATE_RUNS {
-  action: 'bi.navigate_runs';
-}
-
-export interface Action_BI_FILTER_RUN_STATUS {
-  action: 'bi.filter_run_status';
-  status: string;
-}
-
-export interface Action_BI_NAVIGATE_COMPANIES {
-  action: 'bi.navigate_companies';
-}
-
-export interface Action_BI_SEARCH_COMPANY {
-  action: 'bi.search_company';
-  query: string;
-}
-
-export interface Action_BI_NAVIGATE_EVENTS {
-  action: 'bi.navigate_events';
-}
-
-export interface Action_BI_NAVIGATE_ERRORS {
-  action: 'bi.navigate_errors';
+export interface Action_BROWSER_SYNTHESIZE {
+  action: 'browser.synthesize';
 }
 
 export interface Action_TASKS_NAVIGATE {
@@ -210,7 +280,7 @@ export interface Action_ADMIN_TESTS_RUN_SUITE {
   action: 'admin.tests.run_suite';
 }
 
-export type UIAction = Action_DASHBOARD_NAVIGATE | Action_DASHBOARD_POLL_REPLIES | Action_DASHBOARD_MARK_CONVERSATION_DONE | Action_COMPANIES_NAVIGATE | Action_COMPANIES_SEARCH | Action_COMPANIES_FILTER_VERTICAL | Action_COMPANIES_FILTER_TIER | Action_COMPANIES_EXPAND_ROW | Action_COMPANIES_DELETE_SELECTED | Action_COMPANIES_RESET_ALL | Action_CONTACTS_NAVIGATE | Action_CONTACTS_SEARCH | Action_CONTACTS_FILTER_COMPANY | Action_CONTACTS_FILTER_VERTICAL | Action_CONTACTS_SELECT_ROW | Action_CONTACTS_BULK_DELETE | Action_CONTACTS_BULK_SEND_EMAIL | Action_CONTACTS_BULK_LINKEDIN_REQUEST | Action_EMAIL_CAMPAIGNS_NAVIGATE | Action_EMAIL_CAMPAIGNS_CREATE | Action_EMAIL_CAMPAIGNS_ACTIVATE | Action_EMAIL_CAMPAIGNS_PAUSE | Action_EMAIL_REVIEW_NAVIGATE | Action_EMAIL_REVIEW_APPROVE | Action_EMAIL_REVIEW_REJECT | Action_EMAIL_SCHEDULED_NAVIGATE | Action_EMAIL_SCHEDULED_SEND_NOW | Action_EMAIL_HISTORY_NAVIGATE | Action_BI_NAVIGATE_OVERVIEW | Action_BI_NAVIGATE_SOURCES | Action_BI_SAVE_SOURCE_CONFIG | Action_BI_NAVIGATE_RUNS | Action_BI_FILTER_RUN_STATUS | Action_BI_NAVIGATE_COMPANIES | Action_BI_SEARCH_COMPANY | Action_BI_NAVIGATE_EVENTS | Action_BI_NAVIGATE_ERRORS | Action_TASKS_NAVIGATE | Action_TASKS_FILTER_FINISHED | Action_ADMIN_NAVIGATE_LOGS | Action_ADMIN_LOGS_SEARCH | Action_ADMIN_NAVIGATE_COSTS | Action_ADMIN_NAVIGATE_FINETUNE | Action_ADMIN_FINETUNE_EXPORT_SPLIT | Action_ADMIN_FINETUNE_CLEAR_ALL | Action_ADMIN_NAVIGATE_TESTS | Action_ADMIN_TESTS_RUN_SUITE;
+export type UIAction = Action_DASHBOARD_NAVIGATE | Action_DASHBOARD_POLL_REPLIES | Action_DASHBOARD_MARK_CONVERSATION_DONE | Action_COMPANIES_NAVIGATE | Action_COMPANIES_SEARCH | Action_COMPANIES_FILTER_VERTICAL | Action_COMPANIES_FILTER_TIER | Action_COMPANIES_EXPAND_ROW | Action_COMPANIES_DELETE_SELECTED | Action_COMPANIES_RESET_ALL | Action_CONTACTS_NAVIGATE | Action_CONTACTS_SEARCH | Action_CONTACTS_FILTER_COMPANY | Action_CONTACTS_FILTER_VERTICAL | Action_CONTACTS_SELECT_ROW | Action_CONTACTS_BULK_DELETE | Action_CONTACTS_BULK_SEND_EMAIL | Action_CONTACTS_BULK_LINKEDIN_REQUEST | Action_DOCUMENTS_NAVIGATE | Action_DOCUMENTS_SEARCH | Action_DOCUMENTS_SELECT_ROW | Action_DOCUMENTS_ASK | Action_DOCUMENTS_LINK_ENTITIES | Action_DOCUMENTS_RETRY_PROCESSING | Action_TEMPLATES_NAVIGATE | Action_TEMPLATES_SEARCH | Action_TEMPLATES_CREATE | Action_TEMPLATES_UPDATE | Action_TEMPLATES_DUPLICATE | Action_TEMPLATES_ARCHIVE | Action_TEMPLATES_VALIDATE | Action_TEMPLATES_TEST_SEND | Action_EMAIL_CAMPAIGNS_NAVIGATE | Action_EMAIL_CAMPAIGNS_CREATE | Action_EMAIL_CAMPAIGNS_ACTIVATE | Action_EMAIL_CAMPAIGNS_PAUSE | Action_EMAIL_REVIEW_NAVIGATE | Action_EMAIL_REVIEW_APPROVE | Action_EMAIL_REVIEW_REJECT | Action_EMAIL_SCHEDULED_NAVIGATE | Action_EMAIL_SCHEDULED_SEND_NOW | Action_EMAIL_HISTORY_NAVIGATE | Action_BROWSER_NAVIGATE | Action_BROWSER_OBSERVE | Action_BROWSER_ANNOTATE | Action_BROWSER_SYNTHESIZE | Action_TASKS_NAVIGATE | Action_TASKS_FILTER_FINISHED | Action_ADMIN_NAVIGATE_LOGS | Action_ADMIN_LOGS_SEARCH | Action_ADMIN_NAVIGATE_COSTS | Action_ADMIN_NAVIGATE_FINETUNE | Action_ADMIN_FINETUNE_EXPORT_SPLIT | Action_ADMIN_FINETUNE_CLEAR_ALL | Action_ADMIN_NAVIGATE_TESTS | Action_ADMIN_TESTS_RUN_SUITE;
 
 export type CapabilityActionEnvelope = {
   actions: UIAction[];

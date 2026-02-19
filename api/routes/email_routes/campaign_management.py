@@ -31,6 +31,7 @@ from api.routes.email_routes.models import (
     EnrollContactsRequest,
     EnrollContactsResponse,
 )
+from services.email.template_linked_resolver import render_linked_template_for_contact
 
 router = APIRouter()
 
@@ -74,6 +75,8 @@ def create_campaign(data: EmailCampaignCreate):
         description=data.description,
         num_emails=data.num_emails,
         days_between_emails=data.days_between_emails,
+        template_id=data.template_id,
+        template_mode=data.template_mode or "copied",
     )
     db.sync_entity_semantic_index("campaign", campaign_id)
     return db.get_email_campaign(campaign_id)
@@ -97,6 +100,8 @@ def update_campaign(campaign_id: int, data: EmailCampaignUpdate):
         description=data.description,
         num_emails=data.num_emails,
         days_between_emails=data.days_between_emails,
+        template_id=data.template_id,
+        template_mode=data.template_mode,
         status=data.status,
     )
     db.sync_entity_semantic_index("campaign", campaign_id)
@@ -371,7 +376,7 @@ async def upload_campaign_to_salesforce(campaign_id: int):
         placeholders = ",".join(["?"] * len(contact_ids))
         cursor.execute(
             f"""
-            SELECT id, company_name, domain, name, title, email_generated as email, linkedin_url, salesforce_uploaded_at
+            SELECT id, company_name, domain, name, name_first, name_last, title, email_generated as email, linkedin_url, salesforce_uploaded_at
             FROM linkedin_contacts
             WHERE id IN ({placeholders})
         """,
@@ -380,13 +385,11 @@ async def upload_campaign_to_salesforce(campaign_id: int):
         rows = cursor.fetchall()
         conn.close()
 
-        from services.identity.name_normalizer import normalize_name
-
         contacts = []
         already_uploaded = []
         for r in rows:
-            if r[7]:
-                already_uploaded.append({"id": r[0], "name": r[3], "uploaded_at": r[7]})
+            if r[9]:
+                already_uploaded.append({"id": r[0], "name": r[3], "uploaded_at": r[9]})
                 continue
             contacts.append(
                 {
@@ -394,9 +397,11 @@ async def upload_campaign_to_salesforce(campaign_id: int):
                     "company_name": r[1] or "",
                     "domain": r[2],
                     "name": r[3],
-                    "title": r[4],
-                    "email": r[5],
-                    "linkedin_url": r[6],
+                    "name_first": r[4],
+                    "name_last": r[5],
+                    "title": r[6],
+                    "email": r[7],
+                    "linkedin_url": r[8],
                 }
             )
 
@@ -415,12 +420,9 @@ async def upload_campaign_to_salesforce(campaign_id: int):
         writer.writeheader()
 
         for contact in contacts:
-            normalized = normalize_name(contact.get("name", ""))
-            display_name = (
-                f"{normalized.last}, {normalized.first}"
-                if normalized.last and normalized.first
-                else contact.get("name", "")
-            )
+            first = (contact.get("name_first") or "").strip()
+            last = (contact.get("name_last") or "").strip()
+            display_name = f"{last}, {first}" if last and first else contact.get("name", "")
             writer.writerow(
                 {
                     "Name": display_name,
@@ -485,8 +487,6 @@ async def preview_email(campaign_id: int, contact_id: int, step_number: int = 1)
     campaign = require_campaign(campaign_id)
     templates = db.get_email_templates(campaign_id)
     template = next((t for t in templates if t["step_number"] == step_number), None)
-    if not template:
-        raise HTTPException(status_code=404, detail=f"No template for step {step_number}")
 
     conn = db.get_connection()
     cursor = conn.cursor()
@@ -503,12 +503,32 @@ async def preview_email(campaign_id: int, contact_id: int, step_number: int = 1)
         raise HTTPException(status_code=404, detail="Contact not found")
 
     contact = {
+        "contact_id": row[0],
+        "campaign_id": campaign_id,
         "name": row[1],
+        "contact_name": row[1],
         "title": row[2],
         "company_name": row[3],
         "domain": row[4],
         "email": row[5],
+        "campaign_name": campaign.get("name"),
+        "template_id": campaign.get("template_id"),
+        "template_mode": campaign.get("template_mode") or "copied",
     }
+
+    linked_render = render_linked_template_for_contact(contact)
+    if linked_render:
+        return {
+            "subject": linked_render.get("subject", ""),
+            "body": linked_render.get("html", ""),
+            "contact": contact,
+            "step": step_number,
+            "warnings": linked_render.get("warnings", []),
+            "errors": linked_render.get("errors", []),
+        }
+
+    if not template:
+        raise HTTPException(status_code=404, detail=f"No template for step {step_number}")
 
     try:
         campaign_data = {

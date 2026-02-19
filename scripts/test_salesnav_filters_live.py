@@ -14,8 +14,8 @@ from pathlib import Path
 from typing import Any
 
 from api.routes.browser_nav import BrowserActRequest, BrowserScreenshotRequest, browser_act, browser_screenshot
-from services.browser_workflow import BrowserWorkflow
-from services.browser_workflows import recipes
+from services.web_automation.browser.core.workflow import BrowserWorkflow
+from services.web_automation.browser.workflows import recipes
 
 FILTER_CASES: dict[str, str] = {
     "annual_revenue": "10M-50M",

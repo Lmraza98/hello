@@ -277,6 +277,32 @@ export interface BackgroundTask {
   completedAt?: Date;
 }
 
+/* -- Thought Meta State -- */
+
+export type ThoughtPhase =
+  | 'idle'
+  | 'planning'
+  | 'tool_running'
+  | 'synthesizing'
+  | 'complete';
+
+export type ThoughtToolActivity = {
+  name: string;
+  status: 'running' | 'complete';
+};
+
+export interface ThoughtUIState {
+  phase: ThoughtPhase;
+  display_mode: 'none' | 'micro' | 'panel';
+  title: string;
+  summary: string;
+  steps: string[];
+  toolActivity: ThoughtToolActivity[];
+  visible: boolean;
+  allowAnswerNow: boolean;
+  startedAtMs?: number;
+}
+
 /* -- Alert System -- */
 
 export interface AlertState {

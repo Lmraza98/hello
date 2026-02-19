@@ -9,6 +9,7 @@ from typing import Optional, Dict, List
 import config
 import database as db
 from services.email.salesforce_automation import SalesforceSender
+from services.email.template_linked_resolver import render_linked_template_for_contact
 
 
 async def run_campaign_email_sender(
@@ -59,6 +60,21 @@ async def run_campaign_email_sender(
             company_name = contact.get('company_name', '')
             
             step = contact.get('current_step', 0) + 1
+            linked_render = render_linked_template_for_contact(contact)
+            if linked_render:
+                subject = linked_render.get('subject', '')
+                body = linked_render.get('html', '')
+                if linked_render.get("errors"):
+                    print(f"  [{i+1}] {contact_name}: Linked template render error, skipping")
+                    continue
+                print(f"  [{i+1}] {contact_name}: Linked template rendered")
+                tasks_to_process.append({
+                    'contact': contact,
+                    'subject': subject,
+                    'body': body,
+                    'step': step
+                })
+                continue
             templates = db.get_email_templates(contact['campaign_id'])
             template = next((t for t in templates if t['step_number'] == step), None)
             

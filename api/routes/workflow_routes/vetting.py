@@ -19,7 +19,7 @@ async def lookup_and_research_endpoint(request: LookupAndResearchRequest):
     Batch-lookup companies in the database and run web research + ICP
     assessment for each one.  Returns all data needed for the vetting UI.
     """
-    from services.workflows.vetting import lookup_and_research
+    from services.orchestration.workflows.vetting import lookup_and_research
 
     result = await lookup_and_research(
         company_names=request.company_names,
@@ -33,7 +33,7 @@ def vet_batch_endpoint(request: VetBatchRequest):
     """
     Record vetting decisions (approve / skip) for a batch of companies.
     """
-    from services.workflows.vetting import vet_batch
+    from services.orchestration.workflows.vetting import vet_batch
 
     decisions = [d.model_dump() for d in request.decisions]
     result = vet_batch(decisions)

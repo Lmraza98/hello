@@ -79,6 +79,8 @@ class LinkedInContact:
     company_key: str
     domain_raw: Optional[str]
     name: str
+    name_first: Optional[str]
+    name_last: Optional[str]
     title: Optional[str]
 
 
@@ -105,4 +107,3 @@ class ContactExportRow:
     confidence: float
     domain: Optional[str]
     domain_verified: bool
-

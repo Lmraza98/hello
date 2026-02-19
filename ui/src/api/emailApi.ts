@@ -10,6 +10,9 @@
 import type {
   EmailCampaign,
   EmailTemplate,
+  EmailLibraryTemplate,
+  EmailTemplateRevision,
+  EmailTemplateBlock,
   CampaignContact,
   SentEmail,
   GlobalStats,
@@ -35,6 +38,30 @@ export interface EmailProvider {
   // Templates
   getTemplates(campaignId: number): Promise<EmailTemplate[]>;
   saveTemplates(campaignId: number, templates: Partial<EmailTemplate>[]): Promise<void>;
+  listTemplateLibrary(query?: string, status?: string): Promise<EmailLibraryTemplate[]>;
+  getTemplateLibraryItem(templateId: number): Promise<EmailLibraryTemplate | null>;
+  createTemplateLibraryItem(data: Partial<EmailLibraryTemplate>): Promise<EmailLibraryTemplate>;
+  updateTemplateLibraryItem(templateId: number, data: Partial<EmailLibraryTemplate>): Promise<EmailLibraryTemplate>;
+  duplicateTemplateLibraryItem(templateId: number): Promise<EmailLibraryTemplate>;
+  archiveTemplateLibraryItem(templateId: number): Promise<void>;
+  renderTemplateLibraryItem(
+    templateId: number,
+    payload: { contact_id?: number; campaign_id?: number; sample_vars?: Record<string, unknown> }
+  ): Promise<{ subject: string; preheader?: string; html: string; text: string; sanitized_html?: string; warnings: string[]; errors: string[] }>;
+  validateTemplateContent(payload: { subject: string; html: string; from_email?: string }): Promise<{ warnings: string[]; errors: string[] }>;
+  getTemplateRevisions(templateId: number): Promise<EmailTemplateRevision[]>;
+  revertTemplateRevision(templateId: number, revisionNumber: number): Promise<EmailLibraryTemplate>;
+  testSendTemplate(
+    templateId: number,
+    payload: { to_email: string; contact_id?: number; campaign_id?: number; sample_vars?: Record<string, unknown> }
+  ): Promise<{ success: boolean; mode?: string; message?: string; warnings?: string[]; errors?: string[] }>;
+  exportTemplateLibraryItem(templateId: number): Promise<Record<string, unknown>>;
+  importTemplateLibraryItem(payload: Record<string, unknown>): Promise<EmailLibraryTemplate>;
+  linkCampaignTemplate(campaignId: number, payload: { template_id?: number | null; template_mode: 'linked' | 'copied' }): Promise<EmailCampaign>;
+  listTemplateBlocks(status?: string): Promise<EmailTemplateBlock[]>;
+  createTemplateBlock(data: Partial<EmailTemplateBlock>): Promise<EmailTemplateBlock>;
+  updateTemplateBlock(blockId: number, data: Partial<EmailTemplateBlock>): Promise<EmailTemplateBlock>;
+  deleteTemplateBlock(blockId: number): Promise<void>;
 
   // Contacts & enrollment
   getCampaignContacts(campaignId: number): Promise<CampaignContact[]>;
@@ -138,6 +165,48 @@ function createHttpEmailProvider(baseUrl: string): EmailProvider {
         method: 'POST',
         body: JSON.stringify(templates),
       }, 'Failed to save templates');
+    },
+    listTemplateLibrary: (query, status) => {
+      const params = new URLSearchParams();
+      if (query) params.set('q', query);
+      if (status) params.set('status', status);
+      return safeFetch(`${baseUrl}/templates?${params}`, []);
+    },
+    getTemplateLibraryItem: (templateId) =>
+      safeFetch(`${baseUrl}/templates/${templateId}`, null),
+    createTemplateLibraryItem: (data) =>
+      strictFetch(`${baseUrl}/templates`, { method: 'POST', body: JSON.stringify(data) }, 'Failed to create template'),
+    updateTemplateLibraryItem: (templateId, data) =>
+      strictFetch(`${baseUrl}/templates/${templateId}`, { method: 'PUT', body: JSON.stringify(data) }, 'Failed to update template'),
+    duplicateTemplateLibraryItem: (templateId) =>
+      strictFetch(`${baseUrl}/templates/${templateId}/duplicate`, { method: 'POST' }, 'Failed to duplicate template'),
+    archiveTemplateLibraryItem: async (templateId) => {
+      await strictFetch<void>(`${baseUrl}/templates/${templateId}/archive`, { method: 'POST' }, 'Failed to archive template');
+    },
+    renderTemplateLibraryItem: (templateId, payload) =>
+      strictFetch(`${baseUrl}/templates/${templateId}/render`, { method: 'POST', body: JSON.stringify(payload) }, 'Failed to render template'),
+    validateTemplateContent: (payload) =>
+      strictFetch(`${baseUrl}/templates/validate`, { method: 'POST', body: JSON.stringify(payload) }, 'Failed to validate template'),
+    getTemplateRevisions: (templateId) =>
+      safeFetch(`${baseUrl}/templates/${templateId}/revisions`, []),
+    revertTemplateRevision: (templateId, revisionNumber) =>
+      strictFetch(`${baseUrl}/templates/${templateId}/revert`, { method: 'POST', body: JSON.stringify({ revision_number: revisionNumber }) }, 'Failed to revert template'),
+    testSendTemplate: (templateId, payload) =>
+      strictFetch(`${baseUrl}/templates/${templateId}/test-send`, { method: 'POST', body: JSON.stringify(payload) }, 'Failed to run test send'),
+    exportTemplateLibraryItem: (templateId) =>
+      strictFetch(`${baseUrl}/templates/${templateId}/export`, undefined, 'Failed to export template'),
+    importTemplateLibraryItem: (payload) =>
+      strictFetch(`${baseUrl}/templates/import`, { method: 'POST', body: JSON.stringify(payload) }, 'Failed to import template'),
+    linkCampaignTemplate: (campaignId, payload) =>
+      strictFetch(`${baseUrl}/campaigns/${campaignId}/template-link`, { method: 'PUT', body: JSON.stringify(payload) }, 'Failed to link template to campaign'),
+    listTemplateBlocks: (status) =>
+      safeFetch(`${baseUrl}/template-blocks${status ? `?status=${encodeURIComponent(status)}` : ''}`, []),
+    createTemplateBlock: (data) =>
+      strictFetch(`${baseUrl}/template-blocks`, { method: 'POST', body: JSON.stringify(data) }, 'Failed to create template block'),
+    updateTemplateBlock: (blockId, data) =>
+      strictFetch(`${baseUrl}/template-blocks/${blockId}`, { method: 'PUT', body: JSON.stringify(data) }, 'Failed to update template block'),
+    deleteTemplateBlock: async (blockId) => {
+      await strictFetch<void>(`${baseUrl}/template-blocks/${blockId}`, { method: 'DELETE' }, 'Failed to delete template block');
     },
 
     getCampaignContacts: (campaignId) =>

@@ -12,7 +12,7 @@ from api.routes.contact_routes.models import (
     ContactSalesforceUrlResponse,
     SalesforceUrlRequest,
 )
-from services.salesforce.lookup_queue import enqueue_salesforce_lookup, is_browser_busy
+from services.web_automation.salesforce.lookup_queue import enqueue_salesforce_lookup, is_browser_busy
 
 router = APIRouter()
 

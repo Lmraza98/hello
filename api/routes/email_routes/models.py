@@ -10,6 +10,8 @@ class EmailCampaignCreate(BaseModel):
     description: Optional[str] = None
     num_emails: int = 3
     days_between_emails: int = 3
+    template_id: Optional[int] = None
+    template_mode: Optional[str] = "copied"
 
 
 class EmailCampaignUpdate(BaseModel):
@@ -17,6 +19,8 @@ class EmailCampaignUpdate(BaseModel):
     description: Optional[str] = None
     num_emails: Optional[int] = None
     days_between_emails: Optional[int] = None
+    template_id: Optional[int] = None
+    template_mode: Optional[str] = None
     status: Optional[str] = None
 
 
@@ -83,6 +87,8 @@ class EmailCampaignRecord(BaseModel):
     description: Optional[str] = None
     num_emails: int
     days_between_emails: int
+    template_id: Optional[int] = None
+    template_mode: Optional[str] = "copied"
     status: Optional[str] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None

@@ -78,6 +78,17 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
         if (!registration) {
           return { success: false, error: `Unknown action: ${String(actionRecord.action)}` };
         }
+        const apiJson = async (url: string, init?: RequestInit) => {
+          const res = await fetch(url, {
+            headers: { 'Content-Type': 'application/json' },
+            ...init,
+          });
+          if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error((body as { detail?: string }).detail || `Request failed: ${res.status}`);
+          }
+          return res.json().catch(() => ({}));
+        };
 
         for (const param of registration.action.params) {
           const value = actionRecord[param.name];
@@ -107,6 +118,11 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
         }
 
         if (registration.action.category === 'filter') {
+          const [routePath, routeQuery = ''] = registration.page.route.split('?');
+          if (currentPath !== routePath) {
+            currentPath = routePath || currentPath;
+            currentParams = new URLSearchParams(routeQuery);
+          }
           for (const param of registration.action.params) {
             const value = actionRecord[param.name];
             const normalized = normalizeQueryFilterParam(param.name, value as string | number | boolean | null | undefined);
@@ -125,6 +141,12 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
         if (registration.action.id === 'contacts.select_row') {
           const contactId = Number(actionRecord.contact_id);
           applyRoute(`/contacts?selectedContactId=${contactId}`);
+          return { success: true };
+        }
+        if (registration.action.id === 'documents.select_row') {
+          const documentId = String(actionRecord.document_id || '').trim();
+          if (!documentId) return { success: false, error: 'document_id is required' };
+          applyRoute(`/documents?selectedDocumentId=${encodeURIComponent(documentId)}`);
           return { success: true };
         }
 
@@ -172,8 +194,113 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
           await fetch(`/api/emails/scheduled-emails/${Number(actionRecord.email_id)}/send-now`, { method: 'POST' });
           return { success: true };
         }
+        if (registration.action.id === 'documents.retry_processing') {
+          const documentId = String(actionRecord.document_id || '').trim();
+          if (!documentId) return { success: false, error: 'document_id is required' };
+          await api.retryDocumentProcessing(documentId);
+          return { success: true };
+        }
+        if (registration.action.id === 'documents.link_entities') {
+          const documentId = String(actionRecord.document_id || '').trim();
+          if (!documentId) return { success: false, error: 'document_id is required' };
+          const companyId = typeof actionRecord.company_id === 'number' ? Number(actionRecord.company_id) : undefined;
+          const contactIds = Array.isArray(actionRecord.contact_ids)
+            ? (actionRecord.contact_ids as number[]).map(Number).filter((id) => Number.isFinite(id))
+            : undefined;
+          await api.linkDocumentToEntities({
+            document_id: documentId,
+            company_id: companyId,
+            contact_ids: contactIds,
+          });
+          return { success: true };
+        }
+        if (registration.action.id === 'documents.ask') {
+          const question = String(actionRecord.question || '').trim();
+          if (!question) return { success: false, error: 'question is required' };
+          const documentIds = Array.isArray(actionRecord.document_ids)
+            ? (actionRecord.document_ids as string[]).map((item) => String(item).trim()).filter(Boolean)
+            : undefined;
+          const result = await api.askDocuments({ question, document_ids: documentIds });
+          options.onToast?.('info', result.answer || 'Documents query completed.');
+          if (documentIds && documentIds.length > 0) {
+            applyRoute(`/documents?selectedDocumentId=${encodeURIComponent(documentIds[0])}`);
+          } else {
+            applyRoute('/documents');
+          }
+          return { success: true };
+        }
         if (registration.action.id === 'admin.tests.run_suite') {
           applyRoute('/admin/tests');
+          return { success: true };
+        }
+        if (registration.action.id === 'templates.create') {
+          const payload = {
+            name: String(actionRecord.name || ''),
+            subject: String(actionRecord.subject || ''),
+            html_body: String(actionRecord.html_body || ''),
+            preheader: actionRecord.preheader ? String(actionRecord.preheader) : undefined,
+            from_name: actionRecord.from_name ? String(actionRecord.from_name) : undefined,
+            from_email: actionRecord.from_email ? String(actionRecord.from_email) : undefined,
+            reply_to: actionRecord.reply_to ? String(actionRecord.reply_to) : undefined,
+            text_body: actionRecord.text_body ? String(actionRecord.text_body) : undefined,
+          };
+          const created = await apiJson('/api/emails/templates', { method: 'POST', body: JSON.stringify(payload) }) as { id?: number };
+          if (typeof created.id === 'number') {
+            applyRoute(`/templates?selectedTemplateId=${created.id}`);
+          } else {
+            applyRoute('/templates');
+          }
+          return { success: true };
+        }
+        if (registration.action.id === 'templates.update') {
+          const templateId = Number(actionRecord.template_id);
+          const payload: Record<string, unknown> = {};
+          const fields = ['name', 'subject', 'html_body', 'preheader', 'from_name', 'from_email', 'reply_to', 'text_body', 'status'];
+          for (const field of fields) {
+            if (field in actionRecord && actionRecord[field] != null) payload[field] = actionRecord[field];
+          }
+          await apiJson(`/api/emails/templates/${templateId}`, { method: 'PUT', body: JSON.stringify(payload) });
+          applyRoute(`/templates?selectedTemplateId=${templateId}`);
+          return { success: true };
+        }
+        if (registration.action.id === 'templates.duplicate') {
+          const templateId = Number(actionRecord.template_id);
+          const duplicated = await apiJson(`/api/emails/templates/${templateId}/duplicate`, { method: 'POST' }) as { id?: number };
+          if (typeof duplicated.id === 'number') {
+            applyRoute(`/templates?selectedTemplateId=${duplicated.id}`);
+          } else {
+            applyRoute('/templates');
+          }
+          return { success: true };
+        }
+        if (registration.action.id === 'templates.archive') {
+          const templateId = Number(actionRecord.template_id);
+          await apiJson(`/api/emails/templates/${templateId}/archive`, { method: 'POST' });
+          applyRoute('/templates?status=archived');
+          return { success: true };
+        }
+        if (registration.action.id === 'templates.validate') {
+          const payload = {
+            subject: String(actionRecord.subject || ''),
+            html: String(actionRecord.html || ''),
+            from_email: actionRecord.from_email ? String(actionRecord.from_email) : undefined,
+          };
+          const result = await apiJson('/api/emails/templates/validate', { method: 'POST', body: JSON.stringify(payload) }) as { errors?: string[]; warnings?: string[] };
+          const errCount = (result.errors || []).length;
+          const warnCount = (result.warnings || []).length;
+          options.onToast?.(errCount > 0 ? 'error' : 'success', `Template validation complete (${errCount} errors, ${warnCount} warnings).`);
+          applyRoute('/templates');
+          return { success: true };
+        }
+        if (registration.action.id === 'templates.test_send') {
+          const templateId = Number(actionRecord.template_id);
+          const payload = {
+            to_email: String(actionRecord.to_email || ''),
+            contact_id: typeof actionRecord.contact_id === 'number' ? Number(actionRecord.contact_id) : undefined,
+          };
+          const result = await apiJson(`/api/emails/templates/${templateId}/test-send`, { method: 'POST', body: JSON.stringify(payload) }) as { message?: string };
+          options.onToast?.('success', result.message || 'Template test send completed.');
+          applyRoute(`/templates?selectedTemplateId=${templateId}`);
           return { success: true };
         }
         return { success: false, error: `No executor mapping for action: ${registration.action.id}` };

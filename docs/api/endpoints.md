@@ -12,18 +12,6 @@ title: "API Endpoint Catalog"
 |---|---|---|---|---|---|
 | GET | `/api/admin/costs` | admin | Get Admin Costs | - | - |
 | GET | `/api/admin/logs` | admin | Get Admin Logs | - | - |
-| GET | `/api/bi/companies` | bi | Get Bi Companies | - | - |
-| GET | `/api/bi/companies/{company_id}` | bi | Get Bi Company Detail | - | - |
-| GET | `/api/bi/errors` | bi | Get Bi Errors | - | - |
-| GET | `/api/bi/events` | bi | Get Bi Events | - | - |
-| GET | `/api/bi/overview` | bi | Get Bi Overview | - | - |
-| GET | `/api/bi/run/{run_id}` | bi | Get Bi Run Detail | - | - |
-| GET | `/api/bi/runs` | bi | Get Bi Runs | - | - |
-| GET | `/api/bi/source-config` | bi | Get Bi Source Config | - | - |
-| PUT | `/api/bi/source-config` | bi | Update Bi Source Config | BiSourceConfigUpdateRequest | - |
-| GET | `/api/bi/sources` | bi | Get Bi Sources | - | - |
-| GET | `/api/bi/status` | bi | Get Bi Status | - | - |
-| GET | `/api/bi/top-prospects` | bi | Get Bi Top Prospects | - | - |
 | POST | `/api/browser/act` | browser | Browser Act | BrowserActRequest | inline |
 | POST | `/api/browser/find_ref` | browser | Browser Find Ref | BrowserFindRefRequest | inline |
 | GET | `/api/browser/health` | browser | Browser Health | - | inline |
@@ -34,14 +22,20 @@ title: "API Endpoint Catalog"
 | GET | `/api/browser/skills/{skill_id}` | browser-skills | Get Browser Skill | - | - |
 | PUT | `/api/browser/skills/{skill_id}` | browser-skills | Put Browser Skill | BrowserSkillUpsertRequest | - |
 | DELETE | `/api/browser/skills/{skill_id}` | browser-skills | Remove Browser Skill | - | - |
+| POST | `/api/browser/skills/{skill_id}/promote` | browser-skills | Promote Browser Skill | BrowserSkillPromoteRequest | - |
+| POST | `/api/browser/skills/{skill_id}/regression-run` | browser-skills | Run Browser Skill Regression | BrowserSkillRegressionRunRequest | - |
 | POST | `/api/browser/skills/{skill_id}/repair` | browser-skills | Repair Browser Skill | BrowserSkillRepairRequest | - |
 | POST | `/api/browser/snapshot` | browser | Browser Snapshot | BrowserSnapshotRequest | inline |
 | GET | `/api/browser/tabs` | browser | Browser Tabs | - | inline |
 | POST | `/api/browser/wait` | browser | Browser Wait | BrowserWaitRequest | inline |
+| POST | `/api/browser/workflows/annotate-candidate` | browser-workflows | Browser Annotate Candidate | AnnotateCandidateRequest | inline |
 | POST | `/api/browser/workflows/list-sub-items` | browser-workflows | Browser List Sub Items | ListSubItemsRequest | inline |
+| POST | `/api/browser/workflows/observation-pack` | browser-workflows | Browser Observation Pack | ObservationPackRequest | inline |
 | POST | `/api/browser/workflows/search-and-extract` | browser-workflows | Browser Search And Extract | SearchAndExtractRequest | inline |
 | GET | `/api/browser/workflows/status/{task_id}` | browser-workflows | Browser Workflow Status | - | inline |
+| POST | `/api/browser/workflows/synthesize-from-feedback` | browser-workflows | Browser Synthesize From Feedback | FeedbackSynthesisRequest | inline |
 | GET | `/api/browser/workflows/tasks` | browser-workflows | Browser Workflow Tasks | - | inline |
+| POST | `/api/browser/workflows/validate-candidate` | browser-workflows | Browser Validate Candidate | ValidateCandidateRequest | inline |
 | POST | `/api/chat/completions` | chat | Chat Completion | ChatRequest | ChatResponse |
 | POST | `/api/chat/trace` | chat | Chat Trace | ChatTraceRequest | object |
 | GET | `/api/companies` | companies | Get Companies | - | array |
@@ -56,7 +50,6 @@ title: "API Endpoint Catalog"
 | POST | `/api/companies/skip-pending` | companies | Skip Pending Companies | - | CompanySkippedResponse |
 | PUT | `/api/companies/{company_id}` | companies | Update Company | Company | Company |
 | DELETE | `/api/companies/{company_id}` | companies | Delete Company | - | CompanyDeleteResponse |
-| GET | `/api/companies/{company_id}/bi-profile` | companies | Get Company Bi Profile | - | CompanyBiProfileResponse |
 | POST | `/api/companies/{company_id}/mark-vetted` | companies | Mark Company Vetted | - | CompanyActionResponse |
 | GET | `/api/compound_workflow` | compound-workflow | List Compound Workflows | - | object |
 | POST | `/api/compound_workflow/create` | compound-workflow | Create Compound Workflow | CreateWorkflowRequest | object |
@@ -81,6 +74,13 @@ title: "API Endpoint Catalog"
 | POST | `/api/contacts/{contact_id}/salesforce-search` | contacts | Search Salesforce | - | ContactSalesforceQueuedResponse |
 | POST | `/api/contacts/{contact_id}/salesforce-skip` | contacts | Skip Salesforce | - | ContactSalesforceSimpleResponse |
 | POST | `/api/contacts/{contact_id}/salesforce-url` | contacts | Save Salesforce Url | SalesforceUrlRequest | ContactSalesforceUrlResponse |
+| GET | `/api/documents` | documents | List Documents | - | - |
+| POST | `/api/documents/ask` | documents | Ask Documents Route | AskDocumentsRequest | - |
+| POST | `/api/documents/link` | documents | Link Document To Entities | LinkDocumentRequest | - |
+| POST | `/api/documents/search` | documents | Search Documents | SearchDocumentsRequest | - |
+| POST | `/api/documents/upload` | documents | Upload Document | Body_upload_document_api_documents_upload_post | - |
+| GET | `/api/documents/{document_id}` | documents | Get Document | - | - |
+| POST | `/api/documents/{document_id}/retry` | documents | Retry Document Processing | - | - |
 | GET | `/api/emails/active-conversations` | emails | Get Active Conversations Endpoint | - | array |
 | GET | `/api/emails/campaign-schedule-summary` | emails | Get Campaign Schedule Summary | - | array |
 | GET | `/api/emails/campaigns` | emails | Get Campaigns | - | array |
@@ -96,6 +96,7 @@ title: "API Endpoint Catalog"
 | POST | `/api/emails/campaigns/{campaign_id}/pause` | emails | Pause Campaign | - | CampaignStatusResponse |
 | POST | `/api/emails/campaigns/{campaign_id}/salesforce-upload` | emails | Upload Campaign To Salesforce | - | CampaignSalesforceUploadResponse |
 | GET | `/api/emails/campaigns/{campaign_id}/stats` | emails | Get Campaign Stats | - | EmailCampaignStatsResponse |
+| PUT | `/api/emails/campaigns/{campaign_id}/template-link` | emails | Link Campaign Template | object | - |
 | GET | `/api/emails/campaigns/{campaign_id}/templates` | emails | Get Templates | - | array |
 | POST | `/api/emails/campaigns/{campaign_id}/templates` | emails | Save Template | EmailTemplateCreate | array |
 | POST | `/api/emails/campaigns/{campaign_id}/templates/bulk` | emails | Save Templates Bulk | array | array |
@@ -129,6 +130,23 @@ title: "API Endpoint Catalog"
 | POST | `/api/emails/send` | emails | Send Campaign Emails | SendEmailsRequest | EmailSendResultResponse |
 | GET | `/api/emails/sent` | emails | Get Sent Emails | - | array |
 | GET | `/api/emails/stats` | emails | Get Email Stats | - | EmailCampaignStatsResponse |
+| GET | `/api/emails/template-blocks` | emails | List Blocks | - | - |
+| POST | `/api/emails/template-blocks` | emails | Create Block | BlockCreateRequest | - |
+| PUT | `/api/emails/template-blocks/{block_id}` | emails | Update Block | BlockUpdateRequest | - |
+| DELETE | `/api/emails/template-blocks/{block_id}` | emails | Delete Block | - | - |
+| GET | `/api/emails/templates` | emails | List Templates | - | - |
+| POST | `/api/emails/templates` | emails | Create Template | TemplateCreateRequest | - |
+| POST | `/api/emails/templates/import` | emails | Import Template | object | - |
+| POST | `/api/emails/templates/validate` | emails | Validate Template | ValidateRequest | - |
+| GET | `/api/emails/templates/{template_id}` | emails | Get Template | - | - |
+| PUT | `/api/emails/templates/{template_id}` | emails | Update Template | TemplateUpdateRequest | - |
+| POST | `/api/emails/templates/{template_id}/archive` | emails | Archive Template | - | - |
+| POST | `/api/emails/templates/{template_id}/duplicate` | emails | Duplicate Template | - | - |
+| GET | `/api/emails/templates/{template_id}/export` | emails | Export Template | - | - |
+| POST | `/api/emails/templates/{template_id}/render` | emails | Render Template | TemplateRenderRequest | - |
+| POST | `/api/emails/templates/{template_id}/revert` | emails | Revert Template | TemplateRevertRequest | - |
+| GET | `/api/emails/templates/{template_id}/revisions` | emails | Template Revisions | - | - |
+| POST | `/api/emails/templates/{template_id}/test-send` | emails | Test Send Template | TemplateTestSendRequest | - |
 | GET | `/api/emails/tracking-status` | emails | Get Tracking Status | - | TrackingStatusResponse |
 | POST | `/api/google/search-browser` | google | Google Search Browser | GoogleSearchBrowserRequest | GoogleSearchBrowserResponse |
 | GET | `/api/notes` | notes | List Notes | - | inline |

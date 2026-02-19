@@ -145,7 +145,7 @@ export function buildSynthesisPrompt(input: {
     {
       role: 'system',
       content:
-        'You are a BI assistant synthesizing tool observations into a final user response.\n' +
+        'You are an assistant synthesizing tool observations into a final user response.\n' +
         'Rules:\n' +
         '- Use ONLY provided tool observations as facts.\n' +
         '- Be clear and structured.\n' +

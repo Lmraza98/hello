@@ -34,7 +34,8 @@ export interface DeepseekResult {
 export async function runDeepseek(
   userMessage: string,
   conversationHistory: LocalChatMessage[],
-  onToolCall?: (name: string) => void
+  onToolCall?: (name: string) => void,
+  _onToken?: (token: string) => void,
 ): Promise<DeepseekResult> {
   const ollamaTools = convertToolsForOllama();
 

@@ -1,8 +1,8 @@
 import sqlite3
 from contextlib import contextmanager
 
-from services.linkedin.salesnav.flows.company_collection import SalesNavCompanyCollectionFlow
-from services.linkedin.salesnav.filter_parser import SalesNavFilterParser
+from services.web_automation.linkedin.salesnav.flows.company_collection import SalesNavCompanyCollectionFlow
+from services.web_automation.linkedin.salesnav.filter_parser import SalesNavFilterParser
 
 
 
@@ -37,7 +37,7 @@ def test_collector_save_companies_without_vertical_column(monkeypatch, tmp_path)
     conn.commit()
     conn.close()
 
-    monkeypatch.setattr("services.linkedin.salesnav.flows.company_collection.db.get_db", _db_ctx(str(db_path)))
+    monkeypatch.setattr("services.web_automation.linkedin.salesnav.flows.company_collection.db.get_db", _db_ctx(str(db_path)))
 
     collector = SalesNavCompanyCollectionFlow.__new__(SalesNavCompanyCollectionFlow)
     saved = collector._save_companies_to_db(
@@ -87,7 +87,7 @@ def test_filter_parser_lookup_company_profile_without_vertical_column(monkeypatc
     conn.commit()
     conn.close()
 
-    monkeypatch.setattr("services.salesnav.filter_parser.db.get_db", _db_ctx(str(db_path)))
+    monkeypatch.setattr("services.web_automation.linkedin.salesnav.filter_parser.db.get_db", _db_ctx(str(db_path)))
 
     parser = SalesNavFilterParser.__new__(SalesNavFilterParser)
     profile = parser._lookup_company_profile("Zco Corporation")

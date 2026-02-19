@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "name": "Outreach Automation",
-  "description": "Self-documenting architecture for outreach automation, BI ingestion, and agent-driven workflows.",
+  "description": "Self-documenting architecture for outreach automation and agent-driven workflows.",
   "theme": "mint",
   "icons": {
     "library": "lucide"
@@ -28,9 +28,9 @@
             "group": "Architecture",
             "pages": [
               "concepts/architecture",
-              "concepts/bi-layer",
               "concepts/browser-automation",
               "concepts/browser-website-skills",
+              "concepts/workflow-builder-plan",
               "concepts/task-decomposition",
               "concepts/chat-model-routing",
               "concepts/tool-planner-tiering"
@@ -76,7 +76,7 @@
             "group": "Documentation",
             "pages": [
               "help/documentation-workflow",
-              "help/bi-operations",
+              "help/workflow-builder-e2e-testing",
               "help/context-recovery",
               "reference/repository-map"
             ]
@@ -93,10 +93,6 @@
     {
       "source": "/architecture",
       "destination": "/concepts/architecture"
-    },
-    {
-      "source": "/bi",
-      "destination": "/concepts/bi-layer"
     },
     {
       "source": "/salesnav",

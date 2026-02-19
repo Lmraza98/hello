@@ -124,6 +124,34 @@ export async function executeTool(
       });
       return google;
     }
+    case 'ask_documents':
+      return api('POST', '/api/documents/ask', normalizedArgs);
+    case 'search_documents':
+      return api('POST', '/api/documents/search', normalizedArgs);
+    case 'get_document_summary': {
+      const documentId = typeof normalizedArgs.document_id === 'string' ? normalizedArgs.document_id.trim() : '';
+      if (!documentId) {
+        return {
+          error: true,
+          status: 422,
+          message: 'Invalid arguments for tool get_document_summary: document_id is required',
+          detail: { field: 'document_id', expected: 'string' },
+        };
+      }
+      return api('GET', `/api/documents/${encodeURIComponent(documentId)}`);
+    }
+    case 'list_company_documents': {
+      const companyId = normalizedArgs.company_id;
+      if (typeof companyId !== 'number' || !Number.isFinite(companyId)) {
+        return {
+          error: true,
+          status: 422,
+          message: 'Invalid arguments for tool list_company_documents: company_id must be a number',
+          detail: { field: 'company_id', expected: 'number' },
+        };
+      }
+      return api('GET', `/api/documents${qs({ company_id: companyId, limit: normalizedArgs.limit })}`);
+    }
     case 'search_contacts':
       return api('GET', `/api/contacts${qs(normalizedArgs)}`);
     case 'get_contact': {

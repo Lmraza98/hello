@@ -8,8 +8,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from api.routes._helpers import COMMON_ERROR_RESPONSES
-from services.google import google_search_workflow
-from services.google.workflows import GoogleHumanVerificationRequired
+from services.web_automation.google import google_search_workflow
+from services.web_automation.google.workflows import GoogleHumanVerificationRequired
 
 
 GOOGLE_PREFIX = "/api/google"

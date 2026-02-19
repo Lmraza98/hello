@@ -1,20 +1,28 @@
-import { useMemo, useState, type KeyboardEvent } from 'react';
-import { SendHorizontal } from 'lucide-react';
+import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent } from 'react';
+import { Paperclip, SendHorizontal } from 'lucide-react';
 import { SLASH_COMMANDS } from '../../chat/slashCommands';
 
 interface ChatInputProps {
   onSend: (text: string) => void;
+  onUploadFiles?: (files: File[]) => void;
   disabled?: boolean;
+  isStreaming?: boolean;
+  onStop?: () => void;
   placeholder?: string;
 }
 
 export function ChatInput({
   onSend,
+  onUploadFiles,
   disabled = false,
-  placeholder = 'Ask me to find contacts, create campaigns, send emails...',
+  isStreaming = false,
+  onStop,
+  placeholder = 'Ask for leads, campaigns, or workflow actions...',
 }: ChatInputProps) {
   const [value, setValue] = useState('');
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const slashQuery = value.trimStart();
   const showSlashMenu = slashQuery.startsWith('/');
@@ -73,9 +81,52 @@ export function ChatInput({
     }
   };
 
+  const onDropFiles = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDraggingFile(false);
+    if (!onUploadFiles) return;
+    const files = Array.from(event.dataTransfer?.files || []);
+    if (files.length > 0) {
+      onUploadFiles(files);
+    }
+  };
+
   return (
-    <div className="border-t border-border bg-surface p-3">
+    <div
+      className={`bg-surface p-3 transition-colors ${isDraggingFile ? 'bg-accent/5' : ''}`}
+      onDragEnter={(event) => {
+        event.preventDefault();
+        setIsDraggingFile(true);
+      }}
+      onDragOver={(event) => event.preventDefault()}
+      onDragLeave={(event) => {
+        event.preventDefault();
+        if (event.currentTarget === event.target) setIsDraggingFile(false);
+      }}
+      onDrop={onDropFiles}
+    >
       <div className="relative flex items-end gap-2">
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          multiple
+          onChange={(event) => {
+            if (!onUploadFiles) return;
+            const files = Array.from(event.target.files || []);
+            if (files.length > 0) onUploadFiles(files);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={!onUploadFiles || disabled}
+          className="inline-flex h-[42px] items-center rounded-lg border border-border bg-bg px-2.5 text-text-muted hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
+          title="Attach files"
+        >
+          <Paperclip className="h-4 w-4" />
+        </button>
         <textarea
           rows={1}
           value={value}
@@ -83,7 +134,7 @@ export function ChatInput({
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={onKeyDown}
           placeholder={placeholder}
-          className="min-h-[42px] max-h-36 flex-1 resize-y rounded-md border border-border bg-bg px-3 py-2 text-sm text-text outline-none placeholder:text-text-dim focus:border-accent"
+          className="min-h-[56px] max-h-36 flex-1 resize-y rounded-lg border border-border bg-bg px-3 py-3 text-sm text-text outline-none placeholder:text-text-dim transition-shadow duration-150 focus:border-accent focus:ring-2 focus:ring-accent/25"
         />
         {showSlashMenu && filteredCommands.length > 0 ? (
           <div className="absolute bottom-[calc(100%+8px)] left-0 right-14 max-h-56 overflow-y-auto rounded-md border border-border bg-bg shadow-lg">
@@ -110,12 +161,24 @@ export function ChatInput({
           type="button"
           onClick={submit}
           disabled={disabled || value.trim().length === 0}
-          className="inline-flex h-[42px] items-center gap-1 rounded-md bg-accent px-3 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-[42px] items-center gap-1 rounded-lg bg-accent px-3 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className="hidden sm:inline">Send</span>
           <SendHorizontal className="h-4 w-4" />
         </button>
+        {isStreaming ? (
+          <button
+            type="button"
+            onClick={() => onStop?.()}
+            className="inline-flex h-[42px] items-center rounded-lg border border-border bg-bg px-2.5 text-xs font-medium text-text-muted hover:bg-surface-hover"
+          >
+            Stop
+          </button>
+        ) : null}
       </div>
+      <p className="mt-1.5 text-[10px] text-text-dim">
+        Enter to send, Shift+Enter for newline. Drag files here to upload to documents.
+      </p>
     </div>
   );
 }

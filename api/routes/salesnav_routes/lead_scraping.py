@@ -2,11 +2,12 @@
 
 from fastapi import APIRouter, HTTPException
 
+import database as db
 from api.routes._helpers import COMMON_ERROR_RESPONSES
 from api.routes.browser_stream import broadcast_event
 from api.routes.salesnav_routes.helpers import to_absolute_linkedin_url
 from api.routes.salesnav_routes.models import ScrapeLeadsRequest, SalesNavScrapeLeadsResponse
-from services.browser_workflows.recipes import extract_from_current, search_and_extract
+from services.web_automation.browser.workflows.recipes import extract_from_current, search_and_extract
 
 router = APIRouter()
 
@@ -19,8 +20,6 @@ async def scrape_leads(request: ScrapeLeadsRequest):
     clicks "Decision Makers", and scrapes the results.
     Contacts are saved to the database.
     """
-    from services.contacts import save_linkedin_contacts
-
     all_leads = []
     errors = []
 
@@ -84,7 +83,7 @@ async def scrape_leads(request: ScrapeLeadsRequest):
 
                 employees = employees[: request.max_per_company]
                 if employees:
-                    save_linkedin_contacts(
+                    db.save_linkedin_contacts(
                         company_name=company.name,
                         employees=employees,
                         domain=company.domain,

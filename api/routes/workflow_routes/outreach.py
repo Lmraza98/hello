@@ -19,7 +19,7 @@ async def resolve_contact_endpoint(request: ResolveContactRequest):
     Search for a contact by name across the local database and Sales Navigator.
     Returns candidates from both sources plus a best-match suggestion.
     """
-    from services.workflows.outreach import resolve_contact
+    from services.orchestration.workflows.outreach import resolve_contact
 
     result = await resolve_contact(name=request.name, company=request.company)
     return result
@@ -31,7 +31,7 @@ async def enroll_and_draft_endpoint(request: EnrollAndDraftRequest):
     Enroll a contact in a campaign and generate an email draft.
     Optionally creates the contact first if ``create_if_missing`` is provided.
     """
-    from services.workflows.outreach import enroll_and_draft
+    from services.orchestration.workflows.outreach import enroll_and_draft
 
     result = await enroll_and_draft(
         campaign_id=request.campaign_id,

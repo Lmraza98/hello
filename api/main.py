@@ -22,7 +22,6 @@ from api.observability import clear_request_context, set_request_context
 # Import routes
 from api.routes import (
     admin,
-    bi,
     browser_nav,
     browser_skills,
     browser_workflows,
@@ -31,6 +30,7 @@ from api.routes import (
     companies,
     compound_workflow,
     contacts,
+    documents,
     emails,
     google,
     notes,
@@ -42,11 +42,11 @@ from api.routes import (
     stats,
     workflows,
 )
-from services.salesforce.lookup_queue import (
+from services.web_automation.salesforce.lookup_queue import (
     start_salesforce_lookup_worker,
     stop_salesforce_lookup_worker,
 )
-from services.salesforce.auth_manager import (
+from services.web_automation.salesforce.auth_manager import (
     start_session_health_worker,
     stop_session_health_worker,
 )
@@ -255,6 +255,7 @@ app.include_router(compound_workflow.router)
 app.include_router(notes.router)
 app.include_router(stats.router)
 app.include_router(pipeline.router)
+app.include_router(documents.router)
 app.include_router(emails.router)
 app.include_router(salesnav.router)
 app.include_router(browser_stream.router)
@@ -267,7 +268,6 @@ app.include_router(google.router)
 app.include_router(search.router)
 app.include_router(chat.router)
 app.include_router(admin.router)
-app.include_router(bi.router)
 app.include_router(workflows.router)
 
 # ============================================

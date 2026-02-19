@@ -66,6 +66,51 @@ Manage contact records and run bulk outreach actions.
 | `contacts.vertical` | multi_select | Filter by vertical |
 | `contacts.hasEmail` | boolean | Filter to contacts with email |
 
+### Documents (`/documents`)
+
+Document storage, processing, linking, and retrieval workspace.
+
+#### Actions
+
+| Action ID | Description | Parameters | Conditions |
+|-----------|-------------|------------|------------|
+| `documents.navigate` | Navigate to document library page | - | - |
+| `documents.search` | Set free-text document query | `q` (string) | - |
+| `documents.select_row` | Select a document by id for inspector actions | `document_id` (string) | - |
+| `documents.ask` | Run document RAG question over selected or all docs | `question` (string), `document_ids` (string[]?) | - |
+| `documents.link_entities` | Confirm links between a document, company, and contacts | `document_id` (string), `company_id` (number?), `contact_ids` (number[]?) | - |
+| `documents.retry_processing` | Retry extraction/chunking/embedding for a document | `document_id` (string) | - |
+
+#### Filters
+
+| Filter ID | Type | Description |
+|-----------|------|-------------|
+| `documents.q` | search | Search by filename, summary, and text |
+
+### Templates (`/templates`)
+
+Create and manage reusable email templates, revisions, blocks, and test renders.
+
+#### Actions
+
+| Action ID | Description | Parameters | Conditions |
+|-----------|-------------|------------|------------|
+| `templates.navigate` | Navigate to template library | - | - |
+| `templates.search` | Filter templates by text | `q` (string) | - |
+| `templates.create` | Create a new template with fields | `name` (string), `subject` (string), `html_body` (string), `preheader` (string?), `from_name` (string?), `from_email` (string?), `reply_to` (string?), `text_body` (string?) | - |
+| `templates.update` | Update an existing template | `template_id` (number), `name` (string?), `subject` (string?), `html_body` (string?), `preheader` (string?), `from_name` (string?), `from_email` (string?), `reply_to` (string?), `text_body` (string?), `status` (string?) | - |
+| `templates.duplicate` | Duplicate template by id | `template_id` (number) | - |
+| `templates.archive` | Archive template by id | `template_id` (number) | - |
+| `templates.validate` | Validate subject/html content | `subject` (string), `html` (string), `from_email` (string?) | - |
+| `templates.test_send` | Render and run template test-send | `template_id` (number), `to_email` (string), `contact_id` (number?) | - |
+
+#### Filters
+
+| Filter ID | Type | Description |
+|-----------|------|-------------|
+| `templates.q` | search | Search templates by name or content |
+| `templates.status` | select | Filter by active/archived |
+
 ### Email Campaigns (`/email?view=campaigns`)
 
 Create and manage campaigns, activation, templates, and sends.
@@ -112,91 +157,22 @@ Browse historical sent email records.
 |-----------|-------------|------------|------------|
 | `email.history.navigate` | Navigate to sent history view | - | - |
 
-### BI Overview (`/bi?tab=overview`)
+### Browser Workbench (`/browser`)
 
-BI health, freshness, and ingestion summary.
-
-#### Actions
-
-| Action ID | Description | Parameters | Conditions |
-|-----------|-------------|------------|------------|
-| `bi.navigate_overview` | Navigate to BI overview tab | - | - |
-
-### BI Sources (`/bi?tab=sources`)
-
-Per-source ingestion status and configuration controls.
+Live browser tabs with workflow-builder annotation and selector synthesis.
 
 #### Actions
 
 | Action ID | Description | Parameters | Conditions |
 |-----------|-------------|------------|------------|
-| `bi.navigate_sources` | Navigate to BI sources tab | - | - |
-| `bi.save_source_config` | Persist BI source settings | - | - |
-
-### BI Runs (`/bi?tab=runs`)
-
-Historical BI ingestion runs and counts.
-
-#### Actions
-
-| Action ID | Description | Parameters | Conditions |
-|-----------|-------------|------------|------------|
-| `bi.navigate_runs` | Navigate to BI runs tab | - | - |
-| `bi.filter_run_status` | Filter runs by status | `status` (string) | - |
-
-#### Filters
-
-| Filter ID | Type | Description |
-|-----------|------|-------------|
-| `bi.runs.status` | select | Filter by run status |
-
-### BI Companies (`/bi?tab=companies`)
-
-Company-level BI coverage and signal detail.
-
-#### Actions
-
-| Action ID | Description | Parameters | Conditions |
-|-----------|-------------|------------|------------|
-| `bi.navigate_companies` | Navigate to BI companies tab | - | - |
-| `bi.search_company` | Filter BI companies by query | `query` (string) | - |
-
-#### Filters
-
-| Filter ID | Type | Description |
-|-----------|------|-------------|
-| `bi.companies.query` | search | Search by company/domain |
-
-### BI Events (`/bi?tab=events`)
-
-Raw source event stream for auditing collection behavior.
-
-#### Actions
-
-| Action ID | Description | Parameters | Conditions |
-|-----------|-------------|------------|------------|
-| `bi.navigate_events` | Navigate to BI events tab | - | - |
-
-#### Filters
-
-| Filter ID | Type | Description |
-|-----------|------|-------------|
-| `bi.events.source` | search | Filter by source |
-| `bi.events.ok` | select | Filter by success/failure |
-
-### BI Errors (`/bi?tab=errors`)
-
-Top error categories and samples by source.
-
-#### Actions
-
-| Action ID | Description | Parameters | Conditions |
-|-----------|-------------|------------|------------|
-| `bi.navigate_errors` | Navigate to BI errors tab | - | - |
+| `browser.navigate` | Navigate to browser workbench page | - | - |
+| `browser.observe` | Capture observation pack for selected tab | - | - |
+| `browser.annotate` | Generate candidate boxes for the current href pattern | `href_pattern` (string) | - |
+| `browser.synthesize` | Synthesize selector from include/exclude labels | - | - |
 
 ### Tasks (`/tasks`)
 
-Live browser task monitor with task table and per-tab screenshots.
+Browser and compound task monitor with status, progress, and errors.
 
 #### Actions
 

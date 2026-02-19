@@ -43,6 +43,16 @@ export const ENABLE_OPENAI_FALLBACK =
   (import.meta.env.VITE_CHAT_ALLOW_OPENAI_FALLBACK || 'false').toLowerCase() === 'true';
 
 export const CONVERSATION_MODEL = import.meta.env.VITE_OLLAMA_GEMMA_MODEL || 'gemma3:12b';
+export const ENABLE_CHAT_BENCHMARK_MODE =
+  (import.meta.env.VITE_CHAT_BENCHMARK_MODE || 'false').toLowerCase() === 'true';
+export const CHAT_BENCHMARK_MODEL =
+  import.meta.env.VITE_CHAT_BENCHMARK_MODEL ||
+  import.meta.env.VITE_OLLAMA_QWEN3_MODEL ||
+  CONVERSATION_MODEL;
+export const CHAT_BENCHMARK_NUM_PREDICT = Number.parseInt(
+  import.meta.env.VITE_CHAT_BENCHMARK_NUM_PREDICT || '256',
+  10
+);
 
 // Intent classifier model. Historically this was functiongemma, but it frequently returns invalid output.
 // Default to conversation model which is fast and reliably produces single-word classifications.
@@ -58,6 +68,10 @@ export const SESSION_ENTITY_MAX_AGE_MS = Number.parseInt(
 export const MODEL_FAST_PATH_ALLOWED_TOOLS = [
   'hybrid_search',
   'resolve_entity',
+  'ask_documents',
+  'search_documents',
+  'get_document_summary',
+  'list_company_documents',
   'search_contacts',
   'search_companies',
   'get_contact',

@@ -2,19 +2,22 @@
 
 import re
 
-from services.identity.name_normalizer import normalize_name
+def _split_name(name: str) -> tuple[str, str, str, str]:
+    clean = re.sub(r"\s+", " ", (name or "").strip())
+    if not clean:
+        return "", "", "", ""
+    parts = clean.split(" ")
+    first = parts[0].lower()
+    last = parts[-1].lower() if len(parts) > 1 else ""
+    last = re.sub(r"\s+", "", last)
+    return first, last, first[:1], last[:1]
 
 
 def generate_email(name: str, pattern: str, domain: str) -> str:
     """
     Generate email address from name using discovered pattern.
     """
-    normalized = normalize_name(name)
-
-    first = normalized.first.lower() if normalized.first else ""
-    last = re.sub(r"\s+", "", normalized.last.lower()) if normalized.last else ""
-    f = normalized.first_initial
-    l = normalized.last_initial
+    first, last, f, l = _split_name(name)
 
     if not first:
         return ""
@@ -44,4 +47,3 @@ def generate_email(name: str, pattern: str, domain: str) -> str:
     if prefix and domain:
         return f"{prefix}@{domain}"
     return ""
-

@@ -26,25 +26,25 @@ These primitives should stay website-agnostic.
 
 Implementation note: `api/routes/browser_nav.py` is a thin router only. The backend implementations live under:
 
-- `services/browser_backends/local_playwright.py`
-- `services/browser_backends/openclaw.py`
-- `services/browser_backends/proxy.py`
-- `services/browser_backends/factory.py` (selects backend via `BROWSER_GATEWAY_MODE`)
+- `services/web_automation/browser/backends/local_playwright.py`
+- `services/web_automation/browser/backends/openclaw.py`
+- `services/web_automation/browser/backends/proxy.py`
+- `services/web_automation/browser/backends/factory.py` (selects backend via `BROWSER_GATEWAY_MODE`)
 
 ### Browser Backends (`BROWSER_GATEWAY_MODE`)
 
 The same API can be backed by different browser engines:
 
-- `local` (default): in-process Playwright session managed by `services/browser_backends/local_playwright.py`.
+- `local` (default): in-process Playwright session managed by `services/web_automation/browser/backends/local_playwright.py`.
 - `proxy`: forwards requests to a remote gateway that implements the same contract.
 - `openclaw`: uses the OpenClaw browser bridge server (stable role refs + CDP targetIds).
-- `camoufox`: Firefox/Camoufox-backed in-process Playwright session via `services/browser_backends/camoufox.py`.
+- `camoufox`: Firefox/Camoufox-backed in-process Playwright session via `services/web_automation/browser/backends/camoufox.py`.
 
 In `camoufox` mode:
 
 - The public browser API contract is identical to `local` mode (`tabs/navigate/snapshot/find_ref/act/wait/screenshot`).
 - Session persistence behavior remains the same (including LinkedIn storage-state bootstrap from `data/linkedin_auth.json` when present).
-- Workflows under `api/routes/browser_workflows.py` and `services/browser_workflows/recipes.py` run unchanged.
+- Workflows under `api/routes/browser_workflows.py` and `services/web_automation/browser/workflows/recipes.py` run unchanged.
 
 In `openclaw` mode:
 
@@ -88,17 +88,19 @@ UI note:
   Follow-up messages do not need to repeat "browser" or the site name. If a browser session is open and the user says
   `search ...`, `type ...`, `enter ...`, `click ...`, `scroll ...`, `next`, or `back`, the chat engine forces the
   browser tool-grounded path so the assistant doesn't fall back to local retrieval.
-- The web app exposes a dedicated `/tasks` route that shows active tasks and live per-tab browser views.
-  Chat actions can auto-navigate users to this page when background browser tasks are started.
+- The web app exposes:
+  - `/tasks` for active task monitoring (status/progress/errors)
+  - `/browser` for live per-tab browser views + workflow-builder annotation/synthesis
+  Chat actions can auto-navigate users to `/tasks` when background browser tasks are started.
 
 SalesNav note:
 - "SalesNav" / "Sales Navigator" refers to **LinkedIn Sales Navigator** under `https://www.linkedin.com/sales/...` (not `salesnav.com`).
 
 We still have optional composition utilities for background workers / legacy endpoints:
 
-- `services/browser_workflow.py`: generic engine for skill binding + extraction/filter helpers.
-- `services/browser_workflows/recipes.py`: reusable workflow recipes (search-and-extract, list-sub-items, etc.).
-- `services/google/workflows.py`: dedicated Google search workflow (AI Overview first, organic fallback).
+- `services/web_automation/browser/core/workflow.py`: generic engine for skill binding + extraction/filter helpers.
+- `services/web_automation/browser/workflows/recipes.py`: reusable workflow recipes (search-and-extract, list-sub-items, etc.).
+- `services/web_automation/google/workflows.py`: dedicated Google search workflow (AI Overview first, organic fallback).
 - `api/routes/salesnav_routes/*`: legacy SalesNav API wrappers (keep thin).
 
 Google workflow note:
@@ -117,9 +119,47 @@ For common "search and return structured results" tasks, prefer the generic work
 
 - `POST /api/browser/workflows/search-and-extract`
 - `POST /api/browser/workflows/list-sub-items`
+- `POST /api/browser/workflows/observation-pack`
+- `POST /api/browser/workflows/validate-candidate`
+- `POST /api/browser/workflows/annotate-candidate`
+- `POST /api/browser/workflows/synthesize-from-feedback`
 - `GET /api/browser/workflows/status/{task_id}` (poll background workflow status)
 
 These are skill-driven (site knowledge lives in `skills/websites/*.md`). The caller supplies `task`, `query`, and optional `filters`, and the workflow engine handles navigation, typing, and extraction.
+
+Observation/validation note:
+
+- `observation-pack` captures deterministic planner inputs (role snapshot, semantic nodes, screenshot optional).
+- `validate-candidate` scores extraction candidates deterministically (counts, completeness, URL validity, uniqueness).
+- `annotate-candidate` returns candidate overlay artifacts (box ids + labels/hrefs + screenshot when available).
+- `synthesize-from-feedback` deterministically maps include/exclude box labels back to a suggested href pattern, then re-validates it.
+- synthesis/validation now also uses structural constraints:
+  - landmark scope (`must_be_within_roles`, `exclude_within_roles`)
+  - ancestor container hints (`container_hint_contains`, `exclude_container_hint_contains`)
+- workflow skill matching now supports deterministic template fingerprints (URL pattern + role/landmark signatures), not URL-only matching.
+- runtime drift monitor in `search_and_extract` now emits `STOP_VALIDATION_FAILED`, appends a repair-log entry, and includes a repair payload with an observation fingerprint when deterministic output invariants fail.
+- skill-defined regression suites are now supported:
+  - Add a `## Tests` section in skill markdown with lines like:
+    - `- smoke | task=example_search | query=weather | min_items=1 | max_items=25 | extract_type=item`
+  - Run via `POST /api/browser/skills/{skill_id}/regression-run`
+  - Runner executes deterministic count-range expectations per case and returns pass/fail summaries.
+- promotion gate support:
+  - `POST /api/browser/skills/{skill_id}/promote`
+  - Runs regression suite first; promotion is allowed only when failures are zero (configurable via request flag).
+  - Persists skill QA metadata in frontmatter (`qa_status`, `last_regression_*`, `last_regression_at`).
+- Auto-learn in `services/web_automation/browser/workflows/recipes.py` now uses this deterministic layer before persisting skills.
+- UI wiring: `/browser` (implemented in `ui/src/pages/BrowserWorkbench.tsx`) includes the “Workflow Builder (Phase 2)” panel for annotate -> include/exclude labeling -> synthesis.
+
+- `/browser` layout keeps the live browser frame at the top (active tab shown as the largest preview), with workflow-builder controls directly below.
+- `/browser` includes a dedicated Tab Manager pane (desktop left split pane, mobile drawer) with search/filter/grouping, pinning, expandable tab details, and bulk cleanup actions for large tab sets.
+- `/browser` now uses progressive disclosure by default: a collapsed tab rail (expandable manager panel) plus a bottom workflow drawer that stays collapsed until workflow actions are invoked.
+- `/browser` workflow drawer body and builder panel are scrollable when content grows (candidate lists, annotations, synthesis details), including narrow/mobile viewports.
+- `/browser` workflow bottom action bars and builder-panel controls/cards switch to stacked mobile layouts on narrow widths to avoid horizontal scrolling.
+- `/browser` annotation results (image + box table) use a single primary vertical scroll path on small viewports to avoid nested scroll lock after "Use + Annotate".
+- `/browser` annotation table content wraps long labels/urls instead of forcing horizontal overflow, preserving vertical scroll gestures in the open drawer.
+- `/browser` workflow builder panel uses natural block flow (no internal flex-height trap), so drawer-body vertical scroll remains functional after observe/annotate.
+- `/browser` drawer body now explicitly captures wheel/trackpad deltas and routes them to the drawer scroll container to prevent viewport-layer scroll loss in Chrome.
+- `/browser` workflow builder now uses a fixed controls header plus a dedicated `min-h-0 flex-1 overflow-y-auto` content region (TanStack-rendered annotation table) to prevent scroll loss after Observe/Annotate.
 
 In the UI chat layer, these are exposed as tools:
 
@@ -184,7 +224,7 @@ Some websites will present rate limits, human verification, or interstitials tha
 The system handles this broadly by detecting likely challenge states and returning structured errors
 so the operator can intervene or retry later.
 
-### `services/browser_stealth.py` (Behavior Shaping)
+### `services/web_automation/browser/core/stealth.py` (Behavior Shaping)
 
 - Human-like interaction timing (typing delay, click jitter, scroll pacing).
 - Goal: reduce brittle "instant bot" behavior and improve UI stability.
@@ -192,27 +232,27 @@ so the operator can intervene or retry later.
 
 ### Hybrid challenge modules
 
-- `services/challenge_detector.py`
+- `services/web_automation/browser/challenges/detector.py`
   - Detects likely challenge states and classifies into:
     - `interstitial_wait`
     - `visible_image` (image/checkbox style)
     - `behavioral_or_invisible` (Turnstile, reCAPTCHA v3-style)
     - `blocked`
-- `services/ai_challenge_resolver.py`
+- `services/web_automation/browser/challenges/ai_resolver.py`
   - Research-only vision loop for visible challenges.
   - Uses screenshot + multimodal model to return bounded click plans.
   - Strictly limited to allowlisted hosts with `CHALLENGE_RESEARCH_MODE=true`.
-- `services/challenge_handler.py`
+- `services/web_automation/browser/challenges/handler.py`
   - Orchestrates detection -> AI attempt (visible only) -> human handoff.
   - For behavioral/invisible challenges (or AI failures), writes a handoff ticket + screenshot, waits for operator completion, then resumes when cleared.
   - Logs structured JSONL events for offline analysis.
-- `services/browser_challenges.py`
+- `services/web_automation/browser/challenges/classifiers.py`
   - Legacy interaction handlers (checkbox/press-and-hold/wait) retained as fallback helpers.
 
 ### Wiring
 
 - `BrowserWorkflow.wait_through_interstitials()` probes for known interstitial states.
-- `BrowserWorkflow` now routes raw-page challenge handling through `services/challenge_handler.py`.
+- `BrowserWorkflow` now routes raw-page challenge handling through `services/web_automation/browser/challenges/handler.py`.
 - `recipes._guard_challenges()` returns structured errors when unresolved (`challenge_unresolved`, `human_handoff_timeout`, `blocked_or_rate_limited`, etc.).
 
 ### Challenge resolver env vars
@@ -285,7 +325,7 @@ For Camoufox-backed local browsing, set:
 
 ## Constrained Agent Policy (General)
 
-The generic browser workflow now supports a policy layer in `services/browser_policy.py`:
+The generic browser workflow now supports a policy layer in `services/web_automation/browser/core/policy.py`:
 
 - Explicit workflow state tracking (`AUTH_CHECK`, `HOME_READY`, `SEARCH`, `RESULTS_READY`, `RECOVERY`, etc.).
 - Token-bucket rate limits per action class (`navigate`, `click`, `type`, `tab`).
@@ -300,7 +340,7 @@ All browser automation endpoints are now task-backed:
 - Primitive browser routes (`/api/browser/navigate`, `/api/browser/snapshot`, `/api/browser/find_ref`, `/api/browser/act`, `/api/browser/wait`, `/api/browser/screenshot`) also create task rows.
 - Successful primitive/sync workflow responses include `task_id` and `task_status` for correlation.
 - UI behavior:
-  - `/tasks` intentionally hides `browser_screenshot` operations from the task table/cards to avoid noisy 1s live-preview screenshot polling entries.
+  - `/tasks` intentionally hides `browser_screenshot` operations from the task table to avoid noisy live-preview screenshot polling entries.
   - Task rows should represent user goals (for example query/original workflow objective), not only low-level operation names.
   - Compound workflow tasks are included in `/tasks` with phase progress and goal/title fields.
 
@@ -344,4 +384,6 @@ Planner integration details:
 - Complex Sales Navigator/LinkedIn recency queries can emit `compound_workflow_run`.
 - Planner output may include top-level `compound_workflow`; parser auto-converts it to `compound_workflow_run`.
 - Deterministic compound spec injection now normalizes long natural-language requests into short Sales Navigator keyword queries plus explicit `filters` (for example `industry` and `headquarters_location`) to avoid dumping the full prompt text into the keyword input.
+- Compound lead phases (`phase_2_find_vp_ops`, `phase_3_verify_recent_ai_signal`) now default people-search query to empty (filter-first). If a keyworded people search in this mode returns zero results, the workflow retries once with the same filters and no keyword.
 - Compound workflows remain task-backed and visible through status polling.
+- Chat now polls launched compound workflows and auto-posts terminal status updates with result summaries; `/tasks` remains the full-detail view.

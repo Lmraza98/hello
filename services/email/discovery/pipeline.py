@@ -21,7 +21,6 @@ from services.email.discovery.models import (
     PatternMatch,
 )
 from services.email.discovery.search import search_company_emails
-from services.identity.name_normalizer import normalize_name
 
 
 class _RateLimiter:
@@ -208,6 +207,8 @@ def _fetch_contacts(cursor, scraped_date: Optional[str]) -> List[LinkedInContact
             COALESCE(company_name, domain) AS company,
             domain,
             name,
+            name_first,
+            name_last,
             title
         FROM linkedin_contacts
         WHERE name IS NOT NULL
@@ -231,6 +232,8 @@ def _fetch_contacts(cursor, scraped_date: Optional[str]) -> List[LinkedInContact
                 company_key=_normalize_company_key(company, row["domain"]),
                 domain_raw=row["domain"],
                 name=row["name"],
+                name_first=row["name_first"],
+                name_last=row["name_last"],
                 title=row["title"],
             )
         )
@@ -242,6 +245,14 @@ def _resolve_domain_for_contact(pattern: PatternMatch, contact: LinkedInContact)
     if pattern.domain:
         return pattern.domain, pattern.domain_discovered
     return _sanitize_domain(contact.domain_raw), False
+
+
+def _split_name(name: str) -> Tuple[str, str]:
+    clean = re.sub(r"\s+", " ", (name or "").strip())
+    if not clean:
+        return "", ""
+    parts = clean.split(" ")
+    return parts[0], (parts[-1] if len(parts) > 1 else "")
 
 
 def _build_contact_outputs(
@@ -274,13 +285,16 @@ def _build_contact_outputs(
             )
             emails_generated += 1
 
-        normalized = normalize_name(contact.name)
+        first_name = (contact.name_first or "").strip()
+        last_name = (contact.name_last or "").strip()
+        if not first_name and not last_name:
+            first_name, last_name = _split_name(contact.name)
         rows.append(
             ContactExportRow(
                 company=contact.company,
                 name=contact.name,
-                first_name=normalized.first,
-                last_name=normalized.last,
+                first_name=first_name,
+                last_name=last_name,
                 title=contact.title,
                 email=email,
                 pattern=match.pattern,
@@ -409,4 +423,3 @@ def process_linkedin_contacts_with_patterns(
         }
     finally:
         conn.close()
-

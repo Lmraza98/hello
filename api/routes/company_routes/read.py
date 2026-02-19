@@ -8,7 +8,7 @@ from fastapi import APIRouter
 import database as db
 from api.models import Company
 from api.routes._helpers import COMMON_ERROR_RESPONSES
-from api.routes.company_routes.models import CompanyBiProfileResponse, CompanyLookupResponse, CompanyPendingCountResponse
+from api.routes.company_routes.models import CompanyLookupResponse, CompanyPendingCountResponse
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -134,10 +134,3 @@ def get_pending_count():
         cursor.execute("SELECT COUNT(*) FROM targets WHERE status = 'pending'")
         count = cursor.fetchone()[0]
     return {"pending": count}
-
-
-@router.get("/{company_id}/bi-profile", response_model=CompanyBiProfileResponse, responses=COMMON_ERROR_RESPONSES)
-def get_company_bi_profile(company_id: int):
-    # Return an empty profile instead of 404 so the UI can render gracefully
-    # even when a row was deleted or the id is stale.
-    return db.get_company_bi_profile(company_id)

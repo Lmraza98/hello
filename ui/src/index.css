@@ -50,6 +50,41 @@
 }
 
 @layer utilities {
+  @keyframes assistant-fade {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-assistant-fade {
+    animation: assistant-fade 220ms ease-out;
+  }
+
+  @keyframes ui-dot-blink {
+    0%, 50%, 100% {
+      opacity: 1;
+    }
+    25%, 75% {
+      opacity: 0;
+    }
+  }
+
+  .ui-stream-cursor {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-left: 4px;
+    vertical-align: middle;
+    border-radius: 9999px;
+    background: #000;
+    animation: ui-dot-blink 0.65s ease-in-out infinite;
+  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }

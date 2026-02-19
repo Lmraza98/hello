@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 
 from api.routes._helpers import COMMON_ERROR_RESPONSES
 from api.routes.salesforce_routes.models import CredentialsInput, CredentialsResponse
-from services.salesforce.credentials import clear_credentials, save_credentials
+from services.web_automation.salesforce.credentials import clear_credentials, save_credentials
 
 router = APIRouter()
 

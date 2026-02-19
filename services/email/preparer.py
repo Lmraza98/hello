@@ -11,6 +11,7 @@ from typing import Dict
 import config
 import database as db
 from services.email.generator import generate_email_with_gpt4o
+from services.email.template_linked_resolver import render_linked_template_for_contact
 
 
 async def prepare_daily_batch() -> Dict:
@@ -57,10 +58,24 @@ async def prepare_daily_batch() -> Dict:
     for contact in contacts:
         try:
             step = contact.get('current_step', 0) + 1
+            linked_render = render_linked_template_for_contact(contact)
+            if linked_render:
+                subject = linked_render.get('subject', '')
+                body = linked_render.get('html', '')
+                raw_subject = contact.get('campaign_name', 'Linked template')
+                raw_body = body
+                if linked_render.get("errors"):
+                    errors.append(
+                        f"{contact.get('contact_name', 'Unknown')}: Template render errors: {', '.join(linked_render.get('errors', []))}"
+                    )
+                    continue
+            else:
+                raw_subject = None
+                raw_body = None
             templates = db.get_email_templates(contact['campaign_id'])
             template = next((t for t in templates if t['step_number'] == step), None)
-            
-            if not template:
+
+            if not linked_render and not template:
                 errors.append(f"{contact.get('contact_name', 'Unknown')}: No template for step {step}")
                 continue
             
@@ -68,35 +83,38 @@ async def prepare_daily_batch() -> Dict:
             company_name = contact.get('company_name', '')
             
             # Build campaign and contact data for the generator
-            campaign_data = {
-                'title': contact.get('campaign_name', 'Outreach'),
-                'description': '',
-                'subject_template': template['subject_template'],
-                'body_template': template['body_template']
-            }
-            contact_data = {
-                'name': contact_name,
-                'title': contact.get('title'),
-                'company_name': company_name,
-                'domain': contact.get('domain')
-            }
-            
-            # Generate personalized email
-            try:
-                subject, body = generate_email_with_gpt4o(campaign_data, contact_data)
-            except Exception as e:
-                print(f"[EmailPreparer] AI generation failed for {contact_name}: {e}")
-                # Fallback to basic template replacement
-                subject = template['subject_template']
-                body = template['body_template']
-                for old, new in [
-                    ('{company}', company_name), ('{Company}', company_name),
-                    ('{name}', contact_name), ('{Name}', contact_name),
-                    ('{FirstName}', contact_name.split()[0] if contact_name else ''),
-                    ('{title}', contact.get('title', '')),
-                ]:
-                    subject = subject.replace(old, new)
-                    body = body.replace(old, new)
+            if not linked_render:
+                campaign_data = {
+                    'title': contact.get('campaign_name', 'Outreach'),
+                    'description': '',
+                    'subject_template': template['subject_template'],
+                    'body_template': template['body_template']
+                }
+                contact_data = {
+                    'name': contact_name,
+                    'title': contact.get('title'),
+                    'company_name': company_name,
+                    'domain': contact.get('domain')
+                }
+
+                # Generate personalized email
+                try:
+                    subject, body = generate_email_with_gpt4o(campaign_data, contact_data)
+                except Exception as e:
+                    print(f"[EmailPreparer] AI generation failed for {contact_name}: {e}")
+                    # Fallback to basic template replacement
+                    subject = template['subject_template']
+                    body = template['body_template']
+                    for old, new in [
+                        ('{company}', company_name), ('{Company}', company_name),
+                        ('{name}', contact_name), ('{Name}', contact_name),
+                        ('{FirstName}', contact_name.split()[0] if contact_name else ''),
+                        ('{title}', contact.get('title', '')),
+                    ]:
+                        subject = subject.replace(old, new)
+                        body = body.replace(old, new)
+                raw_subject = template['subject_template']
+                raw_body = template['body_template']
             
             # Create the draft entry in sent_emails
             email_id = db.log_sent_email(
@@ -104,8 +122,8 @@ async def prepare_daily_batch() -> Dict:
                 campaign_contact_id=contact['id'],
                 contact_id=contact['contact_id'],
                 step_number=step,
-                subject=template['subject_template'],  # Raw template
-                body=template['body_template'],          # Raw template
+                subject=raw_subject or subject,
+                body=raw_body or body,
                 sf_lead_url=contact.get('sf_lead_url'),
                 status='draft',
             )

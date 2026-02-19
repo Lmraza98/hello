@@ -4,6 +4,10 @@ import type { ChatAction } from './actions';
 export const CONFIRMED_READ_ONLY_FASTLANE_TOOLS = new Set<string>([
   'resolve_entity',
   'hybrid_search',
+  'ask_documents',
+  'search_documents',
+  'get_document_summary',
+  'list_company_documents',
   'search_contacts',
   'get_contact',
   'search_companies',

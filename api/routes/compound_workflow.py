@@ -5,8 +5,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from services.compound_workflow.models import CompoundWorkflowSpec, CreateWorkflowRequest
-from services.compound_workflow.orchestrator import get_orchestrator
+from services.orchestration.compound.models import CompoundWorkflowSpec, CreateWorkflowRequest
+from services.orchestration.compound.orchestrator import get_orchestrator
 
 
 router = APIRouter(prefix="/api/compound_workflow", tags=["compound-workflow"])

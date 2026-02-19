@@ -2,7 +2,7 @@
 summary: "Directory-level map of core modules and ownership boundaries."
 read_when:
   - You need to know where code should live before implementing
-  - You are tracing behavior across API, services, UI, and BI
+  - You are tracing behavior across API, services, and UI
 title: "Repository Map"
 ---
 
@@ -13,7 +13,6 @@ title: "Repository Map"
 - `api/`: FastAPI app and route modules.
 - `services/`: domain logic (collection, enrichment, outreach workflows).
 - `ui/`: React/Vite frontend.
-- `zco-bi/`: standalone BI module (collection, scoring, query server).
 - `data/`: SQLite DBs and runtime artifacts.
 
 ## API Layer (`api/`)
@@ -23,30 +22,25 @@ title: "Repository Map"
   - companies/contacts/email/pipeline/research/search
   - browser + salesnav browser workflows
   - workflows (outreach, prospecting, vetting)
-  - bi/admin/stats
+  - admin/stats
 
 ## Service Layer (`services/`)
 
-- `services/workflows/`: backend workflow boundary for multi-step operations (outreach, prospecting, vetting).
-- `services/salesnav/`: SalesNav orchestration workflows.
-- `services/browser_skills/`: markdown-backed website skill store and repair-log logic.
-- `services/linkedin/`: lower-level LinkedIn scraping mechanics.
+- `services/web_automation/`: browser-driven automation domains.
+- `services/web_automation/browser/`: shared browser runtime (backends, workflow engine, challenge handling, skills, workflow recipes).
+- `services/web_automation/linkedin/`: LinkedIn and Sales Navigator automation.
+- `services/web_automation/google/`: Google-specific automation workflows.
+- `services/web_automation/salesforce/`: Salesforce automation/session handling.
+- `services/orchestration/`: cross-domain orchestration (outreach/prospecting/vetting, compound workflows, runners).
 - `services/email/`: campaign planning, delivery, tracking.
-- `services/salesforce/`: Salesforce automation/session handling.
+- `services/documents/`: document processing and retrieval flows.
+- `services/enrichment/`: enrichment modules (for example phone discovery).
 - `services/search/`: retrieval/indexing logic.
-
-## BI Module (`zco-bi/`)
-
-- `zco-bi/src/sqliteCollector.ts`: 24/7 SQLite-backed collector loop.
-- `zco-bi/src/sqliteSources.ts`: source adapters and source-run logging.
-- `zco-bi/src/query.ts`: BI query endpoints.
-- `zco-bi/scripts/worker.ts`: long-running ingestion worker.
-- `zco-bi/scripts/status.ts`: BI status summary.
 
 ## Frontend (`ui/`)
 
 - `ui/src/api/`: API client layer (index.ts barrel, client.ts shared fetch, types.ts, emailApi.ts provider).
-- `ui/src/pages/*`: feature pages, including BI monitor/console surfaces.
+- `ui/src/pages/*`: feature pages for operations, outreach, and automation workflows.
 - `ui/src/chat/*`: chat engine and tool orchestration.
 - `ui/src/services/workflows/*`: frontend workflow steps (UI interaction gates; data ops delegate to backend).
 

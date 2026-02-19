@@ -7,8 +7,6 @@ import json
 import math
 import time
 import re
-import hashlib
-from urllib.parse import quote_plus
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -19,8 +17,6 @@ import config
 
 _ENTITY_SEARCH_REFRESH_TTL_SECONDS = 30
 _ENTITY_SEARCH_LAST_REFRESH: Dict[str, float] = {}
-_BI_LINK_REFRESH_TTL_SECONDS = 60
-_BI_LINK_LAST_REFRESH_AT = 0.0
 
 
 def get_connection() -> sqlite3.Connection:
@@ -215,6 +211,14 @@ def init_database():
                 company_name TEXT,
                 domain TEXT,
                 name TEXT NOT NULL,
+                name_raw TEXT,
+                name_first TEXT,
+                name_middle TEXT,
+                name_last TEXT,
+                name_prefix TEXT,
+                name_suffix TEXT,
+                name_confidence REAL,
+                name_review_reason TEXT,
                 title TEXT,
                 email_generated TEXT,
                 email_pattern TEXT,
@@ -240,12 +244,89 @@ def init_database():
             ('salesforce_url', 'TEXT'),
             ('salesforce_uploaded_at', 'TIMESTAMP'),
             ('salesforce_upload_batch', 'TEXT'),
+            ('name_raw', 'TEXT'),
+            ('name_first', 'TEXT'),
+            ('name_middle', 'TEXT'),
+            ('name_last', 'TEXT'),
+            ('name_prefix', 'TEXT'),
+            ('name_suffix', 'TEXT'),
+            ('name_confidence', 'REAL'),
+            ('name_review_reason', 'TEXT'),
         ]
         for col_name, col_type in sf_columns:
             try:
                 cursor.execute(f"ALTER TABLE linkedin_contacts ADD COLUMN {col_name} {col_type}")
             except sqlite3.OperationalError:
                 pass  # Column already exists
+
+        # Documents table - uploaded files for retrieval and analysis
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS documents (
+                id TEXT PRIMARY KEY,
+                filename TEXT NOT NULL,
+                mime_type TEXT NOT NULL,
+                file_size_bytes INTEGER,
+                storage_backend TEXT NOT NULL,
+                storage_path TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                status_message TEXT,
+                processed_at TIMESTAMP,
+                extracted_text TEXT,
+                text_length INTEGER,
+                page_count INTEGER,
+                document_type TEXT,
+                document_type_confidence REAL,
+                summary TEXT,
+                key_points TEXT,
+                extracted_entities TEXT,
+                linked_company_id INTEGER REFERENCES targets(id) ON DELETE SET NULL,
+                link_confirmed BOOLEAN DEFAULT 0,
+                link_confirmed_at TIMESTAMP,
+                link_confirmed_by TEXT,
+                uploaded_by TEXT,
+                uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                source TEXT DEFAULT 'chat',
+                conversation_id TEXT,
+                notes TEXT
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS document_chunks (
+                id TEXT PRIMARY KEY,
+                document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+                chunk_index INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                token_count INTEGER,
+                page_number INTEGER,
+                start_char INTEGER,
+                end_char INTEGER,
+                embedding BLOB,
+                embedding_model TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(document_id, chunk_index)
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS document_contacts (
+                document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+                contact_id INTEGER NOT NULL REFERENCES linkedin_contacts(id) ON DELETE CASCADE,
+                mention_type TEXT,
+                confidence REAL,
+                confirmed BOOLEAN DEFAULT 0,
+                context_snippet TEXT,
+                PRIMARY KEY (document_id, contact_id)
+            )
+        """)
+
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_documents_company ON documents(linked_company_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_documents_type ON documents(document_type)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_documents_uploaded ON documents(uploaded_at DESC)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_chunks_document ON document_chunks(document_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_doc_contacts_document ON document_contacts(document_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_doc_contacts_contact ON document_contacts(contact_id)")
         
         # Email campaigns table - multi-step email sequences
         cursor.execute("""
@@ -255,13 +336,24 @@ def init_database():
                 description TEXT,
                 num_emails INTEGER DEFAULT 3,
                 days_between_emails INTEGER DEFAULT 3,
+                template_id INTEGER,
+                template_mode TEXT DEFAULT 'copied',
                 status TEXT DEFAULT 'draft',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_campaigns_status ON email_campaigns(status)")
-        
+        for col_name, col_type in [("template_id", "INTEGER"), ("template_mode", "TEXT DEFAULT 'copied'")]:
+            try:
+                cursor.execute(f"ALTER TABLE email_campaigns ADD COLUMN {col_name} {col_type}")
+            except sqlite3.OperationalError:
+                pass
+        try:
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_campaigns_template_id ON email_campaigns(template_id)")
+        except sqlite3.OperationalError:
+            pass
+
         # Email templates - templates for each step in a campaign
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS email_templates (
@@ -276,6 +368,53 @@ def init_database():
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_templates_campaign ON email_templates(campaign_id)")
         cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_email_templates_step ON email_templates(campaign_id, step_number)")
+
+        # Reusable template library (ActiveCampaign-style templates)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS email_template_library (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                subject TEXT NOT NULL,
+                preheader TEXT,
+                from_name TEXT,
+                from_email TEXT,
+                reply_to TEXT,
+                html_body TEXT NOT NULL,
+                text_body TEXT,
+                status TEXT DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_template_library_status ON email_template_library(status)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_template_library_name ON email_template_library(name)")
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS email_template_revisions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                template_id INTEGER NOT NULL,
+                revision_number INTEGER NOT NULL,
+                snapshot_json TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (template_id) REFERENCES email_template_library(id) ON DELETE CASCADE
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_template_revisions_template ON email_template_revisions(template_id)")
+        cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_email_template_revisions_number ON email_template_revisions(template_id, revision_number)")
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS email_template_blocks (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                category TEXT,
+                html TEXT NOT NULL,
+                text TEXT,
+                status TEXT DEFAULT 'active',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_template_blocks_status ON email_template_blocks(status)")
         
         # Campaign contacts - contacts enrolled in a campaign
         cursor.execute("""
@@ -489,75 +628,6 @@ def init_database():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_entity_search_name ON entity_search_index(name)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_entity_search_domain ON entity_search_index(domain)")
 
-        # ------------------------------------------------------------------
-        # BI linking layer (outreach <-> normalized BI)
-        # ------------------------------------------------------------------
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS company_identity (
-                company_key TEXT PRIMARY KEY,
-                domain TEXT,
-                name_normalized TEXT,
-                created_at TEXT DEFAULT (datetime('now')),
-                updated_at TEXT DEFAULT (datetime('now'))
-            )
-        """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_company_identity_domain ON company_identity(domain)")
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS company_link (
-                outreach_company_id INTEGER NOT NULL PRIMARY KEY,
-                company_key TEXT NOT NULL,
-                match_method TEXT NOT NULL,
-                match_confidence REAL NOT NULL,
-                matched_at TEXT DEFAULT (datetime('now')),
-                FOREIGN KEY (outreach_company_id) REFERENCES targets(id),
-                FOREIGN KEY (company_key) REFERENCES company_identity(company_key)
-            )
-        """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_company_link_key ON company_link(company_key)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_company_link_method ON company_link(match_method)")
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS bi_company (
-                company_key TEXT PRIMARY KEY,
-                name TEXT,
-                domain TEXT,
-                industry TEXT,
-                updated_at TEXT
-            )
-        """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_bi_company_domain ON bi_company(domain)")
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS bi_signal (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                signal_hash TEXT UNIQUE,
-                company_key TEXT NOT NULL,
-                signal_type TEXT NOT NULL,
-                strength TEXT NOT NULL,
-                confidence REAL NOT NULL,
-                detected_at TEXT NOT NULL,
-                source TEXT NOT NULL,
-                title TEXT,
-                url TEXT,
-                summary TEXT,
-                metadata_json TEXT,
-                FOREIGN KEY (company_key) REFERENCES bi_company(company_key)
-            )
-        """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_bi_signal_company_time ON bi_signal(company_key, detected_at)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_bi_signal_source ON bi_signal(source)")
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS prospect_score (
-                outreach_company_id INTEGER PRIMARY KEY,
-                score REAL NOT NULL,
-                computed_at TEXT NOT NULL,
-                FOREIGN KEY (outreach_company_id) REFERENCES targets(id)
-            )
-        """)
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prospect_score_score ON prospect_score(score DESC)")
-        
         # Insert default config values
         default_configs = [
             ('daily_send_cap', '20'),
@@ -609,527 +679,6 @@ def _company_key(domain: str | None, name: str | None) -> str:
     return f"name:{fallback}" if fallback else "name:unknown"
 
 
-def _signal_confidence_from_strength(strength: str | None) -> float:
-    mapping = {
-        "critical": 0.95,
-        "strong": 0.85,
-        "medium": 0.7,
-        "weak": 0.55,
-    }
-    return mapping.get(str(strength or "medium").lower(), 0.65)
-
-
-def _extract_url_from_metadata(metadata: Any) -> Optional[str]:
-    if not isinstance(metadata, dict):
-        return None
-    preferred_keys = (
-        "url",
-        "evidence_url",
-        "source_url",
-        "link",
-        "article_url",
-        "news_url",
-        "app_url",
-        "website",
-        "web_url",
-        "posting_url",
-    )
-    for key in preferred_keys:
-        value = metadata.get(key)
-        if isinstance(value, str) and value.strip().lower().startswith(("http://", "https://")):
-            return value.strip()
-    for value in metadata.values():
-        if isinstance(value, dict):
-            nested = _extract_url_from_metadata(value)
-            if nested:
-                return nested
-        elif isinstance(value, list):
-            for item in value:
-                if isinstance(item, dict):
-                    nested = _extract_url_from_metadata(item)
-                    if nested:
-                        return nested
-                elif isinstance(item, str) and item.strip().lower().startswith(("http://", "https://")):
-                    return item.strip()
-    return None
-
-
-def _build_source_link(
-    source: str | None,
-    query: str | None,
-    company_name: str | None = None,
-    company_domain: str | None = None,
-) -> Optional[str]:
-    src = str(source or "").strip().lower()
-    q = str(query or company_name or "").strip()
-    domain = _normalize_domain(company_domain)
-    if src == "website":
-        return f"https://{domain}" if domain else None
-    if src == "google_news":
-        if not q:
-            return None
-        return f"https://news.google.com/search?q={quote_plus(q)}"
-    if src == "playstore":
-        if not q:
-            return None
-        return f"https://play.google.com/store/search?q={quote_plus(q)}&c=apps"
-    if src == "appstore":
-        if not q:
-            return None
-        return f"https://apps.apple.com/us/search?term={quote_plus(q)}"
-    if src == "salesnav":
-        if not q:
-            return "https://www.linkedin.com/sales/search/company"
-        return f"https://www.linkedin.com/sales/search/company?keywords={quote_plus(q)}"
-    if src == "crunchbase":
-        if not q:
-            return "https://www.crunchbase.com/discover/organization.companies"
-        return f"https://www.crunchbase.com/discover/organization.companies/field/organizations/num_funding_rounds?query={quote_plus(q)}"
-    if src in {"job_postings", "jobs"}:
-        if not q:
-            return None
-        return f"https://www.google.com/search?q={quote_plus(q + ' jobs')}"
-    return None
-
-
-def _first_http_url(text: Any) -> Optional[str]:
-    if not isinstance(text, str):
-        return None
-    match = re.search(r"https?://[^\s]+", text)
-    if not match:
-        return None
-    return match.group(0)
-
-
-def sync_bi_link_layer(force: bool = False) -> Dict[str, Any]:
-    """
-    Build/refresh explicit linking layer between outreach targets and BI records.
-    Safe to call often; throttled by TTL unless force=True.
-    """
-    global _BI_LINK_LAST_REFRESH_AT
-
-    now_ts = time.time()
-    if not force and (now_ts - _BI_LINK_LAST_REFRESH_AT) < _BI_LINK_REFRESH_TTL_SECONDS:
-        return {"synced": False, "reason": "ttl", "age_seconds": round(now_ts - _BI_LINK_LAST_REFRESH_AT, 2)}
-
-    inserted_bi_company = 0
-    upserted_signals = 0
-    linked_targets = 0
-    scored_targets = 0
-
-    with get_db() as conn:
-        cursor = conn.cursor()
-
-        if not _table_exists(cursor, "bi_companies"):
-            _BI_LINK_LAST_REFRESH_AT = now_ts
-            return {"synced": False, "reason": "bi_companies_missing"}
-
-        # 1) Mirror canonical BI companies into bi_company + company_identity.
-        cursor.execute("SELECT name, domain, vertical, updated_at FROM bi_companies")
-        bi_rows = cursor.fetchall()
-        name_to_key: Dict[str, str] = {}
-        key_to_name: Dict[str, str] = {}
-
-        for row in bi_rows:
-            name = str(row["name"] or "").strip()
-            domain = _normalize_domain(row["domain"])
-            key = _company_key(domain, name)
-            name_norm = _normalize_name(name)
-            name_to_key[name_norm] = key
-            key_to_name[key] = name
-
-            cursor.execute(
-                """
-                INSERT INTO bi_company (company_key, name, domain, industry, updated_at)
-                VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(company_key) DO UPDATE SET
-                    name=excluded.name,
-                    domain=excluded.domain,
-                    industry=excluded.industry,
-                    updated_at=excluded.updated_at
-                """,
-                (key, name, domain or None, row["vertical"], row["updated_at"]),
-            )
-            inserted_bi_company += 1
-
-            cursor.execute(
-                """
-                INSERT INTO company_identity (company_key, domain, name_normalized, updated_at)
-                VALUES (?, ?, ?, datetime('now'))
-                ON CONFLICT(company_key) DO UPDATE SET
-                    domain=excluded.domain,
-                    name_normalized=excluded.name_normalized,
-                    updated_at=datetime('now')
-                """,
-                (key, domain or None, name_norm),
-            )
-
-        # 2) Mirror normalized BI signals into bi_signal.
-        if _table_exists(cursor, "bi_signals"):
-            cursor.execute(
-                """
-                SELECT company_name, source, signal_type, signal_strength, score_weight,
-                       evidence, detected_at, metadata_json
-                FROM (
-                  SELECT
-                    company_name,
-                    source,
-                    signal_type,
-                    signal_strength,
-                    score_weight,
-                    evidence,
-                    detected_at,
-                    metadata_json
-                  FROM bi_signals
-                )
-                """
-            )
-            signal_rows = cursor.fetchall()
-
-            for row in signal_rows:
-                company_name = str(row["company_name"] or "").strip()
-                company_key = name_to_key.get(_normalize_name(company_name), _company_key(None, company_name))
-                signal_type = str(row["signal_type"] or "unknown").strip().lower()
-                strength = str(row["signal_strength"] or "medium").strip().lower()
-                source = str(row["source"] or "unknown").strip().lower()
-                detected_at = str(row["detected_at"] or datetime.now(timezone.utc).isoformat())
-                summary = row["evidence"] or ""
-                metadata_raw = row["metadata_json"]
-                try:
-                    metadata_obj = json.loads(metadata_raw) if metadata_raw else {}
-                except Exception:
-                    metadata_obj = {}
-                canonical_url = _extract_url_from_metadata(metadata_obj) or _build_source_link(
-                    source=source,
-                    query=company_name,
-                    company_name=company_name,
-                    company_domain=None,
-                )
-
-                signal_hash = hashlib.sha1(
-                    f"{company_key}|{signal_type}|{source}|{detected_at}|{summary}".encode("utf-8")
-                ).hexdigest()
-
-                cursor.execute(
-                    """
-                    INSERT INTO bi_signal (
-                      signal_hash, company_key, signal_type, strength, confidence, detected_at,
-                      source, title, url, summary, metadata_json
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(signal_hash) DO UPDATE SET
-                      company_key=excluded.company_key,
-                      signal_type=excluded.signal_type,
-                      strength=excluded.strength,
-                      confidence=excluded.confidence,
-                      detected_at=excluded.detected_at,
-                      source=excluded.source,
-                      title=excluded.title,
-                      url=COALESCE(excluded.url, bi_signal.url),
-                      summary=excluded.summary,
-                      metadata_json=excluded.metadata_json
-                    """,
-                    (
-                        signal_hash,
-                        company_key,
-                        signal_type,
-                        strength,
-                        _signal_confidence_from_strength(strength),
-                        detected_at,
-                        source,
-                        f"{signal_type.replace('_', ' ').title()} signal",
-                        canonical_url,
-                        summary,
-                        row["metadata_json"],
-                    ),
-                )
-                upserted_signals += 1
-
-        # 3) Auto-link outreach targets -> company_key.
-        cursor.execute("SELECT id, company_name, domain, tier, status FROM targets WHERE company_name IS NOT NULL")
-        targets = cursor.fetchall()
-        for t in targets:
-            outreach_id = int(t["id"])
-            domain_key = _normalize_domain(t["domain"])
-            name_key = name_to_key.get(_normalize_name(t["company_name"]))
-
-            matched_key = ""
-            method = ""
-            confidence = 0.0
-
-            if domain_key and domain_key in key_to_name:
-                matched_key = domain_key
-                method = "domain"
-                confidence = 1.0
-            elif name_key:
-                matched_key = name_key
-                method = "name_exact"
-                confidence = 0.85
-
-            if matched_key:
-                cursor.execute(
-                    """
-                    INSERT INTO company_link (outreach_company_id, company_key, match_method, match_confidence, matched_at)
-                    VALUES (?, ?, ?, ?, datetime('now'))
-                    ON CONFLICT(outreach_company_id) DO UPDATE SET
-                        company_key=excluded.company_key,
-                        match_method=excluded.match_method,
-                        match_confidence=excluded.match_confidence,
-                        matched_at=datetime('now')
-                    """,
-                    (outreach_id, matched_key, method, confidence),
-                )
-                linked_targets += 1
-
-        # 4) Compute deterministic prospect_score for linked targets.
-        cursor.execute(
-            """
-            SELECT t.id AS outreach_company_id, t.tier, t.status, cl.company_key
-            FROM targets t
-            JOIN company_link cl ON cl.outreach_company_id = t.id
-            """
-        )
-        links = cursor.fetchall()
-        for link in links:
-            company_key = link["company_key"]
-            cursor.execute(
-                """
-                SELECT signal_type, strength, confidence, detected_at
-                FROM bi_signal
-                WHERE company_key = ?
-                  AND detected_at >= datetime('now', '-14 days')
-                """,
-                (company_key,),
-            )
-            rows = cursor.fetchall()
-            score = 0.0
-            for r in rows:
-                strength = str(r["strength"] or "weak")
-                base = 1.0
-                if strength == "strong":
-                    base = 3.0
-                elif strength == "medium":
-                    base = 2.0
-                elif strength == "critical":
-                    base = 3.5
-
-                detected = datetime.now(timezone.utc)
-                try:
-                    detected = datetime.fromisoformat(str(r["detected_at"]).replace("Z", "+00:00"))
-                    if detected.tzinfo is None:
-                        detected = detected.replace(tzinfo=timezone.utc)
-                except Exception:
-                    pass
-                age_days = max(0.0, (datetime.now(timezone.utc) - detected.astimezone(timezone.utc)).total_seconds() / 86400.0)
-                recency = 1.0
-                if age_days <= 3:
-                    recency = 1.5
-                elif age_days <= 7:
-                    recency = 1.2
-
-                score += base * recency * float(r["confidence"] or 0.7)
-
-            tier = str(link["tier"] or "").upper()
-            if tier == "A":
-                score += 3.0
-            elif tier == "B":
-                score += 1.0
-
-            status = str(link["status"] or "").lower()
-            if status in {"contacted", "engaged"}:
-                score -= 1.5
-
-            cursor.execute(
-                """
-                INSERT INTO prospect_score (outreach_company_id, score, computed_at)
-                VALUES (?, ?, datetime('now'))
-                ON CONFLICT(outreach_company_id) DO UPDATE SET
-                    score=excluded.score,
-                    computed_at=datetime('now')
-                """,
-                (int(link["outreach_company_id"]), round(max(0.0, score), 3)),
-            )
-            scored_targets += 1
-
-    _BI_LINK_LAST_REFRESH_AT = now_ts
-    return {
-        "synced": True,
-        "bi_company_upserts": inserted_bi_company,
-        "signals_upserted": upserted_signals,
-        "targets_linked": linked_targets,
-        "scores_computed": scored_targets,
-    }
-
-
-def get_company_bi_profile(outreach_company_id: int) -> Dict[str, Any]:
-    """
-    Return BI/source context for one outreach target.
-    """
-    sync_bi_link_layer()
-
-    profile: Dict[str, Any] = {
-        "linked": False,
-        "company_key": None,
-        "match_method": None,
-        "match_confidence": None,
-        "bi_company": None,
-        "signals": [],
-        "coverage": {},
-        "app_evidence": [],
-        "prospect_score": None,
-        "collection_logs": [],
-        "source_links": [],
-    }
-
-    with get_db() as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT cl.company_key, cl.match_method, cl.match_confidence
-            FROM company_link cl
-            WHERE cl.outreach_company_id = ?
-            """,
-            (outreach_company_id,),
-        )
-        link = cursor.fetchone()
-        if not link:
-            return profile
-
-        profile["linked"] = True
-        profile["company_key"] = link["company_key"]
-        profile["match_method"] = link["match_method"]
-        profile["match_confidence"] = link["match_confidence"]
-
-        cursor.execute("SELECT company_key, name, domain, industry, updated_at FROM bi_company WHERE company_key = ?", (link["company_key"],))
-        company = cursor.fetchone()
-        if company:
-            profile["bi_company"] = dict(company)
-
-        cursor.execute(
-            """
-            SELECT source, signal_type, strength, confidence, detected_at, title, url, summary, metadata_json
-            FROM bi_signal
-            WHERE company_key = ?
-            ORDER BY detected_at DESC
-            LIMIT 100
-            """,
-            (link["company_key"],),
-        )
-        signals = []
-        coverage: Dict[str, int] = {}
-        app_evidence: List[Dict[str, Any]] = []
-        for row in cursor.fetchall():
-            item = dict(row)
-            try:
-                item["metadata"] = json.loads(item.get("metadata_json") or "{}")
-            except Exception:
-                item["metadata"] = {}
-            source_query = None
-            if isinstance(item.get("metadata"), dict):
-                source_query = item["metadata"].get("source_query")
-            metadata_url = _extract_url_from_metadata(item.get("metadata"))
-            item_url = item.get("url")
-            if isinstance(item_url, str):
-                item_url = item_url.strip() or None
-            source = str(item.get("source") or "unknown")
-            fallback_url = _build_source_link(
-                source=source,
-                query=source_query or ((profile.get("bi_company") or {}).get("name") if profile.get("bi_company") else None),
-                company_name=(profile.get("bi_company") or {}).get("name") if profile.get("bi_company") else None,
-                company_domain=(profile.get("bi_company") or {}).get("domain") if profile.get("bi_company") else None,
-            )
-            evidence_url = metadata_url or item_url or fallback_url
-            item["evidence_url"] = evidence_url
-            signals.append(item)
-
-            coverage[source] = coverage.get(source, 0) + 1
-            if source in {"appstore", "playstore"}:
-                app_evidence.append(
-                    {
-                        "source": source,
-                        "detected_at": item.get("detected_at"),
-                        "summary": item.get("summary"),
-                        "rating": (item.get("metadata") or {}).get("rating"),
-                        "url": evidence_url,
-                    }
-                )
-            if evidence_url:
-                profile["source_links"].append({"source": source, "url": evidence_url})
-
-        profile["signals"] = signals
-        profile["coverage"] = coverage
-        profile["app_evidence"] = app_evidence
-
-        cursor.execute("SELECT score, computed_at FROM prospect_score WHERE outreach_company_id = ?", (outreach_company_id,))
-        score = cursor.fetchone()
-        if score:
-            profile["prospect_score"] = {"score": score["score"], "computed_at": score["computed_at"]}
-
-    # Attach source run artifacts directly from BI run log.
-    source_log_path = config.BASE_DIR / "zco-bi" / "data" / "source_runs.jsonl"
-    if source_log_path.exists():
-        try:
-            with source_log_path.open("r", encoding="utf-8", errors="ignore") as fh:
-                lines = [line.strip() for line in fh if line.strip()]
-            company_name = ""
-            if profile.get("bi_company"):
-                company_name = str((profile["bi_company"] or {}).get("name") or "").strip().lower()
-            for line in lines[-3000:]:
-                try:
-                    row = json.loads(line)
-                except Exception:
-                    continue
-                q = str(row.get("query") or "").strip().lower()
-                if company_name and q != company_name:
-                    continue
-                if not company_name:
-                    continue
-                explicit_link = row.get("link")
-                if isinstance(explicit_link, str):
-                    explicit_link = explicit_link.strip() or None
-                message_url = _first_http_url(row.get("message"))
-                derived_link = _build_source_link(
-                    source=row.get("source"),
-                    query=row.get("query") or company_name,
-                    company_name=company_name,
-                    company_domain=(profile.get("bi_company") or {}).get("domain") if profile.get("bi_company") else None,
-                )
-                row_link = explicit_link or message_url or derived_link
-                profile["collection_logs"].append(
-                    {
-                        "source": row.get("source"),
-                        "ok": bool(row.get("ok")),
-                        "started_at": row.get("started_at"),
-                        "completed_at": row.get("completed_at"),
-                        "collected": row.get("collected"),
-                        "saved": row.get("saved"),
-                        "message": row.get("message"),
-                        "http_status": row.get("http_status"),
-                        "link": row_link,
-                    }
-                )
-                if row_link:
-                    profile["source_links"].append({"source": row.get("source"), "url": row_link})
-            profile["collection_logs"] = sorted(
-                profile["collection_logs"],
-                key=lambda x: str(x.get("started_at") or ""),
-                reverse=True,
-            )[:100]
-            # De-duplicate links while preserving order.
-            seen = set()
-            uniq_links = []
-            for item in profile["source_links"]:
-                key = f"{item.get('source')}|{item.get('url')}"
-                if key in seen:
-                    continue
-                seen.add(key)
-                uniq_links.append(item)
-            profile["source_links"] = uniq_links[:50]
-        except Exception:
-            pass
-
-    return profile
-
-
 def add_target(
     company_name: str,
     domain: str = None,
@@ -1170,7 +719,7 @@ def add_target(
     # Auto-classify vertical when missing — uses deterministic SalesNav parser mappings.
     if not vertical or not vertical.strip():
         try:
-            from services.linkedin.salesnav.filter_parser import infer_company_vertical
+            from services.web_automation.linkedin.salesnav.filter_parser import infer_company_vertical
             vertical = infer_company_vertical(company_name, domain)
         except Exception:
             pass  # Non-fatal: better to insert without vertical than to fail
@@ -1343,6 +892,215 @@ def get_contacts_missing_public_urls(limit: int = 100, company_name: str | None 
         return [dict(row) for row in cursor.fetchall()]
 
 
+def _slugify_company_domain(company_name: str) -> str:
+    normalized = re.sub(r"[^\w\s-]", "", company_name.lower())
+    return re.sub(r"[\s_]+", "-", normalized).strip("-")
+
+
+def _prepare_ingested_name(raw_name: str) -> Dict[str, Any]:
+    from services.identity.name_classifier import classify_name
+
+    classified = classify_name(raw_name or "")
+    cleaned = (classified.cleaned_full_name or "").strip() or (raw_name or "").strip()
+    return {
+        "name": cleaned,
+        "name_raw": (raw_name or "").strip() or cleaned,
+        "name_first": (classified.first or "").strip() or None,
+        "name_middle": (classified.middle or "").strip() or None,
+        "name_last": (classified.last or "").strip() or None,
+        "name_prefix": (classified.prefix_title or "").strip() or None,
+        "name_suffix": (classified.suffix_credentials or "").strip() or None,
+        "name_confidence": float(classified.confidence),
+        "name_review_reason": (classified.review_reason or "").strip() or None,
+        "needs_review": bool(classified.needs_review),
+    }
+
+
+def _merge_contact_title(existing_title: str | None, incoming_title: str | None, name_prefix: str | None) -> str | None:
+    incoming = (incoming_title or "").strip()
+    existing = (existing_title or "").strip()
+    prefix = (name_prefix or "").strip()
+    if incoming:
+        return incoming
+    if existing:
+        return existing
+    return prefix or None
+
+
+def add_linkedin_contact(
+    *,
+    company_name: str,
+    name: str,
+    domain: str | None = None,
+    title: str | None = None,
+    email_generated: str | None = None,
+    linkedin_url: str | None = None,
+    phone: str | None = None,
+    salesforce_url: str | None = None,
+    salesforce_status: str | None = None,
+) -> int:
+    """Insert one LinkedIn contact after ingestion-time name normalization."""
+    if not domain and company_name:
+        domain = _slugify_company_domain(company_name)
+    prepared = _prepare_ingested_name(name)
+    merged_title = _merge_contact_title(None, title, prepared["name_prefix"])
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO linkedin_contacts (
+                company_name, domain, name, name_raw, name_first, name_middle, name_last,
+                name_prefix, name_suffix, name_confidence, name_review_reason,
+                title, email_generated, linkedin_url, phone, salesforce_url, salesforce_status, scraped_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            (
+                company_name,
+                domain,
+                prepared["name"],
+                prepared["name_raw"],
+                prepared["name_first"],
+                prepared["name_middle"],
+                prepared["name_last"],
+                prepared["name_prefix"],
+                prepared["name_suffix"],
+                prepared["name_confidence"],
+                prepared["name_review_reason"],
+                merged_title,
+                (email_generated or "").strip() or None,
+                (linkedin_url or "").strip() or None,
+                (phone or "").strip() or None,
+                (salesforce_url or "").strip() or None,
+                (salesforce_status or "").strip() or None,
+            ),
+        )
+        return int(cursor.lastrowid)
+
+
+def save_linkedin_contacts(company_name: str, employees: List[Dict], domain: str | None = None) -> int:
+    """Upsert LinkedIn contacts for a company and return number of affected rows."""
+    if not domain and company_name:
+        domain = _slugify_company_domain(company_name)
+
+    affected_rows = 0
+    with get_db() as conn:
+        cursor = conn.cursor()
+        for employee in employees:
+            raw_name = str(employee.get("name") or "").strip()
+            if not raw_name:
+                continue
+            prepared = _prepare_ingested_name(raw_name)
+            normalized_name = prepared["name"]
+
+            title = str(employee.get("title") or "").strip() or None
+            linkedin_url = (
+                str(employee.get("linkedin_url") or "").strip()
+                or str(employee.get("public_url") or "").strip()
+                or str(employee.get("sales_nav_url") or "").strip()
+                or None
+            )
+
+            row = None
+            if linkedin_url:
+                cursor.execute(
+                    """
+                    SELECT id, title, linkedin_url
+                    FROM linkedin_contacts
+                    WHERE company_name = ? AND name = ? AND linkedin_url = ?
+                    ORDER BY id DESC
+                    LIMIT 1
+                    """,
+                    (company_name, normalized_name, linkedin_url),
+                )
+                row = cursor.fetchone()
+
+            if not row:
+                cursor.execute(
+                    """
+                    SELECT id, title, linkedin_url
+                    FROM linkedin_contacts
+                    WHERE company_name = ? AND name = ?
+                    ORDER BY id DESC
+                    LIMIT 1
+                    """,
+                    (company_name, normalized_name),
+                )
+                row = cursor.fetchone()
+
+            if row:
+                contact_id = int(row["id"])
+                merged_title = _merge_contact_title(row["title"], title, prepared["name_prefix"])
+                merged_url = linkedin_url or row["linkedin_url"]
+                cursor.execute(
+                    """
+                    UPDATE linkedin_contacts
+                    SET domain = ?,
+                        name = ?,
+                        name_raw = ?,
+                        name_first = ?,
+                        name_middle = ?,
+                        name_last = ?,
+                        name_prefix = ?,
+                        name_suffix = ?,
+                        name_confidence = ?,
+                        name_review_reason = ?,
+                        title = ?,
+                        linkedin_url = ?,
+                        scraped_at = CURRENT_TIMESTAMP
+                    WHERE id = ?
+                    """,
+                    (
+                        domain,
+                        prepared["name"],
+                        prepared["name_raw"],
+                        prepared["name_first"],
+                        prepared["name_middle"],
+                        prepared["name_last"],
+                        prepared["name_prefix"],
+                        prepared["name_suffix"],
+                        prepared["name_confidence"],
+                        prepared["name_review_reason"],
+                        merged_title,
+                        merged_url,
+                        contact_id,
+                    ),
+                )
+                affected_rows += int(cursor.rowcount)
+                continue
+
+            cursor.execute(
+                """
+                INSERT INTO linkedin_contacts
+                (
+                    company_name, domain, name, name_raw, name_first, name_middle, name_last,
+                    name_prefix, name_suffix, name_confidence, name_review_reason,
+                    title, linkedin_url, scraped_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                """,
+                (
+                    company_name,
+                    domain,
+                    prepared["name"],
+                    prepared["name_raw"],
+                    prepared["name_first"],
+                    prepared["name_middle"],
+                    prepared["name_last"],
+                    prepared["name_prefix"],
+                    prepared["name_suffix"],
+                    prepared["name_confidence"],
+                    prepared["name_review_reason"],
+                    _merge_contact_title(None, title, prepared["name_prefix"]),
+                    linkedin_url,
+                ),
+            )
+            affected_rows += int(cursor.rowcount)
+
+    return affected_rows
+
+
 def get_contacts_missing_generated_email(company_name: str) -> List[Dict]:
     """Get contacts for a company with no generated email yet."""
     with get_db() as conn:
@@ -1371,6 +1129,50 @@ def update_contact_generated_email(contact_id: int, email: str, pattern: str, co
             """,
             (email, pattern, confidence_pct, contact_id),
         )
+
+
+def update_contact_linkedin_url(contact_id: int, linkedin_url: str) -> None:
+    """Update a contact's LinkedIn URL."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE linkedin_contacts
+            SET linkedin_url = ?, scraped_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (linkedin_url, contact_id),
+        )
+
+
+def get_linkedin_contacts(company_name: str | None = None, domain: str | None = None) -> List[Dict]:
+    """Get stored LinkedIn contacts by company name or domain."""
+    if not company_name and not domain:
+        return []
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        if company_name:
+            cursor.execute(
+                """
+                SELECT name, title, linkedin_url, company_name, domain
+                FROM linkedin_contacts
+                WHERE company_name = ?
+                ORDER BY scraped_at DESC
+                """,
+                (company_name,),
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT name, title, linkedin_url, company_name, domain
+                FROM linkedin_contacts
+                WHERE domain = ?
+                ORDER BY scraped_at DESC
+                """,
+                (domain,),
+            )
+        return [dict(row) for row in cursor.fetchall()]
 
 
 def count_targets(status: str | None = None) -> int:
@@ -1789,15 +1591,17 @@ def create_email_campaign(
     name: str,
     description: str = None,
     num_emails: int = 3,
-    days_between_emails: int = 3
+    days_between_emails: int = 3,
+    template_id: int = None,
+    template_mode: str = "copied",
 ) -> int:
     """Create a new email campaign. Returns the campaign ID."""
     with get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO email_campaigns (name, description, num_emails, days_between_emails)
-            VALUES (?, ?, ?, ?)
-        """, (name, description, num_emails, days_between_emails))
+            INSERT INTO email_campaigns (name, description, num_emails, days_between_emails, template_id, template_mode)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (name, description, num_emails, days_between_emails, template_id, template_mode or "copied"))
         return cursor.lastrowid
 
 
@@ -1839,6 +1643,8 @@ def update_email_campaign(
     description: str = None,
     num_emails: int = None,
     days_between_emails: int = None,
+    template_id: int = None,
+    template_mode: str = None,
     status: str = None
 ):
     """Update an email campaign."""
@@ -1857,6 +1663,12 @@ def update_email_campaign(
     if days_between_emails is not None:
         updates.append("days_between_emails = ?")
         params.append(days_between_emails)
+    if template_id is not None:
+        updates.append("template_id = ?")
+        params.append(template_id)
+    if template_mode is not None:
+        updates.append("template_mode = ?")
+        params.append(template_mode)
     if status is not None:
         updates.append("status = ?")
         params.append(status)
@@ -1911,6 +1723,262 @@ def get_email_templates(campaign_id: int) -> List[Dict]:
             ORDER BY step_number
         """, (campaign_id,))
         return [dict(row) for row in cursor.fetchall()]
+
+
+def set_campaign_template_link(campaign_id: int, template_id: int = None, template_mode: str = "linked") -> bool:
+    """Attach/detach a library template from a campaign."""
+    if template_mode not in {"linked", "copied"}:
+        template_mode = "linked"
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE email_campaigns
+            SET template_id = ?, template_mode = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (template_id, template_mode, campaign_id),
+        )
+        return cursor.rowcount > 0
+
+
+def list_email_library_templates(
+    query: str = None,
+    status: str = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> List[Dict]:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        sql = "SELECT * FROM email_template_library WHERE 1=1"
+        params: List[Any] = []
+        if status in {"active", "archived"}:
+            sql += " AND status = ?"
+            params.append(status)
+        if query:
+            like = f"%{query.strip()}%"
+            sql += " AND (name LIKE ? OR subject LIKE ? OR html_body LIKE ?)"
+            params.extend([like, like, like])
+        sql += " ORDER BY updated_at DESC, id DESC LIMIT ? OFFSET ?"
+        params.extend([max(1, min(int(limit), 200)), max(0, int(offset))])
+        cursor.execute(sql, params)
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def get_email_library_template(template_id: int) -> Optional[Dict]:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM email_template_library WHERE id = ?", (template_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def _record_template_revision(cursor: sqlite3.Cursor, template_id: int, snapshot: Dict[str, Any], max_revisions: int = 20) -> None:
+    cursor.execute(
+        "SELECT COALESCE(MAX(revision_number), 0) AS rev FROM email_template_revisions WHERE template_id = ?",
+        (template_id,),
+    )
+    rev = int((cursor.fetchone() or {"rev": 0})["rev"]) + 1
+    cursor.execute(
+        """
+        INSERT INTO email_template_revisions (template_id, revision_number, snapshot_json)
+        VALUES (?, ?, ?)
+        """,
+        (template_id, rev, json.dumps(snapshot)),
+    )
+    cursor.execute(
+        """
+        DELETE FROM email_template_revisions
+        WHERE template_id = ?
+          AND id NOT IN (
+            SELECT id FROM email_template_revisions
+            WHERE template_id = ?
+            ORDER BY revision_number DESC
+            LIMIT ?
+          )
+        """,
+        (template_id, template_id, max(1, int(max_revisions))),
+    )
+
+
+def create_email_library_template(
+    name: str,
+    subject: str,
+    html_body: str,
+    preheader: str = None,
+    from_name: str = None,
+    from_email: str = None,
+    reply_to: str = None,
+    text_body: str = None,
+    status: str = "active",
+) -> int:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO email_template_library
+            (name, subject, preheader, from_name, from_email, reply_to, html_body, text_body, status, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            (name, subject, preheader, from_name, from_email, reply_to, html_body, text_body, status or "active"),
+        )
+        template_id = int(cursor.lastrowid)
+        snapshot = get_email_library_template(template_id) or {}
+        _record_template_revision(cursor, template_id, snapshot)
+        return template_id
+
+
+def update_email_library_template(template_id: int, updates: Dict[str, Any], max_revisions: int = 20) -> bool:
+    allowed = {"name", "subject", "preheader", "from_name", "from_email", "reply_to", "html_body", "text_body", "status"}
+    set_parts: List[str] = []
+    params: List[Any] = []
+    for key, value in (updates or {}).items():
+        if key in allowed:
+            set_parts.append(f"{key} = ?")
+            params.append(value)
+    if not set_parts:
+        return False
+    set_parts.append("updated_at = CURRENT_TIMESTAMP")
+    params.append(template_id)
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"UPDATE email_template_library SET {', '.join(set_parts)} WHERE id = ?", params)
+        if cursor.rowcount <= 0:
+            return False
+        snapshot = get_email_library_template(template_id) or {}
+        _record_template_revision(cursor, template_id, snapshot, max_revisions=max_revisions)
+        return True
+
+
+def duplicate_email_library_template(template_id: int, name_suffix: str = "Copy") -> Optional[int]:
+    original = get_email_library_template(template_id)
+    if not original:
+        return None
+    return create_email_library_template(
+        name=f"{original.get('name') or 'Template'} ({name_suffix})",
+        subject=original.get("subject") or "",
+        preheader=original.get("preheader"),
+        from_name=original.get("from_name"),
+        from_email=original.get("from_email"),
+        reply_to=original.get("reply_to"),
+        html_body=original.get("html_body") or "",
+        text_body=original.get("text_body"),
+        status="active",
+    )
+
+
+def list_email_template_revisions(template_id: int, limit: int = 20) -> List[Dict]:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT * FROM email_template_revisions
+            WHERE template_id = ?
+            ORDER BY revision_number DESC
+            LIMIT ?
+            """,
+            (template_id, max(1, min(int(limit), 100))),
+        )
+        rows = [dict(row) for row in cursor.fetchall()]
+        for row in rows:
+            row["snapshot"] = _json_loads_safe(row.get("snapshot_json"), {})
+        return rows
+
+
+def revert_email_library_template(template_id: int, revision_number: int, max_revisions: int = 20) -> bool:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT snapshot_json FROM email_template_revisions
+            WHERE template_id = ? AND revision_number = ?
+            """,
+            (template_id, revision_number),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return False
+        snapshot = _json_loads_safe(row["snapshot_json"], {})
+        updates = {
+            "name": snapshot.get("name"),
+            "subject": snapshot.get("subject"),
+            "preheader": snapshot.get("preheader"),
+            "from_name": snapshot.get("from_name"),
+            "from_email": snapshot.get("from_email"),
+            "reply_to": snapshot.get("reply_to"),
+            "html_body": snapshot.get("html_body"),
+            "text_body": snapshot.get("text_body"),
+            "status": snapshot.get("status") or "active",
+        }
+        set_parts = ", ".join([f"{k} = ?" for k in updates.keys()])
+        cursor.execute(
+            f"UPDATE email_template_library SET {set_parts}, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+            [*updates.values(), template_id],
+        )
+        if cursor.rowcount <= 0:
+            return False
+        snapshot = get_email_library_template(template_id) or {}
+        _record_template_revision(cursor, template_id, snapshot, max_revisions=max_revisions)
+        return True
+
+
+def list_email_template_blocks(status: str = None) -> List[Dict]:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        if status in {"active", "archived"}:
+            cursor.execute(
+                "SELECT * FROM email_template_blocks WHERE status = ? ORDER BY updated_at DESC, id DESC",
+                (status,),
+            )
+        else:
+            cursor.execute("SELECT * FROM email_template_blocks ORDER BY updated_at DESC, id DESC")
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def get_email_template_block(block_id: int) -> Optional[Dict]:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM email_template_blocks WHERE id = ?", (block_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+
+def create_email_template_block(name: str, html: str, category: str = None, text: str = None, status: str = "active") -> int:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO email_template_blocks (name, category, html, text, status, updated_at)
+            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """,
+            (name, category, html, text, status or "active"),
+        )
+        return int(cursor.lastrowid)
+
+
+def update_email_template_block(block_id: int, updates: Dict[str, Any]) -> bool:
+    allowed = {"name", "category", "html", "text", "status"}
+    set_parts: List[str] = []
+    params: List[Any] = []
+    for key, value in (updates or {}).items():
+        if key in allowed:
+            set_parts.append(f"{key} = ?")
+            params.append(value)
+    if not set_parts:
+        return False
+    set_parts.append("updated_at = CURRENT_TIMESTAMP")
+    params.append(block_id)
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(f"UPDATE email_template_blocks SET {', '.join(set_parts)} WHERE id = ?", params)
+        return cursor.rowcount > 0
+
+
+def delete_email_template_block(block_id: int) -> bool:
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM email_template_blocks WHERE id = ?", (block_id,))
+        return cursor.rowcount > 0
 
 
 # ============ Campaign Contact Operations ============
@@ -1984,7 +2052,9 @@ def get_contacts_ready_for_email(campaign_id: int = None, limit: int = 50) -> Li
                 lc.domain,
                 ec.name as campaign_name,
                 ec.num_emails,
-                ec.days_between_emails
+                ec.days_between_emails,
+                ec.template_id,
+                ec.template_mode
             FROM campaign_contacts cc
             JOIN linkedin_contacts lc ON cc.contact_id = lc.id
             JOIN email_campaigns ec ON cc.campaign_id = ec.id
@@ -3447,6 +3517,119 @@ def _json_loads_safe(raw: Optional[str], default):
         return default
 
 
+def _coerce_int(value: Any, default: int, minimum: int, maximum: int) -> int:
+    try:
+        parsed = int(value)
+    except Exception:
+        return default
+    return max(minimum, min(maximum, parsed))
+
+
+def _coerce_float(value: Any, default: float, minimum: float, maximum: float) -> float:
+    try:
+        parsed = float(value)
+    except Exception:
+        return default
+    return max(minimum, min(maximum, parsed))
+
+
+def _coerce_bool(value: Any, default: bool = False) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    lowered = str(value).strip().lower()
+    if lowered in {"1", "true", "yes", "y", "on"}:
+        return True
+    if lowered in {"0", "false", "no", "n", "off"}:
+        return False
+    return default
+
+
+def _estimate_token_count(text: str) -> int:
+    if not text:
+        return 0
+    # Approximation tuned for retrieval budgeting.
+    return max(1, int(round(len(text.split()) * 1.3)))
+
+
+def _to_int_set(value: Any) -> set[int]:
+    if value is None:
+        return set()
+    if isinstance(value, (list, tuple, set)):
+        out: set[int] = set()
+        for part in value:
+            try:
+                out.add(int(part))
+            except Exception:
+                continue
+        return out
+    try:
+        return {int(value)}
+    except Exception:
+        return set()
+
+
+def _to_str_set(value: Any) -> set[str]:
+    if value is None:
+        return set()
+    if isinstance(value, (list, tuple, set)):
+        return {str(part).strip() for part in value if str(part).strip()}
+    text = str(value).strip()
+    return {text} if text else set()
+
+
+def _build_file_chunk_allowlist(filters: Dict[str, Any]) -> Optional[set[str]]:
+    document_ids = _to_str_set(filters.get("document_ids"))
+    company_ids = _to_int_set(filters.get("company_id"))
+    if not company_ids:
+        company_ids = _to_int_set(filters.get("company_ids"))
+    contact_ids = _to_int_set(filters.get("contact_id"))
+    if not contact_ids:
+        contact_ids = _to_int_set(filters.get("contact_ids"))
+    document_type = str(filters.get("document_type") or "").strip().lower()
+    status = str(filters.get("document_status") or "").strip().lower()
+
+    has_filter = bool(document_ids or company_ids or contact_ids or document_type or status)
+    if not has_filter:
+        return None
+
+    where: List[str] = ["1=1"]
+    params: List[Any] = []
+    if document_ids:
+        placeholders = ",".join(["?"] * len(document_ids))
+        where.append(f"d.id IN ({placeholders})")
+        params.extend(sorted(document_ids))
+    if company_ids:
+        placeholders = ",".join(["?"] * len(company_ids))
+        where.append(f"d.linked_company_id IN ({placeholders})")
+        params.extend(sorted(company_ids))
+    if document_type:
+        where.append("LOWER(COALESCE(d.document_type,'')) = ?")
+        params.append(document_type)
+    if status:
+        where.append("LOWER(COALESCE(d.status,'')) = ?")
+        params.append(status)
+    if contact_ids:
+        placeholders = ",".join(["?"] * len(contact_ids))
+        where.append(
+            f"EXISTS (SELECT 1 FROM document_contacts dc WHERE dc.document_id = d.id AND dc.contact_id IN ({placeholders}))"
+        )
+        params.extend(sorted(contact_ids))
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            f"""
+            SELECT d.id
+            FROM documents d
+            WHERE {' AND '.join(where)}
+            """,
+            params,
+        )
+        return {str(row["id"]) for row in cursor.fetchall()}
+
+
 def _delete_semantic_and_index_rows(entity_type: str, entity_id: str):
     with get_db() as conn:
         cursor = conn.cursor()
@@ -3993,6 +4176,9 @@ class TokenOverlapVectorBackend(VectorBackend):
         filters: Dict[str, Any],
     ) -> List[Dict[str, Any]]:
         time_range = (filters.get("time_range") or "").strip().lower()
+        top_k_vector_candidates = _coerce_int(filters.get("top_k_vector_candidates"), 500, 50, 2000)
+        min_vector_similarity = _coerce_float(filters.get("min_vector_similarity"), 0.2, 0.0, 1.0)
+        allowed_file_ids = filters.get("__file_chunk_allowlist")
         out: List[Dict[str, Any]] = []
         with get_db() as conn:
             cursor = conn.cursor()
@@ -4009,25 +4195,32 @@ class TokenOverlapVectorBackend(VectorBackend):
                 FROM semantic_chunks
                 WHERE {' AND '.join(where)}
                 ORDER BY updated_at DESC
-                LIMIT 400
+                LIMIT ?
                 """,
-                params,
+                [*params, top_k_vector_candidates],
             )
             for row in cursor.fetchall():
+                if row["source_type"] == "file_chunk" and allowed_file_ids is not None:
+                    if str(row["source_id"]) not in allowed_file_ids:
+                        continue
                 text = row["text"] or ""
                 text_tokens = set(_tokenize(text))
                 overlap = len(query_tokens.intersection(text_tokens))
                 if overlap <= 0:
                     continue
                 vec_score = min(1.0, overlap / max(len(query_tokens), 1))
+                if vec_score < min_vector_similarity:
+                    continue
                 metadata = _json_loads_safe(row["metadata"], {})
+                page_number = metadata.get("page_number")
+                token_count = metadata.get("token_count")
                 title = metadata.get("title") or f"{row['source_type']} {row['source_id']}"
                 out.append(
                     _build_result(
                         row["source_type"],
                         row["source_id"],
                         title,
-                        text[:260],
+                        text[:1200],
                         timestamp=row["updated_at"] or row["created_at"],
                         source_refs=[
                             {
@@ -4035,6 +4228,8 @@ class TokenOverlapVectorBackend(VectorBackend):
                                 "source_id": row["source_id"],
                                 "source_type": row["source_type"],
                                 "chunk_type": row["chunk_type"],
+                                "page_number": page_number,
+                                "token_count": token_count if isinstance(token_count, int) else _estimate_token_count(text),
                             }
                         ],
                         score_vec=vec_score,
@@ -4084,6 +4279,9 @@ class SqliteVecVectorBackend(VectorBackend):
 
         # Fetch candidate embeddings from the database
         out: List[Dict[str, Any]] = []
+        top_k_vector_candidates = _coerce_int(filters.get("top_k_vector_candidates"), 500, 50, 3000)
+        min_vector_similarity = _coerce_float(filters.get("min_vector_similarity"), 0.3, 0.0, 1.0)
+        allowed_file_ids = filters.get("__file_chunk_allowlist")
         try:
             with get_db() as conn:
                 cursor = conn.cursor()
@@ -4103,22 +4301,27 @@ class SqliteVecVectorBackend(VectorBackend):
                     FROM semantic_embeddings se
                     JOIN semantic_chunks sc ON se.chunk_id = sc.chunk_id
                     WHERE {' AND '.join(where)}
-                    LIMIT 500
+                    LIMIT ?
                     """,
-                    params,
+                    [*params, top_k_vector_candidates],
                 )
 
                 for row in cursor.fetchall():
+                    if row["source_type"] == "file_chunk" and allowed_file_ids is not None:
+                        if str(row["source_id"]) not in allowed_file_ids:
+                            continue
                     try:
                         stored_embedding = blob_to_embedding(row["embedding"])
                     except Exception:
                         continue
 
                     sim = cosine_similarity(query_embedding, stored_embedding)
-                    if sim < 0.3:  # Minimum similarity threshold
+                    if sim < min_vector_similarity:
                         continue
 
                     metadata = _json_loads_safe(row["metadata"], {})
+                    page_number = metadata.get("page_number")
+                    token_count = metadata.get("token_count")
                     title = metadata.get("title") or f"{row['source_type']} {row['source_id']}"
                     text = row["text"] or ""
                     out.append(
@@ -4126,7 +4329,7 @@ class SqliteVecVectorBackend(VectorBackend):
                             row["source_type"],
                             row["source_id"],
                             title,
-                            text[:260],
+                            text[:1200],
                             timestamp=row["updated_at"] or row["created_at"],
                             source_refs=[
                                 {
@@ -4134,6 +4337,8 @@ class SqliteVecVectorBackend(VectorBackend):
                                     "source_id": row["source_id"],
                                     "source_type": row["source_type"],
                                     "chunk_type": row["chunk_type"],
+                                    "page_number": page_number,
+                                    "token_count": token_count if isinstance(token_count, int) else _estimate_token_count(text),
                                 }
                             ],
                             score_vec=sim,
@@ -4284,16 +4489,12 @@ def resolve_entity(
                 (q, q, q, max_rows),
             )
             for row in cursor.fetchall():
-                bi_profile = get_company_bi_profile(int(row["id"]))
-                source_bits = ", ".join(sorted((bi_profile.get("coverage") or {}).keys())[:4]) or "none"
-                score_val = (bi_profile.get("prospect_score") or {}).get("score")
-                score_txt = f"{score_val}" if score_val is not None else "n/a"
                 out.append(
                     _build_result(
                         "company",
                         str(row["id"]),
                         row["company_name"] or "Unknown company",
-                        f"domain={row['domain'] or 'n/a'}, vertical={row['vertical'] or 'n/a'}, bi_score={score_txt}, sources={source_bits}",
+                        f"domain={row['domain'] or 'n/a'}, vertical={row['vertical'] or 'n/a'}",
                         timestamp=row["updated_at"],
                         source_refs=[{"row_id": row["id"], "table": "targets"}],
                         score_exact=1.0,
@@ -4356,6 +4557,15 @@ def hybrid_search(
     allowed_types = set(entity_types)
     filters = filters or {}
     limit = max(1, min(int(k or 10), 50))
+    working_filters = dict(filters)
+    file_chunk_allowlist = _build_file_chunk_allowlist(working_filters)
+    working_filters["__file_chunk_allowlist"] = file_chunk_allowlist
+    top_k_exact = _coerce_int(working_filters.get("top_k_exact"), 10, 1, 100)
+    top_k_lexical = _coerce_int(working_filters.get("top_k_lexical"), 200, 10, 1200)
+    per_doc_cap = _coerce_int(working_filters.get("per_doc_cap"), 3, 1, 20)
+    max_evidence_tokens = _coerce_int(working_filters.get("max_evidence_tokens"), 2800, 200, 20000)
+    rerank_enabled = _coerce_bool(working_filters.get("rerank"), True)
+    rerank_top_n = _coerce_int(working_filters.get("rerank_top_n"), max(limit * 4, 20), 5, 200)
 
     # Keep index warm for exact/lex retrieval without full rebuild on every request.
     index_refresh = _ensure_entity_search_index_fresh_with_stats(
@@ -4411,7 +4621,7 @@ def hybrid_search(
 
     exact_started = time.perf_counter()
     # A) Exact / deterministic stage.
-    for item in resolve_entity(q, list(allowed_types), limit=10):
+    for item in resolve_entity(q, list(allowed_types), limit=top_k_exact):
         _upsert(item)
     exact_ms = int(round((time.perf_counter() - exact_started) * 1000))
 
@@ -4454,9 +4664,9 @@ def hybrid_search(
             WHERE entity_type IN ({placeholders})
               AND {lexical_where}
             ORDER BY updated_at DESC
-            LIMIT 200
+            LIMIT ?
             """,
-            [*allowed_types, *lexical_params],
+            [*allowed_types, *lexical_params, top_k_lexical],
         )
         for row in cursor.fetchall():
             searchable = " ".join(
@@ -4490,23 +4700,69 @@ def hybrid_search(
     # C) Semantic/vector stage via backend adapter (sqlite-vec optional).
     vector_started = time.perf_counter()
     vector_backend = _resolve_vector_backend()
-    vector_results = vector_backend.search(q, q_tokens, allowed_types, filters)
+    vector_results = vector_backend.search(q, q_tokens, allowed_types, working_filters)
     vector_fallback_used = False
     if not vector_results and vector_backend.name != "token_overlap":
-        vector_results = TokenOverlapVectorBackend().search(q, q_tokens, allowed_types, filters)
+        vector_results = TokenOverlapVectorBackend().search(q, q_tokens, allowed_types, working_filters)
         vector_fallback_used = True
     for item in vector_results:
         _upsert(item)
     vector_ms = int(round((time.perf_counter() - vector_started) * 1000))
 
     rank_started = time.perf_counter()
-    ranked = sorted(
+    ranked_initial = sorted(
         results_by_key.values(),
         key=lambda x: (x["score_total"], x["score_exact"], x["score_lex"], x["score_vec"]),
         reverse=True,
     )
+    ranked = ranked_initial
+    if rerank_enabled:
+        rerank_slice = ranked_initial[:rerank_top_n]
+        reranked_slice = []
+        query_phrase = q_norm
+        for item in rerank_slice:
+            text = f"{item.get('title', '')} {item.get('snippet', '')}".lower()
+            text_tokens = set(_tokenize(text))
+            overlap = len(q_tokens.intersection(text_tokens))
+            coverage = overlap / max(len(q_tokens), 1)
+            phrase_bonus = 0.15 if query_phrase and query_phrase in text else 0.0
+            semantic_bonus = min(0.2, float(item.get("score_vec", 0.0)) * 0.2)
+            rerank_score = float(item.get("score_total", 0.0)) + (coverage * 35.0) + (phrase_bonus * 100.0) + (
+                semantic_bonus * 100.0
+            )
+            enriched = dict(item)
+            enriched["score_rerank"] = round(rerank_score, 5)
+            reranked_slice.append(enriched)
+        reranked_slice.sort(
+            key=lambda x: (x.get("score_rerank", x.get("score_total", 0.0)), x.get("score_total", 0.0)),
+            reverse=True,
+        )
+        ranked = reranked_slice + ranked_initial[rerank_top_n:]
+
+    # Retrieval budgets to prevent context bloat, mainly for file_chunk evidence.
+    doc_counts: Dict[str, int] = {}
+    evidence_tokens = 0
+    budgeted: List[Dict[str, Any]] = []
+    for item in ranked:
+        if item.get("entity_type") == "file_chunk":
+            source_id = str(item.get("entity_id") or "")
+            per_doc_used = doc_counts.get(source_id, 0)
+            if per_doc_used >= per_doc_cap:
+                continue
+            refs = item.get("source_refs") or []
+            if refs and isinstance(refs, list) and isinstance(refs[0], dict):
+                token_count = refs[0].get("token_count")
+            else:
+                token_count = None
+            if not isinstance(token_count, int):
+                token_count = _estimate_token_count(str(item.get("snippet") or ""))
+            if evidence_tokens + token_count > max_evidence_tokens and budgeted:
+                continue
+            evidence_tokens += token_count
+            doc_counts[source_id] = per_doc_used + 1
+        budgeted.append(item)
+    out = budgeted[:limit]
     rank_ms = int(round((time.perf_counter() - rank_started) * 1000))
-    out = ranked[:limit]
 
     if debug_timing is not None:
         debug_timing.update(
@@ -4523,6 +4779,12 @@ def hybrid_search(
                 "result_count": len(out),
                 "vector_backend": vector_backend.name,
                 "vector_fallback_used": vector_fallback_used,
+                "rerank_enabled": rerank_enabled,
+                "rerank_top_n": rerank_top_n,
+                "per_doc_cap": per_doc_cap,
+                "max_evidence_tokens": max_evidence_tokens,
+                "evidence_tokens_used": evidence_tokens,
+                "file_chunk_allowlist_size": None if file_chunk_allowlist is None else len(file_chunk_allowlist),
             }
         )
     return out

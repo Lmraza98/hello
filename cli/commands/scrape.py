@@ -48,8 +48,7 @@ async def _scrape_companies_parallel_with_email(companies: list, max_contacts: i
     - Sales Navigator scraping (extracts contacts + public URLs in one pass)
     - Email pattern discovery (thread pool)
     """
-    from services.linkedin import SalesNavigatorScraper
-    from services.contacts import save_linkedin_contacts
+    from services.web_automation.linkedin import SalesNavigatorScraper
     from services.email.discoverer import discover_email_pattern, generate_email
     from playwright.async_api import async_playwright
     from concurrent.futures import ThreadPoolExecutor
@@ -328,7 +327,7 @@ async def _scrape_companies_parallel_with_email(companies: list, max_contacts: i
                     employees = result.get('employees', [])
                     
                     if employees:
-                        save_linkedin_contacts(company_name, employees, domain)
+                        db.save_linkedin_contacts(company_name, employees, domain)
                         
                         # Count how many have public URLs
                         public_url_count = sum(1 for e in employees if e.get('has_public_url'))

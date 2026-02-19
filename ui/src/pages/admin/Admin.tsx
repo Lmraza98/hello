@@ -30,10 +30,19 @@ export default function Admin({
                 <Shield className="w-5 h-5 text-text-muted" />
                 <h1 className="text-xl md:text-2xl font-semibold text-text">Admin</h1>
               </div>
-              <p className="text-sm text-text-muted mt-1">Logs and cost monitoring.</p>
+              <p className="text-sm text-text-muted mt-1">Tests, logs, and cost monitoring.</p>
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onTabChange('tests')}
+                className={`${tabBase} ${tab === 'tests' ? tabActive : tabInactive}`}
+              >
+                <TestTube2 className="w-4 h-4" />
+                Tests
+              </button>
+
               <button
                 type="button"
                 onClick={() => onTabChange('logs')}
@@ -51,23 +60,15 @@ export default function Admin({
                 <ReceiptText className="w-4 h-4" />
                 Costs
               </button>
-
+              <span className="mx-1 h-5 w-px bg-border" />
               <button
                 type="button"
                 onClick={() => onTabChange('finetune')}
-                className={`${tabBase} ${tab === 'finetune' ? tabActive : tabInactive}`}
+                className={`${tabBase} ${tab === 'finetune' ? tabActive : tabInactive} text-xs`}
+                title="Advanced tooling for failure labeling and SFT dataset export"
               >
                 <FlaskConical className="w-4 h-4" />
-                Fine-tune
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onTabChange('tests')}
-                className={`${tabBase} ${tab === 'tests' ? tabActive : tabInactive}`}
-              >
-                <TestTube2 className="w-4 h-4" />
-                Tests
+                Advanced: Fine-tune
               </button>
             </div>
           </div>

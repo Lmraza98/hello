@@ -9,7 +9,7 @@ from api.routes.browser_nav import (
 )
 from api.routes.salesnav_routes.helpers import normalize, people_search_url, to_absolute_linkedin_url
 from api.routes.salesnav_routes.models import SalesNavPersonSearchResponse, SalesNavSearchRequest
-from services.browser_workflows.recipes import extract_from_current
+from services.web_automation.browser.workflows.recipes import extract_from_current
 
 router = APIRouter()
 

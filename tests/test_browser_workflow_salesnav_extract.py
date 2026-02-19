@@ -1,7 +1,7 @@
 import asyncio
 import types
 
-from services.browser_workflow import BrowserWorkflow
+from services.web_automation.browser.core.workflow import BrowserWorkflow
 
 
 def _run(coro):

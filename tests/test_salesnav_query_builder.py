@@ -1,4 +1,4 @@
-from services.linkedin.salesnav.query_builder import (
+from services.web_automation.linkedin.salesnav.query_builder import (
     SalesNavQueryBuildError,
     build_salesnav_account_search_url,
     build_salesnav_people_search_url,

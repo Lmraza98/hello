@@ -39,7 +39,7 @@ import { hasOpenBrowserSessionSignal, isBrowserFollowUpIntent, isLikelyInternalU
 import { TOOLS } from '../tools';
 
 import { TOOL_BRAIN_MODEL, TOOL_BRAIN_NAME } from '../models/toolBrainConfig';
-import { AVOID_DUPLICATE_PLANNER_PASSES, CONVERSATION_MODEL, ENABLE_CHAT_ENGINE_DEBUG_TRACE, ENABLE_CHAT_ENGINE_HEAVY_DEBUG_TRACE, ENABLE_CHAT_MODEL_FAST_PATH, ENABLE_GENERIC_RETRIEVAL_BOOTSTRAP, ENABLE_OPENAI_FALLBACK, MODEL_FAST_PATH_ALLOWED_TOOLS } from './env';
+import { AVOID_DUPLICATE_PLANNER_PASSES, CHAT_BENCHMARK_MODEL, CHAT_BENCHMARK_NUM_PREDICT, CONVERSATION_MODEL, ENABLE_CHAT_BENCHMARK_MODE, ENABLE_CHAT_ENGINE_DEBUG_TRACE, ENABLE_CHAT_ENGINE_HEAVY_DEBUG_TRACE, ENABLE_CHAT_MODEL_FAST_PATH, ENABLE_GENERIC_RETRIEVAL_BOOTSTRAP, ENABLE_OPENAI_FALLBACK, MODEL_FAST_PATH_ALLOWED_TOOLS } from './env';
 import { attachTimingsAndSizes } from './dispatchResponse';
 import { buildSessionEntityChoices, resolveSessionCoreference } from './coreference';
 import { decomposeTask } from './taskDecomposer';
@@ -178,6 +178,99 @@ function lastAssistantAskedToConfirm(history: ChatCompletionMessageParam[]): boo
   return /\b(would you like me to proceed|should i proceed|do you want me to proceed|confirm to run|confirm|shall i proceed|ready to execute|awaiting confirmation|send the email)\b/i.test(last);
 }
 
+function modelRouteFromId(modelId: string): ModelRoute {
+  if (/qwen/i.test(modelId)) return 'qwen3';
+  if (/deepseek/i.test(modelId)) return 'deepseek';
+  if (/gpt|openai/i.test(modelId)) return 'openai';
+  return 'gemma';
+}
+
+async function stepBenchmarkSinglePass(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
+  if (!ENABLE_CHAT_BENCHMARK_MODE) return null;
+  if (ctx.options.confirmedToolCalls?.length) return null;
+  if (ctx.phase !== 'planning') return null;
+
+  emitPlannerEvent?.(`Benchmark mode enabled. Running single-pass model call (${CHAT_BENCHMARK_MODEL}).`);
+  const route = modelRouteFromId(CHAT_BENCHMARK_MODEL);
+  try {
+    const started = nowMs();
+    const resp = await ollamaChat({
+      model: CHAT_BENCHMARK_MODEL,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a concise assistant. Respond directly to the user request.',
+        },
+        { role: 'user', content: ctx.normalizedMessage },
+      ],
+      temperature: 0.2,
+      numPredict: CHAT_BENCHMARK_NUM_PREDICT,
+      onToken: ctx.options.onAssistantToken,
+    });
+    const elapsed = elapsedMs(started);
+    ctx.timings.fallbackMs = elapsed;
+
+    const text = (resp.message.content || '').trim() || 'No response.';
+    const updatedHistory: ChatCompletionMessageParam[] = [
+      ...ctx.history,
+      { role: 'user', content: ctx.userMessage },
+      { role: 'assistant', content: text },
+    ];
+
+    const evalCount = Number(resp.eval_count || 0);
+    const totalDurationNs = Number(resp.total_duration || 0);
+    const tokensPerSec =
+      evalCount > 0 && totalDurationNs > 0
+        ? Math.round((evalCount / (totalDurationNs / 1_000_000_000)) * 10) / 10
+        : undefined;
+    if (tokensPerSec != null) {
+      emitPlannerEvent?.(`Benchmark throughput: ~${tokensPerSec} tok/s (${evalCount} tokens).`);
+    }
+
+    return {
+      response: text,
+      updatedHistory,
+      messages: [textMsg(text)],
+      modelUsed: route,
+      toolsUsed: [],
+      fallbackUsed: false,
+      sessionState: ctx.options.sessionState,
+      ...(ctx.includeDebugTrace
+        ? {
+            debugTrace: {
+              route,
+              routeReason: 'benchmark_single_pass',
+              modelUsed: route,
+              toolBrainName: TOOL_BRAIN_NAME,
+              toolBrainModel: TOOL_BRAIN_MODEL,
+              success: true,
+              selectedTools: [],
+              nativeToolCalls: 0,
+              tokenToolCalls: 0,
+              toolsUsed: [],
+              fallbackUsed: false,
+              modelSwitches: [],
+              phase: ctx.phase,
+              rawUserMessage: ctx.userMessage,
+              intentText: ctx.normalizedMessage,
+              pageContext: ctx.pageContext || undefined,
+              executionTrace: [
+                `benchmark_model=${CHAT_BENCHMARK_MODEL}`,
+                `benchmark_elapsed_ms=${elapsed}`,
+                `benchmark_eval_count=${evalCount}`,
+                `benchmark_total_duration_ns=${totalDurationNs}`,
+                ...(tokensPerSec != null ? [`benchmark_tok_per_sec=${tokensPerSec}`] : []),
+              ],
+            },
+          }
+        : {}),
+    };
+  } catch {
+    emitPlannerEvent?.('Benchmark single-pass failed. Falling back to normal pipeline.');
+    return null;
+  }
+}
+
 async function stepConversationalShortCircuit(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
   if (isAffirmativeToken(ctx.resolvedMessage || ctx.normalizedMessage) && lastAssistantAskedToConfirm(ctx.history)) {
     return null;
@@ -203,6 +296,7 @@ async function stepConversationalShortCircuit(ctx: PipelineContext, emitPlannerE
       ],
       temperature: 0.7,
       numPredict: 512,
+      onToken: ctx.options.onAssistantToken,
     });
     ctx.timings.fallbackMs = elapsedMs(started);
     const text =
@@ -213,21 +307,22 @@ async function stepConversationalShortCircuit(ctx: PipelineContext, emitPlannerE
       { role: 'user', content: ctx.userMessage },
       { role: 'assistant', content: text },
     ];
+    const conversationalRoute = modelRouteFromId(CONVERSATION_MODEL);
 
     return {
       response: text,
       updatedHistory,
       messages: [textMsg(text)],
-      modelUsed: 'gemma',
+      modelUsed: conversationalRoute,
       toolsUsed: [],
       fallbackUsed: false,
       sessionState: ctx.options.sessionState,
       ...(ctx.includeDebugTrace
         ? {
             debugTrace: {
-              route: 'gemma',
+              route: conversationalRoute,
               routeReason: 'conversational',
-              modelUsed: 'gemma',
+              modelUsed: conversationalRoute,
               toolBrainName: TOOL_BRAIN_NAME,
               toolBrainModel: TOOL_BRAIN_MODEL,
               success: true,
@@ -868,6 +963,7 @@ async function stepRouteAndRunPlannerOrFallback(ctx: PipelineContext, emitPlanne
     ctx.localHistory,
     ctx.history,
     ctx.options.onToolCall,
+    ctx.options.onAssistantToken,
     ctx.options.onModelSwitch
   );
   ctx.timings.fallbackMs = elapsedMs(fallbackStartedAt);
@@ -917,11 +1013,12 @@ export async function processMessagePipeline(
   // Early intent classification:
   // - conversational: answer directly (no tool planning)
   // - single/multi: continue with normal tool/routing pipeline
-  ctx.intentKind = ctx.phase === 'planning' && !(ctx.options.confirmedToolCalls?.length)
+  ctx.intentKind = ctx.phase === 'planning' && !(ctx.options.confirmedToolCalls?.length) && !ENABLE_CHAT_BENCHMARK_MODE
     ? await classifyIntent(ctx.normalizedMessage, emitPlannerEvent)
     : 'single';
 
   const steps: Array<() => Promise<StepResult>> = [
+    () => stepBenchmarkSinglePass(ctx, emitPlannerEvent),                   // benchmark bypass
     () => stepSessionCoreferenceAndDisambiguation(ctx),                      // B
     () => stepTrySkillFirst(ctx),                                            // C
     () => stepActiveTaskAndSkillResume(ctx),                                 // D

@@ -20,7 +20,6 @@ Then read:
 
 - [Docs directory](/start/docs-directory)
 - [System architecture](/concepts/architecture)
-- [BI layer](/concepts/bi-layer)
 - [Repository map](/reference/repository-map)
 
 ## 2) Refresh API Surface

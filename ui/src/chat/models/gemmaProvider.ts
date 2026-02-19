@@ -22,7 +22,8 @@ export interface GemmaResult {
 export async function runGemma(
   userMessage: string,
   conversationHistory: LocalChatMessage[],
-  _onToolCall?: (name: string) => void
+  _onToolCall?: (name: string) => void,
+  onToken?: (token: string) => void,
 ): Promise<GemmaResult> {
   const messages: LocalChatMessage[] = [
     { role: 'system', content: SYSTEM_PROMPT },
@@ -35,6 +36,7 @@ export async function runGemma(
       model: MODEL,
       messages,
       temperature: 0.2,
+      onToken,
     });
     const text = result.message.content?.trim() || 'Done.';
     return { response: text, messages: [textMsg(text)], toolsUsed: [], success: true };

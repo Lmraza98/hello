@@ -73,7 +73,7 @@ Task decomposition runs before tool planning. The decomposer itself is unaffecte
 A separate orchestration path now exists for high-complexity browser requests:
 
 - Planner can emit `compound_workflow_run` (or top-level `compound_workflow`, which is normalized into `compound_workflow_run`).
-- These execute in backend background workers (`services/compound_workflow/orchestrator.py`) with checkpoint/resume and status polling.
+- These execute in backend background workers (`services/orchestration/compound/orchestrator.py`) with checkpoint/resume and status polling.
 
 Use decomposition for conversational multi-step actions in chat. Use compound workflows when the task itself is a long, phased browser workflow with iteration and verification across many entities.
 

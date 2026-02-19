@@ -57,7 +57,44 @@ export function summarizeToolResult(toolName: string, ok: boolean, result: unkno
   }
 
   // Contact/entity search -> extract IDs array + count + top labels.
-  if (toolName === 'search_contacts' || toolName === 'hybrid_search' || toolName === 'search_companies') {
+  if (toolName === 'ask_documents') {
+    const sources = Array.isArray(obj.sources) ? (obj.sources as unknown[]) : [];
+    const answer = typeof obj.answer === 'string' ? obj.answer : '';
+    const sourceRows = sources
+      .map((row) => (row && typeof row === 'object' ? (row as Record<string, unknown>) : null))
+      .filter((row): row is Record<string, unknown> => Boolean(row));
+    const docIds = sourceRows
+      .map((r) => r.document_id ?? r.id ?? null)
+      .filter((id): id is string | number => id != null);
+    const docNames = sourceRows
+      .map((r) => {
+        const v = r.filename ?? r.title ?? r.name ?? null;
+        return typeof v === 'string' && v.trim().length > 0 ? v.trim() : null;
+      })
+      .filter((v): v is string => Boolean(v));
+    const uniqueIds = [...new Set(docIds.map((v) => String(v)))];
+    const uniqueNames = [...new Set(docNames)];
+    const answerPreview = answer.replace(/\s+/g, ' ').trim().slice(0, 180);
+    const parts: string[] = [];
+    parts.push(`ask_documents sources=${sourceRows.length}`);
+    if (uniqueIds.length > 0) {
+      parts.push(`document_ids=[${uniqueIds.slice(0, 12).join(', ')}${uniqueIds.length > 12 ? ' ...' : ''}]`);
+    }
+    if (uniqueNames.length > 0) {
+      parts.push(`Top entities: ${uniqueNames.slice(0, 5).join(' | ')}`);
+    }
+    if (answerPreview) {
+      parts.push(`answer="${answerPreview}"`);
+    }
+    return parts.join('. ');
+  }
+
+  if (
+    toolName === 'search_contacts' ||
+    toolName === 'hybrid_search' ||
+    toolName === 'search_companies' ||
+    toolName === 'search_documents'
+  ) {
     const rows = Array.isArray(result)
       ? result
       : Array.isArray(obj.results)
@@ -122,6 +159,17 @@ function extractContextEntityHints(
     for (const tr of entry.toolResults) {
       if (!tr.ok || !tr.result || typeof tr.result !== 'object') continue;
       const obj = tr.result as Record<string, unknown>;
+      if (tr.name === 'ask_documents' && Array.isArray(obj.sources)) {
+        for (const source of obj.sources.slice(0, 20)) {
+          if (!source || typeof source !== 'object') continue;
+          const s = source as Record<string, unknown>;
+          const label = s.filename ?? s.title ?? s.name;
+          if (typeof label === 'string' && label.trim()) {
+            hints.add(label.trim());
+          }
+        }
+        continue;
+      }
       const rows = Array.isArray(tr.result)
         ? tr.result
         : Array.isArray(obj.results)

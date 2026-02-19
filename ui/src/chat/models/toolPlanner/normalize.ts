@@ -143,6 +143,53 @@ export function normalizePlannedCalls(
 ): { calls: ParsedToolCall[]; notes: string[] } {
   const normalized: ParsedToolCall[] = [];
   const notes: string[] = [];
+  const lowerMsg = (userMessage || '').toLowerCase();
+  const isDocumentIntent =
+    /\b(document|documents|doc|docx|pdf|file|files|attachment|attachments|uploaded|upload)\b/.test(lowerMsg) ||
+    /\b\w+\.(pdf|docx|csv|txt)\b/.test(lowerMsg);
+  const hasExplicitDocumentReference =
+    /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/i.test(userMessage) ||
+    /\b\w+\.(pdf|docx|csv|txt)\b/i.test(userMessage);
+  const extractDocumentIdsFromContext = (source: string): string[] => {
+    const matches = source.match(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi) || [];
+    return [...new Set(matches.map((m) => m.toLowerCase()))].slice(0, 20);
+  };
+  const contextDocumentIds = extractDocumentIdsFromContext(userMessage);
+  const truncatePeopleKeyword = (value: unknown): string => {
+    if (typeof value !== 'string') return '';
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    const token = trimmed.split(/\s+/)[0] || '';
+    return token.trim();
+  };
+  const normalizeCompoundPeopleQueries = (spec: unknown): { next: unknown; changed: boolean } => {
+    if (!spec || typeof spec !== 'object' || Array.isArray(spec)) return { next: spec, changed: false };
+    const specRec = { ...(spec as Record<string, unknown>) };
+    const rawPhases = Array.isArray(specRec.phases) ? (specRec.phases as unknown[]) : [];
+    let changed = false;
+    const phases = rawPhases.map((phase) => {
+      if (!phase || typeof phase !== 'object' || Array.isArray(phase)) return phase;
+      const phaseRec = { ...(phase as Record<string, unknown>) };
+      const operation = phaseRec.operation;
+      const opRec = operation && typeof operation === 'object' && !Array.isArray(operation)
+        ? (operation as Record<string, unknown>)
+        : null;
+      const task = typeof opRec?.task === 'string' ? opRec.task : '';
+      if (task !== 'salesnav_people_search') return phaseRec;
+      const templates = phaseRec.param_templates;
+      if (!templates || typeof templates !== 'object' || Array.isArray(templates)) return phaseRec;
+      const templateRec = { ...(templates as Record<string, unknown>) };
+      const compactQuery = truncatePeopleKeyword(templateRec.query);
+      if (compactQuery !== (templateRec.query ?? '')) {
+        templateRec.query = compactQuery;
+        changed = true;
+      }
+      phaseRec.param_templates = templateRec;
+      return phaseRec;
+    });
+    specRec.phases = phases;
+    return { next: specRec, changed };
+  };
   const extractEntityHints = (source: string): string[] => {
     const lines = source.split('\n');
     for (const line of lines) {
@@ -186,6 +233,20 @@ export function normalizePlannedCalls(
     if (cleaned.name === 'hybrid_search') {
       const query = typeof cleaned.args?.query === 'string' ? cleaned.args.query.trim() : '';
       const lower = query.toLowerCase();
+      const entityTypes = Array.isArray(cleaned.args?.entity_types)
+        ? cleaned.args.entity_types.map((v) => String(v).toLowerCase())
+        : [];
+      if (isDocumentIntent && (entityTypes.length === 0 || entityTypes.includes('company') || entityTypes.includes('file_chunk'))) {
+        normalized.push({
+          name: 'ask_documents',
+          args: {
+            question: query || userMessage,
+            limit_chunks: typeof cleaned.args.k === 'number' ? cleaned.args.k : 5,
+          },
+        });
+        notes.push('Rewrote document-intent hybrid_search to ask_documents.');
+        continue;
+      }
       if (lower.startsWith('google ') || lower.startsWith('search google for ') || lower.startsWith('search google ')) {
         const stripped =
           lower.startsWith('google ')
@@ -213,6 +274,54 @@ export function normalizePlannedCalls(
           k: typeof cleaned.args.k === 'number' ? cleaned.args.k : 10,
         };
         notes.push(`Added contact constraints to generic role lookup hybrid_search call.`);
+      }
+    }
+    if (cleaned.name === 'search_documents') {
+      const query = typeof cleaned.args?.query === 'string' ? cleaned.args.query.trim() : '';
+      const contentLikeQuery =
+        /\b(content|contents|what(?:'s| is)\s+in|full\s+text|tell me about|summarize|summary)\b/i.test(query) ||
+        /\bthose documents\b/i.test(lowerMsg);
+      if (isDocumentIntent && contentLikeQuery) {
+        const nextArgs: Record<string, unknown> = {
+          question: query || userMessage,
+          limit_chunks: 6,
+        };
+        if (contextDocumentIds.length > 0) {
+          nextArgs.document_ids = contextDocumentIds;
+        }
+        normalized.push({ name: 'ask_documents', args: nextArgs });
+        notes.push('Rewrote content-style search_documents call to ask_documents (with context document_ids when available).');
+        continue;
+      }
+    }
+    if (cleaned.name === 'compound_workflow_run') {
+      const spec = cleaned.args?.spec;
+      if (isDocumentIntent) {
+        const phases = spec && typeof spec === 'object' && !Array.isArray(spec)
+          ? ((spec as Record<string, unknown>).phases as unknown[])
+          : [];
+        if (!Array.isArray(phases) || phases.length === 0) {
+          notes.push('Dropped empty compound workflow for document-intent query.');
+          continue;
+        }
+      }
+      const normalizedSpec = normalizeCompoundPeopleQueries(spec);
+      if (normalizedSpec.changed) {
+        cleaned.args = {
+          ...(cleaned.args || {}),
+          spec: normalizedSpec.next,
+        };
+        notes.push('Normalized compound workflow SalesNav people-search queries to concise keyword input.');
+      }
+    }
+
+    if (cleaned.name === 'ask_documents') {
+      const existingDocIds = Array.isArray(cleaned.args?.document_ids) ? cleaned.args.document_ids : [];
+      if (isDocumentIntent && !hasExplicitDocumentReference && existingDocIds.length > 0) {
+        const nextArgs = { ...(cleaned.args || {}) } as Record<string, unknown>;
+        delete nextArgs.document_ids;
+        cleaned.args = nextArgs;
+        notes.push('Removed implicit ask_documents document_ids because no explicit document reference was provided.');
       }
     }
     normalized.push(cleaned);

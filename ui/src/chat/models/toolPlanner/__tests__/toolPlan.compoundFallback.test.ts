@@ -53,5 +53,13 @@ describe('compound workflow deterministic fallback spec', () => {
     expect(phase2Filters.seniority_level).toBe('Vice President');
     expect(phase2Filters.headquarters_location).toBe('United States');
     expect(phase2Filters.current_company).toBe('{{company.name}}');
+    expect(phase2Templates.query).toBe('');
+
+    const phase3 = phases.find((p) => p.id === 'phase_3_verify_recent_ai_signal') || {};
+    const phase3Templates =
+      phase3.param_templates && typeof phase3.param_templates === 'object'
+        ? (phase3.param_templates as Record<string, unknown>)
+        : {};
+    expect(phase3Templates.query).toBe('');
   });
 });

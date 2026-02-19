@@ -1,7 +1,7 @@
 """End-to-end test: search SalesNav for companies with NL query decomposition."""
 import asyncio
 import json
-from services.browser_workflows.recipes import search_and_extract
+from services.web_automation.browser.workflows.recipes import search_and_extract
 
 
 async def test():

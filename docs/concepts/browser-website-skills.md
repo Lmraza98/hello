@@ -27,7 +27,7 @@ They are designed to sit above generic `browser_*` primitives and below task wor
 
 Implemented in:
 
-- `services/browser_skills/store.py`
+- `services/web_automation/browser/skills/store.py`
 
 ## Skill File Format
 
@@ -63,14 +63,15 @@ version: 1
 3. Workflow resolves refs by iterating through **all** matching `Action Hints` variants for an action (to handle UI drift),
    then falls back to generic text matching.
 4. Workflow recipes infer extraction kinds from skill frontmatter (see "Extraction Rules").
-5. If key steps fail after exhausting all hint variants, the workflow appends a repair note (including attempted hints).
-5. Assistant (or operator) updates the same markdown skill via API/tools.
+5. Auto-learn now captures an Observation Pack (role snapshot + semantic nodes) and validates inferred extraction patterns with a deterministic fit score before saving.
+6. If key steps fail after exhausting all hint variants, the workflow appends a repair note (including attempted hints).
+7. Assistant (or operator) updates the same markdown skill via API/tools.
 
 Current usage:
 
-- `services/browser_workflow.py` (engine)
-- `services/browser_workflows/recipes.py` (generic recipes)
-- `services/google/workflows.py` (dedicated Google search workflow using browser primitives)
+- `services/web_automation/browser/core/workflow.py` (engine)
+- `services/web_automation/browser/workflows/recipes.py` (generic recipes)
+- `services/web_automation/google/workflows.py` (dedicated Google search workflow using browser primitives)
 - `api/routes/*` (API boundary; maps requests to generic recipes and returns legacy response shapes where needed)
 
 ## Google Skill + Dedicated Workflow
@@ -95,10 +96,15 @@ The dedicated workflow waits for AI Overview and returns:
 - `PUT /api/browser/skills/{skill_id}`
 - `DELETE /api/browser/skills/{skill_id}`
 - `POST /api/browser/skills/{skill_id}/repair`
+- `POST /api/browser/workflows/observation-pack`
+- `POST /api/browser/workflows/validate-candidate`
+- `POST /api/browser/workflows/annotate-candidate`
+- `POST /api/browser/workflows/synthesize-from-feedback`
 
 Route file:
 
 - `api/routes/browser_skills.py`
+- `api/routes/browser_workflows.py`
 
 ## Assistant Tool Surface
 

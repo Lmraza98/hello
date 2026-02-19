@@ -14,8 +14,8 @@ This feature allows you to automatically collect companies from LinkedIn Sales N
 
 For live Sales Navigator navigation and structured extraction, prefer the OpenClaw-style workflows implemented in:
 
-- `services/browser_workflow.py` (engine)
-- `services/browser_workflows/recipes.py` (generic recipes)
+- `services/web_automation/browser/core/workflow.py` (engine)
+- `services/web_automation/browser/workflows/recipes.py` (generic recipes)
 - `api/routes/browser_workflows.py` (generic workflow API)
 - `api/routes/salesnav_routes/browser.py` (legacy SalesNav API boundary; response mapping)
 
@@ -53,6 +53,9 @@ Legacy (SalesNav-specific wrappers; maintained for compatibility):
 - `salesnav_search_account` now applies keyword + filters via URL query builder (no sidebar filter typing/clicking required).
 - `salesnav_people_search` now also uses URL query builder for filters instead of sidebar interactions.
 - For people searches using `CURRENT_COMPANY`, the workflow first resolves an exact LinkedIn company identity (`name` + `urn:li:organization:<id>`), then builds the URL filter. If exact-company search yields no leads, it retries with keyword-driven people filters (without `CURRENT_COMPANY`).
+- For compound lead phases (`phase_2_find_vp_ops`, `phase_3_verify_recent_ai_signal`), people search now keeps keyword input minimal:
+  - planner-generated phase query defaults to empty (filter-first search),
+  - if a keyworded people search returns zero rows, the workflow retries once with the same filters and no keyword before broader fallback.
 - Unsupported/unmapped filter values fail fast with a structured error (`salesnav_filter_unmapped`).
 - URL mapping now hydrates from:
   - `data/linkedin/salesnav-filters-ids.json` (canonical text->id mappings, including industries),
@@ -60,6 +63,7 @@ Legacy (SalesNav-specific wrappers; maintained for compatibility):
   - observed ID/text pairs in `data/debug/**/manifest.json`,
   in addition to static defaults.
 - Compound workflows now propagate browser-step errors as workflow `failed` (not `completed` with empty results).
+- Chat now auto-posts terminal compound workflow outcomes (completed/failed) with a concise results summary for the original request.
 - The Tasks page shows failed workflow/task rows with an `Open` action to inspect error details.
 
 ### Notes on Anti-Bot / Human Verification
@@ -112,12 +116,12 @@ Content-Type: application/json
 
 ## How It Works
 
-### 1. Filter Parser (`services/salesnav/filter_parser.py`)
+### 1. Filter Parser (`services/web_automation/linkedin/salesnav/filter_parser.py`)
 
 The `SalesNavFilterParser` class uses GPT-4 to parse natural language queries into structured filter specifications:
 
 ```python
-from services.salesnav.filter_parser import parse_salesnav_query
+from services.web_automation.linkedin.salesnav.filter_parser import parse_salesnav_query
 
 filters = parse_salesnav_query("Construction companies in New England")
 # Returns:
@@ -133,7 +137,7 @@ filters = parse_salesnav_query("Construction companies in New England")
 # }
 ```
 
-### 2. Sales Navigator Scraper (`services/linkedin/scraper_core.py`)
+### 2. Sales Navigator Scraper (`services/web_automation/linkedin/scraper_core.py`)
 
 The `SalesNavigatorScraper` class has been extended with new methods:
 
@@ -142,7 +146,7 @@ The `SalesNavigatorScraper` class has been extended with new methods:
 - `scrape_company_results(max_companies)`: Scrapes company results from the current page
 - `search_companies_with_filters(filters, max_companies)`: Full pipeline method
 
-Internal responsibilities are now grouped under `services/linkedin/salesnav/`:
+Internal responsibilities are now grouped under `services/web_automation/linkedin/salesnav/`:
 - `core/`
   - `selectors.py`, `waits.py`, `session.py`, `nav.py`, `filters.py`, `operations.py`, `debug.py`, `models.py`
 - `flows/`
@@ -155,19 +159,19 @@ Internal responsibilities are now grouped under `services/linkedin/salesnav/`:
 - `mixins/`
   - `session_mixin.py`, `navigation_mixin.py`, `filter_url_mixin.py`, `public_url_mixin.py`, `parsing_mixin.py`
 - `parser/`
-  - `filter_parser.py` (plus compatibility shim at `services/linkedin/salesnav/filter_parser.py`)
+  - `filter_parser.py` (plus compatibility shim at `services/web_automation/linkedin/salesnav/filter_parser.py`)
 
-`services/linkedin/scraper_core.py` is now a facade entrypoint that composes
+`services/web_automation/linkedin/scraper_core.py` is now a facade entrypoint that composes
 dedicated services/flows (session/auth lifecycle, navigation flows, filter URL
 flows, public URL flow, filter applier, and extractors) without mixin
 inheritance in the facade class.
 
-### 3. Company Collection Flow (`services/linkedin/salesnav/flows/company_collection.py`)
+### 3. Company Collection Flow (`services/web_automation/linkedin/salesnav/flows/company_collection.py`)
 
 The `SalesNavCompanyCollectionFlow` flow ties everything together:
 
 ```python
-from services.linkedin.salesnav.flows.company_collection import collect_companies_from_query
+from services.web_automation.linkedin.salesnav.flows.company_collection import collect_companies_from_query
 
 result = await collect_companies_from_query(
     query="Construction companies in New England",

@@ -339,7 +339,7 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
   return (
     <div className="h-full flex flex-col">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-10 bg-bg pb-3 md:pb-6">
+      <div className="sticky top-0 z-10 pb-3 md:pb-6">
         <div className="pt-5 px-4 md:pt-8 md:px-8">
           <PageHeader
             title="Contacts"

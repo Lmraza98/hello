@@ -18,6 +18,10 @@ Think through the plan internally, then emit only function calls that advance th
 
 Return only function calls when tools are needed.
 For CRM lookups (find/search contact/person/lead/company) in our database, call resolve_entity or hybrid_search first.
+For uploaded document/file questions, call ask_documents first (optionally search_documents to locate files).
+For ask_documents, do NOT invent document_ids or filenames.
+Only set document_ids when the user explicitly provides a doc reference or prior tool output returned concrete IDs.
+If the reference is ambiguous, omit document_ids and search broadly.
 
 If the user explicitly mentions live browser work (e.g. "on SalesNav", "on Sales Navigator", "on LinkedIn", provides a URL, or says navigate/click/type/screenshot),
 then treat it as LIVE BROWSER AUTOMATION. Do NOT use search_contacts/search_companies/hybrid_search/resolve_entity for that.
@@ -51,7 +55,7 @@ const ACTION_VERBS = new Set([
   'mark', 'trigger', 'enroll', 'pause', 'activate', 'upload', 'export',
 ]);
 
-type ToolDomain = 'contact' | 'company' | 'campaign' | 'pipeline' | 'salesforce' | 'salesnav' | 'research' | 'stats' | 'generic';
+type ToolDomain = 'contact' | 'company' | 'campaign' | 'pipeline' | 'salesforce' | 'salesnav' | 'research' | 'stats' | 'document' | 'generic';
 
 function convertToolsForOllama(tools: (typeof TOOLS)[number][]) {
   return tools.map((tool) => ({
@@ -103,6 +107,7 @@ function inferMessageDomains(tokens: Set<string>): Set<ToolDomain> {
   if (has('salesnav') || has('navigator') || has('linkedin')) domains.add('salesnav');
   if (has('research') || has('assess') || has('icp')) domains.add('research');
   if (has('stats') || has('metrics') || has('dashboard') || has('status')) domains.add('stats');
+  if (has('document') || has('documents') || has('doc') || has('pdf') || has('docx') || has('file') || has('files')) domains.add('document');
 
   return domains;
 }
@@ -117,6 +122,9 @@ function inferToolDomain(toolName: string): ToolDomain {
   if (t.includes('salesnav') || t.includes('linkedin')) return 'salesnav';
   if (t.includes('research') || t.includes('icp')) return 'research';
   if (t.includes('stats') || t.includes('dashboard') || t.includes('status')) return 'stats';
+  if (t.includes('document')) return 'document';
+  if (t.includes('ask_documents')) return 'document';
+  if (t.includes('search_documents')) return 'document';
   return 'generic';
 }
 
@@ -252,8 +260,12 @@ function selectToolsForMessage(userMessage: string): (typeof TOOLS)[number][] {
   const positive = scored.filter((s) => s.score > 0).sort((a, b) => b.score - a.score);
   if (positive.length === 0) {
     // Safe default shortlist to avoid exposing unrelated high-risk tools.
-    const safeCore = ['resolve_entity', 'hybrid_search', 'search_contacts', 'search_companies', 'list_campaigns', 'get_dashboard_stats'];
-    return TOOLS.filter((tool) => safeCore.includes(tool.function.name));
+  const safeCore = ['resolve_entity', 'hybrid_search', 'search_contacts', 'search_companies', 'list_campaigns', 'get_dashboard_stats'];
+  const docSafeCore = ['ask_documents', 'search_documents', 'get_document_summary', 'list_company_documents'];
+  if (/\b(document|documents|doc|docx|pdf|file|files|attachment|uploaded)\b/i.test(userMessage)) {
+    return TOOLS.filter((tool) => docSafeCore.includes(tool.function.name));
+  }
+  return TOOLS.filter((tool) => safeCore.includes(tool.function.name));
   }
   return positive.slice(0, TOOL_SHORTLIST_SIZE).map((s) => s.tool);
 }

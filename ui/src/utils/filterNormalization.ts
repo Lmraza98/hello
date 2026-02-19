@@ -170,6 +170,13 @@ export function normalizeToolArgs(
     delete out.query;
   }
 
+  if (toolName === 'ask_documents') {
+    if ((typeof out.question !== 'string' || !out.question.trim()) && typeof out.query === 'string' && out.query.trim()) {
+      out.question = out.query.trim();
+    }
+    delete out.query;
+  }
+
   if (toolName === 'browser_snapshot') {
     const mode = typeof out.mode === 'string' ? out.mode.trim().toLowerCase() : '';
     if (mode && mode !== 'role' && mode !== 'ai') {

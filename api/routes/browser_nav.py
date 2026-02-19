@@ -14,8 +14,8 @@ from urllib.parse import urlparse
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from services.browser_backends.factory import get_browser_backend
-from services.browser_workflows.task_manager import workflow_task_manager
+from services.web_automation.browser.backends.factory import get_browser_backend
+from services.web_automation.browser.workflows.task_manager import workflow_task_manager
 
 
 router = APIRouter(prefix="/api/browser", tags=["browser"])

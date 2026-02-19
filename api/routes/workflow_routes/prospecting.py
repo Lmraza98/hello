@@ -19,7 +19,7 @@ async def prospect_endpoint(request: ProspectRequest):
     Search for target companies via Sales Navigator.
     Results include deduplication against existing DB companies.
     """
-    from services.workflows.prospecting import prospect
+    from services.orchestration.workflows.prospecting import prospect
 
     result = await prospect(
         query=request.query,
@@ -37,7 +37,7 @@ async def scrape_leads_batch_endpoint(request: ScrapeLeadsBatchRequest):
     Scrape decision-makers from multiple companies in one call.
     Contacts are saved to the database.
     """
-    from services.workflows.prospecting import scrape_leads_batch
+    from services.orchestration.workflows.prospecting import scrape_leads_batch
 
     result = await scrape_leads_batch(
         company_names=request.company_names,

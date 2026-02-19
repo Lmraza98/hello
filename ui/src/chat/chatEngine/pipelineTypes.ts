@@ -25,6 +25,7 @@ export interface ChatEngineOptions {
   conversationHistory?: ChatCompletionMessageParam[];
   onToolCall?: (toolName: string) => void;
   onPlannerEvent?: (message: string) => void;
+  onAssistantToken?: (token: string) => void;
   onModelSwitch?: (from: ModelRoute, to: ModelRoute, reason: string) => void;
   forceModel?: ModelRoute;
   phase?: ChatPhase;

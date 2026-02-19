@@ -1,10 +1,10 @@
 import asyncio
 import types
 
-from services.linkedin.salesnav.query_builder import SalesNavQueryBuildError
-from services.browser_skills.store import get_skill
-from services.browser_workflow import BrowserWorkflow
-from services.browser_workflows import recipes
+from services.web_automation.linkedin.salesnav.query_builder import SalesNavQueryBuildError
+from services.web_automation.browser.skills.store import get_skill
+from services.web_automation.browser.core.workflow import BrowserWorkflow
+from services.web_automation.browser.workflows import recipes
 
 SALESNAV_FILTER_CASES = {
     "annual_revenue": "10M-50M",
@@ -90,7 +90,7 @@ async def _apply_all_filters_with_stubs() -> None:
 
 
 def test_apply_filter_supports_all_salesnav_filters(monkeypatch):
-    import services.browser_workflow as workflow_module
+    import services.web_automation.browser.core.workflow as workflow_module
 
     async def fake_browser_act(_req):
         return {"ok": True}
@@ -393,6 +393,52 @@ def test_people_search_uses_url_builder_without_typing(monkeypatch):
     _run(_run_people_recipe_uses_url_builder_without_typing(monkeypatch))
 
 
+async def _run_people_recipe_retries_without_keyword_in_compound_mode(monkeypatch):
+    wf = _FakePeopleWorkflow()
+    wf.extract_batches = [
+        [],
+        [{"name": "Jane VP", "title": "Vice President of Operations"}],
+    ]
+    monkeypatch.setattr(recipes, "BrowserWorkflow", lambda **kwargs: wf)
+    monkeypatch.setattr(recipes, "_is_natural_language", lambda _q: False)
+
+    async def _noop_guard(_wf, stage: str):
+        return None
+
+    monkeypatch.setattr(recipes, "_guard_challenges", _noop_guard)
+    seen_keywords: list[str] = []
+
+    def _fake_people_builder(keyword, filters):
+        seen_keywords.append(str(keyword or ""))
+        suffix = "no-keyword" if not str(keyword or "").strip() else "with-keyword"
+        return types.SimpleNamespace(
+            url=f"https://www.linkedin.com/sales/search/people?query={suffix}&viewAllFilters=true",
+            applied_filters={"function": {"value": "Operations", "applied": True, "source": "url_query"}},
+        )
+
+    monkeypatch.setattr(recipes, "build_salesnav_people_search_url", _fake_people_builder)
+    _patch_recipe_waits(monkeypatch)
+
+    result = await recipes.search_and_extract(
+        task="salesnav_people_search",
+        query="VP of Operations Industrial Air Centers",
+        filter_values={"function": "Operations", "seniority_level": "Vice President"},
+        compound_lead_mode=True,
+        limit=5,
+    )
+    assert result.get("ok") is True
+    assert len(result.get("items") or []) == 1
+    assert seen_keywords[:2] == ["VP", ""]
+    meta = result.get("people_search") or {}
+    keyword_retry = meta.get("keyword_retry") or {}
+    assert keyword_retry.get("used") is True
+    assert keyword_retry.get("count") == 1
+
+
+def test_people_search_retries_without_keyword_in_compound_mode(monkeypatch):
+    _run(_run_people_recipe_retries_without_keyword_in_compound_mode(monkeypatch))
+
+
 async def _run_people_recipe_falls_back_when_exact_company_returns_empty(monkeypatch):
     wf = _FakePeopleWorkflow()
     wf.extract_batches = [
@@ -485,7 +531,7 @@ async def _apply_bool_frontmatter_flags() -> tuple[list[bool], dict]:
 
 
 def test_apply_filter_honors_boolean_frontmatter_flags(monkeypatch):
-    import services.browser_workflow as workflow_module
+    import services.web_automation.browser.core.workflow as workflow_module
 
     async def fake_browser_act(_req):
         return {"ok": True}
@@ -530,7 +576,7 @@ async def _apply_filter_falls_back_to_direct_option_when_input_fails() -> tuple[
 
 
 def test_apply_filter_can_select_option_even_when_input_typing_fails(monkeypatch):
-    import services.browser_workflow as workflow_module
+    import services.web_automation.browser.core.workflow as workflow_module
 
     async def fake_browser_act(_req):
         return {"ok": True}

@@ -1,9 +1,0 @@
-2026-01-21 10:37:54,051 - INFO - ============================================================
-2026-01-21 10:37:54,051 - INFO - Daily Email Campaign Sender Starting
-2026-01-21 10:37:54,051 - INFO - Time: 2026-01-21 10:37:54
-2026-01-21 10:37:54,052 - INFO - ============================================================
-2026-01-21 10:37:54,064 - ERROR - Error running email sender: cannot import name 'run_campaign_email_sender' from 'services.salesforce_email_sender' (C:\Users\lmraz\Hello\services\salesforce_email_sender.py)
-Traceback (most recent call last):
-  File "C:\Users\lmraz\Hello\daily_email_sender.py", line 49, in main
-    from services.salesforce_email_sender import run_campaign_email_sender
-ImportError: cannot import name 'run_campaign_email_sender' from 'services.salesforce_email_sender' (C:\Users\lmraz\Hello\services\salesforce_email_sender.py)

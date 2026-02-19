@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { api } from '../api';
+import { emailApi } from '../api/emailApi';
 
 export type OutlookAuthFlow = {
   verification_uri: string;
@@ -46,6 +47,20 @@ export function useDashboard() {
   const scheduledEmails = useQuery({
     queryKey: ['scheduled-emails-dashboard'],
     queryFn: api.getScheduledEmailsForDashboard,
+    refetchInterval: 15000,
+    retry: false,
+  });
+
+  const campaigns = useQuery({
+    queryKey: ['dashboard-campaigns'],
+    queryFn: () => api.getEmailCampaigns(),
+    refetchInterval: 15000,
+    retry: false,
+  });
+
+  const sentEmails = useQuery({
+    queryKey: ['dashboard-sent-emails'],
+    queryFn: () => emailApi.getSentEmails(undefined, 500),
     refetchInterval: 15000,
     retry: false,
   });
@@ -131,6 +146,8 @@ export function useDashboard() {
     emailStats: emailStats.data,
     todaysContacts: todaysContacts.data || [],
     scheduledEmails: scheduledEmails.data || [],
+    campaigns: campaigns.data || [],
+    sentEmails: sentEmails.data || [],
     outlookAuth: outlookAuth.data,
     outlookAuthFlow,
 

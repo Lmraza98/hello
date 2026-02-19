@@ -3,7 +3,7 @@ Phone discovery command.
 """
 import sys
 import asyncio
-from services.phone.discoverer import process_linkedin_contacts_for_phones
+from services.enrichment.phone.discoverer import process_linkedin_contacts_for_phones
 
 
 def cmd_discover_phones(args):

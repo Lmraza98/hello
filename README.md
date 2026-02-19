@@ -123,7 +123,7 @@ MIN_CONFIDENCE_TO_SEND = 0.6    # Skip low-confidence extractions
 MIN_FIT_SCORE_TO_SEND = 0.5     # Skip poor-fit companies
 
 # LLM settings
-LLM_MODEL = "gpt-4o-mini"       # Cost-effective model
+LLM_MODEL = "gemma3:12b"       # Local default model
 LLM_MAX_INPUT_TOKENS = 800      # Aggressive trimming
 LLM_MAX_OUTPUT_TOKENS = 120     # Concise outputs
 ```
@@ -145,6 +145,79 @@ VITE_OLLAMA_TOOL_BRAIN_MODEL=devstral-small-2:latest
 ```
 
 This model is used for API tool interaction (intent routing, tool selection, structured arguments, and multi-step tool planning).
+
+Qwen2.5-Coder 32B profile for structured reasoning and extraction:
+
+```env
+VITE_TOOL_BRAIN=qwen3
+VITE_PLANNER_BACKEND=qwen3
+VITE_DECOMPOSE_CLASSIFIER_MODEL=gemma3:12b
+VITE_OLLAMA_QWEN3_MODEL=qwen2.5:32b-instruct
+VITE_OLLAMA_GEMMA_MODEL=gemma3:12b
+```
+
+Single-pass latency benchmark mode (closest to terminal-style prompt timing):
+
+```env
+VITE_CHAT_BENCHMARK_MODE=true
+VITE_CHAT_BENCHMARK_MODEL=qwen2.5:32b-instruct
+VITE_CHAT_BENCHMARK_NUM_PREDICT=256
+```
+
+Saved local llama.cpp profile (Qwen2.5-Coder-32B GGUF):
+
+- Script: `scripts/run_qwen25_coder_32b_llama_cli.ps1`
+- Env path vars: `LLAMA_CPP_TOOL_BRAIN_DIR`, `LLAMA_CPP_TOOL_BRAIN_MODEL_PATH`, `VITE_LLAMA_CPP_TOOL_BRAIN_MODEL_PATH`
+
+Command:
+
+```powershell
+cd C:\llm\llama
+.\llama-cli.exe -m "C:\llm\models\qwen2.5-coder-32b\Qwen2.5-Coder-32B-Instruct-Q4_K_M.gguf" `
+  --n-gpu-layers 999 `
+  --tensor-split 0.35,0.65 `
+  --main-gpu 1 `
+  -c 8192 `
+  -n 16 `
+  -p "Reply with: OK"
+```
+
+### Chat Workspace Layout (UI)
+
+The app shell uses a two-pane split workspace:
+
+- Left pane: assistant chat and workflow events.
+- Right pane: primary page content (for example, Companies table).
+
+Recent UI updates added:
+
+- left app navigation moved into a collapsible sidebar (`230px` max width) with icon-only collapsed mode,
+- desktop header actions moved into the left sidebar (quick add + settings) and top header removed on desktop,
+- draggable chat pane width (`360px-420px`, default `392px`) with browser persistence,
+- independent chat/content scrolling,
+- compact workflow event cards for action-required confirmations, tool findings, and next actions,
+- trace drawer with an `LLM Reasoning` block summarizing route decisions, planner thoughts, and reflections from debug trace metadata,
+- reduced confirmation prompt duplication by rendering confirmation as a single structured card.
+
+### Templates Tab (UI + API)
+
+The app now includes a standalone `Templates` tab (`/templates`) for reusable email templating.
+
+Features:
+
+- template CRUD (`create`, `edit`, `duplicate`, `archive`),
+- subject/preheader/from header fields,
+- HTML + optional plain-text bodies,
+- token rendering with fallbacks (for example `{{firstName | "there"}}`),
+- reusable snippet blocks,
+- revision history + revert,
+- render preview + validation + test-send (dry run),
+- export/import JSON.
+
+Campaigns support:
+
+- `copied` mode: legacy step templates per campaign,
+- `linked` mode: attach a template-library `template_id` and render per contact.
 
 ## Cost Management
 
@@ -284,7 +357,7 @@ Check `data/screenshots/` for failure screenshots and HTML dumps.
 3. Skip personalization: modify `planner.py` to set `personalize_top_n=0`
 
 ### Salesforce UI changes
-Update selectors in `services/salesforce/pages.py`. The page object pattern isolates these changes.
+Update selectors in `services/web_automation/salesforce/pages.py`. The page object pattern isolates these changes.
 
 ### Sales Navigator API lifecycle
 

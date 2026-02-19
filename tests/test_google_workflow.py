@@ -1,4 +1,4 @@
-from services.google.workflows import (
+from services.web_automation.google.workflows import (
     _build_human_typing_keystrokes,
     _extract_ai_overview,
     _extract_organic_results,

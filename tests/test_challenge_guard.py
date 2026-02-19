@@ -1,6 +1,6 @@
 import asyncio
 
-from services.browser_workflows import recipes
+from services.web_automation.browser.workflows import recipes
 
 
 class _FakeWorkflow:

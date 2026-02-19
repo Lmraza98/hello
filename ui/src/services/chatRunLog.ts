@@ -4,6 +4,7 @@ export type ChatRunEvent = {
   phase:
     | 'input'
     | 'planner_event'
+    | 'reasoning'
     | 'tool_call'
     | 'tool_result'
     | 'confirmation'

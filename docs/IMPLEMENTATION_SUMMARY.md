@@ -27,6 +27,87 @@ This document summarizes all changes made in today's implementation session, org
 
 **Flow**: Task creation gate checks if params are needed → collect params → transition to 'ready' → user confirms → execute with collected params → mark completed.
 
+### Compound workflow completion visibility
+
+- Chat now tracks `compound_workflow_run` executions and polls workflow status until a terminal state.
+- On completion/failure/cancel, chat auto-posts a concise terminal message (including result preview for completed runs).
+- The `/tasks` page remains the authoritative detailed monitor for workflow progress, errors, and phase diagnostics.
+
+### Thinking meta-layer + trace UX
+
+- Planner/tool progress is now rendered as a transient system meta card (not a persisted chat message bubble).
+- The UI now uses tiered thinking surfaces by latency:
+  - `<500ms`: no thinking UI,
+  - `500ms-2s`: lightweight in-bubble micro-thinking indicator,
+  - `>2s`: persistent system meta card.
+- The short-task micro indicator now uses an inline black blinking dot cursor (`ui-stream-cursor`) to signal live output.
+- The specific micro planning line "Planning the best sequence of actions." is rendered without border/background to keep it visually lightweight.
+- The fallback typing state now uses an assistant-style streaming bubble with the same blinking dot cursor (instead of bouncing dots).
+- Added fallback synthetic token streaming for deterministic/tool-result replies that return full text at once (e.g., entity lookup), so they render through the same live streaming UI path.
+- Restored high-level thought/plan visibility during typing pre-stream: thinking cards remain visible until actual assistant stream text begins, then the UI transitions to the streaming bubble.
+- Assistant streaming now appends real backend token chunks in real time for supported model paths, and keeps the dot cursor inline until completion.
+- The streaming pending state is now rendered without a chat bubble/background so only text + cursor are visible.
+- Bot plain text responses are now rendered without the default bordered bubble/background chrome.
+- A small minimum typing window is applied to reduce flash/flicker on very fast responses.
+
+### Chat UI refresh (layout + cards + trace drawer)
+
+- Chat now uses a compact top bar with assistant title and trace toggle.
+- Trace UI opens in a right-side drawer (`TraceDrawer`) instead of inline; trace entries support text filtering.
+- Message list spacing now increases when speaker changes, and auto-scroll follows only when the user is near the bottom.
+- Message timestamps were removed from regular user/assistant message headers for a cleaner thread.
+- A `Jump to latest` button appears when new content arrives while the user is scrolled up.
+- Composer remains sticky at the bottom with subtle separation and helper text.
+- Assistant text responses render via `AssistantMessage` with markdown-aware typography, improved line-height, list/code formatting, and readable line length.
+- Assistant text responses now render without message card chrome (no border/background/shadow) for plain in-thread text.
+- User text renders with a tighter accent bubble via `UserBubble`.
+- Tool confirmation now renders as an in-thread `ActionCard` with `Action required`, `Confirm`, `Deny`, and optional details.
+- Confirm/deny now emit compact system event messages (`Plan confirmed.`, `Plan canceled.`).
+- Repeated "Planned UI actions." status output now renders as a structured `PlannedActionsCard` with status chips and collapse/expand behavior.
+- Added chat UI tokens in `ui/src/components/chat/uiTokens.ts` for widths, radii, spacing, and elevation.
+- Added structural wrappers (`ChatLayout`, `MessageList`, `MessageRow`, `Composer`) to keep UI responsibilities separated without changing message data shapes.
+- Assistant readability refinements:
+  - line width constrained to ~70ch
+  - softer background surface (`bg-slate-50/70`)
+  - increased inner padding and heading/list spacing
+  - higher line-height and improved paragraph rhythm
+  - optional collapse/expand for very long responses
+  - support for numbered heading spacing (e.g., `1)` / `1.`)
+- User bubble refinements:
+  - smaller max width for better rhythm
+  - slightly tighter vertical padding
+  - stronger contrast purple tone
+  - softer elevation and larger corner radius
+- Composer refinements:
+  - slightly taller default input
+  - animated focus ring
+  - sticky separation shadow
+- Jump-to-latest button visual weight reduced while preserving behavior.
+- Trace drawer refinements:
+  - collapsible timeline-style rows per event
+  - monospace event/meta blocks
+  - retained filtering and scrolling behavior
+- Scroll anchoring refinement:
+  - assistant stream container is inserted immediately and, on stream start (when user is near bottom), is aligned near the top of the viewport via one-time top-offset anchoring based on the message element's offset within the scroller (not viewport-rect alignment).
+  - top-offset is now measured dynamically from the chat header height plus a small padding margin, instead of using a fixed constant.
+  - alignment targets the actual streaming bubble element (not an outer wrapper) for precise placement.
+  - temporary tail spacer uses `clientHeight - topOffset + buffer` sizing so the newest (last) message can physically reach the top-offset target even on short threads.
+  - initial stream-start anchor movement is eased over a short duration to reduce abrupt upward motion when the user sends a message.
+  - initial stream-start anchor movement now uses an even calmer ease-in-out sine curve (~460ms) for smoother upward travel when the user sends a message.
+  - streaming no longer hard-pins to bottom; instead, caret-follow logic scrolls only enough to keep the cursor visible.
+  - post-stream position lock prevents automatic snap-back to bottom after completion; lock clears when user returns to bottom or taps `Jump to latest`.
+  - programmatic scroll guard prevents start-align/jump scroll calls from being treated as user scroll in the `onScroll` handler.
+  - on stream end, tail spacer is now always collapsed with scroll-height compensation (`scrollTop -= shrink`) so blank trailing space is removed without snapping the viewport.
+  - top-offset target calculation now uses geometry within the scroll container (`getBoundingClientRect` + `scrollTop`) for robust behavior with nested wrappers.
+  - added a post-stream hold window and removed passive lock clearing on near-bottom scroll events, preventing bottom snap immediately after stream completion.
+  - tail spacer collapse on stream end now computes a minimum required spacer to preserve viewport position and avoid browser `scrollTop` clamp-to-bottom snaps on short threads.
+  - message scroller now disables browser overflow anchoring (`overflow-anchor: none`) to prevent UA re-anchoring during dynamic streaming/spacer height changes.
+  - if the user scrolls away, auto-follow pauses and `Jump to latest` is shown.
+- The meta card summarizes progress and stays collapsed by default.
+- Internal chain-of-thought remains private; only sanitized summary/step text is surfaced in the card.
+- Run Trace remains the full diagnostic surface for deep planner/tool chaining details.
+- Run Trace scrolling now respects manual user scroll position (auto-follow only when near bottom), fixing the previous forced-scroll lock.
+
 ## 2. Multi-Step Task Execution with Structured Context
 
 **Problem**: Step 2 of a 3-step plan can't see campaign_id from step 1 — planner outputs `campaign_id: null`.
@@ -248,7 +329,7 @@ Expected:
 After deploying, run once:
 ```bash
 # Backfill company verticals (if any are NULL)
-python -c "from services.linkedin.salesnav.filter_parser import backfill_missing_verticals; print(backfill_missing_verticals(500))"
+python -c "from services.web_automation.linkedin.salesnav.filter_parser import backfill_missing_verticals; print(backfill_missing_verticals(500))"
 
 # Rebuild contact search index with vertical data
 python -c "from database import refresh_entity_search_index; refresh_entity_search_index(['contact']); print('done')"

@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from api.routes._helpers import COMMON_ERROR_RESPONSES
-from services.browser_workflows.recipes import extract_from_current, list_sub_items, search_and_extract
+from services.web_automation.browser.workflows.recipes import extract_from_current, list_sub_items, search_and_extract
 
 router = APIRouter()
 

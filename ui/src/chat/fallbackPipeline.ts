@@ -15,13 +15,14 @@ type StepRunner = (input: {
   localHistory: LocalChatMessage[];
   history: ChatCompletionMessageParam[];
   onToolCall?: (name: string) => void;
+  onToken?: (token: string) => void;
 }) => Promise<{ response: string; messages: ChatMessage[]; toolsUsed: string[]; success: boolean }>;
 
 const RUNNERS: Record<ModelRoute, StepRunner> = {
-  qwen3: async ({ userMessage, localHistory, onToolCall }) => runGemma(userMessage, localHistory, onToolCall),
-  gemma: async ({ userMessage, localHistory, onToolCall }) => runGemma(userMessage, localHistory, onToolCall),
-  deepseek: async ({ userMessage, localHistory, onToolCall }) => runDeepseek(userMessage, localHistory, onToolCall),
-  openai: async ({ userMessage, history, onToolCall }) => runOpenAI(userMessage, history, onToolCall),
+  qwen3: async ({ userMessage, localHistory, onToolCall, onToken }) => runGemma(userMessage, localHistory, onToolCall, onToken),
+  gemma: async ({ userMessage, localHistory, onToolCall, onToken }) => runGemma(userMessage, localHistory, onToolCall, onToken),
+  deepseek: async ({ userMessage, localHistory, onToolCall, onToken }) => runDeepseek(userMessage, localHistory, onToolCall, onToken),
+  openai: async ({ userMessage, history, onToolCall, onToken }) => runOpenAI(userMessage, history, onToolCall, onToken),
 };
 
 const FALLBACK_CHAINS: Record<ModelRoute, ModelRoute[]> = {
@@ -37,6 +38,7 @@ export async function runWithFallback(
   localHistory: LocalChatMessage[],
   history: ChatCompletionMessageParam[],
   onToolCall?: (name: string) => void,
+  onToken?: (token: string) => void,
   onModelSwitch?: (from: ModelRoute, to: ModelRoute, reason: string) => void
 ): Promise<{
   response: string;
@@ -52,7 +54,7 @@ export async function runWithFallback(
   let fallbackUsed = false;
 
   let current = chain[0];
-  let result = await RUNNERS[current]({ userMessage, localHistory, history, onToolCall });
+  let result = await RUNNERS[current]({ userMessage, localHistory, history, onToolCall, onToken });
 
   for (let i = 1; i < chain.length && shouldFallback(result); i++) {
     const next = chain[i];
@@ -61,7 +63,7 @@ export async function runWithFallback(
     onModelSwitch?.(current, next, reason);
     fallbackUsed = true;
     current = next;
-    result = await RUNNERS[current]({ userMessage, localHistory, history, onToolCall });
+    result = await RUNNERS[current]({ userMessage, localHistory, history, onToolCall, onToken });
   }
 
   const exhausted = shouldFallback(result);

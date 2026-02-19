@@ -31,8 +31,8 @@ SALESFORCE_STORAGE_STATE = DATA_DIR / "salesforce_auth.json"
 
 # LLM Settings
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")  # Cost-effective for extraction
-LLM_MODEL_SMART = os.getenv("LLM_MODEL_SMART", "gpt-4o-mini")  # For complex reasoning
+LLM_MODEL = os.getenv("LLM_MODEL", "gemma3:12b")  # Local/default model for standard tasks
+LLM_MODEL_SMART = os.getenv("LLM_MODEL_SMART", "qwen2.5:32b-instruct")  # Local/default model for complex reasoning
 
 # Web Search (SearXNG - self-hosted search engine)
 SEARXNG_URL = os.getenv("SEARXNG_URL", "http://localhost:8080")

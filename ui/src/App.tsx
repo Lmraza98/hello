@@ -4,9 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Companies from './pages/Companies';
 import Contacts from './pages/Contacts';
+import Documents from './pages/Documents';
 import Email from './pages/Email';
-import Bi from './pages/Bi';
 import BrowserPage from './pages/Browser';
+import BrowserWorkbenchPage from './pages/BrowserWorkbench';
+import Templates from './pages/Templates';
 import Admin from './pages/admin/Admin';
 import AdminLogs from './pages/admin/AdminLogs';
 import AdminCosts from './pages/admin/AdminCosts';
@@ -89,9 +91,12 @@ function RoutedApp() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="companies" element={<CompaniesRoute />} />
             <Route path="contacts" element={<ContactsRoute />} />
+            <Route path="documents" element={<Documents />} />
             <Route path="email" element={<EmailRoute />} />
-            <Route path="bi" element={<Bi />} />
+            <Route path="templates" element={<Templates />} />
+            <Route path="browser" element={<BrowserWorkbenchPage />} />
             <Route path="tasks" element={<BrowserPage />} />
+            <Route path="admin" element={<Navigate to="/admin/tests" replace />} />
             <Route
               path="admin/logs"
               element={<AdminRoute tab="logs" />}

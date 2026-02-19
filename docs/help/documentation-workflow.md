@@ -1,7 +1,7 @@
 ---
 summary: "Operational workflow for keeping docs synchronized with code and API changes."
 read_when:
-  - You changed behavior in api, services, ui, or zco-bi
+  - You changed behavior in api, services, or ui
   - You want to prevent documentation drift before commit
 title: "Documentation Workflow"
 ---

@@ -60,7 +60,8 @@ export interface OpenAIResult {
 export async function runOpenAI(
   userMessage: string,
   conversationHistory: ChatCompletionMessageParam[],
-  onToolCall?: (name: string) => void
+  onToolCall?: (name: string) => void,
+  _onToken?: (token: string) => void,
 ): Promise<OpenAIResult> {
   const toolsUsed: string[] = [];
   const messages: ChatCompletionMessageParam[] = [

@@ -1,6 +1,6 @@
 import time
 
-from services.browser_policy import BrowserPolicy, BrowserPolicyConfig, TokenBucket
+from services.web_automation.browser.core.policy import BrowserPolicy, BrowserPolicyConfig, TokenBucket
 
 
 def test_token_bucket_wait_and_consume():

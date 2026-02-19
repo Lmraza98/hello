@@ -7,11 +7,12 @@ export interface PageContextSnapshot {
     companyId?: number;
     campaignId?: number;
     emailId?: number;
+    documentId?: string;
   };
   loadedIds?: {
     contactIds?: number[];
     companyIds?: number[];
     campaignIds?: number[];
+    documentIds?: string[];
   };
 }
-

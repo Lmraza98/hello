@@ -11,6 +11,7 @@ import {
   Users,
   FolderKanban
 } from 'lucide-react';
+import { PageHeader } from '../components/shared/PageHeader';
 
 type WorkflowStep = {
   id: string;
@@ -155,17 +156,12 @@ export default function Workflows() {
   };
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold text-text mb-1">Workflows & Campaigns</h1>
-          <p className="text-text-muted">
-            Create automated workflows for lead management and outreach
-          </p>
-        </div>
-        
-        {activeTab === 'workflows' && (
+    <div className="h-full overflow-y-auto">
+      <div className="pt-5 px-4 md:pt-8 md:px-8 pb-4 md:pb-8">
+      <PageHeader
+        title="Workflows & Campaigns"
+        subtitle="Create automated workflows for lead management and outreach"
+        desktopActions={activeTab === 'workflows' ? (
           <button
             onClick={() => {
               setIsCreating(true);
@@ -179,8 +175,23 @@ export default function Workflows() {
             <Plus className="w-4 h-4" />
             New Workflow
           </button>
-        )}
-      </div>
+        ) : undefined}
+        mobileActions={activeTab === 'workflows' ? (
+          <button
+            onClick={() => {
+              setIsCreating(true);
+              setSelectedWorkflow(null);
+              setWorkflowName('');
+              setWorkflowDescription('');
+              setWorkflowSteps([]);
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-hover transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            New
+          </button>
+        ) : undefined}
+      />
 
       {/* Tabs */}
       <div className="flex items-center gap-2 mb-6 border-b border-border">
@@ -415,6 +426,7 @@ export default function Workflows() {
       ) : (
         <CampaignsManager campaigns={campaigns} queryClient={queryClient} />
       )}
+      </div>
     </div>
   );
 }
@@ -632,4 +644,3 @@ function CampaignsManager({ campaigns, queryClient }: { campaigns: any[]; queryC
     </div>
   );
 }
-

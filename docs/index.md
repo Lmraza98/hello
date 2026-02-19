@@ -1,5 +1,5 @@
 ---
-summary: "Top-level map for architecture, BI ingestion, and API documentation."
+summary: "Top-level map for architecture, automation, and API documentation."
 read_when:
   - You need a fast starting point for repo documentation
   - You are onboarding to the data layer, API layer, or UI architecture
@@ -24,12 +24,12 @@ This docs tree follows an OpenClaw-style structure:
 - [Docs directory](/start/docs-directory)
 - [Docs hubs](/start/hubs)
 - [System architecture](/concepts/architecture)
-- [BI layer architecture](/concepts/bi-layer)
 - [Browser automation architecture](/concepts/browser-automation)
 - [Browser website skills](/concepts/browser-website-skills)
+- [Workflow builder plan](/concepts/workflow-builder-plan)
+- [Workflow builder master plan](/concepts/workflow-builder-master-plan)
 - [Chat model routing](/concepts/chat-model-routing)
 - [Tool planner tiering](/concepts/tool-planner-tiering)
 - [Documentation workflow](/help/documentation-workflow)
-- [BI operations runbook](/help/bi-operations)
 - [Context recovery](/help/context-recovery)
 - [API endpoint catalog](/api/endpoints)

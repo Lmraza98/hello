@@ -16,7 +16,7 @@ async def search_companies(request: CompanySearchRequest):
     Uses GPT-4 to parse the query into SalesNav filters, then scrapes results.
     Companies are optionally saved to the database.
     """
-    from services.linkedin.salesnav.flows.company_collection import SalesNavCompanyCollectionFlow
+    from services.web_automation.linkedin.salesnav.flows.company_collection import SalesNavCompanyCollectionFlow
 
     collector = SalesNavCompanyCollectionFlow()
     try:

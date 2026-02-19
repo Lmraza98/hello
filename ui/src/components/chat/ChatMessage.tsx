@@ -10,7 +10,6 @@ import {
   ExternalLink,
   Eye,
   FolderPlus,
-  Info,
   Loader2,
   Mail,
   MessageCircle,
@@ -25,7 +24,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type {
   BackgroundTask,
   ChatMessage as ChatMessageType,
@@ -37,11 +36,17 @@ import type {
   RetrievalResultsMessage,
   ResearchCardMessage,
 } from '../../types/chat';
+import { ActionCard } from './ActionCard';
+import { AssistantBlock } from './AssistantBlock';
+import { SystemEventMessage } from './SystemEventMessage';
+import { UserBubble } from './UserBubble';
 import { MetricPill } from '../dashboard/MetricPill';
 import { ActiveConversationsCard } from '../dashboard/ActiveConversationsCard';
 import { ScheduledSendsCard } from '../dashboard/ScheduledSendsCard';
 import { MiniLineChart } from '../dashboard/MiniLineChart';
 import { LiveContacts } from '../dashboard/LiveContacts';
+import { EventRow } from './EventRow';
+import { formatStatusAsWorkflowEvent } from './workflowEventFormatters';
 
 interface ChatMessageProps {
   message: ChatMessageType;
@@ -83,25 +88,42 @@ export function ChatMessage({
         </BotBubble>
       );
     case 'action_buttons': {
-      const isContactFollowUp = /add this contact/i.test(message.content);
+      const hasPlanConfirm = message.buttons.some((b) => b.value === 'tool_plan_confirm');
+      const hasPlanDeny = message.buttons.some((b) => b.value === 'tool_plan_deny');
+      if (hasPlanConfirm && hasPlanDeny) {
+        return (
+          <ActionCard
+            summary={message.content || 'Confirm before executing this plan.'}
+            details={message.content}
+            onConfirm={() => onAction(`tool_plan_confirm::src=${message.id}`)}
+            onDeny={() => onAction(`tool_plan_deny::src=${message.id}`)}
+          />
+        );
+      }
       return (
-        <BotBubble compact={isContactFollowUp}>
-          <p className="text-xs text-text-muted">{message.content}</p>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {message.buttons.map((button) => (
-              <button
-                key={button.value}
-                type="button"
-                onClick={() => onAction(`${button.value}::src=${message.id}`)}
-                className={`rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${
-                  actionButtonClasses[button.variant]
-                }`}
-              >
-                {button.label}
-              </button>
-            ))}
-          </div>
-        </BotBubble>
+        <EventRow
+          kind="action"
+          label="Next actions"
+          summary={message.content || 'Select a follow-up action.'}
+          status="queued"
+          timestamp={message.timestamp}
+          actions={(
+            <div className="flex flex-wrap items-center gap-1.5">
+              {message.buttons.map((button) => (
+                <button
+                  key={button.value}
+                  type="button"
+                  onClick={() => onAction(`${button.value}::src=${message.id}`)}
+                  className={`rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${
+                    actionButtonClasses[button.variant]
+                  }`}
+                >
+                  {button.label}
+                </button>
+              ))}
+            </div>
+          )}
+        />
       );
     }
     case 'contact_card':
@@ -271,17 +293,20 @@ export function ChatMessage({
     case 'text':
     default: {
       const isUser = message.sender === 'user';
+      const normalized = (message.content || '').trim().toLowerCase();
+      const isSystemEvent = normalized === 'plan confirmed.' || normalized.startsWith('plan canceled');
+      if (!isUser && isSystemEvent) {
+        return <SystemEventMessage text={message.content} />;
+      }
       return (
         <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
-          <div
-            className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
-              isUser
-                ? 'bg-accent text-white'
-                : 'border border-border bg-surface text-text'
-            }`}
-          >
-            <span className="whitespace-pre-wrap">{renderBoldText(message.content)}</span>
-          </div>
+          {isUser ? (
+            <UserBubble>
+              <span className="whitespace-pre-wrap">{renderBoldText(message.content)}</span>
+            </UserBubble>
+          ) : (
+            <AssistantBlock content={message.content} />
+          )}
         </div>
       );
     }
@@ -1115,54 +1140,30 @@ function StatusBlock({
 }: {
   message: Extract<ChatMessageType, { type: 'status' }>;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const hasDetails = Boolean(message.details && message.details.trim().length > 0);
-  useEffect(() => {
-    if (message.status === 'loading' && hasDetails) {
-      setExpanded(true);
-    }
-  }, [message.status, hasDetails, message.details]);
-  const statusToStyle = {
-    loading: {
-      className: 'border-amber-300 bg-amber-50 text-amber-800',
-      icon: <Loader2 className="h-4 w-4 animate-spin" />,
-    },
-    success: {
-      className: 'border-green-300 bg-green-50 text-green-800',
-      icon: <CheckCircle2 className="h-4 w-4" />,
-    },
-    error: {
-      className: 'border-red-300 bg-red-50 text-red-800',
-      icon: <XCircle className="h-4 w-4" />,
-    },
-    info: {
-      className: 'border-blue-300 bg-blue-50 text-blue-800',
-      icon: <Info className="h-4 w-4" />,
-    },
-  } as const;
-
-  const style = statusToStyle[message.status];
+  const formatted = formatStatusAsWorkflowEvent(message);
+  const kind = formatted.title.toLowerCase().includes('tool') ? 'tool' : 'status';
   return (
-    <div className="flex justify-start">
-      <div
-        className={`inline-flex flex-col rounded-md border-l-4 border px-3 py-2 text-xs ${style.className}`}
-      >
-        <button
-          type="button"
-          disabled={!hasDetails}
-          onClick={() => hasDetails && setExpanded((prev) => !prev)}
-          className={`inline-flex items-center gap-2 text-left ${hasDetails ? 'cursor-pointer' : 'cursor-default'}`}
-        >
-          {style.icon}
-          <span>{message.content}</span>
-        </button>
-        {hasDetails && expanded ? (
-          <pre className="mt-2 whitespace-pre-wrap rounded border border-blue-200 bg-white/70 p-2 text-[11px] text-blue-900">
-            {message.details}
-          </pre>
-        ) : null}
-      </div>
-    </div>
+    <EventRow
+      kind={kind}
+      label={formatted.title}
+      summary={formatted.summary}
+      status={formatted.status}
+      timestamp={message.timestamp}
+      details={formatted.details}
+      links={formatted.links}
+      actions={formatted.keyOutputs.length > 0 ? (
+        <ul className="space-y-0.5 pl-4 text-xs text-text-muted">
+          {formatted.keyOutputs.map((line, idx) => (
+            <li key={`${line}-${idx}`} className="list-disc">
+              {line}
+            </li>
+          ))}
+          {formatted.errorText ? (
+            <li className="list-disc text-red-700">{formatted.errorText}</li>
+          ) : null}
+        </ul>
+      ) : (formatted.errorText ? <p className="text-xs text-red-700">{formatted.errorText}</p> : undefined)}
+    />
   );
 }
 

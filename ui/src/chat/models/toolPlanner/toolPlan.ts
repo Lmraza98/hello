@@ -49,8 +49,6 @@ interface CompoundQueryHints {
   recencyMonths: number;
   country: string;
   companyQuery: string;
-  vpRoleQuery: string;
-  signalQuery: string;
 }
 
 function clampNumber(value: number, min: number, max: number): number {
@@ -59,7 +57,6 @@ function clampNumber(value: number, min: number, max: number): number {
 
 export function extractCompoundQueryHints(query: string): CompoundQueryHints {
   const cleaned = (query || '').trim();
-  const lower = cleaned.toLowerCase();
 
   const countMatch = cleaned.match(/\b(?:identify|find|get|list)\s+(\d{1,3})\b/i);
   const requestedCount = countMatch ? Number(countMatch[1]) : 10;
@@ -73,8 +70,6 @@ export function extractCompoundQueryHints(query: string): CompoundQueryHints {
 
   const hasIndustrialMachinery = /\bindustrial machinery\b/i.test(cleaned);
   const hasSalesforce = /\bsalesforce\b/i.test(cleaned);
-  const hasAiSignal = /\b(ai|artificial intelligence|process optimization|automation)\b/i.test(cleaned);
-
   const companyTerms = [
     hasIndustrialMachinery ? 'industrial machinery' : '',
     /\bmanufacturing\b/i.test(cleaned) ? 'manufacturing' : '',
@@ -83,22 +78,11 @@ export function extractCompoundQueryHints(query: string): CompoundQueryHints {
   ].filter((v) => v.length > 0);
   const companyQuery = companyTerms.length > 0 ? Array.from(new Set(companyTerms)).join(' ') : cleaned;
 
-  const vpRole =
-    /\bvp of operations\b/.test(lower) || /\bvice president of operations\b/.test(lower)
-      ? 'VP of Operations'
-      : 'VP of Operations';
-  const vpRoleQuery = `${vpRole} at {{company.name}}`;
-
-  const signalTerms = hasAiSignal ? 'AI process optimization automation' : 'AI process optimization';
-  const signalQuery = `{{vp.name}} LinkedIn ${signalTerms} last ${recencyMonths} months`;
-
   return {
     maxResults,
     recencyMonths,
     country,
     companyQuery,
-    vpRoleQuery,
-    signalQuery,
   };
 }
 
@@ -158,7 +142,7 @@ export function buildCompoundWorkflowSpecFromQuery(query: string): Record<string
           concurrency: 3,
         },
         param_templates: {
-          query: hints.vpRoleQuery,
+          query: '',
           filters: {
             current_company: '{{company.name}}',
             current_company_sales_nav_url: '{{company.sales_nav_url}}',
@@ -189,7 +173,7 @@ export function buildCompoundWorkflowSpecFromQuery(query: string): Record<string
           concurrency: 2,
         },
         param_templates: {
-          query: hints.signalQuery,
+          query: '',
           filters: {
             current_company: '{{vp.company_name}}',
             current_company_sales_nav_url: '{{vp.company_sales_nav_url}}',
@@ -620,6 +604,7 @@ export async function runToolPlan(
   }
   if (
     plannerRoute.complexity.compoundWorkflowRequired &&
+    !/\b(document|documents|doc|docx|pdf|file|files|attachment|uploaded|upload)\b/i.test(selectionMessage) &&
     selectedTools.includes('compound_workflow_run') &&
     !calls.some((call) => call.name === 'compound_workflow_run')
   ) {

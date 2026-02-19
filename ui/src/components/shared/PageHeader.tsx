@@ -31,15 +31,15 @@ export function PageHeader({
   return (
     <div className="flex items-start justify-between mb-3 md:mb-6 gap-3">
       <div className="min-w-0">
-        <h1 className="text-xl md:text-2xl font-semibold text-text mb-0.5">{title}</h1>
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-text mb-0.5">{title}</h1>
         <p className="text-xs md:text-sm text-text-muted">{subtitle}</p>
       </div>
-      {desktopActions && (
+      {desktopActions ? (
         <div className="hidden md:flex items-center gap-2">{desktopActions}</div>
-      )}
-      {mobileActions && (
+      ) : null}
+      {mobileActions ? (
         <div className="flex md:hidden items-center gap-1.5 shrink-0">{mobileActions}</div>
-      )}
+      ) : null}
     </div>
   );
 }

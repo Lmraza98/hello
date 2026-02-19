@@ -112,4 +112,3 @@ export async function classifyIntent(message: string, onProgress?: (msg: string)
     return 'single';
   }
 }
-

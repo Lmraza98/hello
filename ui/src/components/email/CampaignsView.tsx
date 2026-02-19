@@ -1,9 +1,32 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Mail, Plus, Search, SlidersHorizontal, ChevronDown, ChevronRight, X } from 'lucide-react';
-import { LoadingSpinner } from '../shared/LoadingSpinner';
-import { ConfirmDialog } from '../shared/ConfirmDialog';
-import { CampaignCard } from './CampaignCard';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  flexRender,
+  type ColumnDef,
+  type ColumnFiltersState,
+  type SortingState,
+} from '@tanstack/react-table';
+import {
+  Edit3,
+  Mail,
+  Pause,
+  Play,
+  Plus,
+  Send,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react';
+import { useIsMobile } from '../../hooks/useIsMobile';
 import type { EmailCampaign, CampaignScheduleSummary } from '../../types/email';
+import { ConfirmDialog } from '../shared/ConfirmDialog';
+import { EmptyState } from '../shared/EmptyState';
+import { FilterPanelWrapper } from '../shared/FilterPanelWrapper';
+import { LoadingSpinner } from '../shared/LoadingSpinner';
+import { SearchToolbar } from '../shared/SearchToolbar';
 
 type CampaignsViewProps = {
   campaigns: EmailCampaign[];
@@ -20,86 +43,97 @@ type CampaignsViewProps = {
   uploadingCampaignId: number | null;
 };
 
-type StatusFilter = 'all' | 'active' | 'paused' | 'completed' | 'draft';
-type SortOption = 'recent' | 'name' | 'contacts' | 'next_send';
-
-function sortCampaigns(
-  campaigns: EmailCampaign[],
-  sort: SortOption,
-  summaries: CampaignScheduleSummary[]
-): EmailCampaign[] {
-  const summaryMap = new Map(summaries.map(s => [s.campaign_id, s]));
-  const sorted = [...campaigns];
-
-  switch (sort) {
-    case 'name':
-      sorted.sort((a, b) => a.name.localeCompare(b.name));
-      break;
-    case 'contacts':
-      sorted.sort((a, b) => (b.stats?.total_contacts || 0) - (a.stats?.total_contacts || 0));
-      break;
-    case 'next_send': {
-      sorted.sort((a, b) => {
-        const aTime = summaryMap.get(a.id)?.next_send_time;
-        const bTime = summaryMap.get(b.id)?.next_send_time;
-        if (!aTime && !bTime) return 0;
-        if (!aTime) return 1;
-        if (!bTime) return -1;
-        return new Date(aTime).getTime() - new Date(bTime).getTime();
-      });
-      break;
-    }
-    case 'recent':
-    default: {
-      sorted.sort((a, b) => {
-        const aLast = summaryMap.get(a.id)?.last_sent_at;
-        const bLast = summaryMap.get(b.id)?.last_sent_at;
-        if (!aLast && !bLast) return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        if (!aLast) return 1;
-        if (!bLast) return -1;
-        return new Date(bLast).getTime() - new Date(aLast).getTime();
-      });
-      break;
-    }
-  }
-  return sorted;
+function formatNextSend(value: string | null | undefined): string {
+  if (!value) return '-';
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return '-';
+  return dt.toLocaleString();
 }
 
-/* ── Section header ────────────────────────────────── */
+function statusBadge(status: string) {
+  const s = (status || 'draft').toLowerCase();
+  if (s === 'active') return 'bg-green-50 text-green-700 border-green-200';
+  if (s === 'paused') return 'bg-amber-50 text-amber-700 border-amber-200';
+  if (s === 'completed') return 'bg-blue-50 text-blue-700 border-blue-200';
+  return 'bg-gray-50 text-gray-700 border-gray-200';
+}
 
-function SectionHeader({
-  title,
-  count,
-  color,
-  collapsed,
-  onToggle
+function getFilterValue(columnFilters: ColumnFiltersState, id: string): string {
+  return (columnFilters.find((f) => f.id === id)?.value as string) ?? '';
+}
+
+function CampaignsFilterPanel({
+  columnFilters,
+  setColumnFilters,
+  onClose,
+  isMobile,
 }: {
-  title: string;
-  count: number;
-  color: string;
-  collapsed: boolean;
-  onToggle: () => void;
+  columnFilters: ColumnFiltersState;
+  setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
+  onClose: () => void;
+  isMobile: boolean;
 }) {
+  const setFilter = (id: string, value: string) => {
+    setColumnFilters((prev) => {
+      const next = prev.filter((f) => f.id !== id);
+      if (value) next.push({ id, value });
+      return next;
+    });
+  };
+
+  const selectClass =
+    'w-full px-2.5 py-2.5 md:py-1.5 text-sm bg-bg border border-border rounded-lg text-text focus:outline-none focus:border-accent appearance-none';
+
   return (
-    <button
-      onClick={onToggle}
-      className="w-full flex items-center gap-2 py-2 group"
+    <FilterPanelWrapper
+      isMobile={isMobile}
+      onClose={onClose}
+      filterCount={columnFilters.length}
+      onClearAll={() => setColumnFilters([])}
     >
-      {collapsed ? (
-        <ChevronRight className="w-4 h-4 text-text-dim group-hover:text-text-muted transition-colors" />
-      ) : (
-        <ChevronDown className="w-4 h-4 text-text-dim group-hover:text-text-muted transition-colors" />
-      )}
-      <span className={`text-xs md:text-sm font-semibold uppercase tracking-wider ${color}`}>
-        {title}
-      </span>
-      <span className="text-xs text-text-dim">({count})</span>
-      <div className="flex-1 border-t border-border ml-2" />
-    </button>
+      <div>
+        <label className="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wider">Status</label>
+        <select
+          value={getFilterValue(columnFilters, 'status')}
+          onChange={(e) => setFilter('status', e.target.value)}
+          className={selectClass}
+        >
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="paused">Paused</option>
+          <option value="completed">Completed</option>
+          <option value="draft">Draft</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wider">Template mode</label>
+        <select
+          value={getFilterValue(columnFilters, 'template_mode')}
+          onChange={(e) => setFilter('template_mode', e.target.value)}
+          className={selectClass}
+        >
+          <option value="">All modes</option>
+          <option value="linked">Linked</option>
+          <option value="copied">Copied</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wider">Review queue</label>
+        <select
+          value={getFilterValue(columnFilters, 'review_state')}
+          onChange={(e) => setFilter('review_state', e.target.value)}
+          className={selectClass}
+        >
+          <option value="">All</option>
+          <option value="has_pending_review">Has pending review</option>
+          <option value="no_pending_review">No pending review</option>
+        </select>
+      </div>
+    </FilterPanelWrapper>
   );
 }
-
-/* ── Main component ────────────────────────────────── */
 
 export function CampaignsView({
   campaigns,
@@ -113,89 +147,234 @@ export function CampaignsView({
   onViewContacts,
   onSendEmails,
   onUploadToSalesforce,
-  uploadingCampaignId
+  uploadingCampaignId,
 }: CampaignsViewProps) {
+  const isMobile = useIsMobile();
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [searchRaw, setSearchRaw] = useState('');
-  const [searchDebounced, setSearchDebounced] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
-  const [sortBy, setSortBy] = useState<SortOption>('recent');
-  const searchRef = useRef<HTMLInputElement>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [globalFilter, setGlobalFilter] = useState('');
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
+  const filterRef = useRef<HTMLDivElement>(null);
 
-  // Collapse state persisted in localStorage
-  const [completedCollapsed, setCompletedCollapsed] = useState(() => {
-    try { return localStorage.getItem('email_completed_collapsed') !== 'false'; }
-    catch { return true; }
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) setShowFilters(false);
+    }
+    if (showFilters && !isMobile) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showFilters, isMobile]);
+
+  const summaryMap = useMemo(
+    () => new Map(campaignScheduleSummary.map((s) => [s.campaign_id, s])),
+    [campaignScheduleSummary],
+  );
+
+  const columns = useMemo<ColumnDef<EmailCampaign>[]>(
+    () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <input
+            type="checkbox"
+            checked={table.getIsAllRowsSelected()}
+            ref={(input) => {
+              if (input) input.indeterminate = table.getIsSomeRowsSelected();
+            }}
+            onChange={table.getToggleAllRowsSelectedHandler()}
+            className="w-4 h-4 rounded border-gray-300 text-accent focus:ring-accent"
+          />
+        ),
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            checked={row.getIsSelected()}
+            onChange={row.getToggleSelectedHandler()}
+            className="w-4 h-4 rounded border-gray-300 text-accent focus:ring-accent"
+          />
+        ),
+        enableSorting: false,
+        size: 42,
+      },
+      {
+        accessorKey: 'name',
+        header: 'Campaign',
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-text truncate">{row.original.name}</div>
+            <div className="text-xs text-text-muted truncate">{row.original.description || '-'}</div>
+          </div>
+        ),
+        size: 220,
+      },
+      {
+        accessorKey: 'status',
+        header: 'Status',
+        cell: ({ getValue }) => {
+          const value = String(getValue() || 'draft');
+          return (
+            <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded border capitalize ${statusBadge(value)}`}>
+              {value}
+            </span>
+          );
+        },
+        size: 100,
+      },
+      {
+        id: 'contacts',
+        header: 'Contacts',
+        accessorFn: (row) => row.stats?.total_contacts || 0,
+        cell: ({ getValue }) => <span className="text-sm text-text tabular-nums">{Number(getValue() || 0)}</span>,
+        size: 90,
+      },
+      {
+        id: 'sent',
+        header: 'Sent',
+        accessorFn: (row) => row.stats?.total_sent || 0,
+        cell: ({ getValue }) => <span className="text-sm text-text tabular-nums">{Number(getValue() || 0)}</span>,
+        size: 80,
+      },
+      {
+        id: 'pending_review',
+        header: 'Pending Review',
+        accessorFn: (row) => summaryMap.get(row.id)?.pending_review_count || 0,
+        cell: ({ getValue }) => <span className="text-sm text-text tabular-nums">{Number(getValue() || 0)}</span>,
+        size: 120,
+      },
+      {
+        id: 'scheduled_count',
+        header: 'Scheduled',
+        accessorFn: (row) => summaryMap.get(row.id)?.scheduled_count || 0,
+        cell: ({ getValue }) => <span className="text-sm text-text tabular-nums">{Number(getValue() || 0)}</span>,
+        size: 90,
+      },
+      {
+        id: 'next_send',
+        header: 'Next Send',
+        accessorFn: (row) => summaryMap.get(row.id)?.next_send_time || '',
+        cell: ({ row }) => (
+          <span className="text-xs text-text-muted">
+            {formatNextSend(summaryMap.get(row.original.id)?.next_send_time)}
+          </span>
+        ),
+        size: 170,
+      },
+      {
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => {
+          const campaign = row.original;
+          const isActive = campaign.status === 'active';
+          const isUploading = uploadingCampaignId === campaign.id;
+          return (
+            <div className="flex items-center justify-end gap-1">
+              <button
+                onClick={() => onEditTemplates(campaign)}
+                className="p-1.5 rounded border border-border text-text-muted hover:bg-surface-hover"
+                title="Edit templates"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => onUploadToSalesforce(campaign.id)}
+                disabled={isUploading}
+                className="p-1.5 rounded border border-border text-text-muted hover:bg-surface-hover disabled:opacity-50"
+                title="Upload to Salesforce"
+              >
+                <Upload className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => (isActive ? onPause(campaign.id) : onActivate(campaign.id))}
+                className="p-1.5 rounded border border-border text-text-muted hover:bg-surface-hover"
+                title={isActive ? 'Pause campaign' : 'Activate campaign'}
+              >
+                {isActive ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              </button>
+              <button
+                onClick={() => onSendEmails(campaign.id)}
+                className="p-1.5 rounded border border-border text-text-muted hover:bg-surface-hover"
+                title="Send emails"
+              >
+                <Send className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={onViewContacts}
+                className="p-1.5 rounded border border-border text-text-muted hover:bg-surface-hover"
+                title="View contacts"
+              >
+                <Mail className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => setDeleteId(campaign.id)}
+                className="p-1.5 rounded border border-red-200 text-red-600 hover:bg-red-50"
+                title="Delete campaign"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          );
+        },
+        enableSorting: false,
+        size: 230,
+      },
+    ],
+    [
+      onActivate,
+      onEditTemplates,
+      onPause,
+      onSendEmails,
+      onUploadToSalesforce,
+      onViewContacts,
+      summaryMap,
+      uploadingCampaignId,
+    ],
+  );
+
+  const tableData = useMemo(() => {
+    let next = campaigns;
+    const statusFilter = getFilterValue(columnFilters, 'status');
+    const templateModeFilter = getFilterValue(columnFilters, 'template_mode');
+    const reviewStateFilter = getFilterValue(columnFilters, 'review_state');
+
+    if (statusFilter) {
+      next = next.filter((c) => String(c.status || '').toLowerCase() === statusFilter.toLowerCase());
+    }
+    if (templateModeFilter) {
+      next = next.filter((c) => String(c.template_mode || '').toLowerCase() === templateModeFilter.toLowerCase());
+    }
+    if (reviewStateFilter === 'has_pending_review') {
+      next = next.filter((c) => (summaryMap.get(c.id)?.pending_review_count || 0) > 0);
+    } else if (reviewStateFilter === 'no_pending_review') {
+      next = next.filter((c) => (summaryMap.get(c.id)?.pending_review_count || 0) === 0);
+    }
+    return next;
+  }, [campaigns, columnFilters, summaryMap]);
+
+  const table = useReactTable({
+    data: tableData,
+    columns,
+    state: { globalFilter, sorting, rowSelection },
+    onGlobalFilterChange: setGlobalFilter,
+    onSortingChange: setSorting,
+    onRowSelectionChange: setRowSelection,
+    getRowId: (row) => String(row.id),
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    globalFilterFn: (row, _id, filterValue) => {
+      const q = String(filterValue || '').toLowerCase();
+      return (
+        row.original.name.toLowerCase().includes(q) ||
+        (row.original.description || '').toLowerCase().includes(q)
+      );
+    },
   });
 
-  useEffect(() => {
-    try { localStorage.setItem('email_completed_collapsed', String(completedCollapsed)); }
-    catch { /* noop */ }
-  }, [completedCollapsed]);
-
-  // Debounced search
-  useEffect(() => {
-    const timer = setTimeout(() => setSearchDebounced(searchRaw.trim().toLowerCase()), 300);
-    return () => clearTimeout(timer);
-  }, [searchRaw]);
-
-  // Keyboard shortcut: '/' to focus search
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === '/' && !e.ctrlKey && !e.metaKey && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
-        e.preventDefault();
-        searchRef.current?.focus();
-      }
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, []);
-
-  // Filter and sort
-  const { activeCampaigns, pausedCampaigns, completedCampaigns, draftCampaigns, filteredCount } = useMemo(() => {
-    let filtered = campaigns;
-
-    // Text search
-    if (searchDebounced) {
-      const q = searchDebounced;
-      filtered = filtered.filter(c =>
-        c.name.toLowerCase().includes(q) ||
-        (c.description || '').toLowerCase().includes(q)
-      );
-    }
-
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(c => c.status === statusFilter);
-    }
-
-    // Sort
-    const sorted = sortCampaigns(filtered, sortBy, campaignScheduleSummary);
-
-    return {
-      activeCampaigns: sorted.filter(c => c.status === 'active'),
-      pausedCampaigns: sorted.filter(c => c.status === 'paused'),
-      completedCampaigns: sorted.filter(c => c.status === 'completed'),
-      draftCampaigns: sorted.filter(c => c.status === 'draft'),
-      filteredCount: sorted.length
-    };
-  }, [campaigns, searchDebounced, statusFilter, sortBy, campaignScheduleSummary]);
-
-  const renderCard = useCallback((campaign: EmailCampaign) => (
-    <CampaignCard
-      key={campaign.id}
-      campaign={campaign}
-      scheduleSummary={campaignScheduleSummary.find(s => s.campaign_id === campaign.id)}
-      onEditTemplates={() => onEditTemplates(campaign)}
-      onDelete={() => setDeleteId(campaign.id)}
-      onActivate={() => onActivate(campaign.id)}
-      onPause={() => onPause(campaign.id)}
-      onViewContacts={onViewContacts}
-      onSendEmails={() => onSendEmails(campaign.id)}
-      onUploadToSalesforce={() => onUploadToSalesforce(campaign.id)}
-      isUploading={uploadingCampaignId === campaign.id}
-    />
-  ), [campaignScheduleSummary, onEditTemplates, onActivate, onPause, onViewContacts, onSendEmails, onUploadToSalesforce, uploadingCampaignId, onDelete]);
+  const rows = table.getRowModel().rows;
+  const filteredCount = table.getFilteredRowModel().rows.length;
+  const selectedCount = Object.keys(rowSelection).length;
+  const activeFilterCount = columnFilters.length;
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -203,195 +382,115 @@ export function CampaignsView({
 
   if (campaigns.length === 0) {
     return (
-      <div className="text-center py-12 md:py-20">
-        <Mail className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 md:mb-4 text-text-dim opacity-50" />
-        <h3 className="text-base md:text-lg font-medium text-text mb-2">No campaigns yet</h3>
-        <p className="text-xs md:text-sm text-text-muted mb-3 md:mb-4 px-4">Create your first email campaign to get started</p>
-        <button
-          onClick={onCreateCampaign}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Create Campaign
-        </button>
-      </div>
+      <EmptyState
+        icon={Mail}
+        title="No campaigns yet"
+        description="Create your first email campaign to get started."
+        action={{ label: 'Create Campaign', icon: Plus, onClick: onCreateCampaign }}
+      />
     );
   }
 
-  const hasFilters = searchDebounced || statusFilter !== 'all';
-  const noResults = hasFilters && filteredCount === 0;
-
   return (
     <>
-      {/* Search & Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4">
-        {/* Search */}
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-dim" />
-          <input
-            ref={searchRef}
-            type="text"
-            value={searchRaw}
-            onChange={e => setSearchRaw(e.target.value)}
-            placeholder="Search campaigns...  (/)"
-            className="w-full pl-9 pr-8 py-2 bg-bg border border-border rounded-lg text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent transition-colors"
-          />
-          {searchRaw && (
-            <button
-              onClick={() => setSearchRaw('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 hover:bg-surface-hover rounded transition-colors"
-            >
-              <X className="w-3.5 h-3.5 text-text-dim" />
-            </button>
-          )}
-        </div>
-
-        {/* Filters row */}
-        <div className="flex items-center gap-2">
-          {/* Status filter */}
-          <div className="relative">
-            <SlidersHorizontal className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-dim pointer-events-none" />
-            <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value as StatusFilter)}
-              className="pl-8 pr-7 py-2 bg-bg border border-border rounded-lg text-xs md:text-sm text-text appearance-none cursor-pointer focus:outline-none focus:border-accent"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="paused">Paused</option>
-              <option value="completed">Completed</option>
-              <option value="draft">Draft</option>
-            </select>
-          </div>
-
-          {/* Sort */}
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value as SortOption)}
-            className="px-3 py-2 bg-bg border border-border rounded-lg text-xs md:text-sm text-text appearance-none cursor-pointer focus:outline-none focus:border-accent"
-          >
-            <option value="recent">Recent Activity</option>
-            <option value="name">Name</option>
-            <option value="contacts">Contacts</option>
-            <option value="next_send">Next Send</option>
-          </select>
-        </div>
+      <div ref={filterRef}>
+        <SearchToolbar
+          allSelected={table.getIsAllRowsSelected()}
+          onToggleSelectAll={table.getToggleAllRowsSelectedHandler()}
+          indeterminate={table.getIsSomeRowsSelected()}
+          displayCount={selectedCount > 0 ? selectedCount : filteredCount}
+          globalFilter={globalFilter}
+          onGlobalFilterChange={setGlobalFilter}
+          activeFilterCount={activeFilterCount}
+          showFilters={showFilters && !isMobile}
+          onToggleFilters={() => setShowFilters((v) => !v)}
+          filterPanelContent={
+            <CampaignsFilterPanel
+              columnFilters={columnFilters}
+              setColumnFilters={setColumnFilters}
+              onClose={() => setShowFilters(false)}
+              isMobile={false}
+            />
+          }
+        />
       </div>
 
-      {/* No results */}
-      {noResults && (
-        <div className="text-center py-10 md:py-14">
-          <Search className="w-10 h-10 mx-auto mb-3 text-text-dim opacity-50" />
-          <h3 className="text-sm md:text-base font-medium text-text mb-1">
-            No campaigns match{searchDebounced ? ` "${searchDebounced}"` : ''}
-          </h3>
-          <p className="text-xs text-text-muted mb-3">
-            {statusFilter !== 'all'
-              ? `Try changing the status filter or clearing your search`
-              : 'Try a different search term'}
-          </p>
-          <button
-            onClick={() => { setSearchRaw(''); setStatusFilter('all'); }}
-            className="text-xs text-accent hover:text-accent-hover font-medium"
-          >
-            Clear filters
-          </button>
+      {activeFilterCount > 0 && (
+        <div className="flex items-center gap-1.5 mt-2 mb-3 overflow-x-auto no-scrollbar">
+          {columnFilters.map((f) => (
+            <span
+              key={f.id}
+              className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[11px] font-medium whitespace-nowrap shrink-0"
+            >
+              {f.id}: {String(f.value)}
+              <button
+                onClick={() => setColumnFilters((prev) => prev.filter((cf) => cf.id !== f.id))}
+                className="hover:text-accent/70"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </span>
+          ))}
         </div>
       )}
 
-      {/* Campaign sections */}
-      {!noResults && (
-        <div className="space-y-2">
-          {/* When using a status filter, show a flat grid */}
-          {statusFilter !== 'all' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {[...activeCampaigns, ...pausedCampaigns, ...completedCampaigns, ...draftCampaigns].map(renderCard)}
-            </div>
+      {showFilters && isMobile && (
+        <CampaignsFilterPanel
+          columnFilters={columnFilters}
+          setColumnFilters={setColumnFilters}
+          onClose={() => setShowFilters(false)}
+          isMobile
+        />
+      )}
+
+      <div className="bg-surface border border-border rounded-lg overflow-hidden flex flex-col h-[calc(100vh-290px)]">
+        <div className="shrink-0">
+          <table className="w-full min-w-[1200px]" style={{ tableLayout: 'fixed' }}>
+            <thead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id} className="border-b border-border bg-surface-hover/50">
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+                      className={`text-left px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider ${
+                        header.column.getCanSort() ? 'cursor-pointer select-none' : ''
+                      }`}
+                      style={{ width: `${header.getSize()}px` }}
+                    >
+                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+          </table>
+        </div>
+
+        <div className="flex-1 overflow-auto">
+          {rows.length === 0 ? (
+            <EmptyState
+              icon={Mail}
+              title="No campaigns found"
+              description="Try adjusting your filters."
+            />
           ) : (
-            <>
-              {/* Active Campaigns */}
-              {activeCampaigns.length > 0 && (
-                <div>
-                  <SectionHeader
-                    title="Active Campaigns"
-                    count={activeCampaigns.length}
-                    color="text-green-700"
-                    collapsed={false}
-                    onToggle={() => {}}
-                  />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {activeCampaigns.map(renderCard)}
-                  </div>
-                </div>
-              )}
-
-              {/* Paused Campaigns */}
-              {pausedCampaigns.length > 0 && (
-                <div>
-                  <SectionHeader
-                    title="Paused Campaigns"
-                    count={pausedCampaigns.length}
-                    color="text-amber-700"
-                    collapsed={false}
-                    onToggle={() => {}}
-                  />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {pausedCampaigns.map(renderCard)}
-                  </div>
-                </div>
-              )}
-
-              {/* Draft Campaigns */}
-              {draftCampaigns.length > 0 && (
-                <div>
-                  <SectionHeader
-                    title="Draft Campaigns"
-                    count={draftCampaigns.length}
-                    color="text-text-muted"
-                    collapsed={false}
-                    onToggle={() => {}}
-                  />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {draftCampaigns.map(renderCard)}
-                  </div>
-                </div>
-              )}
-
-              {/* Completed Campaigns - collapsible */}
-              {completedCampaigns.length > 0 && (
-                <div>
-                  <SectionHeader
-                    title="Completed Campaigns"
-                    count={completedCampaigns.length}
-                    color="text-blue-700"
-                    collapsed={completedCollapsed}
-                    onToggle={() => setCompletedCollapsed(prev => !prev)}
-                  />
-                  {!completedCollapsed && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {completedCampaigns.map(renderCard)}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Show create prompt if only completed or no active */}
-              {activeCampaigns.length === 0 && pausedCampaigns.length === 0 && draftCampaigns.length === 0 && (
-                <div className="text-center py-8 border border-dashed border-border rounded-lg">
-                  <p className="text-sm text-text-muted mb-2">No active campaigns</p>
-                  <button
-                    onClick={onCreateCampaign}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent text-white rounded-lg text-xs font-medium hover:bg-accent-hover transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Create Campaign
-                  </button>
-                </div>
-              )}
-            </>
+            <table className="w-full min-w-[1200px]" style={{ tableLayout: 'fixed' }}>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.id} className="border-b border-border-subtle hover:bg-surface-hover/60 transition-colors">
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-4 py-3 align-middle" style={{ width: `${cell.column.getSize()}px` }}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           )}
         </div>
-      )}
+      </div>
 
       <ConfirmDialog
         open={deleteId !== null}

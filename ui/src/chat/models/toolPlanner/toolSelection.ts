@@ -10,6 +10,20 @@ function preselectToolNames(userMessage: string): Set<string> | null {
 
   candidates.add('hybrid_search');
   candidates.add('resolve_entity');
+  const hasDocumentWords =
+    /\b(document|documents|doc|docx|pdf|file|files|attachment|attachments|uploaded|upload|rag|knowledge base)\b/.test(lower) ||
+    /\b\w+\.(pdf|docx|csv|txt)\b/.test(lower);
+  const hasDocumentQuestion =
+    hasDocumentWords &&
+    /\b(what|which|where|when|how|summarize|summary|about|contains|say|says|pricing|timeline|deadline|stages|workflow|access)\b/.test(
+      lower
+    );
+  if (hasDocumentWords) {
+    candidates.add('ask_documents');
+    candidates.add('search_documents');
+    candidates.add('get_document_summary');
+    candidates.add('list_company_documents');
+  }
 
   const isMutating =
     /\b(add|create|delete|remove|update|edit|start|stop|run|send|approve|reject|pause|activate|enroll|mark|import|bulk|scrape|collect|upload|export|schedule|reschedule)\b/.test(
@@ -49,7 +63,7 @@ function preselectToolNames(userMessage: string): Set<string> | null {
     candidates.add('get_contact');
   }
 
-  if (!hasSalesNavMention && /\b(company|companies|account|accounts|org|firm|business)\b/.test(lower)) {
+  if (!hasSalesNavMention && !hasDocumentWords && /\b(company|companies|account|accounts|org|firm|business)\b/.test(lower)) {
     candidates.add('search_companies');
     candidates.add('research_company');
     candidates.add('assess_icp_fit');
@@ -122,7 +136,7 @@ function preselectToolNames(userMessage: string): Set<string> | null {
     }
   }
 
-  if (hasCompoundIntent) {
+  if (hasCompoundIntent && !hasDocumentQuestion) {
     candidates.add('compound_workflow_run');
     candidates.add('compound_workflow_status');
     candidates.add('compound_workflow_continue');

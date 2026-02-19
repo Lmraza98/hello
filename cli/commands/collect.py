@@ -2,7 +2,7 @@
 CLI command for automated company collection from LinkedIn Sales Navigator.
 """
 import asyncio
-from services.linkedin.salesnav.flows.company_collection import collect_companies_from_query
+from services.web_automation.linkedin.salesnav.flows.company_collection import collect_companies_from_query
 
 
 def cmd_collect_companies(args):

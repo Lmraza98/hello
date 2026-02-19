@@ -4,6 +4,8 @@ export type EmailCampaign = {
   description: string | null;
   num_emails: number;
   days_between_emails: number;
+  template_id?: number | null;
+  template_mode?: 'linked' | 'copied' | string;
   status: string;
   created_at: string;
   templates?: EmailTemplate[];
@@ -16,6 +18,41 @@ export type EmailTemplate = {
   step_number: number;
   subject_template: string;
   body_template: string;
+};
+
+export type EmailLibraryTemplate = {
+  id: number;
+  name: string;
+  subject: string;
+  preheader: string | null;
+  from_name: string | null;
+  from_email: string | null;
+  reply_to: string | null;
+  html_body: string;
+  text_body: string | null;
+  status: 'active' | 'archived' | string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EmailTemplateRevision = {
+  id: number;
+  template_id: number;
+  revision_number: number;
+  snapshot_json: string;
+  created_at: string;
+  snapshot?: Record<string, unknown>;
+};
+
+export type EmailTemplateBlock = {
+  id: number;
+  name: string;
+  category: string | null;
+  html: string;
+  text: string | null;
+  status: 'active' | 'archived' | string;
+  created_at: string;
+  updated_at: string;
 };
 
 export type CampaignStats = {

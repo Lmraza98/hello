@@ -38,7 +38,7 @@ async def bulk_upload_to_salesforce(request: BulkActionRequest):
         placeholders = ",".join(["?"] * len(contact_ids))
         cursor.execute(
             f"""
-            SELECT id, company_name, domain, name, title, email_generated as email, linkedin_url, salesforce_uploaded_at
+            SELECT id, company_name, domain, name, name_first, name_last, title, email_generated as email, linkedin_url, salesforce_uploaded_at
             FROM linkedin_contacts
             WHERE id IN ({placeholders})
         """,
@@ -46,13 +46,11 @@ async def bulk_upload_to_salesforce(request: BulkActionRequest):
         )
         rows = cursor.fetchall()
 
-        from services.identity.name_normalizer import normalize_name
-
         contacts = []
         already_uploaded = []
         for r in rows:
-            if r[7]:
-                already_uploaded.append({"id": r[0], "name": r[3], "uploaded_at": r[7]})
+            if r[9]:
+                already_uploaded.append({"id": r[0], "name": r[3], "uploaded_at": r[9]})
                 continue
 
             contacts.append(
@@ -61,9 +59,11 @@ async def bulk_upload_to_salesforce(request: BulkActionRequest):
                     "company_name": r[1] or "",
                     "domain": r[2],
                     "name": r[3],
-                    "title": r[4],
-                    "email": r[5],
-                    "linkedin_url": r[6],
+                    "name_first": r[4],
+                    "name_last": r[5],
+                    "title": r[6],
+                    "email": r[7],
+                    "linkedin_url": r[8],
                 }
             )
 
@@ -88,8 +88,9 @@ async def bulk_upload_to_salesforce(request: BulkActionRequest):
 
         for contact in contacts:
             name = contact.get("name", "")
-            normalized = normalize_name(name)
-            display_name = f"{normalized.last}, {normalized.first}" if normalized.last and normalized.first else name
+            first = (contact.get("name_first") or "").strip()
+            last = (contact.get("name_last") or "").strip()
+            display_name = f"{last}, {first}" if last and first else name
 
             writer.writerow(
                 {
@@ -214,7 +215,7 @@ async def bulk_send_email(request: BulkActionRequest):
         campaign = db.get_email_campaign(campaign_id) if campaign_id else None
 
         from services.email.generator import generate_email_with_gpt4o
-        from services.salesforce.bot import SalesforceBot
+        from services.web_automation.salesforce.bot import SalesforceBot
 
         bot = SalesforceBot()
         try:
@@ -332,7 +333,7 @@ async def bulk_collect_phone(request: BulkActionRequest):
         enriched_count = 0
 
         if contacts_without_phones:
-            from services.phone.discoverer import discover_phone_parallel
+            from services.enrichment.phone.discoverer import discover_phone_parallel
 
             print(f"[BulkPhone] Discovering phones for {len(contacts_without_phones)} contacts without phone numbers...")
 

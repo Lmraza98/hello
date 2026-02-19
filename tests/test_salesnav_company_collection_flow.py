@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from uuid import uuid4
 
-from services.linkedin.salesnav.flows.company_collection import SalesNavCompanyCollectionFlow
+from services.web_automation.linkedin.salesnav.flows.company_collection import SalesNavCompanyCollectionFlow
 
 
 def _run(coro):
@@ -103,7 +103,7 @@ def test_run_account_search_passes_full_filters_and_clamps_limit(monkeypatch):
         return {"items": [{"name": "Acme", "title": "Software", "sales_nav_url": "https://sn/acme"}]}
 
     monkeypatch.setattr(flow, "_throttle_account_search", _no_throttle)
-    monkeypatch.setattr("services.linkedin.salesnav.flows.company_collection.search_and_extract", fake_search_and_extract)
+    monkeypatch.setattr("services.web_automation.linkedin.salesnav.flows.company_collection.search_and_extract", fake_search_and_extract)
 
     out = _run(
         flow._run_account_search(
@@ -133,7 +133,7 @@ def test_collect_with_fallback_retries_after_primary_error(monkeypatch):
 
     monkeypatch.setattr(flow, "_run_account_search", fake_run)
     monkeypatch.setattr(flow, "_build_keyword_fallback_filters", lambda _q: {"keywords": ["Acme"], "industry": []})
-    monkeypatch.setattr("services.linkedin.salesnav.flows.company_collection.pacing_delay", fake_delay)
+    monkeypatch.setattr("services.web_automation.linkedin.salesnav.flows.company_collection.pacing_delay", fake_delay)
 
     companies = _run(flow._collect_with_fallback("find acme", {}, 10, result))
     assert companies == [{"company_name": "Acme"}]
@@ -225,9 +225,9 @@ def test_save_companies_to_db_insert_and_update_with_vertical(monkeypatch):
     conn.commit()
     conn.close()
 
-    monkeypatch.setattr("services.linkedin.salesnav.flows.company_collection.db.get_db", _db_ctx(str(db_path)))
+    monkeypatch.setattr("services.web_automation.linkedin.salesnav.flows.company_collection.db.get_db", _db_ctx(str(db_path)))
     monkeypatch.setattr(
-        "services.linkedin.salesnav.flows.company_collection.infer_company_vertical",
+        "services.web_automation.linkedin.salesnav.flows.company_collection.infer_company_vertical",
         lambda company_name, domain: f"inferred:{company_name}:{domain}",
     )
 

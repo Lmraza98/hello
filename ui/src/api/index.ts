@@ -18,30 +18,28 @@ import type {
   AdminLogRow,
   AdminCostsRange,
   AdminCostsResponse,
-  BiCompany,
-  BiCompanyDetail,
-  BiCoverageCompany,
-  BiErrorRow,
-  BiOverview,
-  BiRun,
-  BiSourceConfig,
-  BiSourceConfigUpdateResponse,
-  BiSourceRun,
-  BiSourcesResponse,
-  BiStatus,
   BrowserSkill,
+  BrowserSkillPromoteResponse,
+  BrowserSkillRegressionRunResponse,
   BrowserSkillSummary,
+  BrowserAnnotateCandidateResponse,
+  BrowserObservationPackResponse,
   BrowserScreenshotResponse,
+  BrowserSynthesizeFromFeedbackResponse,
   BrowserTabsResponse,
+  BrowserValidateCandidateResponse,
   BrowserWorkflowTasksResponse,
   CompoundWorkflowListResponse,
-  CompoundWorkflowSummary,
+  CompoundWorkflowStatusResponse,
   ChatTracePayload,
   Company,
-  CompanyBiProfile,
   Contact,
   ConversationThread,
   CreateContactInput,
+  DocumentAnswerResponse,
+  DocumentDetailsResponse,
+  DocumentListResponse,
+  DocumentRecord,
   EmailDashboardMetrics,
   GeneratedEmail,
   GetAdminLogsParams,
@@ -95,50 +93,59 @@ export const api = {
   // ── Stats ─────────────────────────────────────────────────
   getStats: () => fetchJson<Stats>('/stats'),
 
-  // ── BI ────────────────────────────────────────────────────
-  getBiStatus: () => fetchJson<BiStatus>('/bi/status'),
-  getBiOverview: () => fetchJson<BiOverview>('/bi/overview'),
-  getBiSources: () => fetchJson<BiSourcesResponse>('/bi/sources'),
-  getBiRuns: (params?: { limit?: number; status?: string }) => {
-    const sp = new URLSearchParams();
-    if (params?.limit != null) sp.set('limit', String(params.limit));
-    if (params?.status) sp.set('status', params.status);
-    return fetchJson<{ results: BiRun[]; count: number }>(`/bi/runs${sp.toString() ? `?${sp.toString()}` : ''}`);
-  },
-  getBiRunDetail: (runId: number) =>
-    fetchJson<{ run: BiRun; source_breakdown: Array<Record<string, unknown>>; errors: Array<Record<string, unknown>> }>(`/bi/run/${runId}`),
-  getBiCompaniesCoverage: (params?: { q?: string; limit?: number }) => {
+  // Documents
+  listDocuments: (params?: {
+    q?: string;
+    status?: string;
+    company_id?: number;
+    document_type?: string;
+    collection?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
     const sp = new URLSearchParams();
     if (params?.q) sp.set('q', params.q);
-    if (params?.limit != null) sp.set('limit', String(params.limit));
-    return fetchJson<{ results: BiCoverageCompany[]; count: number }>(`/bi/companies${sp.toString() ? `?${sp.toString()}` : ''}`);
+    if (params?.status) sp.set('status', params.status);
+    if (typeof params?.company_id === 'number') sp.set('company_id', String(params.company_id));
+    if (params?.document_type) sp.set('document_type', params.document_type);
+    if (params?.collection) sp.set('collection', params.collection);
+    if (typeof params?.limit === 'number') sp.set('limit', String(params.limit));
+    if (typeof params?.offset === 'number') sp.set('offset', String(params.offset));
+    return fetchJson<DocumentListResponse>(`/documents${sp.toString() ? `?${sp.toString()}` : ''}`);
   },
-  getBiCompanyDetail: (companyId: number) => fetchJson<BiCompanyDetail>(`/bi/companies/${companyId}`),
-  getBiEvents: (params?: { source?: string; ok?: boolean; limit?: number }) => {
-    const sp = new URLSearchParams();
-    if (params?.source) sp.set('source', params.source);
-    if (params?.ok != null) sp.set('ok', String(params.ok));
-    if (params?.limit != null) sp.set('limit', String(params.limit));
-    return fetchJson<{ results: BiSourceRun[]; count: number }>(`/bi/events${sp.toString() ? `?${sp.toString()}` : ''}`);
+  getDocument: (documentId: string) =>
+    fetchJson<DocumentDetailsResponse>(`/documents/${encodeURIComponent(documentId)}`),
+  uploadDocument: async (file: File, conversationId?: string, userId?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (conversationId) formData.append('conversation_id', conversationId);
+    if (userId) formData.append('user_id', userId);
+    const res = await fetch(API_BASE + '/documents/upload', { method: 'POST', body: formData });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error((body as { error?: { message?: string } }).error?.message || `Upload failed (${res.status})`);
+    }
+    return res.json() as Promise<{ document_id: string; filename: string; status: string; message?: string }>;
   },
-  getBiErrors: (params?: { hours?: number }) => {
-    const sp = new URLSearchParams();
-    if (params?.hours != null) sp.set('hours', String(params.hours));
-    return fetchJson<{ results: BiErrorRow[]; count: number }>(`/bi/errors${sp.toString() ? `?${sp.toString()}` : ''}`);
-  },
-  getBiSourceConfig: () => fetchJson<BiSourceConfig>('/bi/source-config'),
-  updateBiSourceConfig: (values: Record<string, string>) =>
-    fetchJson<BiSourceConfigUpdateResponse>('/bi/source-config', {
-      method: 'PUT',
-      body: JSON.stringify({ values }),
+  linkDocumentToEntities: (payload: { document_id: string; company_id?: number; contact_ids?: number[] }) =>
+    fetchJson<{ success: boolean; document_id: string }>('/documents/link', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     }),
-  getBiTopProspects: (params?: { limit?: number; vertical?: string; min_score?: number }) => {
-    const sp = new URLSearchParams();
-    if (params?.limit != null) sp.set('limit', String(params.limit));
-    if (params?.vertical) sp.set('vertical', params.vertical);
-    if (params?.min_score != null) sp.set('min_score', String(params.min_score));
-    return fetchJson<{ results: BiCompany[]; count: number }>(`/bi/top-prospects${sp.toString() ? `?${sp.toString()}` : ''}`);
-  },
+  retryDocumentProcessing: (documentId: string) =>
+    fetchJson<{ success: boolean; document_id: string; status: string }>(`/documents/${encodeURIComponent(documentId)}/retry`, {
+      method: 'POST',
+    }),
+  askDocuments: (payload: { question: string; document_ids?: string[]; company_id?: number; contact_id?: number; limit_chunks?: number }) =>
+    fetchJson<DocumentAnswerResponse>('/documents/ask', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  searchDocuments: (payload: { query: string; document_type?: string; company_id?: number; limit?: number }) =>
+    fetchJson<{ count: number; results: DocumentRecord[] }>('/documents/search', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
 
   // ── Browser Skills ────────────────────────────────────────
   listBrowserSkills: (params?: { url?: string; task?: string; query?: string }) => {
@@ -175,6 +182,19 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  runBrowserSkillRegression: (skillId: string, payload?: { tab_id?: string; limit_tests?: number }) =>
+    fetchJson<BrowserSkillRegressionRunResponse>(`/browser/skills/${skillId}/regression-run`, {
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
+    }),
+  promoteBrowserSkill: (
+    skillId: string,
+    payload?: { tab_id?: string; limit_tests?: number; require_zero_failures?: boolean; dry_run?: boolean }
+  ) =>
+    fetchJson<BrowserSkillPromoteResponse>(`/browser/skills/${skillId}/promote`, {
+      method: 'POST',
+      body: JSON.stringify(payload || {}),
+    }),
   getBrowserTabs: () => fetchJson<BrowserTabsResponse>('/browser/tabs'),
   getBrowserScreenshot: (tabId?: string) =>
     fetchJson<BrowserScreenshotResponse>('/browser/screenshot', {
@@ -189,6 +209,60 @@ export const api = {
   },
   getBrowserWorkflowStatus: (taskId: string) =>
     fetchJson<Record<string, unknown>>(`/browser/workflows/status/${encodeURIComponent(taskId)}`),
+  getBrowserObservationPack: (payload: {
+    tab_id?: string;
+    include_screenshot?: boolean;
+    include_semantic_nodes?: boolean;
+    semantic_node_limit?: number;
+  }) =>
+    fetchJson<BrowserObservationPackResponse>('/browser/workflows/observation-pack', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  validateBrowserCandidate: (payload: {
+    tab_id?: string;
+    href_contains: string[];
+    label_contains_any?: string[];
+    exclude_label_contains_any?: string[];
+    role_allowlist?: string[];
+    must_be_within_roles?: string[];
+    exclude_within_roles?: string[];
+    container_hint_contains?: string[];
+    exclude_container_hint_contains?: string[];
+    min_items?: number;
+    max_items?: number;
+    required_fields?: string[];
+    base_domain?: string;
+  }) =>
+    fetchJson<BrowserValidateCandidateResponse>('/browser/workflows/validate-candidate', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  annotateBrowserCandidate: (payload: {
+    tab_id?: string;
+    href_contains: string[];
+    max_boxes?: number;
+    include_screenshot?: boolean;
+  }) =>
+    fetchJson<BrowserAnnotateCandidateResponse>('/browser/workflows/annotate-candidate', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  synthesizeBrowserCandidateFromFeedback: (payload: {
+    tab_id?: string;
+    boxes: Array<Record<string, unknown>>;
+    include_box_ids: string[];
+    exclude_box_ids: string[];
+    fallback_href_contains?: string[];
+    required_fields?: string[];
+    min_items?: number;
+    max_items?: number;
+    base_domain?: string;
+  }) =>
+    fetchJson<BrowserSynthesizeFromFeedbackResponse>('/browser/workflows/synthesize-from-feedback', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   getCompoundWorkflows: (params?: { status?: string; limit?: number }) => {
     const sp = new URLSearchParams();
     if (params?.status) sp.set('status', params.status);
@@ -196,14 +270,11 @@ export const api = {
     return fetchJson<CompoundWorkflowListResponse>(`/compound_workflow${sp.toString() ? `?${sp.toString()}` : ''}`);
   },
   getCompoundWorkflowStatus: (workflowId: string) =>
-    fetchJson<{ ok: boolean } & CompoundWorkflowSummary>(`/compound_workflow/${encodeURIComponent(workflowId)}/status`),
+    fetchJson<CompoundWorkflowStatusResponse>(`/compound_workflow/${encodeURIComponent(workflowId)}/status`),
 
   // ── Companies ─────────────────────────────────────────────
   getCompanies: (tier?: string) =>
     fetchJson<Company[]>(`/companies${tier ? `?tier=${tier}` : ''}`),
-
-  getCompanyBiProfile: (companyId: number) =>
-    fetchJson<CompanyBiProfile>(`/companies/${companyId}/bi-profile`),
 
   lookupExistingCompanies: (companyNames: string[]) =>
     fetchJson<Record<string, {

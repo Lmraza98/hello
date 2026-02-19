@@ -1,7 +1,7 @@
 import asyncio
 import sqlite3
 
-from services.compound_workflow.orchestrator import CompoundWorkflowOrchestrator
+from services.orchestration.compound.orchestrator import CompoundWorkflowOrchestrator
 
 
 def _run(coro):
@@ -27,7 +27,7 @@ def test_compound_workflow_create_start_complete(monkeypatch):
         await asyncio.sleep(0.01)
         return {"ok": True, "items": [{"name": "Acme", "score": 3}]}
 
-    monkeypatch.setattr("services.compound_workflow.orchestrator.recipes.search_and_extract", fake_search_and_extract)
+    monkeypatch.setattr("services.orchestration.compound.orchestrator.recipes.search_and_extract", fake_search_and_extract)
 
     spec = {
         "name": "test",
@@ -77,7 +77,7 @@ def test_compound_workflow_checkpoint_continue(monkeypatch):
             return {"ok": True, "items": [{"name": "Jane VP", "title": "VP of Operations"}]}
         return {"ok": True, "items": [{"name": "Acme"}]}
 
-    monkeypatch.setattr("services.compound_workflow.orchestrator.recipes.search_and_extract", fake_search_and_extract)
+    monkeypatch.setattr("services.orchestration.compound.orchestrator.recipes.search_and_extract", fake_search_and_extract)
 
     spec = {
         "name": "checkpoint",
@@ -151,7 +151,7 @@ def test_compound_workflow_fails_when_browser_tool_returns_error(monkeypatch):
             },
         }
 
-    monkeypatch.setattr("services.compound_workflow.orchestrator.recipes.search_and_extract", fake_search_and_extract)
+    monkeypatch.setattr("services.orchestration.compound.orchestrator.recipes.search_and_extract", fake_search_and_extract)
 
     spec = {
         "name": "must fail on recipe error",

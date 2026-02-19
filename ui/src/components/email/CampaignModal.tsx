@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Mail, ArrowRight } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { emailApi } from '../../api/emailApi';
 import type { EmailCampaign } from '../../types/email';
 import { BaseModal } from '../shared/BaseModal';
 
@@ -14,7 +16,16 @@ export function CampaignModal({ campaign, onClose, onSave }: CampaignModalProps)
   const [description, setDescription] = useState(campaign?.description || '');
   const [numEmails, setNumEmails] = useState(campaign?.num_emails || 3);
   const [daysBetween, setDaysBetween] = useState(campaign?.days_between_emails || 3);
+  const [templateMode, setTemplateMode] = useState<'linked' | 'copied'>(
+    (campaign?.template_mode as 'linked' | 'copied') || 'copied'
+  );
+  const [templateId, setTemplateId] = useState<string>(campaign?.template_id ? String(campaign.template_id) : '');
   const [activeStep, setActiveStep] = useState(1);
+  const templatesQuery = useQuery({
+    queryKey: ['templates-library', 'campaign-modal'],
+    queryFn: () => emailApi.listTemplateLibrary(undefined, 'active'),
+  });
+  const selectedTemplate = (templatesQuery.data || []).find((t) => String(t.id) === templateId);
 
   const updateNumEmails = (n: number) => {
     setNumEmails(n);
@@ -32,7 +43,14 @@ export function CampaignModal({ campaign, onClose, onSave }: CampaignModalProps)
             Cancel
           </button>
           <button
-            onClick={() => onSave({ name, description, num_emails: numEmails, days_between_emails: daysBetween })}
+            onClick={() => onSave({
+              name,
+              description,
+              num_emails: numEmails,
+              days_between_emails: daysBetween,
+              template_mode: templateMode,
+              template_id: templateMode === 'linked' && templateId ? Number(templateId) : null,
+            })}
             disabled={!name}
             className="w-full md:w-auto px-6 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -90,6 +108,42 @@ export function CampaignModal({ campaign, onClose, onSave }: CampaignModalProps)
           </select>
         </div>
       </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-text mb-2">Template Mode</label>
+          <select
+            value={templateMode}
+            onChange={(e) => setTemplateMode(e.target.value as 'linked' | 'copied')}
+            className="w-full px-4 py-2.5 bg-bg border border-border rounded-lg text-text focus:outline-none focus:border-accent"
+          >
+            <option value="copied">Copy into campaign templates</option>
+            <option value="linked">Link library template</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-text mb-2">Library Template (optional)</label>
+          <select
+            value={templateId}
+            onChange={(e) => setTemplateId(e.target.value)}
+            disabled={templateMode !== 'linked'}
+            className="w-full px-4 py-2.5 bg-bg border border-border rounded-lg text-text focus:outline-none focus:border-accent disabled:opacity-60"
+          >
+            <option value="">None</option>
+            {(templatesQuery.data || []).map((item) => (
+              <option key={item.id} value={item.id}>{item.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {templateMode === 'linked' && selectedTemplate ? (
+        <div className="bg-bg rounded-lg p-4 border border-border">
+          <p className="text-xs uppercase tracking-wide text-text-muted mb-1">Template Preview</p>
+          <p className="text-sm font-medium text-text mb-1">{selectedTemplate.subject}</p>
+          <p className="text-xs text-text-muted line-clamp-3">{selectedTemplate.preheader || 'No preheader'}</p>
+        </div>
+      ) : null}
 
       <div className="bg-bg rounded-lg p-4">
         <label className="block text-sm font-medium text-text mb-3">Email Sequence</label>

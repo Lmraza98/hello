@@ -204,9 +204,9 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
   /* ── Render ── */
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-surface">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-bg pb-3 md:pb-4">
+      <div className="sticky top-0 z-10 pb-3 md:pb-6">
         <div className="pt-5 px-4 md:pt-8 md:px-8">
           <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
           <PageHeader
@@ -389,7 +389,9 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
                             {colGroup}
                             <tbody>
                               <tr
-                                className="hover:bg-surface-hover/60 transition-colors cursor-pointer group border-b border-border-subtle"
+                                className={`transition-colors cursor-pointer group border-b border-border-subtle ${
+                                  row.getIsSelected() ? 'bg-accent/10' : 'hover:bg-surface-hover/60'
+                                }`}
                                 onClick={(e) => {
                                   if ((e.target as HTMLElement).closest('button, input[type="checkbox"]')) return;
                                   row.toggleExpanded();
