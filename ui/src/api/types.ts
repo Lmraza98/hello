@@ -125,6 +125,26 @@ export type PipelineStatus = {
   started_at: string | null;
 };
 
+// ── LangGraph ──────────────────────────────────────────────
+
+export type LangGraphRunStatus = {
+  id: string;
+  graph_id: string;
+  status: 'pending' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled';
+  created_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  progress?: Record<string, unknown> | null;
+  output?: Record<string, unknown> | null;
+  error?: Record<string, unknown> | null;
+};
+
+export type LangGraphRunListResponse = {
+  ok: boolean;
+  count: number;
+  runs: LangGraphRunStatus[];
+};
+
 // â”€â”€ Email / Outlook / Conversations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type EmailDailyStat = {
@@ -540,4 +560,3 @@ export type DocumentAnswerResponse = {
     snippet?: string;
   }>;
 };
-

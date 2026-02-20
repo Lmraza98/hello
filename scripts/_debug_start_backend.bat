@@ -43,8 +43,8 @@ echo step12
 if defined BRIDGE_ALREADY_RUNNING goto :start_backend
 
 echo step13
-start /min "OpenClaw Browser Bridge" cmd /c ^
-  "cd /d C:\Users\lmraz\Hello && node --import tsx scripts\openclaw_browser_bridge.ts"
+start /min "LeadPilot Browser Bridge" cmd /c ^
+  "cd /d C:\Users\lmraz\Hello && node --import tsx scripts\leadpilot_browser_bridge.ts"
 
 :start_backend
 echo step14
@@ -53,4 +53,3 @@ start /min "Hello Backend" cmd /c ^
 
 echo step15
 goto :eof
-

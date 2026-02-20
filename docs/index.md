@@ -8,7 +8,7 @@ title: "Documentation Home"
 
 # Documentation Home
 
-This docs tree follows an OpenClaw-style structure:
+This docs tree follows an LeadPilot-style structure:
 
 - `docs/docs.json` defines docs navigation and redirects.
 - Every markdown page has frontmatter with:

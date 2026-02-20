@@ -33,6 +33,7 @@ from api.routes import (
     documents,
     emails,
     google,
+    langgraph,
     notes,
     pipeline,
     research,
@@ -247,11 +248,14 @@ FRONTEND_DIR = config.BASE_DIR / "ui" / "dist"
 
 # Initialize database
 db.init_database()
+from services.langgraph.state_store import init_state_store
+init_state_store()
 
 # Register routes
 app.include_router(companies.router)
 app.include_router(contacts.router)
 app.include_router(compound_workflow.router)
+app.include_router(langgraph.router)
 app.include_router(notes.router)
 app.include_router(stats.router)
 app.include_router(pipeline.router)

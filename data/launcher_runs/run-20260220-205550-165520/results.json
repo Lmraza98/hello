@@ -1,0 +1,18 @@
+{
+  "run_id": "run-20260220-205550-165520",
+  "status": "failed",
+  "duration_sec": 9.970191955566406,
+  "tests": [
+    {
+      "id": "python-tests-all",
+      "status": "failed",
+      "duration_sec": 9.970139980316162,
+      "message": "exit code 1",
+      "retries": 0
+    }
+  ],
+  "exports": {
+    "json": true,
+    "junit": true
+  }
+}

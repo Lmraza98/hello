@@ -8,7 +8,7 @@ title: "Documentation Workflow"
 
 # Documentation Workflow
 
-This repository uses an OpenClaw-style docs contract: code changes that alter behavior must be reflected in docs during the same work cycle.
+This repository uses an LeadPilot-style docs contract: code changes that alter behavior must be reflected in docs during the same work cycle.
 
 ## Required Routine
 

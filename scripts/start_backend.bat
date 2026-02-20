@@ -19,13 +19,13 @@ for /f "tokens=5" %%p in ('netstat -ano ^| findstr /c:":9223" ^| findstr /c:"LIS
   set "BRIDGE_PID=%%p"
 )
 
-REM Start OpenClaw browser bridge only if NOT already running (9223)
+REM Start LeadPilot browser bridge only if NOT already running (9223)
 if "%BRIDGE_PID%"=="" (
-  echo Starting OpenClaw Browser Bridge...
-  start /min "OpenClaw Browser Bridge" cmd /c ^
-    "cd /d C:\Users\lmraz\Hello\openclaw && node --import tsx ..\scripts\openclaw_browser_bridge.ts"
+  echo Starting LeadPilot Browser Bridge...
+  start /min "LeadPilot Browser Bridge" cmd /c ^
+    "cd /d C:\Users\lmraz\Hello && node --import tsx scripts\leadpilot_browser_bridge.ts"
 ) else (
-  echo OpenClaw bridge already running on port 9223. PID=%BRIDGE_PID%
+  echo LeadPilot bridge already running on port 9223. PID=%BRIDGE_PID%
 )
 
 REM If backend is already running, do not restart it.

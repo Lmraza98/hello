@@ -27,7 +27,7 @@ This system automates B2B outreach by:
 
 ## Documentation Architecture
 
-The repository now follows an OpenClaw-style self-documenting pattern:
+The repository now follows a LeadPilot-style self-documenting pattern:
 
 - Docs config: `docs/docs.json` (Mintlify nav + redirects)
 - Docs index pages: `docs/index.md`, `docs/start/docs-directory.md`, `docs/start/hubs.md`
@@ -85,6 +85,32 @@ techstartup.io,conference,Met at SaaStr
 ```bash
 python main.py daily-run --seed-csv data/seed_urls.csv
 ```
+
+## LeadPilot Launcher (Dev)
+
+The developer launcher (`python launcher.py`) starts backend + bridge and exposes a production-hardened test orchestrator.
+
+**Core behavior:**
+1. Uses strict allowlisted test commands from `config/launcher_test_catalog.v1.json`.
+2. Runs tests in an isolated subprocess worker (`scripts/launcher_test_worker.py`) via JSON protocol.
+3. Supports deterministic run plans (dependency-aware) with preview before execution.
+4. Supports cancellation of current test or entire run.
+5. Persists run artifacts under `data/launcher_runs/run-*/` with rolling retention.
+6. Exports JSON and JUnit for every run by default.
+
+**Run artifacts per execution:**
+- `metadata.json`
+- `events.ndjson`
+- `stdout.log`
+- `results.json`
+- `results.junit.xml`
+
+**Prereqs for launcher orchestration:**
+- Python environment with `pytest`.
+- Node available (or `LEADPILOT_NODE_PATH` set) for bridge startup.
+- UI dependencies installed for frontend tests (`npm --prefix ui test`).
+
+See `docs/help/launcher-test-orchestration.md` for full operational details.
 
 ## Commands
 
@@ -192,20 +218,34 @@ cd C:\llm\llama
 
 ### Chat Workspace Layout (UI)
 
-The app shell uses a two-pane split workspace:
+The app shell is now chat-first with an on-demand manual workspace:
 
-- Left pane: assistant chat and workflow events.
-- Right pane: primary page content (for example, Companies table).
+- Chat panel: assistant collapses to input-only when navigating via the left sidebar, and expands again when the user types.
+- Top interaction sheet: contextual UI components slide down from the top during chat-driven workflows; manual sidebar routes render without the workspace header container.
+- Dynamic split: when the top sheet opens, chat shrinks to keep both contexts visible.
+- Sidebar routes remain separate full page routes (manual navigation still works as before).
 
 Recent UI updates added:
 
 - left app navigation moved into a collapsible sidebar (`230px` max width) with icon-only collapsed mode,
-- desktop header actions moved into the left sidebar (quick add + settings) and top header removed on desktop,
-- draggable chat pane width (`360px-420px`, default `392px`) with browser persistence,
-- independent chat/content scrolling,
+- desktop header actions moved into the left sidebar (quick add + settings),
+- top-sheet workspace with one-click expand/collapse transitions,
+- live interaction tray defaults to a compact single-row bar (collapsed), can be pinned open, and auto-collapses on completion unless pinned,
+- filter/workflow interactions now show explicit state (`in progress`, `completed`, `failed`) with result labels,
+- chat dock state persistence (expanded/pinned) and trace access from expanded mode,
+- Contacts page now uses a right-side assistant panel on desktop and removes the bottom chat dock from that view,
+- chat-triggered filter/navigation/selection actions render contextual interaction cards (filter chips, target view hints, live progress bars) instead of only a loading indicator,
+- zero-result contact searches now surface an inline create-contact form prefilled from the chat query,
+- full route pages can still be opened explicitly from sidebar navigation or from interaction-card "Open Full Page" actions,
 - compact workflow event cards for action-required confirmations, tool findings, and next actions,
 - trace drawer with an `LLM Reasoning` block summarizing route decisions, planner thoughts, and reflections from debug trace metadata,
 - reduced confirmation prompt duplication by rendering confirmation as a single structured card.
+
+Feature flag behavior:
+
+- `VITE_CHAT_FIRST_SHELL=true` enables chat-first shell by default.
+- local override key: `hello_feature_chat_first_shell` (`on` / `off`) from Settings.
+- temporary fallback: add `?legacyShell=1` to force legacy split-pane shell.
 
 ### Templates Tab (UI + API)
 
@@ -215,6 +255,33 @@ Features:
 
 - template CRUD (`create`, `edit`, `duplicate`, `archive`),
 - subject/preheader/from header fields,
+
+### LangGraph Runs (API)
+
+The backend exposes long-running LangGraph workflows for multi-step operations.
+
+Endpoints:
+- `POST /api/langgraph/runs` (create)
+- `POST /api/langgraph/runs/{id}/start`
+- `POST /api/langgraph/runs/{id}/continue`
+- `POST /api/langgraph/runs/{id}/cancel`
+- `GET /api/langgraph/runs/{id}/status`
+- `GET /api/langgraph/runs` (list)
+
+### LeadPilot Launcher (Desktop)
+
+For end users, use the LeadPilot launcher to start the backend + browser bridge:
+
+1. Build the frontend and launcher:
+   - `python build.py`
+2. Run the launcher from `dist/LeadPilot/LeadPilot(.exe)`.
+
+The launcher starts:
+- FastAPI backend on `http://127.0.0.1:8000`
+- LeadPilot browser bridge on `http://127.0.0.1:9223`
+
+Note: The current LeadPilot bridge uses the OpenClaw bridge server code from `openclaw/`.
+If packaging, ensure `openclaw/node_modules` is installed or vendor the bridge code.
 - HTML + optional plain-text bodies,
 - token rendering with fallbacks (for example `{{firstName | "there"}}`),
 - reusable snippet blocks,

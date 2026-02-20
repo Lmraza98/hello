@@ -1,5 +1,5 @@
 ---
-summary: "General browser automation architecture and how the assistant uses OpenClaw-style browser primitives."
+summary: "General browser automation architecture and how the assistant uses LeadPilot-style browser primitives."
 read_when:
   - You are changing browser automation behavior
   - You are debugging SalesNav search/extraction issues
@@ -27,7 +27,7 @@ These primitives should stay website-agnostic.
 Implementation note: `api/routes/browser_nav.py` is a thin router only. The backend implementations live under:
 
 - `services/web_automation/browser/backends/local_playwright.py`
-- `services/web_automation/browser/backends/openclaw.py`
+- `services/web_automation/browser/backends/leadpilot.py`
 - `services/web_automation/browser/backends/proxy.py`
 - `services/web_automation/browser/backends/factory.py` (selects backend via `BROWSER_GATEWAY_MODE`)
 
@@ -37,7 +37,7 @@ The same API can be backed by different browser engines:
 
 - `local` (default): in-process Playwright session managed by `services/web_automation/browser/backends/local_playwright.py`.
 - `proxy`: forwards requests to a remote gateway that implements the same contract.
-- `openclaw`: uses the OpenClaw browser bridge server (stable role refs + CDP targetIds).
+- `leadpilot`: uses the LeadPilot browser bridge server (stable role refs + CDP targetIds).
 - `camoufox`: Firefox/Camoufox-backed in-process Playwright session via `services/web_automation/browser/backends/camoufox.py`.
 
 In `camoufox` mode:
@@ -46,13 +46,13 @@ In `camoufox` mode:
 - Session persistence behavior remains the same (including LinkedIn storage-state bootstrap from `data/linkedin_auth.json` when present).
 - Workflows under `api/routes/browser_workflows.py` and `services/web_automation/browser/workflows/recipes.py` run unchanged.
 
-In `openclaw` mode:
+In `leadpilot` mode:
 
-- `ref`s are stable role refs coming from OpenClaw role snapshots (not DOM indices).
-- Tab identity is derived from OpenClaw `targetId`s and mapped into our `tab-<n>` ids (stable mapping across refreshes).
+- `ref`s are stable role refs coming from LeadPilot role snapshots (not DOM indices).
+- Tab identity is derived from LeadPilot `targetId`s and mapped into our `tab-<n>` ids (stable mapping across refreshes).
 - `act:evaluate` is intentionally disabled (skills should rely on snapshot + action hints, not inline scripts).
 - When navigating to LinkedIn/SalesNav, the backend will (best-effort) import cookies from `data/linkedin_auth.json`
-  into the OpenClaw-managed context to avoid getting stuck on `/sales/login`.
+  into the LeadPilot-managed context to avoid getting stuck on `/sales/login`.
 
 ### Ref Stability: Self-Healing Refs
 
@@ -64,7 +64,7 @@ To keep workflows generic and resilient, `POST /api/browser/act` attempts to sel
 - If an action times out on `nth(index)`, it re-resolves the element index using the ref's stored metadata
   (`label`, `role`, `href`) and retries once.
 
-When running with `BROWSER_GATEWAY_MODE=openclaw`, this index-based healing is not used; OpenClaw
+When running with `BROWSER_GATEWAY_MODE=leadpilot`, this index-based healing is not used; LeadPilot
 provides stable role refs directly.
 
 Implementation note: both backends also attempt a small, generic recovery when an LLM mistakenly
@@ -73,14 +73,14 @@ the backend will try to resolve the label against the most recent snapshot map f
 The local/camoufox backend also includes a DOM selector fallback for search/keyword inputs when
 snapshot labels are not stable yet (common on dynamic SalesNav filter UIs).
 
-OpenClaw interaction note:
-- In `openclaw` mode, typing uses Playwright `locator.click()` + `locator.type()` when `slowly=true`. Some sites can intermittently block the click (overlays/occlusion).
+LeadPilot interaction note:
+- In `leadpilot` mode, typing uses Playwright `locator.click()` + `locator.type()` when `slowly=true`. Some sites can intermittently block the click (overlays/occlusion).
   The backend retries with `scrollIntoView` and may fall back to `fill` (no click) on click-timeout errors.
 
 ## Layer 2: Site Workflow Composition
 
 The assistant **does not** rely on site-specific workflow helpers for normal browsing. The default is
-OpenClaw-style operation: the model reads `browser_snapshot` output and drives the site using refs
+LeadPilot-style operation: the model reads `browser_snapshot` output and drives the site using refs
 (`browser_find_ref` + `browser_act`) in short loops.
 
 UI note:
@@ -149,6 +149,9 @@ Observation/validation note:
   - Persists skill QA metadata in frontmatter (`qa_status`, `last_regression_*`, `last_regression_at`).
 - Auto-learn in `services/web_automation/browser/workflows/recipes.py` now uses this deterministic layer before persisting skills.
 - UI wiring: `/browser` (implemented in `ui/src/pages/BrowserWorkbench.tsx`) includes the “Workflow Builder (Phase 2)” panel for annotate -> include/exclude labeling -> synthesis.
+- UI shell wiring: app routes now run in a chat-first shell with two interaction modes:
+  - manual sidebar navigation keeps `/browser` as a normal routed page surface,
+  - chat-driven steps surface contextual UI components in a top slide-down interaction sheet while chat remains primary.
 
 - `/browser` layout keeps the live browser frame at the top (active tab shown as the largest preview), with workflow-builder controls directly below.
 - `/browser` includes a dedicated Tab Manager pane (desktop left split pane, mobile drawer) with search/filter/grouping, pinning, expandable tab details, and bulk cleanup actions for large tab sets.
@@ -160,6 +163,16 @@ Observation/validation note:
 - `/browser` workflow builder panel uses natural block flow (no internal flex-height trap), so drawer-body vertical scroll remains functional after observe/annotate.
 - `/browser` drawer body now explicitly captures wheel/trackpad deltas and routes them to the drawer scroll container to prevent viewport-layer scroll loss in Chrome.
 - `/browser` workflow builder now uses a fixed controls header plus a dedicated `min-h-0 flex-1 overflow-y-auto` content region (TanStack-rendered annotation table) to prevent scroll loss after Observe/Annotate.
+- `/browser` workflow setup now defaults to a simplified guided flow for non-technical users:
+  - collapsed drawer shows a single `Start Setup` CTA,
+  - primary actions are plain-language (`Scan Page`, `Pick Examples`, `Test Results`, `Auto-Fix Rules`),
+  - technical selector/filter fields are hidden behind an `Advanced` toggle.
+- `/browser` setup now includes a 4-step wizard inside the drawer:
+  - Step 1: choose collection goal (`Posts`, `People`, `Products`, `Articles`) with optional topic text,
+  - Step 2: scan current page structure,
+  - Step 3: pick include/exclude examples from annotated rows,
+  - Step 4: test + auto-fix extraction rules and save setup draft.
+- Chat-triggered browser workflow actions (`browser.observe`, `browser.annotate`, `browser.validate`, `browser.synthesize`) dispatch UI bridge commands and expose live interaction feedback in the top interaction sheet (scan/annotate/synthesize/validate progress), with explicit affordances to open the full `/browser` routed page when deeper manual control is needed.
 
 In the UI chat layer, these are exposed as tools:
 
@@ -305,16 +318,16 @@ so the operator can intervene or retry later.
 - `POST /api/salesnav/browser/search-account`
 - `POST /api/salesnav/browser/extract-companies`
 
-## Local Dev: OpenClaw Bridge
+## Local Dev: LeadPilot Bridge
 
-To run the OpenClaw browser bridge locally (on Windows):
+To run the LeadPilot browser bridge locally (on Windows):
 
-- `scripts/start_openclaw_browser_bridge.bat`
-- `scripts/stop_openclaw_browser_bridge.bat`
+- `scripts/start_leadpilot_browser_bridge.bat`
+- `scripts/stop_leadpilot_browser_bridge.bat`
 
 Then set:
 
-- `BROWSER_GATEWAY_MODE=openclaw`
+- `BROWSER_GATEWAY_MODE=leadpilot`
 - `OPENCLAW_BROWSER_BASE_URL=http://127.0.0.1:9223`
 
 For Camoufox-backed local browsing, set:

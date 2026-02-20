@@ -1,6 +1,6 @@
 """List documentation files and their metadata.
 
-OpenClaw-style workflow:
+LeadPilot-style workflow:
 - each docs page should define frontmatter `summary` and optional `read_when`
 - this script gives a compact listing for humans and agents
 

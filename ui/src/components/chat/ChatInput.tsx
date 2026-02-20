@@ -9,6 +9,7 @@ interface ChatInputProps {
   isStreaming?: boolean;
   onStop?: () => void;
   placeholder?: string;
+  onFocus?: () => void;
 }
 
 export function ChatInput({
@@ -18,6 +19,7 @@ export function ChatInput({
   isStreaming = false,
   onStop,
   placeholder = 'Ask for leads, campaigns, or workflow actions...',
+  onFocus,
 }: ChatInputProps) {
   const [value, setValue] = useState('');
   const [isDraggingFile, setIsDraggingFile] = useState(false);
@@ -122,7 +124,7 @@ export function ChatInput({
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={!onUploadFiles || disabled}
-          className="inline-flex h-[42px] items-center rounded-lg border border-border bg-bg px-2.5 text-text-muted hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-[44px] items-center rounded-lg border border-border bg-bg px-2.5 text-text-muted hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
           title="Attach files"
         >
           <Paperclip className="h-4 w-4" />
@@ -133,8 +135,9 @@ export function ChatInput({
           disabled={disabled}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={onKeyDown}
+          onFocus={() => onFocus?.()}
           placeholder={placeholder}
-          className="min-h-[56px] max-h-36 flex-1 resize-y rounded-lg border border-border bg-bg px-3 py-3 text-sm text-text outline-none placeholder:text-text-dim transition-shadow duration-150 focus:border-accent focus:ring-2 focus:ring-accent/25"
+          className="min-h-[60px] max-h-40 flex-1 resize-y rounded-lg border border-border bg-bg px-3.5 py-3 text-sm text-text outline-none placeholder:text-text-dim transition-shadow duration-150 focus:border-accent focus:ring-2 focus:ring-accent/30 focus:shadow-[0_0_0_3px_rgba(79,70,229,0.12)]"
         />
         {showSlashMenu && filteredCommands.length > 0 ? (
           <div className="absolute bottom-[calc(100%+8px)] left-0 right-14 max-h-56 overflow-y-auto rounded-md border border-border bg-bg shadow-lg">
@@ -161,7 +164,7 @@ export function ChatInput({
           type="button"
           onClick={submit}
           disabled={disabled || value.trim().length === 0}
-          className="inline-flex h-[42px] items-center gap-1 rounded-lg bg-accent px-3 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-[44px] items-center gap-1 rounded-lg bg-accent px-3.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
           <span className="hidden sm:inline">Send</span>
           <SendHorizontal className="h-4 w-4" />
@@ -170,7 +173,7 @@ export function ChatInput({
           <button
             type="button"
             onClick={() => onStop?.()}
-            className="inline-flex h-[42px] items-center rounded-lg border border-border bg-bg px-2.5 text-xs font-medium text-text-muted hover:bg-surface-hover"
+            className="inline-flex h-[44px] items-center rounded-lg border border-border bg-bg px-2.5 text-xs font-medium text-text-muted hover:bg-surface-hover"
           >
             Stop
           </button>

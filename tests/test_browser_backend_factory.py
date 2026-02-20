@@ -16,8 +16,8 @@ def test_factory_defaults_to_local_backend(monkeypatch):
 
 
 def test_factory_selection_ignores_workflow_async_env(monkeypatch):
-    monkeypatch.setenv("BROWSER_GATEWAY_MODE", "openclaw")
+    monkeypatch.setenv("BROWSER_GATEWAY_MODE", "leadpilot")
     monkeypatch.setenv("BROWSER_WORKFLOW_ASYNC_ENABLED", "true")
     reset_browser_backend_for_tests()
     backend = get_browser_backend()
-    assert backend.__class__.__name__ == "OpenClawBackend"
+    assert backend.__class__.__name__ == "LeadPilotBackend"

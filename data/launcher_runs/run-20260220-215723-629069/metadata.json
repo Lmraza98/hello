@@ -1,0 +1,34 @@
+{
+  "run_id": "run-20260220-215723-629069",
+  "started_at": "2026-02-20T21:57:23Z",
+  "status": "failed",
+  "selected_test_ids": [
+    "python-builder-routes",
+    "python-tests-all"
+  ],
+  "selected_tags": [],
+  "artifacts": {
+    "events": "/Users/lucasraza/Projects/hello/data/launcher_runs/run-20260220-215723-629069/events.ndjson",
+    "stdout": "/Users/lucasraza/Projects/hello/data/launcher_runs/run-20260220-215723-629069/stdout.log",
+    "junit": "/Users/lucasraza/Projects/hello/data/launcher_runs/run-20260220-215723-629069/results.junit.xml",
+    "json": "/Users/lucasraza/Projects/hello/data/launcher_runs/run-20260220-215723-629069/results.json"
+  },
+  "duration_sec": 9.78198790550232,
+  "tests": [
+    {
+      "id": "python-builder-routes",
+      "status": "passed",
+      "duration_sec": 0.7354850769042969,
+      "message": "",
+      "retries": 1
+    },
+    {
+      "id": "python-tests-all",
+      "status": "failed",
+      "duration_sec": 9.046346187591553,
+      "message": "exit code 1",
+      "retries": 0
+    }
+  ],
+  "finished_at": "2026-02-20T21:57:33.523261+00:00"
+}

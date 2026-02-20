@@ -10,6 +10,8 @@ extruct==0.17.0
 
 # LLM
 openai==1.58.1
+langgraph==0.2.60
+langchain-core==0.3.23
 
 # API Server
 fastapi==0.115.0
@@ -43,4 +45,3 @@ pywebview==5.3.2
 
 # Packaging (dev only)
 pyinstaller==6.11.0
-

@@ -329,6 +329,8 @@ async def build_annotation_artifacts(
     patterns = [_clean_text(p) for p in (href_contains or []) if _clean_text(p)]
     if not patterns:
         patterns = [""]
+    wildcard_patterns = {"", "/", "*", "all", "any"}
+    wildcard_match = any(p.strip().lower() in wildcard_patterns for p in patterns)
 
     screenshot_image = None
     if include_screenshot:
@@ -346,8 +348,9 @@ async def build_annotation_artifacts(
         "(() => {"
         "const maxN = Number(%d) || 40;"
         "const pats = %s;"
+        "const wildcard = %s;"
         "const norm = (v) => (v || '').toString().trim();"
-        "const nodes = Array.from(document.querySelectorAll('a,[role=\"link\"],button,[role=\"button\"]'));"
+        "const nodes = Array.from(document.querySelectorAll('a,[role=\"link\"],button,[role=\"button\"],input,textarea,select,[role=\"textbox\"],[role=\"combobox\"],[role=\"searchbox\"]'));"
         "const visible = (el) => {"
         "  const st = window.getComputedStyle(el);"
         "  const r = el.getBoundingClientRect();"
@@ -369,10 +372,12 @@ async def build_annotation_artifacts(
         "  if (out.length >= maxN) break;"
         "  if (!visible(el)) continue;"
         "  const href = norm(el.getAttribute('href'));"
-        "  const label = norm(el.getAttribute('aria-label') || el.innerText || el.textContent);"
+        "  const placeholder = norm(el.getAttribute('placeholder'));"
+        "  const name = norm(el.getAttribute('name'));"
+        "  const label = norm(el.getAttribute('aria-label') || el.innerText || el.textContent || placeholder || name);"
         "  const role = norm(el.getAttribute('role') || el.tagName.toLowerCase());"
-        "  const hay = `${href} ${label}`;"
-        "  if (pats.length && !pats.some((p) => p && hay.includes(p))) continue;"
+        "  const hay = `${href} ${label} ${placeholder} ${name}`;"
+        "  if (!wildcard && pats.length && !pats.some((p) => p && hay.includes(p))) continue;"
         "  const r = el.getBoundingClientRect();"
         "  out.push({"
         "    label: label.slice(0, 120),"
@@ -405,6 +410,7 @@ async def build_annotation_artifacts(
     ) % (
         max(1, min(int(max_boxes), 120)),
         repr(patterns),
+        "true" if wildcard_match else "false",
     )
 
     try:
@@ -445,15 +451,18 @@ async def build_annotation_artifacts(
                 continue
             label = _clean_text(row.get("label"))
             href = _clean_text(row.get("href") or row.get("url"))
+            role = _clean_text(row.get("role")).lower()
             hay = f"{label} {href}"
-            if patterns and not any(p in hay for p in patterns):
+            if not wildcard_match and patterns and not any(p in hay for p in patterns):
+                continue
+            if wildcard_match and not (href or role in {"input", "textbox", "searchbox", "combobox", "textarea", "select", "button", "link", "a"}):
                 continue
             boxes.append(
                 {
                     "box_id": f"b{idx}",
                     "label": label,
                     "href": href,
-                    "role": _clean_text(row.get("role")),
+                    "role": role,
                     "landmark_role": None,
                     "container_hint": None,
                     "x": None,

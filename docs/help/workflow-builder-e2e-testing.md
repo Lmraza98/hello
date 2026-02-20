@@ -84,6 +84,24 @@ Run in this order:
 2. `python scripts/test_workflow_builder_live.py --base-url ...`
 3. manual UI regression checks in `/browser`
 
+## Launcher-Orchestrated Runs
+
+The LeadPilot launcher now supports manifest-driven, isolated test orchestration with run history and exported artifacts.
+
+1. Start `python launcher.py`.
+2. Open the `Tests` tab.
+3. Use filters (`suite/kind/tag/outcome`) and `Preview Run Plan`.
+4. Run selected tests or run by tag filter.
+5. Open artifacts from run history (`JSON/JUnit` exported by default).
+
+Catalog source of truth:
+
+- `config/launcher_test_catalog.v1.json`
+
+Operational details:
+
+- `docs/help/launcher-test-orchestration.md`
+
 ## Troubleshooting
 
 - `FAIL: no tabs available`: create/navigate a browser tab via `/browser` first.

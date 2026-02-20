@@ -10,9 +10,9 @@ title: "Sales Navigator Automation"
 
 This feature allows you to automatically collect companies from LinkedIn Sales Navigator using natural language queries, powered by tool planning + browser automation.
 
-## OpenClaw-Style Browser Workflows (Preferred)
+## LeadPilot-Style Browser Workflows (Preferred)
 
-For live Sales Navigator navigation and structured extraction, prefer the OpenClaw-style workflows implemented in:
+For live Sales Navigator navigation and structured extraction, prefer the LeadPilot-style workflows implemented in:
 
 - `services/web_automation/browser/core/workflow.py` (engine)
 - `services/web_automation/browser/workflows/recipes.py` (generic recipes)
@@ -192,7 +192,7 @@ Company extraction now prefers a SalesNav card-aware DOM pass (when local Playwr
 - `interaction_map` (detected clickable controls like save, overflow, employees, spotlight chip)
 - optional `ai_summary` when a spotlight chip opens a panel containing `Summarized by AI`
 
-If DOM extraction is unavailable (e.g. proxy/OpenClaw mode), workflows fall back to the existing href/text skill extraction rules.
+If DOM extraction is unavailable (e.g. proxy/LeadPilot mode), workflows fall back to the existing href/text skill extraction rules.
 
 ## Filter Support
 

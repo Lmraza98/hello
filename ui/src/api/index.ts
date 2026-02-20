@@ -43,6 +43,8 @@ import type {
   EmailDashboardMetrics,
   GeneratedEmail,
   GetAdminLogsParams,
+  LangGraphRunListResponse,
+  LangGraphRunStatus,
   OutlookAuthStatus,
   PipelineStatus,
   ReplyPreview,
@@ -88,6 +90,35 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(payload),
       }),
+  },
+
+  // ── LangGraph ─────────────────────────────────────────────
+  langgraph: {
+    createRun: (payload: { graph_id: string; input: Record<string, unknown>; user_id?: string }) =>
+      fetchJson<{ ok: boolean; run_id: string; status: string }>('/langgraph/runs', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    startRun: (runId: string) =>
+      fetchJson<{ ok: boolean; status: string }>(`/langgraph/runs/${encodeURIComponent(runId)}/start`, {
+        method: 'POST',
+      }),
+    continueRun: (runId: string) =>
+      fetchJson<{ ok: boolean; status: string }>(`/langgraph/runs/${encodeURIComponent(runId)}/continue`, {
+        method: 'POST',
+      }),
+    cancelRun: (runId: string) =>
+      fetchJson<{ ok: boolean; status: string }>(`/langgraph/runs/${encodeURIComponent(runId)}/cancel`, {
+        method: 'POST',
+      }),
+    getRunStatus: (runId: string) =>
+      fetchJson<LangGraphRunStatus>(`/langgraph/runs/${encodeURIComponent(runId)}/status`),
+    listRuns: (params?: { limit?: number; status?: string }) => {
+      const sp = new URLSearchParams();
+      if (typeof params?.limit === 'number') sp.set('limit', String(params.limit));
+      if (params?.status) sp.set('status', params.status);
+      return fetchJson<LangGraphRunListResponse>(`/langgraph/runs${sp.toString() ? `?${sp.toString()}` : ''}`);
+    },
   },
 
   // ── Stats ─────────────────────────────────────────────────

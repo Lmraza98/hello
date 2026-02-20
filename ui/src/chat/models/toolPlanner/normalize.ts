@@ -333,7 +333,7 @@ export function normalizePlannedCalls(
   const isBrowserRefStr = (ref: string): boolean => {
     const t = (ref || '').trim();
     if (!t) return false;
-    // OpenClaw role refs look like "e204". Local backend may emit numeric refs as strings.
+    // LeadPilot role refs look like "e204". Local backend may emit numeric refs as strings.
     if (/^e\d+$/i.test(t)) return true;
     if (/^\d+$/.test(t)) return true;
     return false;

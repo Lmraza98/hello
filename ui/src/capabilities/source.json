@@ -1024,6 +1024,13 @@
         "description": "Synthesize selector from include/exclude labels",
         "params": [],
         "category": "workflow"
+      },
+      {
+        "id": "browser.validate",
+        "label": "Validate Selector",
+        "description": "Validate extracted results for the current candidate rule",
+        "params": [],
+        "category": "workflow"
       }
     ],
     "filters": [],
@@ -1093,6 +1100,50 @@
         "id": "tasks.summary",
         "type": "panel",
         "description": "Task monitor summary panel"
+      }
+    ]
+  },
+  {
+    "pageId": "workspace",
+    "route": "/dashboard",
+    "title": "Workspace Surface",
+    "description": "Controls for opening, docking, and expanding the right workspace surface.",
+    "actions": [
+      {
+        "id": "workspace.open",
+        "label": "Open Workspace",
+        "description": "Open the right workspace surface",
+        "params": [],
+        "category": "display"
+      },
+      {
+        "id": "workspace.close",
+        "label": "Close Workspace",
+        "description": "Close the right workspace surface",
+        "params": [],
+        "category": "display"
+      },
+      {
+        "id": "workspace.expand",
+        "label": "Expand Workspace",
+        "description": "Expand the workspace into fullscreen mode",
+        "params": [],
+        "category": "display"
+      },
+      {
+        "id": "workspace.dock",
+        "label": "Dock Workspace",
+        "description": "Dock the workspace into drawer mode",
+        "params": [],
+        "category": "display"
+      }
+    ],
+    "filters": [],
+    "displays": [
+      {
+        "id": "workspace.surface",
+        "type": "detail_panel",
+        "description": "Right-side workspace surface"
       }
     ]
   },

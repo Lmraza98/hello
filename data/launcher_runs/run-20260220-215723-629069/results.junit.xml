@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="launcher-run" tests="2" failures="1" skipped="0" time="9.782">
+  <testcase classname="launcher" name="python-builder-routes" time="0.735">
+  </testcase>
+  <testcase classname="launcher" name="python-tests-all" time="9.046">
+    <failure message="exit code 1"/>
+  </testcase>
+</testsuite>

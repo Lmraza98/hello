@@ -10,8 +10,10 @@ import { TabManagerExpanded } from '../components/browser/TabManagerExpanded';
 import { TabRailCollapsed } from '../components/browser/TabRailCollapsed';
 import { WorkflowDrawer } from '../components/browser/WorkflowDrawer';
 import type { TabValidationSummary, WorkbenchTab, WorkflowActionType } from '../components/browser/types';
+import { BROWSER_WORKFLOW_COMMAND_EVENT, isBrowserWorkflowCommand } from '../components/browser/workbenchBridge';
 import { PageHeader } from '../components/shared/PageHeader';
 import { usePageContext } from '../contexts/PageContextProvider';
+import { useWorkspaceLayout } from '../components/shell/workspaceLayout';
 
 function extractDomain(url: string): string {
   try {
@@ -44,6 +46,16 @@ type CandidateSeed = {
   container_hint_contains: string[];
   exclude_container_hint_contains: string[];
   score: number;
+};
+
+type WizardStep = 1 | 2 | 3 | 4;
+type CollectionTarget = 'posts' | 'people' | 'products' | 'articles';
+
+const TARGET_PRESETS: Record<CollectionTarget, { label: string; pattern: string; helper: string }> = {
+  posts: { label: 'Posts', pattern: '/comments/', helper: 'Collect forum and social posts.' },
+  people: { label: 'People', pattern: '/in/', helper: 'Collect profile-style people records.' },
+  products: { label: 'Products', pattern: '/product/', helper: 'Collect product pages and listings.' },
+  articles: { label: 'Articles', pattern: '/article/', helper: 'Collect article and blog links.' },
 };
 
 function tokenizeLabel(value: string): string[] {
@@ -146,6 +158,9 @@ type WorkflowRequest = {
   nonce: number;
   tabId: string;
   action: 'observe' | 'annotate' | 'validate' | 'synthesize' | 'refresh';
+  hrefPattern?: string;
+  source?: 'chat' | 'system' | 'sidebar';
+  preferFullscreen?: boolean;
 };
 
 type WorkflowBuilderPanelProps = {
@@ -171,6 +186,11 @@ function WorkflowBuilderPanel({
   onRefreshTab,
   onRunningAction,
 }: WorkflowBuilderPanelProps) {
+  const [wizardStep, setWizardStep] = useState<WizardStep>(1);
+  const [collectionTarget, setCollectionTarget] = useState<CollectionTarget>('posts');
+  const [goalText, setGoalText] = useState('');
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [hrefPattern, setHrefPattern] = useState('/');
   const [labelIncludeTokens, setLabelIncludeTokens] = useState<string[]>([]);
   const [labelExcludeTokens, setLabelExcludeTokens] = useState<string[]>([]);
@@ -190,6 +210,7 @@ function WorkflowBuilderPanel({
     onMutate: () => onRunningAction(selectedTabId, 'observe'),
     onSuccess: (data) => {
       onTabError(selectedTabId, null);
+      setWizardStep(2);
       const suggested = extractCandidateSeeds(data.observation as Record<string, unknown>)[0];
       if (!suggested) return;
       if (!hrefPattern.trim() || hrefPattern.trim() === '/') {
@@ -213,6 +234,7 @@ function WorkflowBuilderPanel({
       if (!containerHintExcludes.length && (suggested.exclude_container_hint_contains || []).length) {
         setContainerHintExcludes(suggested.exclude_container_hint_contains || []);
       }
+      setWizardStep(3);
     },
     onError: (err) => onTabError(selectedTabId, err instanceof Error ? err.message : 'Observation failed'),
     onSettled: () => onRunningAction(selectedTabId, null),
@@ -239,6 +261,7 @@ function WorkflowBuilderPanel({
       const fitScore = Number((data.candidate_validation as Record<string, unknown> | undefined)?.fit_score || 0);
       onValidationSummary(selectedTabId, Number.isFinite(fitScore) ? fitScore : 0);
       onTabError(selectedTabId, null);
+      setWizardStep(4);
     },
     onError: (err) => onTabError(selectedTabId, err instanceof Error ? err.message : 'Validation failed'),
     onSettled: () => onRunningAction(selectedTabId, null),
@@ -260,6 +283,7 @@ function WorkflowBuilderPanel({
       onAnnotationCount(selectedTabId, nextCount);
       if (nextCount > 0) setResultsView('annotations');
       onTabError(selectedTabId, null);
+      setWizardStep(3);
     },
     onError: (err) => onTabError(selectedTabId, err instanceof Error ? err.message : 'Annotation failed'),
     onSettled: () => onRunningAction(selectedTabId, null),
@@ -291,6 +315,7 @@ function WorkflowBuilderPanel({
       const fitScore = Number((data.candidate_validation as Record<string, unknown> | undefined)?.fit_score || 0);
       onValidationSummary(selectedTabId, Number.isFinite(fitScore) ? fitScore : 0);
       onTabError(selectedTabId, null);
+      setWizardStep(4);
     },
     onError: (err) => onTabError(selectedTabId, err instanceof Error ? err.message : 'Synthesis failed'),
     onSettled: () => onRunningAction(selectedTabId, null),
@@ -300,10 +325,25 @@ function WorkflowBuilderPanel({
     if (actionRequest.tabId !== selectedTabId) return;
     if (actionRequest.nonce === lastHandledActionNonceRef.current) return;
     lastHandledActionNonceRef.current = actionRequest.nonce;
-    if (actionRequest.action === 'observe') observationMutation.mutate();
-    if (actionRequest.action === 'annotate') annotateMutation.mutate();
-    if (actionRequest.action === 'validate') validateMutation.mutate();
-    if (actionRequest.action === 'synthesize') synthMutation.mutate();
+    if (typeof actionRequest.hrefPattern === 'string' && actionRequest.hrefPattern.trim()) {
+      setHrefPattern(actionRequest.hrefPattern.trim());
+    }
+    if (actionRequest.action === 'observe') {
+      setWizardStep(2);
+      observationMutation.mutate();
+    }
+    if (actionRequest.action === 'annotate') {
+      setWizardStep(3);
+      annotateMutation.mutate();
+    }
+    if (actionRequest.action === 'validate') {
+      setWizardStep(4);
+      validateMutation.mutate();
+    }
+    if (actionRequest.action === 'synthesize') {
+      setWizardStep(4);
+      synthMutation.mutate();
+    }
     if (actionRequest.action === 'refresh') onRefreshTab(selectedTabId);
   }, [actionRequest, annotateMutation, observationMutation, onRefreshTab, selectedTabId, synthMutation, validateMutation]);
 
@@ -434,7 +474,7 @@ function WorkflowBuilderPanel({
               }}
               className="rounded border border-border px-1.5 py-0.5 text-[10px] text-text-dim hover:bg-surface-hover"
             >
-              Use + Validate
+              Use then Test
             </button>
             <button
               type="button"
@@ -444,7 +484,7 @@ function WorkflowBuilderPanel({
               }}
               className="rounded border border-border px-1.5 py-0.5 text-[10px] text-text-dim hover:bg-surface-hover"
             >
-              Use + Annotate
+              Use then Pick
             </button>
           </div>
         );
@@ -458,20 +498,94 @@ function WorkflowBuilderPanel({
     getCoreRowModel: getCoreRowModel(),
   });
 
+  const includeCount = includeIds.length;
+  const excludeCount = excludeIds.length;
+  const hasObservation = Boolean(observationMutation.data?.observation);
+  const hasBoxes = boxes.length > 0;
+  const hasRuleScore = Number.isFinite(fitScore) && fitScore > 0;
+
+  const applyTargetPreset = (target: CollectionTarget) => {
+    const previousPreset = TARGET_PRESETS[collectionTarget].pattern;
+    const nextPreset = TARGET_PRESETS[target].pattern;
+    setCollectionTarget(target);
+    if (!hrefPattern.trim() || hrefPattern.trim() === '/' || hrefPattern.trim() === previousPreset) {
+      setHrefPattern(nextPreset);
+    }
+  };
+
+  const saveSetupDraft = () => {
+    const activeTab = tabs.find((tab) => tab.id === selectedTabId);
+    const sourceUrl = activeTab?.url || '';
+    const domain = extractDomain(sourceUrl);
+    const key = 'browser-workbench:setup-drafts';
+    const draft = {
+      saved_at: new Date().toISOString(),
+      tab_id: selectedTabId,
+      url: sourceUrl,
+      domain,
+      target: collectionTarget,
+      goal: goalText.trim(),
+      href_pattern: hrefPattern,
+      include_count: includeCount,
+      exclude_count: excludeCount,
+      fit_score: hasRuleScore ? fitScore : null,
+    };
+    try {
+      const raw = localStorage.getItem(key);
+      const existing = raw ? JSON.parse(raw) : [];
+      const next = Array.isArray(existing) ? existing.filter((row) => row && row.domain !== domain) : [];
+      next.unshift(draft);
+      localStorage.setItem(key, JSON.stringify(next.slice(0, 30)));
+      setSaveMessage(`Saved setup for ${domain}.`);
+      window.setTimeout(() => setSaveMessage(null), 2500);
+    } catch {
+      setSaveMessage('Saved setup.');
+      window.setTimeout(() => setSaveMessage(null), 2500);
+    }
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-surface p-3 touch-pan-y">
       <div className="shrink-0">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="inline-flex items-center gap-1 text-sm font-semibold text-text">
-            <Wand2 className="h-4 w-4" /> Workflow Builder
+            <Wand2 className="h-4 w-4" /> Automation Setup
           </h2>
-          <div className="text-[11px] text-text-dim">{'Annotate -> Include/Exclude -> Synthesize'}</div>
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((prev) => !prev)}
+            className="rounded border border-border px-2 py-0.5 text-[10px] text-text-dim hover:bg-surface-hover"
+          >
+            {showAdvanced ? 'Hide Advanced' : 'Advanced'}
+          </button>
+        </div>
+        <div className="mb-2 grid grid-cols-2 gap-1 text-[10px] sm:grid-cols-4">
+          {[
+            { id: 1, label: 'Choose Goal' },
+            { id: 2, label: 'Scan Page' },
+            { id: 3, label: 'Pick Examples' },
+            { id: 4, label: 'Finalize' },
+          ].map((step) => (
+            <button
+              key={step.id}
+              type="button"
+              onClick={() => setWizardStep(step.id as WizardStep)}
+              className={`rounded border px-2 py-1 text-left ${
+                wizardStep === step.id
+                  ? 'border-accent bg-accent text-white'
+                  : (wizardStep > step.id ? 'border-green-300 bg-green-50 text-green-700' : 'border-border text-text-dim')
+              }`}
+            >
+              <span className="font-semibold">Step {step.id}</span>
+              <span className="ml-1">{step.label}</span>
+            </button>
+          ))}
         </div>
 
-        <div className="mb-3 grid grid-cols-1 gap-2 lg:grid-cols-5">
-          <label className="text-xs text-text-dim">
-            Tab
-            <select value={selectedTabId} onChange={(e) => onSelectTab(e.target.value)} className="mt-1 w-full rounded border border-border bg-bg px-2 py-1 text-xs text-text">
+        <div className="mb-3 rounded border border-border bg-bg p-2">
+          <label className="mb-2 block text-xs text-text-dim">
+            Current tab
+            <select value={selectedTabId} onChange={(e) => onSelectTab(e.target.value)} className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-xs text-text">
               {tabs.map((tab) => (
                 <option key={tab.id} value={tab.id}>
                   {tab.id} {tab.active ? '(active)' : ''} {tab.title ? `- ${tab.title}` : ''}
@@ -479,22 +593,161 @@ function WorkflowBuilderPanel({
               ))}
             </select>
           </label>
-          <label className="text-xs text-text-dim lg:col-span-2">
-            Href pattern
-            <input value={hrefPattern} onChange={(e) => setHrefPattern(e.target.value)} placeholder="/products/" className="mt-1 w-full rounded border border-border bg-bg px-2 py-1 text-xs text-text" />
-            <div className="mt-1 text-[10px] text-text-dim">
-              labels+: {labelIncludeTokens.join(', ') || '(none)'} | labels-: {labelExcludeTokens.join(', ') || '(none)'} | roles: {roleAllowlist.join(', ') || '(none)'} | within:{' '}
-              {mustBeWithinRoles.join(', ') || '(none)'} | exclude_within: {excludeWithinRoles.join(', ') || '(none)'} | container+:{' '}
-              {containerHintIncludes.join(', ') || '(none)'} | container-: {containerHintExcludes.join(', ') || '(none)'}
+
+          {wizardStep === 1 ? (
+            <div className="space-y-2">
+              <div className="text-xs text-text-dim">What do you want to collect?</div>
+              <div className="grid grid-cols-2 gap-1 sm:grid-cols-4">
+                {(Object.keys(TARGET_PRESETS) as CollectionTarget[]).map((target) => (
+                  <button
+                    key={target}
+                    type="button"
+                    onClick={() => applyTargetPreset(target)}
+                    className={`rounded border px-2 py-1 text-xs ${collectionTarget === target ? 'border-accent bg-accent/10 text-accent' : 'border-border text-text-dim hover:bg-surface-hover'}`}
+                  >
+                    {TARGET_PRESETS[target].label}
+                  </button>
+                ))}
+              </div>
+              <label className="block text-xs text-text-dim">
+                Optional topic or goal
+                <input
+                  value={goalText}
+                  onChange={(e) => setGoalText(e.target.value)}
+                  placeholder="e.g. AI posts in r/startups"
+                  className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-xs text-text"
+                />
+              </label>
+              <div className="text-[11px] text-text-dim">{TARGET_PRESETS[collectionTarget].helper}</div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setWizardStep(2)}
+                  disabled={!selectedTabId}
+                  className="rounded bg-accent px-2 py-1 text-xs text-white disabled:opacity-50"
+                >
+                  Continue
+                </button>
+              </div>
             </div>
-          </label>
-          <div className="grid grid-cols-2 gap-1.5 lg:col-span-2 sm:grid-cols-3">
-            <button type="button" onClick={() => observationMutation.mutate()} className="w-full rounded border border-border px-2 py-1 text-xs text-text-dim hover:bg-surface-hover">Observe</button>
-            <button type="button" onClick={() => annotateMutation.mutate()} disabled={!selectedTabId || annotateMutation.isPending} className="w-full rounded border border-border px-2 py-1 text-xs text-text hover:bg-surface-hover disabled:opacity-50">{annotateMutation.isPending ? 'Annotating...' : 'Annotate'}</button>
-            <button type="button" onClick={() => validateMutation.mutate()} disabled={!selectedTabId || validateMutation.isPending} className="w-full rounded border border-border px-2 py-1 text-xs text-text hover:bg-surface-hover disabled:opacity-50">{validateMutation.isPending ? 'Validating...' : 'Validate'}</button>
-            <button type="button" onClick={() => synthMutation.mutate()} disabled={!boxes.length || synthMutation.isPending} className="w-full rounded bg-accent px-2 py-1 text-xs text-white disabled:opacity-50">{synthMutation.isPending ? 'Synthesizing...' : 'Synthesize'}</button>
-            <button type="button" onClick={() => onRefreshTab(selectedTabId)} className="w-full rounded border border-border px-2 py-1 text-xs text-text-dim hover:bg-surface-hover">Refresh</button>
-          </div>
+          ) : null}
+
+          {wizardStep === 2 ? (
+            <div className="space-y-2">
+              <div className="text-xs text-text-dim">Scan this page so we can detect possible results automatically.</div>
+              <div className="flex flex-wrap gap-1">
+                <button
+                  type="button"
+                  onClick={() => observationMutation.mutate()}
+                  disabled={!selectedTabId || observationMutation.isPending}
+                  className="rounded border border-border px-2 py-1 text-xs text-text hover:bg-surface-hover disabled:opacity-50"
+                >
+                  {observationMutation.isPending ? 'Scanning...' : 'Scan Page'}
+                </button>
+                <button type="button" onClick={() => onRefreshTab(selectedTabId)} className="rounded border border-border px-2 py-1 text-xs text-text-dim hover:bg-surface-hover">
+                  Refresh Tab
+                </button>
+              </div>
+              {hasObservation ? (
+                <div className="text-[11px] text-text-dim">
+                  Scan complete: page mode {String(observationMutation.data?.observation?.page_mode || 'unknown')} on {String(observationMutation.data?.observation?.domain || 'n/a')}.
+                </div>
+              ) : null}
+              <div className="flex justify-between">
+                <button type="button" onClick={() => setWizardStep(1)} className="rounded border border-border px-2 py-1 text-xs text-text-dim hover:bg-surface-hover">
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWizardStep(3)}
+                  disabled={!hasObservation}
+                  className="rounded bg-accent px-2 py-1 text-xs text-white disabled:opacity-50"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {wizardStep === 3 ? (
+            <div className="space-y-2">
+              <div className="text-xs text-text-dim">Pick good and bad examples so the system learns the right pattern.</div>
+              <div className="flex flex-wrap gap-1">
+                <button
+                  type="button"
+                  onClick={() => annotateMutation.mutate()}
+                  disabled={!selectedTabId || annotateMutation.isPending}
+                  className="rounded border border-border px-2 py-1 text-xs text-text hover:bg-surface-hover disabled:opacity-50"
+                >
+                  {annotateMutation.isPending ? 'Picking...' : 'Pick Examples'}
+                </button>
+                <button type="button" onClick={() => setResultsView('annotations')} className="rounded border border-border px-2 py-1 text-xs text-text-dim hover:bg-surface-hover">
+                  View Marked Items
+                </button>
+              </div>
+              <div className="text-[11px] text-text-dim">
+                Included: {includeCount} | Excluded: {excludeCount} | Total rows: {boxes.length}
+              </div>
+              <div className="flex justify-between">
+                <button type="button" onClick={() => setWizardStep(2)} className="rounded border border-border px-2 py-1 text-xs text-text-dim hover:bg-surface-hover">
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWizardStep(4)}
+                  disabled={!hasBoxes}
+                  className="rounded bg-accent px-2 py-1 text-xs text-white disabled:opacity-50"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          {wizardStep === 4 ? (
+            <div className="space-y-2">
+              <div className="text-xs text-text-dim">Test and auto-fix the extraction rule, then save this setup.</div>
+              <div className="flex flex-wrap gap-1">
+                <button
+                  type="button"
+                  onClick={() => validateMutation.mutate()}
+                  disabled={!selectedTabId || validateMutation.isPending}
+                  className="rounded border border-border px-2 py-1 text-xs text-text hover:bg-surface-hover disabled:opacity-50"
+                >
+                  {validateMutation.isPending ? 'Testing...' : 'Test Results'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => synthMutation.mutate()}
+                  disabled={!boxes.length || synthMutation.isPending}
+                  className="rounded bg-accent px-2 py-1 text-xs text-white disabled:opacity-50"
+                >
+                  {synthMutation.isPending ? 'Auto-fixing...' : 'Auto-Fix Rules'}
+                </button>
+                <button
+                  type="button"
+                  onClick={saveSetupDraft}
+                  disabled={!selectedTabId}
+                  className="rounded border border-border px-2 py-1 text-xs text-text-dim hover:bg-surface-hover disabled:opacity-50"
+                >
+                  Save Setup
+                </button>
+              </div>
+              {saveMessage ? <div className="text-[11px] text-green-700">{saveMessage}</div> : null}
+              {showAdvanced ? (
+                <label className="block text-xs text-text-dim">
+                  Link pattern (advanced)
+                  <input value={hrefPattern} onChange={(e) => setHrefPattern(e.target.value)} placeholder="/comments/" className="mt-1 w-full rounded border border-border bg-surface px-2 py-1 text-xs text-text" />
+                </label>
+              ) : null}
+              <div className="text-[11px] text-text-dim">Rule fit score: {hasRuleScore ? fitScore : 0}</div>
+              <div className="flex justify-start">
+                <button type="button" onClick={() => setWizardStep(3)} className="rounded border border-border px-2 py-1 text-xs text-text-dim hover:bg-surface-hover">
+                  Back
+                </button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -504,29 +757,32 @@ function WorkflowBuilderPanel({
             page_mode: {String(observationMutation.data.observation.page_mode || 'unknown')} | domain: {String(observationMutation.data.observation.domain || 'n/a')}
           </div>
         ) : null}
+        {wizardStep < 3 ? (
+          <div className="mb-2 text-xs text-text-dim">Complete the first steps above to unlock examples and rule suggestions.</div>
+        ) : null}
 
-        {candidateSeeds.length && boxes.length > 0 ? (
+        {wizardStep >= 3 && candidateSeeds.length && boxes.length > 0 ? (
           <div className="mb-2 flex items-center gap-1">
             <button
               type="button"
               onClick={() => setResultsView('candidates')}
               className={`rounded px-2 py-0.5 text-[10px] ${resultsView === 'candidates' ? 'bg-accent text-white' : 'border border-border text-text-dim hover:bg-surface-hover'}`}
             >
-              Candidates
+              Suggested Rules
             </button>
             <button
               type="button"
               onClick={() => setResultsView('annotations')}
               className={`rounded px-2 py-0.5 text-[10px] ${resultsView === 'annotations' ? 'bg-accent text-white' : 'border border-border text-text-dim hover:bg-surface-hover'}`}
             >
-              Annotations
+              Marked Items
             </button>
           </div>
         ) : null}
 
-        {resultsView === 'candidates' && candidateSeeds.length ? (
+        {wizardStep >= 3 && resultsView === 'candidates' && candidateSeeds.length ? (
           <div className="mb-2">
-            <div className="mb-1 text-[11px] text-text-dim">Suggested candidates (click to use, no DevTools):</div>
+            <div className="mb-1 text-[11px] text-text-dim">Suggested rules. Pick one to reuse and test.</div>
             <div className="max-h-[24vh] overflow-x-auto overflow-y-auto rounded border border-border touch-pan-y">
               <table className="w-full table-fixed text-xs">
                 <thead className="sticky top-0 z-10 bg-surface">
@@ -556,7 +812,7 @@ function WorkflowBuilderPanel({
           </div>
         ) : null}
 
-        {resultsView === 'annotations' && screenshot ? (
+        {wizardStep >= 3 && resultsView === 'annotations' && screenshot ? (
           <div className="mb-3 max-h-[22vh] shrink-0 overflow-hidden rounded border border-border bg-bg p-2 touch-pan-y">
             <div className="relative inline-block">
               <img
@@ -598,7 +854,7 @@ function WorkflowBuilderPanel({
           </div>
         ) : null}
 
-        {resultsView === 'annotations' && boxes.length > 0 ? (
+        {wizardStep >= 3 && resultsView === 'annotations' && boxes.length > 0 ? (
           <div className="max-h-[42vh] overflow-x-auto overflow-y-auto rounded border border-border touch-pan-y">
             <table className="w-full table-fixed text-xs">
               <thead className="sticky top-0 z-10 bg-surface">
@@ -625,13 +881,13 @@ function WorkflowBuilderPanel({
               </tbody>
             </table>
           </div>
-        ) : resultsView === 'annotations' ? (
-          <div className="text-xs text-text-dim">Run Annotate to get candidate boxes.</div>
+        ) : wizardStep >= 3 && resultsView === 'annotations' ? (
+          <div className="text-xs text-text-dim">Click Pick Examples to load rows you can mark as Include or Exclude.</div>
         ) : null}
 
-        {synthMutation.data ? (
+        {wizardStep >= 4 && synthMutation.data ? (
           <div className="mt-2 rounded border border-border bg-bg p-2 text-xs">
-            <div className="font-medium text-text">Suggested selector</div>
+            <div className="font-medium text-text">Suggested rule</div>
             <div className="mt-1 font-mono text-[11px] text-accent">{(synthMutation.data.suggested_href_contains || []).join(', ') || '(none)'}</div>
             {synthMutation.data.suggested_candidate ? (
               <div className="mt-1 text-[11px] text-text-dim">
@@ -644,7 +900,7 @@ function WorkflowBuilderPanel({
                 {(synthMutation.data.suggested_candidate.exclude_container_hint_contains || []).join(', ') || '(none)'}
               </div>
             ) : null}
-            <div className="mt-1 text-text-dim">fit_score: {Number.isFinite(fitScore) ? fitScore : 0}</div>
+            <div className="mt-1 text-text-dim">Rule fit score: {Number.isFinite(fitScore) ? fitScore : 0}</div>
           </div>
         ) : null}
       </div>
@@ -705,6 +961,7 @@ function BrowserLiveViewer({
 
 export default function BrowserWorkbenchPage() {
   const { setPageContext } = usePageContext();
+  const workspace = useWorkspaceLayout();
   useRegisterCapabilities(getPageCapability('browser'));
 
   const [isWide, setIsWide] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
@@ -848,11 +1105,40 @@ export default function BrowserWorkbenchPage() {
     };
   }, [selectedTabId]);
 
-  const requestWorkflowAction = (tabId: string, action: WorkflowRequest['action']) => {
+  const requestWorkflowAction = (tabId: string, action: WorkflowRequest['action'], options?: Omit<WorkflowRequest, 'nonce' | 'tabId' | 'action'>) => {
     workflowNonceRef.current += 1;
     const nonce = workflowNonceRef.current;
-    setWorkflowRequest({ nonce, tabId, action });
+    setWorkflowRequest({ nonce, tabId, action, ...options });
   };
+
+  useEffect(() => {
+    const onCommand = (event: Event) => {
+      const custom = event as CustomEvent<unknown>;
+      if (!isBrowserWorkflowCommand(custom.detail)) return;
+      const detail = custom.detail;
+      const targetTabId = selectedTabId || tabs[0]?.id || '';
+      if (!targetTabId) return;
+
+      setSelectedTabId(targetTabId);
+      setLastUsedAt((prev) => ({ ...prev, [targetTabId]: Date.now() }));
+      setWorkflowDrawerOpen(true);
+      if (detail.action === 'annotate' || detail.action === 'validate' || detail.action === 'synthesize') {
+        setWorkflowDrawerOpenToHalfNonce((prev) => prev + 1);
+      }
+      if (detail.preferFullscreen) {
+        workspace.setWorkspaceMode('fullscreen');
+        workspace.openWorkspace({ source: 'chat', preferredMode: 'fullscreen' });
+      }
+      requestWorkflowAction(targetTabId, detail.action, {
+        hrefPattern: detail.hrefPattern,
+        source: detail.source,
+        preferFullscreen: detail.preferFullscreen,
+      });
+    };
+
+    window.addEventListener(BROWSER_WORKFLOW_COMMAND_EVENT, onCommand);
+    return () => window.removeEventListener(BROWSER_WORKFLOW_COMMAND_EVENT, onCommand);
+  }, [selectedTabId, tabs, workspace]);
 
   const triggerWorkflowAction = async (tabId: string, actionType: WorkflowActionType) => {
     if (!tabId) return;
@@ -901,6 +1187,7 @@ export default function BrowserWorkbenchPage() {
   }), [annotationCountByTab, lastErrorByTab, lastUpdatedAt, lastUsedAt, pinnedTabIds, runningActionByTab, screenshotByTab, selectedTabId, tabs, validationByTab]);
 
   const selectedWorkbenchTab = useMemo(() => workbenchTabs.find((tab) => tab.id === selectedTabId) || null, [selectedTabId, workbenchTabs]);
+  const compactLayout = workspace.open && workspace.mode === 'drawer';
 
   const closeTab = (tabId: string) => {
     setDismissedTabIds((prev) => new Set(prev).add(tabId));
@@ -976,7 +1263,7 @@ export default function BrowserWorkbenchPage() {
   return (
     <div className="h-full min-h-0 overflow-y-auto md:overflow-hidden">
       <div className="flex h-full min-h-0 flex-col">
-        <div className="px-4 pb-2 pt-4 md:px-6 md:pt-5">
+        <div className={`${compactLayout ? 'px-3 pb-2 pt-3 md:px-4 md:pt-4' : 'px-4 pb-2 pt-4 md:px-6 md:pt-5'}`}>
           <PageHeader
             title="Browser Workbench"
             subtitle="Live viewer first, with tab management and workflow tools on demand"
@@ -1002,7 +1289,7 @@ export default function BrowserWorkbenchPage() {
           />
         </div>
 
-        <div className="min-h-0 flex-1 px-2 pb-2 md:px-3 md:pb-3">
+        <div className={`${compactLayout ? 'min-h-0 flex-1 px-2 pb-2 md:px-2 md:pb-2' : 'min-h-0 flex-1 px-2 pb-2 md:px-3 md:pb-3'}`}>
           <div className="flex h-full min-h-0 overflow-hidden rounded-xl border border-border bg-surface">
             {isWide ? (
               tabManagerExpanded ? (
@@ -1056,6 +1343,7 @@ export default function BrowserWorkbenchPage() {
                 open={workflowDrawerOpen}
                 onOpenChange={setWorkflowDrawerOpen}
                 runningLabel={selectedTabId ? runningActionByTab[selectedTabId] : null}
+                bottomInsetPx={compactLayout ? 4 : 0}
                 onAction={(action) => {
                   if (!selectedTabId) return;
                   setWorkflowDrawerOpen(true);

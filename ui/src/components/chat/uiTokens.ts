@@ -7,8 +7,8 @@ export const uiTokens = {
     border: 'border-border',
   },
   widths: {
-    assistantText: 'max-w-[72ch]',
-    assistantWrap: 'max-w-[94%]',
+    assistantText: 'max-w-[760px]',
+    assistantWrap: 'max-w-[96%]',
     userBubble: 'max-w-[64%]',
   },
   radii: {

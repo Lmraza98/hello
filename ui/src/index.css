@@ -65,6 +65,22 @@
     animation: assistant-fade 220ms ease-out;
   }
 
+  @keyframes interaction-border-flow {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  .animate-interaction-border-flow {
+    animation: interaction-border-flow 2.2s linear infinite;
+  }
+
   @keyframes ui-dot-blink {
     0%, 50%, 100% {
       opacity: 1;

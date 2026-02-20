@@ -1,0 +1,89 @@
+{
+  "catalog_version": "1",
+  "suites": [
+    {
+      "id": "backend-unit",
+      "name": "Backend Unit",
+      "description": "Fast backend and service unit coverage.",
+      "tags": ["backend", "unit"],
+      "tests": [
+        {
+          "id": "python-tests-all",
+          "name": "Python: all tests",
+          "kind": "unit",
+          "command_template": ["python", "-m", "pytest"],
+          "args": ["-q", "tests"],
+          "cwd": ".",
+          "env_allowlist": ["PYTEST_ADDOPTS", "PYTHONPATH"],
+          "timeout_sec": 1800,
+          "retries": 0,
+          "depends_on": [],
+          "artifacts": {"logs": true, "junit": true, "json": true, "screenshots": false},
+          "enabled": true,
+          "tags": ["default"]
+        },
+        {
+          "id": "python-builder-routes",
+          "name": "Python: workflow builder routes",
+          "kind": "integration",
+          "command_template": ["python", "-m", "pytest"],
+          "args": ["-q", "tests/test_browser_workflow_builder_routes.py"],
+          "cwd": ".",
+          "env_allowlist": ["PYTEST_ADDOPTS", "PYTHONPATH"],
+          "timeout_sec": 600,
+          "retries": 1,
+          "depends_on": [],
+          "artifacts": {"logs": true, "junit": true, "json": true, "screenshots": false},
+          "enabled": true,
+          "tags": ["workflow-builder"]
+        }
+      ]
+    },
+    {
+      "id": "frontend-unit",
+      "name": "Frontend Unit",
+      "description": "Vitest coverage for UI stack.",
+      "tags": ["frontend", "unit"],
+      "tests": [
+        {
+          "id": "ui-tests-all",
+          "name": "UI: all tests",
+          "kind": "unit",
+          "command_template": ["npm", "--prefix", "ui", "test", "--"],
+          "args": [],
+          "cwd": ".",
+          "env_allowlist": ["CI"],
+          "timeout_sec": 1800,
+          "retries": 0,
+          "depends_on": [],
+          "artifacts": {"logs": true, "junit": true, "json": true, "screenshots": false},
+          "enabled": true,
+          "tags": ["default"]
+        }
+      ]
+    },
+    {
+      "id": "live-e2e",
+      "name": "Live E2E",
+      "description": "Live integration checks requiring running services and browser tabs.",
+      "tags": ["live", "e2e"],
+      "tests": [
+        {
+          "id": "workflow-builder-live",
+          "name": "Live: workflow builder API flow",
+          "kind": "live",
+          "command_template": ["python", "scripts/test_workflow_builder_live.py"],
+          "args": ["--base-url", "http://127.0.0.1:8000"],
+          "cwd": ".",
+          "env_allowlist": [],
+          "timeout_sec": 900,
+          "retries": 0,
+          "depends_on": ["python-builder-routes"],
+          "artifacts": {"logs": true, "junit": true, "json": true, "screenshots": false},
+          "enabled": true,
+          "tags": ["workflow-builder", "requires-tabs"]
+        }
+      ]
+    }
+  ]
+}

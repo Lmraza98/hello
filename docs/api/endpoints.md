@@ -149,6 +149,12 @@ title: "API Endpoint Catalog"
 | POST | `/api/emails/templates/{template_id}/test-send` | emails | Test Send Template | TemplateTestSendRequest | - |
 | GET | `/api/emails/tracking-status` | emails | Get Tracking Status | - | TrackingStatusResponse |
 | POST | `/api/google/search-browser` | google | Google Search Browser | GoogleSearchBrowserRequest | GoogleSearchBrowserResponse |
+| GET | `/api/langgraph/runs` | langgraph | List Runs | - | object |
+| POST | `/api/langgraph/runs` | langgraph | Create Run | CreateRunRequest | object |
+| POST | `/api/langgraph/runs/{run_id}/cancel` | langgraph | Cancel Run | - | object |
+| POST | `/api/langgraph/runs/{run_id}/continue` | langgraph | Continue Run | - | object |
+| POST | `/api/langgraph/runs/{run_id}/start` | langgraph | Start Run | - | object |
+| GET | `/api/langgraph/runs/{run_id}/status` | langgraph | Run Status | - | RunStatusResponse |
 | GET | `/api/notes` | notes | List Notes | - | inline |
 | POST | `/api/notes` | notes | Create Note | CreateNoteRequest | inline |
 | POST | `/api/pipeline/emails` | pipeline | Run Email Discovery | - | PipelineStartedResponse |

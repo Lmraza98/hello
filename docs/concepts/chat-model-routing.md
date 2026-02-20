@@ -56,7 +56,7 @@ See [Tool planner tiering](/concepts/tool-planner-tiering) for the full architec
 
 ### Live Browser Rule
 
-If the user explicitly requests live browser work (examples: "on SalesNav", "on Sales Navigator", "on LinkedIn", provides a URL, or asks to navigate/click/type/screenshot), the query is classified as `full` tier and the planner routes to OpenClaw-style browser primitives (`browser_*`). It must not use local database tools like `search_contacts`, `search_companies`, `hybrid_search`, or `resolve_entity` for that request.
+If the user explicitly requests live browser work (examples: "on SalesNav", "on Sales Navigator", "on LinkedIn", provides a URL, or asks to navigate/click/type/screenshot), the query is classified as `full` tier and the planner routes to LeadPilot-style browser primitives (`browser_*`). It must not use local database tools like `search_contacts`, `search_companies`, `hybrid_search`, or `resolve_entity` for that request.
 
 Expected plan shape for SalesNav interactive work:
 `browser_health` -> `browser_tabs` -> `browser_navigate` -> `browser_snapshot` -> `browser_find_ref` -> `browser_act` -> `browser_wait` -> `browser_snapshot`.

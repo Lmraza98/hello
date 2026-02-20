@@ -1,0 +1,147 @@
+[python-tests-all] .....................................................................F.. [ 66%]
+[python-tests-all] ..FFFFF.............................                                     [100%]
+[python-tests-all] =================================== FAILURES ===================================
+[python-tests-all] ____________________________ test_worker_cancel_run ____________________________
+[python-tests-all] tmp_path = PosixPath('/private/var/folders/l3/bcjprxq54l91nplq1ps3hl940000gn/T/pytest-of-lucasraza/pytest-0/test_worker_cancel_run0')
+[python-tests-all]     def test_worker_cancel_run(tmp_path: Path):
+[python-tests-all]         sleep_script = tmp_path / "sleep_test_cancel.py"
+[python-tests-all]         sleep_script.write_text("import time\ntime.sleep(5)\n", encoding="utf-8")
+[python-tests-all]     
+[python-tests-all]         catalog = tmp_path / "catalog.json"
+[python-tests-all]         catalog.write_text(
+[python-tests-all]             json.dumps(
+[python-tests-all]                 {
+[python-tests-all]                     "catalog_version": "1",
+[python-tests-all]                     "suites": [
+[python-tests-all]                         {
+[python-tests-all]                             "id": "suite",
+[python-tests-all]                             "name": "suite",
+[python-tests-all]                             "description": "suite",
+[python-tests-all]                             "tags": ["int"],
+[python-tests-all]                             "tests": [
+[python-tests-all]                                 {
+[python-tests-all]                                     "id": "slow",
+[python-tests-all]                                     "name": "slow",
+[python-tests-all]                                     "kind": "integration",
+[python-tests-all]                                     "command_template": ["python", str(sleep_script)],
+[python-tests-all]                                     "args": [],
+[python-tests-all]                                     "cwd": ".",
+[python-tests-all]                                     "timeout_sec": 10,
+[python-tests-all]                                 }
+[python-tests-all]                             ],
+[python-tests-all]                         }
+[python-tests-all]                     ],
+[python-tests-all]                 }
+[python-tests-all]             ),
+[python-tests-all]             encoding="utf-8",
+[python-tests-all]         )
+[python-tests-all]     
+[python-tests-all]         proc = _start_worker(catalog, Path.cwd())
+[python-tests-all]         try:
+[python-tests-all]             _send(proc, "run_plan", {"run_id": "r2", "test_ids": ["slow"]})
+[python-tests-all]             time.sleep(0.8)
+[python-tests-all]             _send(proc, "cancel", {"scope": "run"})
+[python-tests-all]             events = _collect(proc)
+[python-tests-all]         finally:
+[python-tests-all]             proc.terminate()
+[python-tests-all]     
+[python-tests-all]         run_finished = [e for e in events if e.get("type") == "run_finished"]
+[python-tests-all]         assert run_finished
+[python-tests-all] >       assert run_finished[-1]["payload"]["status"] == "canceled"
+[python-tests-all] E       AssertionError: assert 'passed' == 'canceled'
+[python-tests-all] E         
+[python-tests-all] E         - canceled
+[python-tests-all] E         + passed
+[python-tests-all] tests/test_launcher_worker_integration.py:138: AssertionError
+[python-tests-all] _________ test_run_account_search_passes_full_filters_and_clamps_limit _________
+[python-tests-all] monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x105587440>
+[python-tests-all]     def test_run_account_search_passes_full_filters_and_clamps_limit(monkeypatch):
+[python-tests-all] >       flow = SalesNavCompanyCollectionFlow()
+[python-tests-all]                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[python-tests-all] tests/test_salesnav_company_collection_flow.py:95: 
+[python-tests-all] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[python-tests-all] services/web_automation/linkedin/salesnav/flows/company_collection.py:25: in __init__
+[python-tests-all]     self.filter_parser = SalesNavFilterParser()
+[python-tests-all]                          ^^^^^^^^^^^^^^^^^^^^^^
+[python-tests-all] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[python-tests-all] self = <services.web_automation.linkedin.salesnav.parser.filter_parser.SalesNavFilterParser object at 0x105585160>
+[python-tests-all]     def __init__(self):
+[python-tests-all]         if not config.OPENAI_API_KEY:
+[python-tests-all] >           raise ValueError("OPENAI_API_KEY not configured in config.py")
+[python-tests-all] E           ValueError: OPENAI_API_KEY not configured in config.py
+[python-tests-all] services/web_automation/linkedin/salesnav/parser/filter_parser.py:38: ValueError
+[python-tests-all] ____________ test_collect_with_fallback_retries_after_primary_error ____________
+[python-tests-all] monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x105586420>
+[python-tests-all]     def test_collect_with_fallback_retries_after_primary_error(monkeypatch):
+[python-tests-all] >       flow = SalesNavCompanyCollectionFlow()
+[python-tests-all]                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[python-tests-all] tests/test_salesnav_company_collection_flow.py:121: 
+[python-tests-all] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[python-tests-all] services/web_automation/linkedin/salesnav/flows/company_collection.py:25: in __init__
+[python-tests-all]     self.filter_parser = SalesNavFilterParser()
+[python-tests-all]                          ^^^^^^^^^^^^^^^^^^^^^^
+[python-tests-all] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[python-tests-all] self = <services.web_automation.linkedin.salesnav.parser.filter_parser.SalesNavFilterParser object at 0x1055856d0>
+[python-tests-all]     def __init__(self):
+[python-tests-all]         if not config.OPENAI_API_KEY:
+[python-tests-all] >           raise ValueError("OPENAI_API_KEY not configured in config.py")
+[python-tests-all] E           ValueError: OPENAI_API_KEY not configured in config.py
+[python-tests-all] services/web_automation/linkedin/salesnav/parser/filter_parser.py:38: ValueError
+[python-tests-all] _______ test_collect_with_fallback_raises_primary_error_when_no_fallback _______
+[python-tests-all]     def test_collect_with_fallback_raises_primary_error_when_no_fallback():
+[python-tests-all] >       flow = SalesNavCompanyCollectionFlow()
+[python-tests-all]                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[python-tests-all] tests/test_salesnav_company_collection_flow.py:146: 
+[python-tests-all] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[python-tests-all] services/web_automation/linkedin/salesnav/flows/company_collection.py:25: in __init__
+[python-tests-all]     self.filter_parser = SalesNavFilterParser()
+[python-tests-all]                          ^^^^^^^^^^^^^^^^^^^^^^
+[python-tests-all] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[python-tests-all] self = <services.web_automation.linkedin.salesnav.parser.filter_parser.SalesNavFilterParser object at 0x10543e570>
+[python-tests-all]     def __init__(self):
+[python-tests-all]         if not config.OPENAI_API_KEY:
+[python-tests-all] >           raise ValueError("OPENAI_API_KEY not configured in config.py")
+[python-tests-all] E           ValueError: OPENAI_API_KEY not configured in config.py
+[python-tests-all] services/web_automation/linkedin/salesnav/parser/filter_parser.py:38: ValueError
+[python-tests-all] _________________ test_collect_companies_success_without_save __________________
+[python-tests-all] monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x105437bf0>
+[python-tests-all]     def test_collect_companies_success_without_save(monkeypatch):
+[python-tests-all] >       flow = SalesNavCompanyCollectionFlow()
+[python-tests-all]                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[python-tests-all] tests/test_salesnav_company_collection_flow.py:162: 
+[python-tests-all] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[python-tests-all] services/web_automation/linkedin/salesnav/flows/company_collection.py:25: in __init__
+[python-tests-all]     self.filter_parser = SalesNavFilterParser()
+[python-tests-all]                          ^^^^^^^^^^^^^^^^^^^^^^
+[python-tests-all] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[python-tests-all] self = <services.web_automation.linkedin.salesnav.parser.filter_parser.SalesNavFilterParser object at 0x105435c10>
+[python-tests-all]     def __init__(self):
+[python-tests-all]         if not config.OPENAI_API_KEY:
+[python-tests-all] >           raise ValueError("OPENAI_API_KEY not configured in config.py")
+[python-tests-all] E           ValueError: OPENAI_API_KEY not configured in config.py
+[python-tests-all] services/web_automation/linkedin/salesnav/parser/filter_parser.py:38: ValueError
+[python-tests-all] ___________ test_collect_companies_returns_error_status_on_exception ___________
+[python-tests-all] monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x105177bc0>
+[python-tests-all]     def test_collect_companies_returns_error_status_on_exception(monkeypatch):
+[python-tests-all] >       flow = SalesNavCompanyCollectionFlow()
+[python-tests-all]                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[python-tests-all] tests/test_salesnav_company_collection_flow.py:187: 
+[python-tests-all] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[python-tests-all] services/web_automation/linkedin/salesnav/flows/company_collection.py:25: in __init__
+[python-tests-all]     self.filter_parser = SalesNavFilterParser()
+[python-tests-all]                          ^^^^^^^^^^^^^^^^^^^^^^
+[python-tests-all] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[python-tests-all] self = <services.web_automation.linkedin.salesnav.parser.filter_parser.SalesNavFilterParser object at 0x10543e870>
+[python-tests-all]     def __init__(self):
+[python-tests-all]         if not config.OPENAI_API_KEY:
+[python-tests-all] >           raise ValueError("OPENAI_API_KEY not configured in config.py")
+[python-tests-all] E           ValueError: OPENAI_API_KEY not configured in config.py
+[python-tests-all] services/web_automation/linkedin/salesnav/parser/filter_parser.py:38: ValueError
+[python-tests-all] =========================== short test summary info ============================
+[python-tests-all] FAILED tests/test_launcher_worker_integration.py::test_worker_cancel_run - As...
+[python-tests-all] FAILED tests/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit
+[python-tests-all] FAILED tests/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error
+[python-tests-all] FAILED tests/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback
+[python-tests-all] FAILED tests/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save
+[python-tests-all] FAILED tests/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception
+[python-tests-all] 6 failed, 102 passed in 9.06s

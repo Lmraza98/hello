@@ -21,10 +21,10 @@ def get_browser_backend() -> BrowserBackend:
         _backend_singleton = ProxyBackend()
         return _backend_singleton
 
-    if mode == "openclaw":
-        from services.web_automation.browser.backends.openclaw import OpenClawBackend
+    if mode in {"leadpilot", "openclaw"}:
+        from services.web_automation.browser.backends.leadpilot import LeadPilotBackend
 
-        _backend_singleton = OpenClawBackend()
+        _backend_singleton = LeadPilotBackend()
         return _backend_singleton
 
     if mode == "camoufox":

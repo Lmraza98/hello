@@ -27,7 +27,13 @@ interface ChatContainerProps {
   onSalesforceSkip?: (contactId: number, promptId: string) => Promise<void>;
   dashboardData?: DashboardDataBridge;
   sectionBar?: ReactNode;
+  showComposer?: boolean;
 }
+
+type VisibleMessageItem = {
+  message: ChatMessageType;
+  repeatCount: number;
+};
 
 function isNearBottom(container: HTMLDivElement, thresholdPx = 120): boolean {
   const distance = container.scrollHeight - container.scrollTop - container.clientHeight;
@@ -92,6 +98,7 @@ export function ChatContainer({
   onSalesforceSkip,
   dashboardData,
   sectionBar,
+  showComposer = true,
 }: ChatContainerProps) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -123,6 +130,25 @@ export function ChatContainer({
       }),
     [messages]
   );
+
+  const dedupedMessages = useMemo<VisibleMessageItem[]>(() => {
+    const items: VisibleMessageItem[] = [];
+    for (const message of visibleMessages) {
+      const last = items[items.length - 1];
+      const canMerge =
+        Boolean(last) &&
+        last.message.type === 'text' &&
+        message.type === 'text' &&
+        last.message.sender === message.sender &&
+        (last.message.content || '').trim() === (message.content || '').trim();
+      if (canMerge && last) {
+        last.repeatCount += 1;
+        continue;
+      }
+      items.push({ message, repeatCount: 1 });
+    }
+    return items;
+  }, [visibleMessages]);
 
   useEffect(() => {
     const container = listRef.current;
@@ -204,17 +230,18 @@ export function ChatContainer({
   }, [visibleMessages, isTyping, typingText, userScrolled, tailSpacerHeight]);
 
   const groupedRows = useMemo(() => {
-    const groups: Array<{ sender: 'user' | 'bot'; items: ChatMessageType[] }> = [];
-    for (const msg of visibleMessages) {
+    const groups: Array<{ sender: 'user' | 'bot'; items: VisibleMessageItem[] }> = [];
+    for (const item of dedupedMessages) {
+      const msg = item.message;
       const last = groups[groups.length - 1];
       if (!last || last.sender !== msg.sender) {
-        groups.push({ sender: msg.sender, items: [msg] });
+        groups.push({ sender: msg.sender, items: [item] });
       } else {
-        last.items.push(msg);
+        last.items.push(item);
       }
     }
     return groups;
-  }, [visibleMessages]);
+  }, [dedupedMessages]);
 
   const hasStreamingText = Boolean((typingText || '').trim().length > 0);
   const showThoughtLayer = !hasStreamingText;
@@ -241,11 +268,11 @@ export function ChatContainer({
       >
         {groupedRows.map((group, groupIdx) => (
           <MessageRow
-            key={`group-${groupIdx}-${group.items[0]?.id || groupIdx}`}
+            key={`group-${groupIdx}-${group.items[0]?.message.id || groupIdx}`}
             gapClass={groupIdx === 0 ? 'mt-0' : uiTokens.spacing.speakerSwitchGap}
           >
             <MessageGroup role={group.sender === 'bot' ? 'assistant' : 'user'}>
-              {group.items.map((message) => (
+              {group.items.map(({ message, repeatCount }) => (
                 <div key={message.id}>
                   <ChatMessage
                     message={message}
@@ -255,6 +282,11 @@ export function ChatContainer({
                     onSalesforceSkip={onSalesforceSkip}
                     dashboardData={dashboardData}
                   />
+                  {repeatCount > 1 ? (
+                    <div className={`mt-1 text-[10px] text-text-dim ${message.sender === 'user' ? 'text-right' : 'text-left'}`}>
+                      Repeated {repeatCount}x
+                    </div>
+                  ) : null}
                 </div>
               ))}
             </MessageGroup>
@@ -300,15 +332,17 @@ export function ChatContainer({
       {sectionBar}
       </>
     }
-      composer={(
-        <Composer
-          onSend={onSendMessage}
-          onUploadFiles={onUploadFiles}
-          disabled={isTyping}
-          isStreaming={isTyping}
-          onStop={onStopStreaming}
-        />
-      )}
+      composer={
+        showComposer ? (
+          <Composer
+            onSend={onSendMessage}
+            onUploadFiles={onUploadFiles}
+            disabled={isTyping}
+            isStreaming={isTyping}
+            onStop={onStopStreaming}
+          />
+        ) : null
+      }
     />
   );
 }

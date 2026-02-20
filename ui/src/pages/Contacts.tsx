@@ -30,9 +30,12 @@ import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { ConfirmDialog } from '../components/shared/ConfirmDialog';
 import { CampaignEnrollmentModal } from '../components/contacts/CampaignEnrollmentModal';
 import { createContactColumns } from '../components/contacts/tableColumns';
-import { Users, Download, Plus, X } from 'lucide-react';
+import { Users, Download, Plus, X, Mail, FileUp, Sparkles, Search } from 'lucide-react';
 import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
 import { getPageCapability } from '../capabilities/catalog';
+import { AssistantPanel } from '../components/assistant/AssistantPanel';
+import type { AssistantSuggestedAction } from '../components/assistant/AssistantPanel';
+import type { AssistantActivityItem } from '../components/assistant/AssistantActivityList';
 
 /* ── Constants ─────────────────────────── */
 
@@ -299,6 +302,21 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     });
   };
 
+  /* ── Assistant Panel (placeholder) ── */
+
+  const assistantActivity: AssistantActivityItem[] = [
+    { id: 'import', label: 'Imported 143 contacts', time: '0 min ago', icon: <FileUp className="h-4 w-4" /> },
+    { id: 'emails', label: 'Found 62 email addresses', time: '2m ago', icon: <Search className="h-4 w-4" /> },
+    { id: 'campaign', label: 'Created Campaign: "Sales Outreach #7"', time: '5m ago', icon: <Mail className="h-4 w-4" /> },
+  ];
+
+  const assistantActions: AssistantSuggestedAction[] = [
+    { id: 'import_csv', label: 'Import CSV', icon: <FileUp className="h-3.5 w-3.5" /> },
+    { id: 'find_emails', label: 'Find Emails', icon: <Search className="h-3.5 w-3.5" /> },
+    { id: 'create_campaign', label: 'Create Campaign', icon: <Mail className="h-3.5 w-3.5" /> },
+    { id: 'enrich_titles', label: 'Enrich Titles', icon: <Sparkles className="h-3.5 w-3.5" /> },
+  ];
+
   /* ── Filter pills ── */
 
   const allFilterPills = useMemo(() => {
@@ -337,214 +355,251 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
   /* ── Render ── */
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Sticky Header */}
-      <div className="sticky top-0 z-10 pb-3 md:pb-6">
-        <div className="pt-5 px-4 md:pt-8 md:px-8">
-          <PageHeader
-            title="Contacts"
-            subtitle={`${contacts.length} contacts · ${emailCount} with emails${filteredCount !== contacts.length ? ` · ${filteredCount} shown` : ''}`}
-            desktopActions={
-              <>
-                <button onClick={() => api.exportContacts(false)}
-                  className="flex items-center gap-2 px-4 py-2 border border-border text-text-muted rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors">
-                  <Download className="w-4 h-4" /> Export CSV
-                </button>
-                <button onClick={() => setShowAddModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition-colors">
-                  <Plus className="w-4 h-4" /> Add Contact
-                </button>
-              </>
-            }
-            mobileActions={
-              <>
-                <button onClick={() => api.exportContacts(false)}
-                  className="p-2 border border-border text-text-muted rounded-lg hover:bg-surface-hover transition-colors">
-                  <Download className="w-4 h-4" />
-                </button>
-                <button onClick={() => setShowAddModal(true)}
-                  className="p-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors">
-                  <Plus className="w-4 h-4" />
-                </button>
-              </>
-            }
-          />
-
-          {/* Bulk Actions */}
-          <BulkActionsBar
-            selectedCount={selectedCount}
-            onSalesforceUpload={handleBulkSalesforceUpload}
-            onLinkedInRequest={() => handleBulkAction('linkedin-request', 'linkedin', 'Sending LinkedIn requests')}
-            onSendEmail={() => handleBulkAction('send-email', 'email', 'Sending emails')}
-            onCollectPhone={() => handleBulkAction('collect-phone', 'phone', 'Collecting phone data')}
-            onEnrollInCampaign={() => setShowCampaignModal(true)}
-            onDelete={handleBulkDelete}
-            actionLoading={actionLoading}
-          />
-
-          {/* Toolbar */}
-          <SearchToolbar
-            allSelected={table.getIsAllRowsSelected()}
-            onToggleSelectAll={table.getToggleAllRowsSelectedHandler()}
-            indeterminate={table.getIsSomeRowsSelected()}
-            displayCount={selectedCount > 0 ? selectedCount : filteredCount}
-            globalFilter={globalFilter}
-            onGlobalFilterChange={setGlobalFilter}
-            activeFilterCount={activeFilterCount}
-            showFilters={showFilters && !isMobile}
-            onToggleFilters={() => setShowFilters((v) => !v)}
-            filterPanelContent={
-              <FilterPanel
-                columnFilters={columnFilters}
-                setColumnFilters={setColumnFilters}
-                contacts={contacts}
-                campaigns={campaigns}
-                onCampaignChange={setCampaignFilterId}
-                activeCampaignId={campaignFilterId}
-                onClose={() => setShowFilters(false)}
-                isMobile={false}
-              />
-            }
-          />
-
-          {/* Filter pills — scrollable on mobile */}
-          {allFilterPills.length > 0 && (
-            <div className="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar">
-              {allFilterPills.map((pill) => (
-                <span key={pill.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[11px] font-medium whitespace-nowrap shrink-0">
-                  {pill.label}
-                  <button onClick={() => {
-                    if (pill.id === 'campaign') setCampaignFilterId('');
-                    else setColumnFilters((prev) => prev.filter((f) => f.id !== pill.id));
-                  }} className="hover:text-accent/70">
-                    <X className="w-3 h-3" />
+    <>
+      <div className="h-full grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4">
+      <div className="min-h-0 flex flex-col">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-10 pb-3 md:pb-6">
+          <div className="pt-5 px-4 md:pt-8 md:px-8">
+            <PageHeader
+              title="Contacts"
+              subtitle={`${contacts.length} contacts · ${emailCount} with emails${filteredCount !== contacts.length ? ` · ${filteredCount} shown` : ''}`}
+              desktopActions={
+                <>
+                  <button
+                    onClick={() => api.exportContacts(false)}
+                    className="flex items-center gap-2 px-4 py-2 border border-border text-text-muted rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors"
+                  >
+                    <Download className="w-4 h-4" /> Export CSV
                   </button>
-                </span>
-              ))}
+                  <button
+                    onClick={() => setShowAddModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition-colors"
+                  >
+                    <Plus className="w-4 h-4" /> Add Contact
+                  </button>
+                </>
+              }
+              mobileActions={
+                <>
+                  <button
+                    onClick={() => api.exportContacts(false)}
+                    className="p-2 border border-border text-text-muted rounded-lg hover:bg-surface-hover transition-colors"
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setShowAddModal(true)}
+                    className="p-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </>
+              }
+            />
+
+            {/* Bulk Actions */}
+            <BulkActionsBar
+              selectedCount={selectedCount}
+              onSalesforceUpload={handleBulkSalesforceUpload}
+              onLinkedInRequest={() => handleBulkAction('linkedin-request', 'linkedin', 'Sending LinkedIn requests')}
+              onSendEmail={() => handleBulkAction('send-email', 'email', 'Sending emails')}
+              onCollectPhone={() => handleBulkAction('collect-phone', 'phone', 'Collecting phone data')}
+              onEnrollInCampaign={() => setShowCampaignModal(true)}
+              onDelete={handleBulkDelete}
+              actionLoading={actionLoading}
+            />
+
+            {/* Toolbar */}
+            <SearchToolbar
+              allSelected={table.getIsAllRowsSelected()}
+              onToggleSelectAll={table.getToggleAllRowsSelectedHandler()}
+              indeterminate={table.getIsSomeRowsSelected()}
+              displayCount={selectedCount > 0 ? selectedCount : filteredCount}
+              globalFilter={globalFilter}
+              onGlobalFilterChange={setGlobalFilter}
+              activeFilterCount={activeFilterCount}
+              showFilters={showFilters && !isMobile}
+              onToggleFilters={() => setShowFilters((v) => !v)}
+              filterPanelContent={
+                <FilterPanel
+                  columnFilters={columnFilters}
+                  setColumnFilters={setColumnFilters}
+                  contacts={contacts}
+                  campaigns={campaigns}
+                  onCampaignChange={setCampaignFilterId}
+                  activeCampaignId={campaignFilterId}
+                  onClose={() => setShowFilters(false)}
+                  isMobile={false}
+                />
+              }
+            />
+
+            {/* Filter pills — scrollable on mobile */}
+            {allFilterPills.length > 0 && (
+              <div className="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar">
+                {allFilterPills.map((pill) => (
+                  <span
+                    key={pill.id}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[11px] font-medium whitespace-nowrap shrink-0"
+                  >
+                    {pill.label}
+                    <button
+                      onClick={() => {
+                        if (pill.id === 'campaign') setCampaignFilterId('');
+                        else setColumnFilters((prev) => prev.filter((f) => f.id !== pill.id));
+                      }}
+                      className="hover:text-accent/70"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile filter bottom sheet */}
+        {showFilters && isMobile && (
+          <FilterPanel
+            columnFilters={columnFilters}
+            setColumnFilters={setColumnFilters}
+            contacts={contacts}
+            campaigns={campaigns}
+            onCampaignChange={setCampaignFilterId}
+            activeCampaignId={campaignFilterId}
+            onClose={() => setShowFilters(false)}
+            isMobile
+          />
+        )}
+
+        {/* Virtualized Table / List */}
+        <div className="flex-1 min-h-0 px-4 md:px-8 pb-4 md:pb-8">
+          {isLoading ? (
+            <LoadingSpinner />
+          ) : (
+            <div className="bg-surface border border-border rounded-lg overflow-hidden flex flex-col h-full">
+              {/* Desktop: fixed thead — ONLY on desktop */}
+              {!isMobile && (
+                <div className="shrink-0">
+                  <table className="w-full min-w-[900px]" style={{ tableLayout: 'fixed' }}>
+                    {colGroup}
+                    <thead>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <tr key={headerGroup.id} className="border-b border-border bg-surface-hover/50">
+                          {headerGroup.headers.map((header) => (
+                            <th
+                              key={header.id}
+                              className="text-left px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider"
+                            >
+                              {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                            </th>
+                          ))}
+                        </tr>
+                      ))}
+                    </thead>
+                  </table>
+                </div>
+              )}
+
+              {/* Scrollable virtualized body */}
+              <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
+                {rows.length === 0 ? (
+                  <EmptyState
+                    icon={Users}
+                    title="No contacts found"
+                    description="Try adjusting your filters or add a new contact"
+                    action={{ label: 'Add Contact', icon: Plus, onClick: () => setShowAddModal(true) }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      height: `${rowVirtualizer.getTotalSize()}px`,
+                      position: 'relative',
+                      minWidth: isMobile ? undefined : '900px',
+                    }}
+                  >
+                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                      const row = rows[virtualRow.index];
+                      const isExpanded = row.getIsExpanded();
+                      const contact = row.original;
+
+                      return (
+                        <div
+                          key={row.id}
+                          data-index={virtualRow.index}
+                          ref={rowVirtualizer.measureElement}
+                          style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            transform: `translateY(${virtualRow.start}px)`,
+                          }}
+                        >
+                          {isMobile ? (
+                            /* ── Mobile: Card layout ── */
+                            <ContactCard
+                              contact={contact}
+                              isSelected={row.getIsSelected()}
+                              isExpanded={isExpanded}
+                              onToggleSelect={() => row.toggleSelected()}
+                              onToggleExpand={() => row.toggleExpanded()}
+                            />
+                          ) : (
+                            /* ── Desktop: Table row ── */
+                            <table className="w-full" style={{ tableLayout: 'fixed' }}>
+                              {colGroup}
+                              <tbody>
+                                <tr
+                                  className="hover:bg-surface-hover/60 transition-colors cursor-pointer border-b border-border-subtle"
+                                  onClick={(e) => {
+                                    if ((e.target as HTMLElement).closest('input[type="checkbox"], a, button')) return;
+                                    row.toggleExpanded();
+                                  }}
+                                >
+                                  {row.getVisibleCells().map((cell) => (
+                                    <td key={cell.id} className="px-4 py-3.5">
+                                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                    </td>
+                                  ))}
+                                </tr>
+                                {isExpanded && (
+                                  <tr className="bg-surface-hover/30 border-b border-border-subtle">
+                                    <td colSpan={row.getVisibleCells().length} className="p-0">
+                                      <div className="px-6 py-4 overflow-x-auto">
+                                        <ContactDetail contact={contact} />
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Mobile filter bottom sheet */}
-      {showFilters && isMobile && (
-        <FilterPanel
-          columnFilters={columnFilters}
-          setColumnFilters={setColumnFilters}
-          contacts={contacts}
-          campaigns={campaigns}
-          onCampaignChange={setCampaignFilterId}
-          activeCampaignId={campaignFilterId}
-          onClose={() => setShowFilters(false)}
-          isMobile
-        />
-      )}
-
-      {/* Virtualized Table / List */}
-      <div className="flex-1 min-h-0 px-4 md:px-8 pb-4 md:pb-8">
-        {isLoading ? (
-          <LoadingSpinner />
-        ) : (
-          <div className="bg-surface border border-border rounded-lg overflow-hidden flex flex-col h-full">
-            {/* Desktop: fixed thead — ONLY on desktop */}
-            {!isMobile && (
-              <div className="shrink-0">
-                <table className="w-full min-w-[900px]" style={{ tableLayout: 'fixed' }}>
-                  {colGroup}
-                  <thead>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id} className="border-b border-border bg-surface-hover/50">
-                        {headerGroup.headers.map((header) => (
-                          <th key={header.id}
-                            className="text-left px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">
-                            {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                          </th>
-                        ))}
-                      </tr>
-                    ))}
-                  </thead>
-                </table>
-              </div>
-            )}
-
-            {/* Scrollable virtualized body */}
-            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
-              {rows.length === 0 ? (
-                <EmptyState
-                  icon={Users}
-                  title="No contacts found"
-                  description="Try adjusting your filters or add a new contact"
-                  action={{ label: 'Add Contact', icon: Plus, onClick: () => setShowAddModal(true) }}
-                />
-              ) : (
-                <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative', minWidth: isMobile ? undefined : '900px' }}>
-                  {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                    const row = rows[virtualRow.index];
-                    const isExpanded = row.getIsExpanded();
-                    const contact = row.original;
-
-                    return (
-                      <div
-                        key={row.id}
-                        data-index={virtualRow.index}
-                        ref={rowVirtualizer.measureElement}
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: '100%',
-                          transform: `translateY(${virtualRow.start}px)`,
-                        }}
-                      >
-                        {isMobile ? (
-                          /* ── Mobile: Card layout ── */
-                          <ContactCard
-                            contact={contact}
-                            isSelected={row.getIsSelected()}
-                            isExpanded={isExpanded}
-                            onToggleSelect={() => row.toggleSelected()}
-                            onToggleExpand={() => row.toggleExpanded()}
-                          />
-                        ) : (
-                          /* ── Desktop: Table row ── */
-                          <table className="w-full" style={{ tableLayout: 'fixed' }}>
-                            {colGroup}
-                            <tbody>
-                              <tr
-                                className="hover:bg-surface-hover/60 transition-colors cursor-pointer border-b border-border-subtle"
-                                onClick={(e) => {
-                                  if ((e.target as HTMLElement).closest('input[type="checkbox"], a, button')) return;
-                                  row.toggleExpanded();
-                                }}
-                              >
-                                {row.getVisibleCells().map((cell) => (
-                                  <td key={cell.id} className="px-4 py-3.5">
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                  </td>
-                                ))}
-                              </tr>
-                              {isExpanded && (
-                                <tr className="bg-surface-hover/30 border-b border-border-subtle">
-                                  <td colSpan={row.getVisibleCells().length} className="p-0">
-                                    <div className="px-6 py-4 overflow-x-auto">
-                                      <ContactDetail contact={contact} />
-                                    </div>
-                                  </td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+      <div className="hidden lg:block pr-4 md:pr-8 w-[380px] max-w-[420px]">
+        <div className="sticky top-4 h-[calc(100vh-2rem)]">
+          <AssistantPanel
+            activityItems={assistantActivity}
+            suggestedActions={assistantActions}
+            onActionClick={(actionId) => {
+              console.log('[assistant-action]', actionId);
+            }}
+          />
+        </div>
       </div>
-
+      </div>
       {/* Campaign Enrollment Modal */}
       {showCampaignModal && (
         <CampaignEnrollmentModal
@@ -592,6 +647,6 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
         }}
         onCancel={() => setConfirmDeleteSingle(null)}
       />
-    </div>
+    </>
   );
 }

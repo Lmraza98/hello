@@ -169,6 +169,7 @@ Live browser tabs with workflow-builder annotation and selector synthesis.
 | `browser.observe` | Capture observation pack for selected tab | - | - |
 | `browser.annotate` | Generate candidate boxes for the current href pattern | `href_pattern` (string) | - |
 | `browser.synthesize` | Synthesize selector from include/exclude labels | - | - |
+| `browser.validate` | Validate extracted results for the current candidate rule | - | - |
 
 ### Tasks (`/tasks`)
 
@@ -186,6 +187,19 @@ Browser and compound task monitor with status, progress, and errors.
 | Filter ID | Type | Description |
 |-----------|------|-------------|
 | `tasks.show_finished` | boolean | Include finished tasks in table |
+
+### Workspace Surface (`/dashboard`)
+
+Controls for opening, docking, and expanding the right workspace surface.
+
+#### Actions
+
+| Action ID | Description | Parameters | Conditions |
+|-----------|-------------|------------|------------|
+| `workspace.open` | Open the right workspace surface | - | - |
+| `workspace.close` | Close the right workspace surface | - | - |
+| `workspace.expand` | Expand the workspace into fullscreen mode | - | - |
+| `workspace.dock` | Dock the workspace into drawer mode | - | - |
 
 ### Admin Logs (`/admin/logs`)
 

@@ -1,4 +1,4 @@
-"""Generic skill-driven browser workflow engine (OpenClaw-style).
+"""Generic skill-driven browser workflow engine (LeadPilot-style).
 
 All website-specific knowledge (entry URLs, element find hints, extraction patterns)
 lives in markdown skills under `skills/` and is loaded via `services.web_automation.browser.skills.store`.
@@ -1219,7 +1219,7 @@ class BrowserWorkflow:
             if dom_rows:
                 return dom_rows
         for _ in range(max(1, retries)):
-            # Extraction relies on link URL patterns (href_contains). In OpenClaw mode,
+            # Extraction relies on link URL patterns (href_contains). In LeadPilot mode,
             # the role snapshot used for stable refs intentionally omits "/url:" lines.
             # Use the AI snapshot for extraction so refs include href when available.
             snap = await browser_snapshot(BrowserSnapshotRequest(tab_id=self.tab_id, mode="ai"))

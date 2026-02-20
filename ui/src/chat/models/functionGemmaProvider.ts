@@ -28,7 +28,7 @@ then treat it as LIVE BROWSER AUTOMATION. Do NOT use search_contacts/search_comp
 For live browser work, prefer the generic skill-driven workflow tools:
 - browser_search_and_extract
 - browser_list_sub_items
-If a workflow tool cannot express the request, fall back to the OpenClaw-style primitives:
+If a workflow tool cannot express the request, fall back to the LeadPilot-style primitives:
 - browser_health, browser_tabs, browser_navigate, browser_snapshot, browser_find_ref, browser_act, browser_wait, browser_screenshot.
 Always base claims on observed page data from browser_snapshot (or structured outputs from the browser workflow tools).
 Do not call auth/status/integration tools unless the user explicitly asks about auth, login, connection, token, or status.
@@ -233,7 +233,7 @@ function selectToolsForMessage(userMessage: string): (typeof TOOLS)[number][] {
     }
 
     // If the user explicitly asked to do this on SalesNav/LinkedIn (live browser),
-    // strongly bias toward OpenClaw browser primitives and away from local DB search tools.
+    // strongly bias toward LeadPilot browser primitives and away from local DB search tools.
     if (liveBrowserIntent && messageDomains.has('salesnav')) {
       if (toolNameLower.startsWith('browser_')) score += 220;
       if (toolNameLower === 'browser_search_and_extract') score += 200;

@@ -19,7 +19,7 @@ export const PLANNER_TOOL_USAGE_RULES = [
   'Find [industry] companies defaults to search_companies using q or vertical, never tier.',
   'Use collect_companies_from_salesnav only for explicit scraping/collection or save-to-database requests.',
   'If the user says "on SalesNav" / "on Sales Navigator" / "on LinkedIn Sales Navigator", treat it as live browser automation. Prefer browser_search_and_extract / browser_list_sub_items, and do NOT use search_contacts/search_companies/hybrid_search for that.',
-  'For browser automation on any website, prefer the OpenClaw-style primitives: browser_tabs, browser_navigate, browser_snapshot, browser_find_ref, browser_act, browser_wait, browser_screenshot.',
+  'For browser automation on any website, prefer the LeadPilot-style primitives: browser_tabs, browser_navigate, browser_snapshot, browser_find_ref, browser_act, browser_wait, browser_screenshot.',
   'Prefer generic browser workflow tools when available (browser_search_and_extract, browser_list_sub_items). Avoid site-specific adapters.',
   'For reusable website automation memory, use browser_skill_* tools (list/match/get/upsert/repair/delete).',
   'Send email to [person] starts with hybrid_search as step 1.',
