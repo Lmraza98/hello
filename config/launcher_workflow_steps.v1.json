@@ -1,0 +1,136 @@
+{
+  "version": "1",
+  "description": "Workflow-oriented DAG steps for robust scraper orchestration.",
+  "steps": [
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "label": "Open or Reuse Browser Tab",
+      "parent_test_id": "python-salesnav-core",
+      "kind": "action",
+      "deps": [],
+      "command_template": ["python"],
+      "args": [
+        "scripts/salesnav_workflow_step.py",
+        "--step",
+        "open_or_reuse_tab",
+        "--state-file",
+        "__RUN_DIR__/artifacts/workflow.salesnav.collect_companies_5/state.json",
+        "--artifacts-dir",
+        "__RUN_DIR__/artifacts/workflow.salesnav.collect_companies_5/open_or_reuse_tab"
+      ],
+      "cwd": ".",
+      "env_allowlist": ["WORKFLOW_BUILDER_LIVE_BASE_URL", "WORKFLOW_BUILDER_LIVE_SEED_URL", "SALESNAV_WORKFLOW_QUERY"],
+      "timeout_sec": 90,
+      "retries": 0
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "label": "Navigate and Collect Companies",
+      "parent_test_id": "python-salesnav-core",
+      "kind": "action",
+      "deps": ["python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"],
+      "command_template": ["python"],
+      "args": [
+        "scripts/salesnav_workflow_step.py",
+        "--step",
+        "navigate_and_collect",
+        "--state-file",
+        "__RUN_DIR__/artifacts/workflow.salesnav.collect_companies_5/state.json",
+        "--artifacts-dir",
+        "__RUN_DIR__/artifacts/workflow.salesnav.collect_companies_5/navigate_and_collect",
+        "--limit",
+        "5"
+      ],
+      "cwd": ".",
+      "env_allowlist": ["WORKFLOW_BUILDER_LIVE_BASE_URL", "WORKFLOW_BUILDER_LIVE_SEED_URL", "SALESNAV_WORKFLOW_QUERY"],
+      "timeout_sec": 240,
+      "retries": 0
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+      "label": "Capture Observation Screenshot",
+      "parent_test_id": "python-salesnav-core",
+      "kind": "action",
+      "deps": ["python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"],
+      "command_template": ["python"],
+      "args": [
+        "scripts/salesnav_workflow_step.py",
+        "--step",
+        "capture_observation",
+        "--state-file",
+        "__RUN_DIR__/artifacts/workflow.salesnav.collect_companies_5/state.json",
+        "--artifacts-dir",
+        "__RUN_DIR__/artifacts/workflow.salesnav.collect_companies_5/capture_observation"
+      ],
+      "cwd": ".",
+      "env_allowlist": ["WORKFLOW_BUILDER_LIVE_BASE_URL"],
+      "timeout_sec": 120,
+      "retries": 0
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+      "label": "Assert Minimum Company Count (5)",
+      "parent_test_id": "python-salesnav-core",
+      "kind": "assertion",
+      "deps": ["python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"],
+      "command_template": ["python"],
+      "args": [
+        "scripts/salesnav_workflow_step.py",
+        "--step",
+        "assert_min_count_5",
+        "--state-file",
+        "__RUN_DIR__/artifacts/workflow.salesnav.collect_companies_5/state.json",
+        "--artifacts-dir",
+        "__RUN_DIR__/artifacts/workflow.salesnav.collect_companies_5/assert_min_count_5",
+        "--limit",
+        "5"
+      ],
+      "cwd": ".",
+      "env_allowlist": ["WORKFLOW_BUILDER_LIVE_BASE_URL"],
+      "timeout_sec": 90,
+      "retries": 0
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+      "label": "Assert Required Fields (name,url)",
+      "parent_test_id": "python-salesnav-core",
+      "kind": "assertion",
+      "deps": ["python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"],
+      "command_template": ["python"],
+      "args": [
+        "scripts/salesnav_workflow_step.py",
+        "--step",
+        "assert_required_fields",
+        "--state-file",
+        "__RUN_DIR__/artifacts/workflow.salesnav.collect_companies_5/state.json",
+        "--artifacts-dir",
+        "__RUN_DIR__/artifacts/workflow.salesnav.collect_companies_5/assert_required_fields"
+      ],
+      "cwd": ".",
+      "env_allowlist": ["WORKFLOW_BUILDER_LIVE_BASE_URL"],
+      "timeout_sec": 90,
+      "retries": 0
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+      "label": "Persist Workflow Summary Artifact",
+      "parent_test_id": "python-salesnav-core",
+      "kind": "assertion",
+      "deps": ["python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"],
+      "command_template": ["python"],
+      "args": [
+        "scripts/salesnav_workflow_step.py",
+        "--step",
+        "persist_summary",
+        "--state-file",
+        "__RUN_DIR__/artifacts/workflow.salesnav.collect_companies_5/state.json",
+        "--artifacts-dir",
+        "__RUN_DIR__/artifacts/workflow.salesnav.collect_companies_5/persist_summary"
+      ],
+      "cwd": ".",
+      "env_allowlist": ["WORKFLOW_BUILDER_LIVE_BASE_URL"],
+      "timeout_sec": 90,
+      "retries": 0
+    }
+  ]
+}

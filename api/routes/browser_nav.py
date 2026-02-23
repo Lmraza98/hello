@@ -195,3 +195,13 @@ async def browser_screenshot(req: BrowserScreenshotRequest) -> Any:
         diagnostics={"goal": "Capture screenshot", "tab_id": req.tab_id, "full_page": req.full_page},
         runner=lambda: get_browser_backend().screenshot(tab_id=req.tab_id, full_page=req.full_page),
     )
+
+
+@router.post("/shutdown")
+async def browser_shutdown() -> Any:
+    return await _run_browser_task(
+        operation="browser_shutdown",
+        stage="shutdown",
+        diagnostics={"goal": "Close browser session and release backend browser resources"},
+        runner=lambda: get_browser_backend().shutdown(),
+    )

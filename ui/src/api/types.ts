@@ -71,6 +71,76 @@ export type AdminCostsResponse = {
   top_expensive: Array<{ correlation_id?: string; endpoint?: string; tool?: string; total_usd: number; requests: number }>;
 };
 
+export type LauncherStopMode = 'run' | 'after_current' | 'terminate_workers';
+
+export type LauncherStartupIssue = {
+  code: string;
+  message: string;
+  remediation: string;
+};
+
+export type LauncherStartupState = {
+  phase: string;
+  ready: boolean;
+  checks: Record<string, unknown>;
+  issues: LauncherStartupIssue[];
+};
+
+export type LauncherCaseStatus = 'idle' | 'queued' | 'running' | 'passed' | 'failed' | 'canceled' | 'timed_out';
+
+export type LauncherTestCase = {
+  id: string;
+  suite_id: string;
+  suite_name: string;
+  name: string;
+  kind: 'unit' | 'integration' | 'live' | 'smoke' | 'custom';
+  tags: string[];
+  enabled: boolean;
+  file_path?: string | null;
+  marker?: string | null;
+};
+
+export type LauncherTestStatus = {
+  status: LauncherCaseStatus;
+  lastRun?: number | null;
+  duration?: number | null;
+  attempt?: number | null;
+  started_at?: number | null;
+  finished_at?: number | null;
+  artifact_count?: number;
+};
+
+export type LauncherRunPlanItem = {
+  order: number;
+  id: string;
+  name: string;
+};
+
+export type LauncherRunRecord = {
+  run_id: string;
+  status: 'passed' | 'failed' | 'canceled' | 'running' | 'queued' | 'unknown';
+  started_at?: string | null;
+  finished_at?: string | null;
+  duration_sec?: number | null;
+  selected_test_ids?: string[];
+  selected_tags?: string[];
+  tests?: Array<{ id: string; status: string; duration_sec?: number; message?: string }>;
+  artifacts?: {
+    events?: string;
+    stdout?: string;
+    junit?: string;
+    json?: string;
+  };
+  run_dir?: string;
+};
+
+export type LauncherArtifactResponse = {
+  ok: boolean;
+  run_id: string;
+  kind: 'json' | 'junit' | 'events' | 'stdout';
+  path?: string | null;
+};
+
 // â”€â”€ Core entities â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type Stats = {

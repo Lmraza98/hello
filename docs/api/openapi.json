@@ -10760,6 +10760,27 @@
         }
       }
     },
+    "/api/browser/shutdown": {
+      "post": {
+        "tags": [
+          "browser"
+        ],
+        "summary": "Browser Shutdown",
+        "operationId": "browser_shutdown_api_browser_shutdown_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Browser Shutdown Api Browser Shutdown Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/browser/skills": {
       "get": {
         "tags": [
@@ -12910,6 +12931,342 @@
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/launcher/state": {
+      "get": {
+        "tags": [
+          "admin",
+          "launcher"
+        ],
+        "summary": "Launcher State",
+        "operationId": "launcher_state_api_admin_launcher_state_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Launcher State Api Admin Launcher State Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/launcher/tests": {
+      "get": {
+        "tags": [
+          "admin",
+          "launcher"
+        ],
+        "summary": "Launcher Tests",
+        "operationId": "launcher_tests_api_admin_launcher_tests_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Launcher Tests Api Admin Launcher Tests Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/launcher/status": {
+      "get": {
+        "tags": [
+          "admin",
+          "launcher"
+        ],
+        "summary": "Launcher Status",
+        "operationId": "launcher_status_api_admin_launcher_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "object"
+                  },
+                  "type": "object",
+                  "title": "Response Launcher Status Api Admin Launcher Status Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/launcher/preview-plan": {
+      "post": {
+        "tags": [
+          "admin",
+          "launcher"
+        ],
+        "summary": "Launcher Preview Plan",
+        "operationId": "launcher_preview_plan_api_admin_launcher_preview_plan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Launcher Preview Plan Api Admin Launcher Preview Plan Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/launcher/run": {
+      "post": {
+        "tags": [
+          "admin",
+          "launcher"
+        ],
+        "summary": "Launcher Run",
+        "operationId": "launcher_run_api_admin_launcher_run_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Launcher Run Api Admin Launcher Run Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/launcher/stop": {
+      "post": {
+        "tags": [
+          "admin",
+          "launcher"
+        ],
+        "summary": "Launcher Stop",
+        "operationId": "launcher_stop_api_admin_launcher_stop_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StopRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Launcher Stop Api Admin Launcher Stop Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/launcher/runs": {
+      "get": {
+        "tags": [
+          "admin",
+          "launcher"
+        ],
+        "summary": "Launcher Runs",
+        "operationId": "launcher_runs_api_admin_launcher_runs_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "object"
+                  },
+                  "type": "array",
+                  "title": "Response Launcher Runs Api Admin Launcher Runs Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/launcher/runs/{run_id}/open": {
+      "post": {
+        "tags": [
+          "admin",
+          "launcher"
+        ],
+        "summary": "Launcher Open Run",
+        "operationId": "launcher_open_run_api_admin_launcher_runs__run_id__open_post",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Launcher Open Run Api Admin Launcher Runs  Run Id  Open Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/launcher/runs/{run_id}/artifacts/{kind}": {
+      "get": {
+        "tags": [
+          "admin",
+          "launcher"
+        ],
+        "summary": "Launcher Artifact",
+        "operationId": "launcher_artifact_api_admin_launcher_runs__run_id__artifacts__kind__get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "json",
+                "junit",
+                "events",
+                "stdout"
+              ],
+              "type": "string",
+              "title": "Kind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "title": "Response Launcher Artifact Api Admin Launcher Runs  Run Id  Artifacts  Kind  Get"
+                }
               }
             }
           },
@@ -15229,7 +15586,7 @@
           "model": {
             "type": "string",
             "title": "Model",
-            "default": "gpt-4o-mini"
+            "default": "qwen2.5:32b-instruct"
           },
           "provider": {
             "type": "string",
@@ -19916,6 +20273,28 @@
         ],
         "title": "PipelineStoppedResponse"
       },
+      "PlanRequest": {
+        "properties": {
+          "test_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Ids",
+            "default": []
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "PlanRequest"
+      },
       "ProcessScheduledResponse": {
         "properties": {
           "success": {
@@ -21658,6 +22037,22 @@
           "contacts_today"
         ],
         "title": "Stats"
+      },
+      "StopRequest": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "run",
+              "after_current",
+              "terminate_workers"
+            ],
+            "title": "Mode",
+            "default": "run"
+          }
+        },
+        "type": "object",
+        "title": "StopRequest"
       },
       "SuccessResponse": {
         "properties": {

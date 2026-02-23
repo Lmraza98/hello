@@ -34,6 +34,7 @@ export function assessComplexity(query: string, context: ComplexityContext = {})
   const normalized = (query || '').trim();
   const signals: string[] = [];
   let compoundWorkflowRequired = false;
+  const lower = normalized.toLowerCase();
 
   if (context.requiresDecomposition) {
     signals.push('requires_decomposition');
@@ -67,6 +68,24 @@ export function assessComplexity(query: string, context: ComplexityContext = {})
   ) {
     compoundWorkflowRequired = true;
     signals.push('compound_workflow_required');
+  }
+
+  // High-priority routing heuristics:
+  // - Sales Navigator / LinkedIn workflows are typically multi-step and tool-heavy.
+  // - Compound criteria with conjunctions tend to require stronger planning.
+  const mentionsSalesNav = /\b(sales\s*navigator|salesnav|linkedin)\b/i.test(normalized);
+  const hasCompoundJoin = /\b(and|with|plus)\b/i.test(normalized);
+  const hasCriteriaPhrase = /\b(that are|who have|which have|that have)\b/i.test(normalized);
+  if (mentionsSalesNav) {
+    signals.push('salesnav_or_linkedin');
+  }
+  if (hasCompoundJoin && (hasCriteriaPhrase || /\b(vp|director|industry|sector|posted)\b/i.test(normalized))) {
+    signals.push('compound_criteria');
+  }
+
+  if (mentionsSalesNav || signals.includes('compound_criteria')) {
+    const level = compoundWorkflowRequired ? 'complex' : 'moderate';
+    return { level, signals, recommendedModel: 'gpt-4o-mini', compoundWorkflowRequired };
   }
 
   if (signals.length >= 2) return { level: 'complex', signals, recommendedModel: 'gpt-4o-mini', compoundWorkflowRequired };

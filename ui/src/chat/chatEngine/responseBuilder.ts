@@ -373,7 +373,13 @@ export async function buildDispatchBackedResult(params: {
   const hasToolCalls = calls.length > 0;
   const hasUiActions = uiActions.length > 0;
   const destructiveCheck = checkPlanDestructive(uiActions, calls);
-  const shouldConfirm = ctx.options.requireToolConfirmation === false ? false : destructiveCheck.requiresConfirmation;
+  const shouldConfirm =
+    ctx.options.requireToolConfirmation === false
+      ? false
+      : (
+          (phase === 'planning' && ctx.options.requireToolConfirmation === true && hasToolCalls)
+          || destructiveCheck.requiresConfirmation
+        );
 
   if (shouldConfirm) {
     const summary = buildMixedPlanSummary(uiActions, calls);

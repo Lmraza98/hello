@@ -38,6 +38,7 @@ The repository now follows a LeadPilot-style self-documenting pattern:
   - `python scripts/export_api_docs.py`
   - `python scripts/docs_ci.py`
   - `python scripts/docs_guard.py`
+  - `python scripts/install_git_hooks.py`
 
 ## Quick Start
 
@@ -111,6 +112,11 @@ The developer launcher (`python launcher.py`) starts backend + bridge and expose
 - UI dependencies installed for frontend tests (`npm --prefix ui test`).
 
 See `docs/help/launcher-test-orchestration.md` for full operational details.
+
+Documentation contract for launcher changes:
+
+- launcher behavior updates must include changes to `docs/help/launcher-test-orchestration.md` in the same PR.
+- recommended local setup: `python scripts/install_git_hooks.py` (installs pre-commit docs enforcement).
 
 ## Commands
 

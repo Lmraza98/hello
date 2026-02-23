@@ -800,3 +800,17 @@ class LeadPilotBackend(BrowserBackend):
             self._last_target_id = resolved_target
         resolved_tab_id = await self._tab_id_from_target_id(resolved_target) or tab_id
         return {"ok": True, "tab_id": resolved_tab_id, "mime": "image/png", "base64": encoded}
+
+    async def shutdown(self) -> dict[str, Any]:
+        # Best-effort: not all bridge builds expose /stop.
+        stopped = False
+        try:
+            out = await self._request("POST", "/stop")
+            stopped = bool(isinstance(out, dict) and out.get("ok", True))
+        except Exception:
+            stopped = False
+        self._last_target_id = None
+        self._tab_map = {}
+        self._target_map = {}
+        self._snapshot_refs = {}
+        return {"ok": True, "mode": "leadpilot", "stopped": stopped}

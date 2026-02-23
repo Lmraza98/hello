@@ -1,0 +1,5 @@
+{"type": "run_started", "payload": {"run_id": "run-20260222-060108-645063", "count": 1, "test_ids": ["backend-gate-pytest-ready"]}, "timestamp": "2026-02-22T06:01:08.742721+00:00"}
+{"type": "test_started", "payload": {"id": "backend-gate-pytest-ready", "status": "running", "attempt": 1, "command": ["C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe", "-m", "pytest", "--version"], "cwd": "C:\\Users\\lmraz\\Hello"}, "timestamp": "2026-02-22T06:01:08.742937+00:00"}
+{"type": "test_output", "payload": {"id": "backend-gate-pytest-ready", "line": "pytest 9.0.2"}, "timestamp": "2026-02-22T06:01:08.945748+00:00"}
+{"type": "test_finished", "payload": {"id": "backend-gate-pytest-ready", "status": "passed", "attempt": 1, "duration_sec": 0.20074176788330078, "message": ""}, "timestamp": "2026-02-22T06:01:08.945912+00:00"}
+{"type": "run_finished", "payload": {"run_id": "run-20260222-060108-645063", "status": "passed", "tests": [{"id": "backend-gate-pytest-ready", "status": "passed", "duration_sec": 0.20315098762512207, "message": "", "retries": 1}], "duration_sec": 0.20316004753112793}, "timestamp": "2026-02-22T06:01:08.945936+00:00"}

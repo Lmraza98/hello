@@ -151,3 +151,14 @@ class ProxyBackend(BrowserBackend):
             payload["full_page"] = full_page
         out = await _proxy_request("POST", "/screenshot", payload or None)
         return out if isinstance(out, dict) else {"ok": False, "tab_id": tab_id, "error": True}
+
+    async def shutdown(self) -> dict[str, Any]:
+        # Best-effort: older gateways may not support /stop.
+        try:
+            out = await _proxy_request("POST", "/stop")
+            if isinstance(out, dict):
+                out.setdefault("mode", "proxy")
+                return out
+        except Exception:
+            pass
+        return {"ok": True, "mode": "proxy", "stopped": False}

@@ -28,7 +28,7 @@ Runs deterministic endpoint-level coverage for:
 Command:
 
 ```bash
-pytest -q tests/test_browser_workflow_builder_routes.py
+pytest -q tests/api_routes/test_browser_workflow_builder_api_routes.py
 ```
 
 What it validates:
@@ -39,21 +39,33 @@ What it validates:
 
 ## 2) Live End-to-End API Flow
 
-Use the live validator when a backend is running and at least one browser tab exists.
+Use the live pytest suite when a backend is running and at least one browser tab exists.
 
 Command:
 
 ```bash
-python scripts/test_workflow_builder_live.py --base-url http://127.0.0.1:8000
+WORKFLOW_BUILDER_LIVE_BASE_URL=http://127.0.0.1:8000 pytest -q tests/api_routes/browser/test_workflow_builder_live_e2e.py
 ```
 
 Optional explicit tab:
 
 ```bash
-python scripts/test_workflow_builder_live.py --base-url http://127.0.0.1:8000 --tab-id tab-1
+WORKFLOW_BUILDER_LIVE_BASE_URL=http://127.0.0.1:8000 WORKFLOW_BUILDER_LIVE_TAB_ID=tab-1 pytest -q tests/api_routes/browser/test_workflow_builder_live_e2e.py
 ```
 
-The script executes:
+Optional deterministic seed page for self-setup:
+
+```bash
+WORKFLOW_BUILDER_LIVE_BASE_URL=http://127.0.0.1:8000 WORKFLOW_BUILDER_LIVE_SEED_URL=https://news.ycombinator.com/ pytest -q tests/api_routes/browser/test_workflow_builder_live_e2e.py
+```
+
+Optional teardown control:
+
+```bash
+WORKFLOW_BUILDER_LIVE_AUTO_CLEANUP=0 pytest -q tests/api_routes/browser/test_workflow_builder_live_e2e.py
+```
+
+The suite provides phase-level tests that can be run independently while replaying prerequisites:
 
 1. `/api/browser/tabs`
 2. `/api/browser/workflows/observation-pack`
@@ -62,7 +74,18 @@ The script executes:
 5. `/api/browser/workflows/synthesize-from-feedback`
 6. `/api/browser/workflows/tasks`
 
-It exits non-zero on failure and prints PASS/FAIL checkpoints.
+Each test fails fast with route-specific assertion details.
+
+Live precondition behavior:
+
+- if no open tab has usable `role_refs`, the suite auto-navigates a tab to `WORKFLOW_BUILDER_LIVE_SEED_URL` and retries observation.
+- if role refs are still unavailable after auto-navigation, observation-dependent phases are skipped with an actionable message.
+- if annotate returns zero boxes for the current page state, downstream annotate/synthesize/tasks live phases are skipped.
+- this avoids false negatives when the browser is open on a non-candidate page while preserving true route failures.
+- after each live test, teardown runs by default:
+  - `POST /api/browser/shutdown` (best-effort browser session close)
+  - `POST /api/admin/launcher/stop` with `mode=terminate_workers` (best-effort worker stop/restart cycle)
+- set `WORKFLOW_BUILDER_LIVE_AUTO_CLEANUP=0` to disable automatic teardown during manual debugging.
 
 ## 3) UI Regression Checks (Manual)
 
@@ -80,8 +103,8 @@ After the live flow passes, verify in `/browser`:
 
 Run in this order:
 
-1. `pytest -q tests/test_browser_workflow_builder_routes.py`
-2. `python scripts/test_workflow_builder_live.py --base-url ...`
+1. `pytest -q tests/api_routes/test_browser_workflow_builder_api_routes.py`
+2. `WORKFLOW_BUILDER_LIVE_BASE_URL=http://127.0.0.1:8000 pytest -q tests/api_routes/browser/test_workflow_builder_live_e2e.py`
 3. manual UI regression checks in `/browser`
 
 ## Launcher-Orchestrated Runs

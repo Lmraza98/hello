@@ -1,0 +1,57 @@
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] 1 passed in 0.70s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] 1 passed in 0.67s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] 1 passed in 0.66s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] 1 passed in 0.67s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] ....                                                                     [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] 4 passed in 0.67s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] [child-note] finished passed
+[python-tests-all::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] [child-note] started tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend
+[python-tests-all::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] .                                                                        [100%]
+[python-tests-all::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] 1 passed in 0.24s
+[python-tests-all::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] [child-note] finished passed
+[python-tests-all::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] [child-note] started tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task
+[python-tests-all::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] .                                                                        [100%]
+[python-tests-all::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] 1 passed in 0.25s
+[python-tests-all::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] [child-note] finished passed
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] .                                                                        [100%]
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] 1 passed in 0.68s
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] [child-note] finished passed
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] .                                                                        [100%]
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] 1 passed in 1.90s
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] [child-note] finished passed
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error] .                                                                        [100%]
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error] 1 passed in 0.71s
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error] [child-note] finished passed
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404] .                                                                        [100%]
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404] 1 passed in 0.68s
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404] [child-note] finished passed
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows] .                                                                        [100%]
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows] 1 passed in 0.70s
+[python-tests-all::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows] [child-note] finished passed
+[python-tests-all::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_tabs] [child-note] started tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_tabs
+[python-tests-all::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_tabs] .                                                                        [100%]
+[python-tests-all::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_tabs] 1 passed in 3.06s
+[python-tests-all::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_tabs] [child-note] finished passed
+[python-tests-all::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_observation_pack] [child-note] started tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_observation_pack
+[python-tests-all::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_observation_pack] .                                                                        [100%]
+[python-tests-all::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_observation_pack] 1 passed in 7.13s
+[python-tests-all::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_observation_pack] [child-note] finished passed
+[python-tests-all::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_validate_candidate] [child-note] started tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_validate_candidate

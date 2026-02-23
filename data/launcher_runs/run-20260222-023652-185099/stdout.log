@@ -1,0 +1,177 @@
+[backend-gate-pytest-ready] pytest 9.0.2
+[frontend-gate-node-ready] v22.19.0
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] 1 passed in 0.67s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] 1 passed in 0.66s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] 1 passed in 0.66s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] 1 passed in 0.66s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] ....                                                                     [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] 4 passed in 0.68s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] [child-note] finished passed
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] .                                                                        [100%]
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] 1 passed in 0.05s
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] finished passed
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] .                                                                        [100%]
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] 1 passed in 2.23s
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] finished passed
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] .                                                                        [100%]
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] 1 passed in 0.06s
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] finished passed
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] .                                                                        [100%]
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] 1 passed in 0.14s
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] [child-note] started tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] 1 passed in 0.24s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] [child-note] started tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] 1 passed in 0.24s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] 1 passed in 0.66s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] 1 passed in 1.90s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error] 1 passed in 0.71s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404] 1 passed in 0.67s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows] 1 passed in 0.65s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows] [child-note] finished passed
+[python-browser-core] ............................                                             [100%]
+[python-browser-core] 28 passed in 1.22s
+[python-launcher-core] .............FF..                                                        [100%]
+[python-launcher-core] ================================== FAILURES ===================================
+[python-launcher-core] _____________________________ test_worker_timeout _____________________________
+[python-launcher-core] tmp_path = WindowsPath('C:/Users/lmraz/AppData/Local/Temp/pytest-of-lmraz/pytest-137/test_worker_timeout0')
+[python-launcher-core]     def test_worker_timeout(tmp_path: Path):
+[python-launcher-core]         sleep_script = tmp_path / "sleep_test.py"
+[python-launcher-core]         sleep_script.write_text("import time\ntime.sleep(2)\n", encoding="utf-8")
+[python-launcher-core]     
+[python-launcher-core]         catalog = tmp_path / "catalog.json"
+[python-launcher-core]         catalog.write_text(
+[python-launcher-core]             json.dumps(
+[python-launcher-core]                 {
+[python-launcher-core]                     "catalog_version": "1",
+[python-launcher-core]                     "suites": [
+[python-launcher-core]                         {
+[python-launcher-core]                             "id": "suite",
+[python-launcher-core]                             "name": "suite",
+[python-launcher-core]                             "description": "suite",
+[python-launcher-core]                             "tags": ["int"],
+[python-launcher-core]                             "tests": [
+[python-launcher-core]                                 {
+[python-launcher-core]                                     "id": "slow",
+[python-launcher-core]                                     "name": "slow",
+[python-launcher-core]                                     "kind": "integration",
+[python-launcher-core]                                     "command_template": ["python", str(sleep_script)],
+[python-launcher-core]                                     "args": [],
+[python-launcher-core]                                     "cwd": ".",
+[python-launcher-core]                                     "timeout_sec": 1,
+[python-launcher-core]                                 }
+[python-launcher-core]                             ],
+[python-launcher-core]                         }
+[python-launcher-core]                     ],
+[python-launcher-core]                 }
+[python-launcher-core]             ),
+[python-launcher-core]             encoding="utf-8",
+[python-launcher-core]         )
+[python-launcher-core]     
+[python-launcher-core]         proc = _start_worker(catalog, Path.cwd())
+[python-launcher-core]         try:
+[python-launcher-core]             _send(proc, "run_plan", {"run_id": "r1", "test_ids": ["slow"]})
+[python-launcher-core]             events = _collect(proc)
+[python-launcher-core]         finally:
+[python-launcher-core]             proc.terminate()
+[python-launcher-core]     
+[python-launcher-core]         test_finished = [e for e in events if e.get("type") == "test_finished"]
+[python-launcher-core] >       assert test_finished
+[python-launcher-core] E       assert []
+[python-launcher-core] tests\launcher\test_launcher_worker_integration.py:97: AssertionError
+[python-launcher-core] ___________________________ test_worker_cancel_run ____________________________
+[python-launcher-core] tmp_path = WindowsPath('C:/Users/lmraz/AppData/Local/Temp/pytest-of-lmraz/pytest-137/test_worker_cancel_run0')
+[python-launcher-core]     def test_worker_cancel_run(tmp_path: Path):
+[python-launcher-core]         sleep_script = tmp_path / "sleep_test_cancel.py"
+[python-launcher-core]         sleep_script.write_text("import time\ntime.sleep(5)\n", encoding="utf-8")
+[python-launcher-core]     
+[python-launcher-core]         catalog = tmp_path / "catalog.json"
+[python-launcher-core]         catalog.write_text(
+[python-launcher-core]             json.dumps(
+[python-launcher-core]                 {
+[python-launcher-core]                     "catalog_version": "1",
+[python-launcher-core]                     "suites": [
+[python-launcher-core]                         {
+[python-launcher-core]                             "id": "suite",
+[python-launcher-core]                             "name": "suite",
+[python-launcher-core]                             "description": "suite",
+[python-launcher-core]                             "tags": ["int"],
+[python-launcher-core]                             "tests": [
+[python-launcher-core]                                 {
+[python-launcher-core]                                     "id": "slow",
+[python-launcher-core]                                     "name": "slow",
+[python-launcher-core]                                     "kind": "integration",
+[python-launcher-core]                                     "command_template": ["python", str(sleep_script)],
+[python-launcher-core]                                     "args": [],
+[python-launcher-core]                                     "cwd": ".",
+[python-launcher-core]                                     "timeout_sec": 10,
+[python-launcher-core]                                 }
+[python-launcher-core]                             ],
+[python-launcher-core]                         }
+[python-launcher-core]                     ],
+[python-launcher-core]                 }
+[python-launcher-core]             ),
+[python-launcher-core]             encoding="utf-8",
+[python-launcher-core]         )
+[python-launcher-core]     
+[python-launcher-core]         proc = _start_worker(catalog, Path.cwd())
+[python-launcher-core]         try:
+[python-launcher-core]             _send(proc, "run_plan", {"run_id": "r2", "test_ids": ["slow"]})
+[python-launcher-core]             time.sleep(0.8)
+[python-launcher-core] >           _send(proc, "cancel", {"scope": "run"})
+[python-launcher-core] tests\launcher\test_launcher_worker_integration.py:138: 
+[python-launcher-core] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+[python-launcher-core] proc = <Popen: returncode: 1 args: ['C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python...>
+[python-launcher-core] msg_type = 'cancel', payload = {'scope': 'run'}
+[python-launcher-core]     def _send(proc: subprocess.Popen[str], msg_type: str, payload: dict) -> None:
+[python-launcher-core]         assert proc.stdin is not None
+[python-launcher-core] >       proc.stdin.write(json.dumps({"type": msg_type, "payload": payload}) + "\n")
+[python-launcher-core] E       OSError: [Errno 22] Invalid argument
+[python-launcher-core] tests\launcher\test_launcher_worker_integration.py:31: OSError
+[python-launcher-core] =========================== short test summary info ===========================
+[python-launcher-core] FAILED tests/launcher/test_launcher_worker_integration.py::test_worker_timeout
+[python-launcher-core] FAILED tests/launcher/test_launcher_worker_integration.py::test_worker_cancel_run
+[python-launcher-core] 2 failed, 15 passed in 1.58s
+[python-platform-core] ...........                                                              [100%]
+[python-platform-core] 11 passed in 34.61s
+[python-salesnav-core] ..................................                                       [100%]
+[python-salesnav-core] 34 passed in 4.39s
+[python-workflow-core] .........                                                                [100%]
+[python-workflow-core] 9 passed in 0.75s
+[python-tests-all::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] [child-note] started tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend
+[python-tests-all::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] pytest 9.0.2

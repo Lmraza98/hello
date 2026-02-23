@@ -1,0 +1,61 @@
+{
+  "schema_version": "run_trace.v1",
+  "run": {
+    "id": "smoke",
+    "timestamp": "now",
+    "status": "passed",
+    "finished_at_ts": 1771713972.2867415
+  },
+  "plan": {
+    "ordered_steps": []
+  },
+  "steps": [
+    {
+      "id": "s1",
+      "label": "s1",
+      "status": "passed",
+      "started_at_ts": 1771713972.265035,
+      "started_at": "2026-02-21T22:46:12Z",
+      "inputs": {
+        "x": 1
+      },
+      "finished_at_ts": 1771713972.2657604,
+      "finished_at": "2026-02-21T22:46:12Z",
+      "duration_sec": 0.0007255077362060547
+    }
+  ],
+  "timeline": [
+    {
+      "ts": 1771713972.2641454,
+      "type": "run_started",
+      "run_id": "smoke"
+    },
+    {
+      "ts": 1771713972.2650557,
+      "type": "step_started",
+      "step_id": "s1",
+      "label": "s1"
+    },
+    {
+      "ts": 1771713972.2657728,
+      "type": "step_finished",
+      "step_id": "s1",
+      "status": "passed",
+      "duration_sec": 0.0007255077362060547
+    },
+    {
+      "ts": 1771713972.2867439,
+      "type": "run_finished",
+      "status": "passed",
+      "duration_sec": null
+    }
+  ],
+  "evidence": {
+    "logs": [],
+    "commands": [],
+    "network_calls": [],
+    "artifacts": [],
+    "verification": []
+  },
+  "changes": []
+}

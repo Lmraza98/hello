@@ -7,6 +7,7 @@ const DESTRUCTIVE_TOOLS = new Set([
   'delete_company',
   'delete_campaign',
   'send_email',
+  'send_email_now',
   'send_campaign_emails',
   'sync_to_salesforce',
   'reset_all',

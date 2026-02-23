@@ -66,6 +66,26 @@ class ProcessSupervisor:
     def preflight(self, run_store_root: Path) -> dict[str, Any]:
         checks: dict[str, Any] = {"ok": True, "issues": []}
         bridge_script = self.app_dir / "scripts" / "leadpilot_browser_bridge.ts"
+        allow_attach_backend = os.getenv("LAUNCHER_ATTACH_EXISTING_BACKEND", "").strip().lower() in {"1", "true", "yes"}
+        allow_attach_bridge = os.getenv("LAUNCHER_ATTACH_EXISTING_BRIDGE", "").strip().lower() in {"1", "true", "yes"}
+        checks["attach_existing_backend"] = False
+        checks["attach_existing_bridge"] = False
+
+        # Port conflicts must win over dependency checks so startup diagnostics
+        # and tests consistently classify bind failures as port_conflict.
+        for port, name in ((self.server_port, "backend"), (self.bridge_port, "bridge")):
+            if self._port_in_use(port):
+                if name == "backend" and allow_attach_backend and self._backend_is_healthy():
+                    checks["attach_existing_backend"] = True
+                    continue
+                if name == "bridge" and allow_attach_bridge and self._bridge_is_healthy():
+                    checks["attach_existing_bridge"] = True
+                    continue
+                raise LauncherStartupError(
+                    "port_conflict",
+                    f"{name} port is already in use: {port}",
+                    f"Stop existing process on {port} or change env port for {name}.",
+                )
 
         if not bridge_script.exists():
             raise LauncherStartupError(
@@ -92,6 +112,22 @@ class ProcessSupervisor:
                 "Fix LEADPILOT_NODE_PATH or bundle runtime/node.",
             )
 
+        # Ensure the tsx loader used by bridge_command is resolvable by node.
+        try:
+            subprocess.run(
+                [self.node_path(), "--import", "tsx", "-e", "console.log('tsx-ok')"],
+                cwd=self.app_dir,
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception as exc:
+            raise LauncherStartupError(
+                "missing_dependency",
+                "tsx loader not available for node bridge startup",
+                "Run `npm install` in repo root (where package.json defines tsx), then retry `python launcher.py`.",
+            ) from exc
+
         run_store_root.mkdir(parents=True, exist_ok=True)
         probe = run_store_root / ".probe"
         try:
@@ -104,13 +140,6 @@ class ProcessSupervisor:
                 "Ensure write permissions for data/launcher_runs.",
             ) from exc
 
-        for port, name in ((self.server_port, "backend"), (self.bridge_port, "bridge")):
-            if self._port_in_use(port):
-                raise LauncherStartupError(
-                    "port_conflict",
-                    f"{name} port is already in use: {port}",
-                    f"Stop existing process on {port} or change env port for {name}.",
-                )
         return checks
 
     def start_process(self, name: str, command: list[str], retries: int = 2) -> subprocess.Popen[str]:
@@ -186,3 +215,19 @@ class ProcessSupervisor:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             return s.connect_ex(("127.0.0.1", port)) == 0
+
+    def _backend_is_healthy(self) -> bool:
+        url = f"http://127.0.0.1:{self.server_port}/api/stats"
+        try:
+            res = requests.get(url, timeout=1.2)
+            return res.status_code == 200
+        except Exception:
+            return False
+
+    def _bridge_is_healthy(self) -> bool:
+        url = f"http://127.0.0.1:{self.bridge_port}/tabs"
+        try:
+            res = requests.get(url, timeout=1.2)
+            return 200 <= res.status_code < 500
+        except Exception:
+            return False

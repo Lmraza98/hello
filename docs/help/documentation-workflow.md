@@ -10,12 +10,21 @@ title: "Documentation Workflow"
 
 This repository uses an LeadPilot-style docs contract: code changes that alter behavior must be reflected in docs during the same work cycle.
 
+For launcher work, the canonical source of truth is:
+
+- `docs/help/launcher-test-orchestration.md`
+
 ## Required Routine
 
 1. Update relevant docs pages.
 2. Regenerate API docs.
 3. Run docs checks.
 4. Fail the change if docs drift remains.
+
+For launcher behavior changes:
+
+5. Update `docs/help/launcher-test-orchestration.md` in the same change.
+6. Add a structured change entry under `Launcher Change Log`.
 
 ## Commands
 
@@ -35,6 +44,12 @@ Check staged changes only:
 
 ```bash
 python scripts/docs_guard.py --staged
+```
+
+Install local pre-commit docs enforcement:
+
+```bash
+python scripts/install_git_hooks.py
 ```
 
 Regenerate UI capability artifacts:
@@ -57,11 +72,16 @@ At least one of:
 - `docs/docs.json` navigation/redirect updates
 - `README.md` updates for top-level operational changes
 
+Launcher-specific requirement:
+
+- if launcher behavior files changed (`launcher.py`, `launcher_frontend/src/**`, `launcher_runtime/**`, `scripts/launcher_test_worker.py`, `config/launcher_test_catalog.v1.json`), `docs/help/launcher-test-orchestration.md` must also change.
+
 ## Definition Of Done
 
 - Behavior change has a matching docs change.
 - `python scripts/docs_ci.py` succeeds.
 - `python scripts/docs_guard.py` succeeds (or explicitly documented why skipped).
+- for launcher behavior changes, canonical launcher doc was updated with a structured change entry.
 
 ## Capability Generation Contract
 

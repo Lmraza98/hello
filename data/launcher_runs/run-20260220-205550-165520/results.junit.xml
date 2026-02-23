@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="launcher-run" tests="1" failures="1" skipped="0" time="9.970">
-  <testcase classname="launcher" name="python-tests-all" time="9.970">
-    <failure message="exit code 1"/>
-  </testcase>
-</testsuite>

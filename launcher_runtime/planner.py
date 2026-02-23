@@ -15,6 +15,11 @@ class PlannedTest:
     test: TestCase
 
 
+def _is_aggregate_meta(test: TestCase) -> bool:
+    tags = {str(tag).strip().lower() for tag in (test.tags or [])}
+    return "aggregate-meta" in tags
+
+
 def _collect_with_deps(test_ids: list[str], tests: dict[str, TestCase]) -> set[str]:
     selected: set[str] = set()
 
@@ -77,6 +82,12 @@ def build_run_plan(catalog: TestCatalog, *, test_ids: list[str] | None = None, t
         if not selected:
             raise PlanError("no tests matched the selected tags")
         selected = _collect_with_deps(sorted(selected), enabled)
+
+    # Aggregate-meta nodes are orchestration/view nodes. They expand dependency
+    # selection but are not executable worker steps themselves.
+    selected = {tid for tid in selected if not _is_aggregate_meta(enabled[tid])}
+    if not selected:
+        raise PlanError("run plan resolved to aggregate-only nodes with no executable tests")
 
     ordered = _topological_sort(selected, enabled)
     return [PlannedTest(order=i + 1, test=test) for i, test in enumerate(ordered)]

@@ -21,12 +21,17 @@ CODE_PREFIXES = (
     "ui/src/",
     "zco-bi/src/",
     "zco-bi/scripts/",
+    "launcher_frontend/src/",
+    "launcher_runtime/",
 )
 CODE_FILES = {
     "app.py",
     "main.py",
     "config.py",
     "database.py",
+    "launcher.py",
+    "scripts/launcher_test_worker.py",
+    "config/launcher_test_catalog.v1.json",
 }
 DOC_PREFIXES = (
     "docs/",
@@ -35,6 +40,14 @@ DOC_FILES = {
     "README.md",
 }
 DOC_SUFFIXES = (".md", ".mdx", ".json")
+LAUNCHER_BEHAVIOR_PATHS = (
+    "launcher.py",
+    "launcher_frontend/src/",
+    "launcher_runtime/",
+    "scripts/launcher_test_worker.py",
+    "config/launcher_test_catalog.v1.json",
+)
+LAUNCHER_CANONICAL_DOC = "docs/help/launcher-test-orchestration.md"
 
 
 def _git_changed_files(staged: bool) -> list[str]:
@@ -67,6 +80,10 @@ def _is_doc_file(path: str) -> bool:
     return False
 
 
+def _is_launcher_behavior_file(path: str) -> bool:
+    return any(path == p or path.startswith(p) for p in LAUNCHER_BEHAVIOR_PATHS)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -84,12 +101,22 @@ def main() -> int:
 
     behavior_changes = [path for path in changed if _is_behavior_file(path)]
     doc_changes = [path for path in changed if _is_doc_file(path)]
+    launcher_changes = [path for path in changed if _is_launcher_behavior_file(path)]
 
     if not behavior_changes:
         print("docs-guard: no behavior-file changes detected; nothing to enforce.")
         return 0
 
     if doc_changes:
+        if launcher_changes and LAUNCHER_CANONICAL_DOC not in changed:
+            print("docs-guard: launcher behavior changes require canonical launcher docs update.", file=sys.stderr)
+            print(f"Missing required file: {LAUNCHER_CANONICAL_DOC}", file=sys.stderr)
+            print("Launcher behavior files changed:", file=sys.stderr)
+            for path in launcher_changes[:20]:
+                print(f"  - {path}", file=sys.stderr)
+            if len(launcher_changes) > 20:
+                print(f"  ... and {len(launcher_changes) - 20} more", file=sys.stderr)
+            return 1
         print("docs-guard: docs updates detected with behavior changes.")
         print(f"  behavior_files={len(behavior_changes)} docs_files={len(doc_changes)}")
         return 0

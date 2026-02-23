@@ -147,6 +147,9 @@ export function buildPipelineContext(
 }
 
 async function stepTrySkillFirst(ctx: PipelineContext): Promise<StepResult> {
+  if (ctx.options.requireToolConfirmation === true && ctx.phase === 'planning' && !(ctx.options.confirmedToolCalls?.length)) {
+    return null;
+  }
   try {
     return await trySkillFirst(ctx);
   } catch {
@@ -272,6 +275,7 @@ async function stepBenchmarkSinglePass(ctx: PipelineContext, emitPlannerEvent: (
 }
 
 async function stepConversationalShortCircuit(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
+  if (ctx.options.requireToolConfirmation === true) return null;
   if (isAffirmativeToken(ctx.resolvedMessage || ctx.normalizedMessage) && lastAssistantAskedToConfirm(ctx.history)) {
     return null;
   }
@@ -688,6 +692,9 @@ function extractActionTarget(message: string): string | null {
 async function stepDeterministicRoutines(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
   if (ctx.phase !== 'planning') return null;
   if (ctx.options.confirmedToolCalls?.length) return null;
+  // When caller explicitly requires confirmation, keep write-intent requests
+  // on the planner path so confirmation metadata is preserved.
+  if (ctx.options.requireToolConfirmation === true) return null;
 
   const target = extractActionTarget(ctx.resolvedMessage || ctx.normalizedMessage);
   if (!target) return null;
@@ -736,13 +743,15 @@ async function stepModelFastPath(ctx: PipelineContext, emitPlannerEvent: (msg: s
       MODEL_FAST_PATH_ALLOWED_TOOLS,
       { quick: useQuickMode, requiresDecomposition }
     );
+    const plannedCalls = Array.isArray(fastPlan?.plannedCalls) ? fastPlan.plannedCalls : [];
+    const plannedUiActions = Array.isArray((fastPlan as any)?.plannedUiActions) ? (fastPlan as any).plannedUiActions : [];
     ctx.timings.plannerMs = (ctx.timings.plannerMs || 0) + elapsedMs(plannerStartedAt);
-    if (fastPlan.success && (fastPlan.plannedCalls.length > 0 || fastPlan.plannedUiActions.length > 0)) {
+    if (fastPlan.success && (plannedCalls.length > 0 || plannedUiActions.length > 0)) {
       ctx.modelFastPathSucceeded = true;
-      emitPlannerEvent(`Model fast path planned ${fastPlan.plannedUiActions.length} ui action(s) and ${fastPlan.plannedCalls.length} tool call(s).`);
+      emitPlannerEvent(`Model fast path planned ${plannedUiActions.length} ui action(s) and ${plannedCalls.length} tool call(s).`);
       return await executeFastPathPlan({
         ctx,
-        fastPlan: { reason: 'model_fast_path', calls: fastPlan.plannedCalls, uiActions: fastPlan.plannedUiActions },
+        fastPlan: { reason: 'model_fast_path', calls: plannedCalls, uiActions: plannedUiActions },
         routeReason: 'model_fast_path',
         selectedTools: fastPlan.selectedTools,
         userMessageForHistory: ctx.resolvedMessage || ctx.normalizedMessage,

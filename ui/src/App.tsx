@@ -9,6 +9,7 @@ import Email from './pages/Email';
 import BrowserPage from './pages/Browser';
 import BrowserWorkbenchPage from './pages/BrowserWorkbench';
 import Templates from './pages/Templates';
+import LauncherPage from './pages/Launcher';
 import Admin from './pages/admin/Admin';
 import AdminLogs from './pages/admin/AdminLogs';
 import AdminCosts from './pages/admin/AdminCosts';
@@ -97,6 +98,7 @@ function RoutedAppContent() {
           <Route path="templates" element={<Templates />} />
           <Route path="browser" element={<BrowserWorkbenchPage />} />
           <Route path="tasks" element={<BrowserPage />} />
+          <Route path="launcher" element={<LauncherPage />} />
           <Route path="admin" element={<Navigate to="/admin/tests" replace />} />
           <Route
             path="admin/logs"

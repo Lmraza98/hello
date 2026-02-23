@@ -485,68 +485,15 @@ async def _wait_phase_cooldown(wf: BrowserWorkflow) -> None:
 
 
 async def _maybe_click_salesnav_accounts_suggestion(wf: BrowserWorkflow) -> bool:
-    """
-    SalesNav keyword input often shows explicit suggestions:
-    "... - search for leads" / "... - search for accounts".
-    Clicking the accounts suggestion reliably materializes account results.
-    """
-    try:
-        refs = await wf.snapshot()
-    except Exception:
-        return False
-
-    target_ref: str | None = None
-    for item in refs:
-        role = _clean_text(item.get("role")).lower()
-        label = _clean_text(item.get("label")).lower()
-        if role != "option":
-            continue
-        if "search for accounts" in label:
-            raw_ref = item.get("ref")
-            if raw_ref is not None:
-                target_ref = str(raw_ref)
-                break
-    if not target_ref:
-        return False
-
-    try:
-        await browser_act(BrowserActRequest(ref=target_ref, action="click", tab_id=wf.tab_id))
-        await _wait_ui_settle(wf, 1100)
-        return True
-    except Exception:
-        return False
+    # Deprecated: URL-first SalesNav flow does not rely on suggestion clicks.
+    _ = wf
+    return False
 
 
 async def _maybe_expand_salesnav_all_filters(wf: BrowserWorkflow) -> bool:
-    """
-    SalesNav account search often hides lower filter groups behind a
-    "See all filters" expander. Click it when present.
-    """
-    try:
-        refs = await wf.snapshot()
-    except Exception:
-        return False
-
-    target_ref: str | None = None
-    for item in refs:
-        role = _clean_text(item.get("role")).lower()
-        label = _clean_text(item.get("label")).lower()
-        if role != "button":
-            continue
-        if "see all filters" in label or "expand panel to see all filters" in label:
-            raw_ref = item.get("ref")
-            if raw_ref is not None:
-                target_ref = str(raw_ref)
-                break
-    if not target_ref:
-        return False
-
-    try:
-        await browser_act(BrowserActRequest(ref=target_ref, action="click", tab_id=wf.tab_id))
-        await _wait_ui_settle(wf, 700)
-        return True
-    except Exception:
-        return False
+    # Deprecated: URL-first SalesNav flow does not rely on UI filter expansion.
+    _ = wf
+    return False
 
 
 async def _guard_challenges(

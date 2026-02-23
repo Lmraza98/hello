@@ -1,0 +1,242 @@
+[backend-gate-pytest-ready] pytest 9.0.2
+[frontend-gate-node-ready] v22.19.0
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] 1 passed in 0.62s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] 1 passed in 0.61s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] 1 passed in 0.59s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] 1 passed in 0.63s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] ....                                                                     [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] 4 passed in 0.63s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] [child-note] finished passed
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] .                                                                        [100%]
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] 1 passed in 0.05s
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] finished passed
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] F                                                                        [100%]
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] ================================== FAILURES ===================================
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] ___________________________ test_gate_bridge_ready ____________________________
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     @pytest.mark.live
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     def test_gate_bridge_ready() -> None:
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] >       _assert_http_ok("/api/browser/tabs", timeout=15.0)
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] tests\launcher\test_live_readiness_gates.py:31: 
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] tests\launcher\test_live_readiness_gates.py:17: in _assert_http_ok
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     with urllib.request.urlopen(url, timeout=timeout) as response:
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:189: in urlopen
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     return opener.open(url, data, timeout)
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:489: in open
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     response = self._open(req, data)
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]                ^^^^^^^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:506: in _open
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     result = self._call_chain(self.handle_open, protocol, protocol +
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:466: in _call_chain
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     result = func(*args)
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]              ^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:1348: in http_open
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     return self.do_open(http.client.HTTPConnection, req)
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:1323: in do_open
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     r = h.getresponse()
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         ^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\http\client.py:1430: in getresponse
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     response.begin()
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\http\client.py:331: in begin
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     version, status, reason = self._read_status()
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]                               ^^^^^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\http\client.py:292: in _read_status
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] self = <socket.SocketIO object at 0x000001AC7F306F80>
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] b = <memory at 0x000001AC7F3AD900>
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     def readinto(self, b):
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         """Read up to len(b) bytes into the writable buffer *b* and return
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         the number of bytes read.  If the socket is non-blocking and no bytes
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         are available, None is returned.
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         If *b* is non-empty, a 0 return value indicates that the connection
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         was shutdown at the other end.
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         """
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         self._checkClosed()
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         self._checkReadable()
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         if self._timeout_occurred:
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]             raise OSError("cannot read from timed out object")
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         try:
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] >           return self._sock.recv_into(b)
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]                    ^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] E           TimeoutError: timed out
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\socket.py:719: TimeoutError
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] =========================== short test summary info ===========================
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] FAILED tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready - ...
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] 1 failed in 15.16s
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] finished failed
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] .                                                                        [100%]
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] 1 passed in 0.06s
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] finished passed
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] F                                                                        [100%]
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] ================================== FAILURES ===================================
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] ___________________________ test_gate_bridge_ready ____________________________
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     @pytest.mark.live
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     def test_gate_bridge_ready() -> None:
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] >       _assert_http_ok("/api/browser/tabs", timeout=15.0)
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] tests\launcher\test_live_readiness_gates.py:31: 
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] tests\launcher\test_live_readiness_gates.py:17: in _assert_http_ok
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     with urllib.request.urlopen(url, timeout=timeout) as response:
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:189: in urlopen
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     return opener.open(url, data, timeout)
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:489: in open
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     response = self._open(req, data)
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]                ^^^^^^^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:506: in _open
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     result = self._call_chain(self.handle_open, protocol, protocol +
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:466: in _call_chain
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     result = func(*args)
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]              ^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:1348: in http_open
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     return self.do_open(http.client.HTTPConnection, req)
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:1323: in do_open
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     r = h.getresponse()
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         ^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\http\client.py:1430: in getresponse
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     response.begin()
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\http\client.py:331: in begin
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     version, status, reason = self._read_status()
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]                               ^^^^^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\http\client.py:292: in _read_status
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] self = <socket.SocketIO object at 0x0000020F5B6F4CA0>
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] b = <memory at 0x0000020F5D37D900>
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     def readinto(self, b):
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         """Read up to len(b) bytes into the writable buffer *b* and return
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         the number of bytes read.  If the socket is non-blocking and no bytes
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         are available, None is returned.
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         If *b* is non-empty, a 0 return value indicates that the connection
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         was shutdown at the other end.
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         """
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         self._checkClosed()
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         self._checkReadable()
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         if self._timeout_occurred:
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]             raise OSError("cannot read from timed out object")
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         try:
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] >           return self._sock.recv_into(b)
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]                    ^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] E           TimeoutError: timed out
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\socket.py:719: TimeoutError
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] =========================== short test summary info ===========================
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] FAILED tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready - ...
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] 1 failed in 15.14s
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] finished failed
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] F                                                                        [100%]
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] ================================== FAILURES ===================================
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] ___________________________ test_gate_bridge_ready ____________________________
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     @pytest.mark.live
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     def test_gate_bridge_ready() -> None:
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] >       _assert_http_ok("/api/browser/tabs", timeout=15.0)
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] tests\launcher\test_live_readiness_gates.py:31: 
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] tests\launcher\test_live_readiness_gates.py:17: in _assert_http_ok
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     with urllib.request.urlopen(url, timeout=timeout) as response:
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:189: in urlopen
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     return opener.open(url, data, timeout)
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:489: in open
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     response = self._open(req, data)
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]                ^^^^^^^^^^^^^^^^^^^^^
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:506: in _open
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     result = self._call_chain(self.handle_open, protocol, protocol +
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:466: in _call_chain
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     result = func(*args)
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]              ^^^^^^^^^^^
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:1348: in http_open
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     return self.do_open(http.client.HTTPConnection, req)
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\urllib\request.py:1323: in do_open
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     r = h.getresponse()
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         ^^^^^^^^^^^^^^^
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\http\client.py:1430: in getresponse
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     response.begin()
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\http\client.py:331: in begin
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     version, status, reason = self._read_status()
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]                               ^^^^^^^^^^^^^^^^^^^
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\http\client.py:292: in _read_status
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] self = <socket.SocketIO object at 0x0000016551692D70>
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] b = <memory at 0x0000016551739900>
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     def readinto(self, b):
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         """Read up to len(b) bytes into the writable buffer *b* and return
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         the number of bytes read.  If the socket is non-blocking and no bytes
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         are available, None is returned.
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]     
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         If *b* is non-empty, a 0 return value indicates that the connection
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         was shutdown at the other end.
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         """
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         self._checkClosed()
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         self._checkReadable()
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         if self._timeout_occurred:
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]             raise OSError("cannot read from timed out object")
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]         try:
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] >           return self._sock.recv_into(b)
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready]                    ^^^^^^^^^^^^^^^^^^^^^^^
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] E           TimeoutError: timed out
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] C:\Python313\Lib\socket.py:719: TimeoutError
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] =========================== short test summary info ===========================
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] FAILED tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready - ...
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] 1 failed in 15.16s
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] finished failed
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] .                                                                        [100%]
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] 1 passed in 0.05s
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] finished passed
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] .                                                                        [100%]
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] 1 passed in 0.07s
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] finished passed
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] .                                                                        [100%]
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] 1 passed in 0.05s
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] [child-note] started tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] 1 passed in 0.24s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] [child-note] started tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] 1 passed in 0.26s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] 1 passed in 0.62s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] 1 passed in 1.88s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error

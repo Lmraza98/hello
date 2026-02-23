@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "[pre-commit] docs_guard (--staged)"
+python scripts/docs_guard.py --staged
+
+echo "[pre-commit] docs_ci (--skip-export)"
+python scripts/docs_ci.py --skip-export
+

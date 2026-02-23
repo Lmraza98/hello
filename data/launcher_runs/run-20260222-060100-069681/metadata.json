@@ -1,0 +1,35 @@
+{
+  "run_id": "run-20260222-060100-069681",
+  "started_at": "2026-02-22T06:01:00Z",
+  "status": "passed",
+  "selected_test_ids": [
+    "backend-gate-pytest-ready"
+  ],
+  "selected_step_ids": [],
+  "selected_tags": [],
+  "artifacts": {
+    "events": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-060100-069681\\events.ndjson",
+    "stdout": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-060100-069681\\stdout.log",
+    "junit": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-060100-069681\\results.junit.xml",
+    "json": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-060100-069681\\results.json",
+    "trace": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-060100-069681\\run_trace.json"
+  },
+  "duration_sec": 0.20475220680236816,
+  "tests": [
+    {
+      "id": "backend-gate-pytest-ready",
+      "status": "passed",
+      "duration_sec": 0.2047433853149414,
+      "message": "",
+      "retries": 1,
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 1
+      }
+    }
+  ],
+  "finished_at": "2026-02-22T06:01:00.517309+00:00"
+}

@@ -108,4 +108,22 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  .scrollbar-native {
+    scrollbar-width: auto;
+  }
+  .scrollbar-native::-webkit-scrollbar {
+    width: initial;
+    height: initial;
+  }
+  .scrollbar-native::-webkit-scrollbar-track {
+    background: initial;
+  }
+  .scrollbar-native::-webkit-scrollbar-thumb {
+    background: initial;
+    border-radius: initial;
+  }
+  .scrollbar-native::-webkit-scrollbar-thumb:hover {
+    background: initial;
+  }
 }

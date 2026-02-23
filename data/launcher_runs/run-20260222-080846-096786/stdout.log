@@ -1,0 +1,223 @@
+[backend-gate-pytest-ready] pytest 9.0.2
+[frontend-gate-node-ready] v22.19.0
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] 1 passed in 0.63s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] 1 passed in 0.59s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] 1 passed in 0.59s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] 1 passed in 0.59s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] ....                                                                     [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] 4 passed in 0.62s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error] [child-note] finished passed
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] .                                                                        [100%]
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] 1 passed in 0.06s
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] finished passed
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] .                                                                        [100%]
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] 1 passed in 2.04s
+[live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] finished passed
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] .                                                                        [100%]
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] 1 passed in 0.07s
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready] [child-note] finished passed
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] started tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] .                                                                        [100%]
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] 1 passed in 0.13s
+[live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] [child-note] started tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] 1 passed in 0.23s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] [child-note] started tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] 1 passed in 0.23s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] 1 passed in 0.59s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] 1 passed in 1.85s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error] 1 passed in 0.68s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404] 1 passed in 0.59s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404] [child-note] finished passed
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows] [child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows] .                                                                        [100%]
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows] 1 passed in 0.61s
+[python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend] [child-note] started tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend
+[python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend] 1 passed in 0.28s
+[python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_defaults_to_local_backend] [child-note] started tests/browser/test_browser_backend_factory.py::test_factory_defaults_to_local_backend
+[python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_defaults_to_local_backend] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_defaults_to_local_backend] 1 passed in 0.26s
+[python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_defaults_to_local_backend] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env] [child-note] started tests/browser/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env
+[python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env] 1 passed in 0.34s
+[python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_policy.py::test_token_bucket_wait_and_consume] [child-note] started tests/browser/test_browser_policy.py::test_token_bucket_wait_and_consume
+[python-browser-core::tests/browser/test_browser_policy.py::test_token_bucket_wait_and_consume] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_policy.py::test_token_bucket_wait_and_consume] 1 passed in 0.01s
+[python-browser-core::tests/browser/test_browser_policy.py::test_token_bucket_wait_and_consume] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_enforces_hourly_budget] [child-note] started tests/browser/test_browser_policy.py::test_browser_policy_enforces_hourly_budget
+[python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_enforces_hourly_budget] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_enforces_hourly_budget] 1 passed in 0.01s
+[python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_enforces_hourly_budget] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_cooldown_after_friction] [child-note] started tests/browser/test_browser_policy.py::test_browser_policy_cooldown_after_friction
+[python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_cooldown_after_friction] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_cooldown_after_friction] 1 passed in 0.31s
+[python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_cooldown_after_friction] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip] [child-note] started tests/browser/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip
+[python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip] 1 passed in 0.56s
+[python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_match_skill_prefers_fingerprint] [child-note] started tests/browser/test_browser_skill_fingerprints.py::test_match_skill_prefers_fingerprint
+[python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_match_skill_prefers_fingerprint] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_match_skill_prefers_fingerprint] 1 passed in 0.60s
+[python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_match_skill_prefers_fingerprint] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_item_validation_detects_uniqueness_failure] [child-note] started tests/browser/test_browser_skill_fingerprints.py::test_item_validation_detects_uniqueness_failure
+[python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_item_validation_detects_uniqueness_failure] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_item_validation_detects_uniqueness_failure] 1 passed in 0.57s
+[python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_item_validation_detects_uniqueness_failure] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_extract_regression_tests_from_markdown_section] [child-note] started tests/browser/test_browser_skill_regression.py::test_extract_regression_tests_from_markdown_section
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_extract_regression_tests_from_markdown_section] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_extract_regression_tests_from_markdown_section] 1 passed in 0.56s
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_extract_regression_tests_from_markdown_section] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_regression_expectation] [child-note] started tests/browser/test_browser_skill_regression.py::test_evaluate_regression_expectation
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_regression_expectation] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_regression_expectation] 1 passed in 0.59s
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_regression_expectation] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_promotion_gate] [child-note] started tests/browser/test_browser_skill_regression.py::test_evaluate_promotion_gate
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_promotion_gate] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_promotion_gate] 1 passed in 0.57s
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_promotion_gate] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_update_skill_frontmatter_sets_qa_fields] [child-note] started tests/browser/test_browser_skill_regression.py::test_update_skill_frontmatter_sets_qa_fields
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_update_skill_frontmatter_sets_qa_fields] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_update_skill_frontmatter_sets_qa_fields] 1 passed in 0.57s
+[python-browser-core::tests/browser/test_browser_skill_regression.py::test_update_skill_frontmatter_sets_qa_fields] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_classify_page_mode_login_wall] [child-note] started tests/browser/test_browser_workflow_builder.py::test_classify_page_mode_login_wall
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_classify_page_mode_login_wall] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_classify_page_mode_login_wall] 1 passed in 0.58s
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_classify_page_mode_login_wall] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_infer_href_pattern_picks_stable_segment] [child-note] started tests/browser/test_browser_workflow_builder.py::test_infer_href_pattern_picks_stable_segment
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_infer_href_pattern_picks_stable_segment] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_infer_href_pattern_picks_stable_segment] 1 passed in 0.59s
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_infer_href_pattern_picks_stable_segment] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_scores_good_candidate] [child-note] started tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_scores_good_candidate
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_scores_good_candidate] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_scores_good_candidate] 1 passed in 0.56s
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_scores_good_candidate] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_rejects_missing_urls] [child-note] started tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_rejects_missing_urls
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_rejects_missing_urls] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_rejects_missing_urls] 1 passed in 0.55s
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_rejects_missing_urls] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_prefers_positive_segment] [child-note] started tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_prefers_positive_segment
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_prefers_positive_segment] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_prefers_positive_segment] 1 passed in 0.54s
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_prefers_positive_segment] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_uses_fallback_without_positives] [child-note] started tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_uses_fallback_without_positives
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_uses_fallback_without_positives] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_uses_fallback_without_positives] 1 passed in 0.54s
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_uses_fallback_without_positives] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_candidate_from_feedback_infers_label_and_role_constraints] [child-note] started tests/browser/test_browser_workflow_builder.py::test_synthesize_candidate_from_feedback_infers_label_and_role_constraints
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_candidate_from_feedback_infers_label_and_role_constraints] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_candidate_from_feedback_infers_label_and_role_constraints] 1 passed in 0.57s
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_candidate_from_feedback_infers_label_and_role_constraints] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints] [child-note] started tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints] 1 passed in 0.54s
+[python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints] [child-note] finished passed
+[python-browser-core::tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches] [child-note] started tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches
+[python-browser-core::tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches] .                                                                        [100%]
+[python-browser-core::tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches] 1 passed in 0.56s
+[python-browser-core::tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches] [child-note] finished passed
+[python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled] [child-note] started tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled
+[python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled] .                                                                        [100%]
+[python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled] 1 passed in 0.55s
+[python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled] [child-note] finished passed
+[python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled] [child-note] started tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled
+[python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled] .                                                                        [100%]
+[python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled] 1 passed in 0.57s
+[python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled] [child-note] finished passed
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_recaptcha_v2_as_visible] [child-note] started tests/browser/test_challenge_resolver.py::test_detector_classifies_recaptcha_v2_as_visible
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_recaptcha_v2_as_visible] .                                                                        [100%]
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_recaptcha_v2_as_visible] 1 passed in 0.43s
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_recaptcha_v2_as_visible] [child-note] finished passed
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_turnstile_as_behavioral] [child-note] started tests/browser/test_challenge_resolver.py::test_detector_classifies_turnstile_as_behavioral
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_turnstile_as_behavioral] .                                                                        [100%]
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_turnstile_as_behavioral] 1 passed in 0.44s
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_turnstile_as_behavioral] [child-note] finished passed
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_respects_research_host_gate] [child-note] started tests/browser/test_challenge_resolver.py::test_handler_respects_research_host_gate
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_respects_research_host_gate] .                                                                        [100%]
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_respects_research_host_gate] 1 passed in 0.46s
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_respects_research_host_gate] [child-note] finished passed
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_hands_off_behavioral_and_resumes_when_cleared] [child-note] started tests/browser/test_challenge_resolver.py::test_handler_hands_off_behavioral_and_resumes_when_cleared
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_hands_off_behavioral_and_resumes_when_cleared] .                                                                        [100%]
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_hands_off_behavioral_and_resumes_when_cleared] 1 passed in 0.54s
+[python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_hands_off_behavioral_and_resumes_when_cleared] [child-note] finished passed
+[python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary] [child-note] started tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary
+[python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary] .                                                                        [100%]
+[python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary] 1 passed in 0.26s
+[python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary] [child-note] finished passed
+[python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters] [child-note] started tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters
+[python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters] .                                                                        [100%]
+[python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters] 1 passed in 0.26s
+[python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters] [child-note] finished passed
+[python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist] [child-note] started tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist
+[python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist] .                                                                        [100%]
+[python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist] 1 passed in 0.26s
+[python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist] [child-note] finished passed
+[python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic] [child-note] started tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic
+[python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic] .                                                                        [100%]
+[python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic] 1 passed in 0.25s
+[python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic] [child-note] finished passed
+[python-launcher-core::tests/launcher/test_launcher_planner.py::test_aggregate_meta_node_is_not_executed_but_expands_dependencies] [child-note] started tests/launcher/test_launcher_planner.py::test_aggregate_meta_node_is_not_executed_but_expands_dependencies
+[python-launcher-core::tests/launcher/test_launcher_planner.py::test_aggregate_meta_node_is_not_executed_but_expands_dependencies] .                                                                        [100%]
+[python-launcher-core::tests/launcher/test_launcher_planner.py::test_aggregate_meta_node_is_not_executed_but_expands_dependencies] 1 passed in 0.26s
+[python-launcher-core::tests/launcher/test_launcher_planner.py::test_aggregate_meta_node_is_not_executed_but_expands_dependencies] [child-note] finished passed
+[python-launcher-core::tests/launcher/test_launcher_planner.py::test_detects_cycle] [child-note] started tests/launcher/test_launcher_planner.py::test_detects_cycle
+[python-launcher-core::tests/launcher/test_launcher_planner.py::test_detects_cycle] .                                                                        [100%]
+[python-launcher-core::tests/launcher/test_launcher_planner.py::test_detects_cycle] 1 passed in 0.26s
+[python-launcher-core::tests/launcher/test_launcher_planner.py::test_detects_cycle] [child-note] finished passed
+[python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_rejects_bad_shape] [child-note] started tests/launcher/test_launcher_protocol.py::test_parse_message_rejects_bad_shape
+[python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_rejects_bad_shape] .                                                                        [100%]
+[python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_rejects_bad_shape] 1 passed in 0.26s
+[python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_rejects_bad_shape] [child-note] finished passed
+[python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_accepts_valid] [child-note] started tests/launcher/test_launcher_protocol.py::test_parse_message_accepts_valid
+[python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_accepts_valid] .                                                                        [100%]
+[python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_accepts_valid] 1 passed in 0.25s
+[python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_accepts_valid] [child-note] finished passed
+[python-launcher-core::tests/launcher/test_launcher_run_store.py::test_prune_by_count_and_age] [child-note] started tests/launcher/test_launcher_run_store.py::test_prune_by_count_and_age
+[python-launcher-core::tests/launcher/test_launcher_run_store.py::test_prune_by_count_and_age] .                                                                        [100%]
+[python-launcher-core::tests/launcher/test_launcher_run_store.py::test_prune_by_count_and_age] 1 passed in 0.26s
+[python-launcher-core::tests/launcher/test_launcher_run_store.py::test_prune_by_count_and_age] [child-note] finished passed
+[python-launcher-core::tests/launcher/test_launcher_startup.py::test_preflight_detects_port_conflict] [child-note] started tests/launcher/test_launcher_startup.py::test_preflight_detects_port_conflict
+[python-launcher-core::tests/launcher/test_launcher_startup.py::test_preflight_detects_port_conflict] .                                                                        [100%]
+[python-launcher-core::tests/launcher/test_launcher_startup.py::test_preflight_detects_port_conflict] 1 passed in 0.26s
+[python-launcher-core::tests/launcher/test_launcher_startup.py::test_preflight_detects_port_conflict] [child-note] finished passed
+[python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_drawer_markup_exists] [child-note] started tests/launcher/test_launcher_ui_contract.py::test_drawer_markup_exists
+[python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_drawer_markup_exists] .                                                                        [100%]
+[python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_drawer_markup_exists] 1 passed in 0.01s
+[python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_drawer_markup_exists] [child-note] finished passed
+[python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_keyboard_handlers_exist] [child-note] started tests/launcher/test_launcher_ui_contract.py::test_keyboard_handlers_exist

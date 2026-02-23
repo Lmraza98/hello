@@ -234,6 +234,8 @@ eactAdapter.ts to use it.
 - Added resolve_entity execution fallback in UI tool executor: map person-like entity_types to contact and, when deterministic resolve returns empty, retry through hybrid_search for better name lookup recall.
 - Fixed browser workflow skill entry behavior: auto-learned skills now include entry_url/base_url, and search_and_extract now proceeds on current tab when entry_url is missing but current URL matches skill domains (prevents false no_entry_url failures).
 - Added deterministic target-market heuristic in SalesNav filter parsing: queries like X for the healthcare industry now force industry to Hospital & Health Care and keep X terms in keywords, preventing over-constraining to generic Technology.
+- Hardened SalesNav company-focus extraction to remain deterministic while handling realistic user phrasing: supports quoted/company-named entity extraction and rejects generic criteria-heavy queries (for fallback keyword safety).
+- Pruned legacy SalesNav UI-filter click path coverage in favor of URL-first workflow contracts: tests now prioritize URL builder, navigation, and extraction boundary behavior over deprecated suggestion/filter-expander interactions.
 - Expanded SalesNav account filter coverage in browser workflow decomposition/merge to include annual_revenue, fortune, department/spotlight/workflow filters, and added regression tests in `tests/test_salesnav_filters.py` to verify frontmatter wiring plus `apply_filter` execution across all requested filter groups.
 
 ## 2026-02-16 - SalesNav scraper reliability + modularization pass
@@ -367,3 +369,31 @@ eactAdapter.ts to use it.
 - Added post-selection filter-panel collapse safeguards for SalesNav filter application:
   - `services/browser_workflow.py::apply_filter(...)` now executes a fallback collapse chain after selection/confirm and before verify (toggle expand button, then `Escape`, then click-away evaluate) with settle waits,
   - `services/linkedin/salesnav/flows/filter_applier.py` now presses `Escape` after successful industry/location/headcount/revenue selections to ensure panels are closed before the next filter step.
+
+## 2026-02-22 - Launcher Graph Refactor (Maintainability Pass)
+
+- Added shared graph UI type definitions in `launcher_frontend/src/components/graph/graphTypes.ts` to reduce ad-hoc `any` usage across graph components.
+- Extracted scope-aware graph selection/filter derivation into `launcher_frontend/src/components/graph/useGraphViewModel.ts`.
+  - This centralizes `currentNodeId` resolution and scoped node/edge selection for suite/aggregate/child modes.
+- Updated `launcher_frontend/src/components/graph/TestDependencyGraph.tsx` to consume the new hook, removing a large block of inline scope/selection logic.
+- Tightened `GraphNode` typing via explicit `GraphNodeProps` in `launcher_frontend/src/components/graph/GraphNode.tsx`.
+- Preserved runtime behavior while reducing coupling and making future bug fixes (scope tracking, dynamic right-panel selection, playback selection) easier to isolate.
+- Graph stability fixes in `TestDependencyGraph.tsx`:
+  - dependency status resolution now uses a unified scoped status map (suite + aggregate children + child DAG IDs) to avoid false blocked/unmet deps in aggregate/child scopes.
+  - canvas scroll viewport updates are requestAnimationFrame-coalesced to reduce render thrash.
+  - auto-fit now runs once per scope signature (suite/aggregate/child key) instead of snapping on every layout/current-node update.
+  - edge style precedence updated so transition/blocked/path states override cycle styling.
+- Scoped graph model correctness pass (`TestDependencyGraph.tsx`, `useGraphViewModel.ts`):
+  - context trimming and bundling now derive from a base scoped model (`suite|aggregate|child`) instead of always suite nodes.
+  - child scope semantic adjacency now uses child DAG edges, fixing upstream/downstream reachability and blocked-dependency logic in child view.
+  - search source and status counts now align with rendered scoped graph model.
+  - cycle banner wording updated to `Non-DAG edge detected` to match current back-edge detection behavior.
+- Type-safety fix in `TestDependencyGraph.tsx` playback stream: normalized timeline/path entries into a shared `PlaybackEntry` shape so mixed `RunEvent | PathStepEvent` access (e.g. `focusNodeId`) is type-safe.
+
+## 2026-02-23 - Launcher Frontend Graph Behavior Contract Updates
+
+- Updated graph docs/contracts for current frontend behavior:
+  - aggregate filters are global across Tests/Graph and act as visibility/scope filters without changing live replay ownership semantics,
+  - suite inline aggregate expansion remains the canonical graph interaction path for filtered aggregate selection,
+  - graph bottom playback controls are artifact-replay scoped (shown only while an artifact run is loaded, hidden otherwise).
+- `launcher_frontend/src/components/graph/GraphCanvas.tsx` was restructured into internal layers (`EdgesLayer`, `NodesLayer`, `OverlaysLayer`) with pure style/state helpers while preserving existing event and rendering semantics.

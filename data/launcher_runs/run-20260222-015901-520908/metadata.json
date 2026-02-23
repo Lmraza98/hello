@@ -1,0 +1,20 @@
+{
+  "run_id": "run-20260222-015901-520908",
+  "started_at": "2026-02-22T01:59:01Z",
+  "status": "queued",
+  "selected_test_ids": [
+    "python-builder-routes",
+    "python-tests-all",
+    "ui-tests-all",
+    "workflow-builder-live"
+  ],
+  "selected_step_ids": [],
+  "selected_tags": [],
+  "artifacts": {
+    "events": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-015901-520908\\events.ndjson",
+    "stdout": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-015901-520908\\stdout.log",
+    "junit": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-015901-520908\\results.junit.xml",
+    "json": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-015901-520908\\results.json",
+    "trace": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-015901-520908\\run_trace.json"
+  }
+}

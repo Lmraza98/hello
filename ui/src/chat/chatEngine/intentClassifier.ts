@@ -32,9 +32,18 @@ export function hasExplicitMultiStepMarkers(message: string): boolean {
 export async function classifyIntent(message: string, onProgress?: (msg: string) => void): Promise<IntentKind> {
   const cleaned = (message || '').trim();
   if (!cleaned) return 'conversational';
+  const lower = cleaned.toLowerCase();
 
   // Explicit multi-step markers are conclusive.
   if (hasExplicitMultiStepMarkers(cleaned)) return 'multi';
+
+  // Deterministic guard: action/write/operator-style requests should never
+  // short-circuit as conversational.
+  if (
+    /\b(send|email|message|create|update|delete|enroll|add|remove|outreach|campaign|contact|company|search|find|lookup|salesforce)\b/.test(lower)
+  ) {
+    return 'single';
+  }
 
   const prompt: ChatCompletionMessageParam[] = [
     {

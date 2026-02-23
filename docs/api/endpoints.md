@@ -11,12 +11,22 @@ title: "API Endpoint Catalog"
 | Method | Path | Tag | Summary | Request | Response |
 |---|---|---|---|---|---|
 | GET | `/api/admin/costs` | admin | Get Admin Costs | - | - |
+| POST | `/api/admin/launcher/preview-plan` | admin | Launcher Preview Plan | PlanRequest | array |
+| POST | `/api/admin/launcher/run` | admin | Launcher Run | PlanRequest | object |
+| GET | `/api/admin/launcher/runs` | admin | Launcher Runs | - | array |
+| GET | `/api/admin/launcher/runs/{run_id}/artifacts/{kind}` | admin | Launcher Artifact | - | object |
+| POST | `/api/admin/launcher/runs/{run_id}/open` | admin | Launcher Open Run | - | object |
+| GET | `/api/admin/launcher/state` | admin | Launcher State | - | object |
+| GET | `/api/admin/launcher/status` | admin | Launcher Status | - | object |
+| POST | `/api/admin/launcher/stop` | admin | Launcher Stop | StopRequest | object |
+| GET | `/api/admin/launcher/tests` | admin | Launcher Tests | - | array |
 | GET | `/api/admin/logs` | admin | Get Admin Logs | - | - |
 | POST | `/api/browser/act` | browser | Browser Act | BrowserActRequest | inline |
 | POST | `/api/browser/find_ref` | browser | Browser Find Ref | BrowserFindRefRequest | inline |
 | GET | `/api/browser/health` | browser | Browser Health | - | inline |
 | POST | `/api/browser/navigate` | browser | Browser Navigate | BrowserNavigateRequest | inline |
 | POST | `/api/browser/screenshot` | browser | Browser Screenshot | BrowserScreenshotRequest | inline |
+| POST | `/api/browser/shutdown` | browser | Browser Shutdown | - | inline |
 | GET | `/api/browser/skills` | browser-skills | List Browser Skills | - | - |
 | POST | `/api/browser/skills/match` | browser-skills | Match Browser Skill | BrowserSkillMatchRequest | - |
 | GET | `/api/browser/skills/{skill_id}` | browser-skills | Get Browser Skill | - | - |

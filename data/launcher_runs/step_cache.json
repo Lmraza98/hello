@@ -1,0 +1,77 @@
+{
+  "python-tests-all::tests/test_browser_backend_factory.py::test_factory_defaults_to_local_backend": {
+    "status": "passed",
+    "cache_key": "a0f56017fa640a168bbaedb943f995600b117fccf875dff70e92bd3c6f033723",
+    "finished_at": 1771676158.0930982
+  },
+  "python-tests-all::tests/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit": {
+    "status": "passed",
+    "cache_key": "fa496dc26a79e42887f54fcd89726ae797a18bce3766dcc7de06edec67f9698d",
+    "finished_at": 1771676231.0203843
+  },
+  "python-tests-all::tests/test_salesnav_filters.py::test_apply_filter_can_select_option_even_when_input_typing_fails": {
+    "status": "passed",
+    "cache_key": "c4f63b2511fc60e2f482d79bb14b8643a78208b90ac10528bec7093a602a302e",
+    "finished_at": 1771676367.6414285
+  },
+  "python-tests-all::tests/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges": {
+    "status": "passed",
+    "cache_key": "982fd12eaf8fcf065135e63e09cb3f83a9ffbd24608ba8cbbc4b8158224c342b",
+    "finished_at": 1771676603.8407965
+  },
+  "python-tests-all::tests/test_browser_nav_timeouts.py::test_browser_navigate_creates_tracked_task": {
+    "status": "passed",
+    "cache_key": "53564a2ec40071fbbbbf65bf1f9f4de20815ec4b9a79a6458fab73e89e6bcb51",
+    "finished_at": 1771676934.0968316
+  },
+  "python-tests-all::tests/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip": {
+    "status": "passed",
+    "cache_key": "5c2fe454e04592a6fad9f3afa20a8bddeddaab410f683ea08be8463e0386b86d",
+    "finished_at": 1771676947.7304358
+  },
+  "python-tests-all::tests/test_google_workflow.py::test_detects_google_unusual_traffic_page": {
+    "status": "passed",
+    "cache_key": "f05fbe8c97a7668b8102c116136e4cdb944d10e4637a18ffc9f704da6fda7be5",
+    "finished_at": 1771676958.7608285
+  },
+  "python-tests-all::tests/test_browser_policy.py::test_token_bucket_wait_and_consume": {
+    "status": "passed",
+    "cache_key": "0c6a2e30d1912d23a5f0370ef636f7ec6f16a6f68f4e3becfaa24adc9179f835",
+    "finished_at": 1771677000.442433
+  },
+  "python-tests-all::tests/test_google_workflow.py::test_extract_organic_results_filters_google_and_ads": {
+    "status": "passed",
+    "cache_key": "4bbc840988d04d8b90ea475ecc75b7e58657e87a1178971db536c073bfa6fe75",
+    "finished_at": 1771677009.8726315
+  },
+  "python-tests-all::tests/test_browser_policy.py::test_browser_policy_cooldown_after_friction": {
+    "status": "passed",
+    "cache_key": "1a3ddec0e5483944ccb8a8a76fccf34e6466aadfcf70286e5e1e632f4777b204",
+    "finished_at": 1771677071.9760456
+  },
+  "python-tests-all::tests/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save": {
+    "status": "passed",
+    "cache_key": "35e60bb4a6bb96dfa1cfd80b70fd113c7d079a4aede919ae137b7e599b0e29d0",
+    "finished_at": 1771677101.6341386
+  },
+  "python-tests-all::tests/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception": {
+    "status": "passed",
+    "cache_key": "f7e984b5ed9e10883b088e78b31db7d98458c8784514aea38d2f1b00f202a717",
+    "finished_at": 1771677122.8782153
+  },
+  "python-tests-all::tests/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env": {
+    "status": "passed",
+    "cache_key": "a4991ef80c39f6a2505268b43cffdccfadca4dcd22930fcf7bd140c5754eb0e1",
+    "finished_at": 1771706408.5543435
+  },
+  "python-tests-all::tests/test_browser_backend_factory.py::test_factory_selects_camoufox_backend": {
+    "status": "passed",
+    "cache_key": "51e4a83a0d068b13dbbb563c8a4682d1281318c165024e0b49d9858087b82380",
+    "finished_at": 1771706444.4219215
+  },
+  "python-tests-all::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_applies_all_parsed_salesnav_filters": {
+    "status": "passed",
+    "cache_key": "55c290d3878bbfa25ad034e70a0d999abe283c0e602f5856b81de24c0a8186e7",
+    "finished_at": 1771708101.275653
+  }
+}

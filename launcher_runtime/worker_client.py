@@ -23,6 +23,7 @@ class WorkerClient:
         self.proc: subprocess.Popen[str] | None = None
         self.events: "queue.Queue[dict[str, Any]]" = queue.Queue()
         self._reader_thread: threading.Thread | None = None
+        self._stderr_thread: threading.Thread | None = None
         self._lock = threading.Lock()
 
     def start(self) -> None:
@@ -40,12 +41,14 @@ class WorkerClient:
                 ],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
+                stderr=subprocess.PIPE,
                 text=True,
                 bufsize=1,
             )
             self._reader_thread = threading.Thread(target=self._reader_loop, daemon=True)
             self._reader_thread.start()
+            self._stderr_thread = threading.Thread(target=self._stderr_loop, daemon=True)
+            self._stderr_thread.start()
 
     def stop(self) -> None:
         with self._lock:
@@ -92,6 +95,9 @@ class WorkerClient:
     def request_run_plan(self, payload: dict[str, Any]) -> None:
         self.send("run_plan", payload)
 
+    def request_run_steps(self, payload: dict[str, Any]) -> None:
+        self.send("run_steps", payload)
+
     def request_cancel(self, scope: str = "run") -> None:
         self.send("cancel", {"scope": scope})
 
@@ -116,3 +122,13 @@ class WorkerClient:
                 )
 
         self.events.put({"type": "worker_error", "payload": {"message": "worker process exited"}})
+
+    def _stderr_loop(self) -> None:
+        assert self.proc is not None
+        if self.proc.stderr is None:
+            return
+        for line in self.proc.stderr:
+            text = line.strip()
+            if not text:
+                continue
+            self.events.put({"type": "worker_stderr", "payload": {"line": text}})

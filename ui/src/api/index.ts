@@ -18,6 +18,13 @@ import type {
   AdminLogRow,
   AdminCostsRange,
   AdminCostsResponse,
+  LauncherArtifactResponse,
+  LauncherRunPlanItem,
+  LauncherRunRecord,
+  LauncherStartupState,
+  LauncherStopMode,
+  LauncherTestCase,
+  LauncherTestStatus,
   BrowserSkill,
   BrowserSkillPromoteResponse,
   BrowserSkillRegressionRunResponse,
@@ -81,6 +88,36 @@ export const api = {
 
     getCosts: (range: AdminCostsRange = 'today') =>
       fetchJson<AdminCostsResponse>(`/admin/costs?range=${range}`),
+
+    launcher: {
+      getStartupState: () => fetchJson<LauncherStartupState>('/admin/launcher/state'),
+      getTests: () => fetchJson<LauncherTestCase[]>('/admin/launcher/tests'),
+      getStatus: () => fetchJson<Record<string, LauncherTestStatus>>('/admin/launcher/status'),
+      previewPlan: (payload: { test_ids?: string[]; tags?: string[] }) =>
+        fetchJson<LauncherRunPlanItem[]>('/admin/launcher/preview-plan', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        }),
+      run: (payload: { test_ids?: string[]; tags?: string[] }) =>
+        fetchJson<{ ok: boolean; run_id?: string; error?: string }>('/admin/launcher/run', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        }),
+      stop: (mode: LauncherStopMode) =>
+        fetchJson<{ ok: boolean; mode: LauncherStopMode }>('/admin/launcher/stop', {
+          method: 'POST',
+          body: JSON.stringify({ mode }),
+        }),
+      listRuns: () => fetchJson<LauncherRunRecord[]>('/admin/launcher/runs'),
+      openRunDir: (runId: string) =>
+        fetchJson<{ ok: boolean; run_id: string }>(`/admin/launcher/runs/${encodeURIComponent(runId)}/open`, {
+          method: 'POST',
+        }),
+      getRunArtifact: (runId: string, kind: 'json' | 'junit' | 'events' | 'stdout') =>
+        fetchJson<LauncherArtifactResponse>(
+          `/admin/launcher/runs/${encodeURIComponent(runId)}/artifacts/${encodeURIComponent(kind)}`
+        ),
+    },
   },
 
   // ── Chat ──────────────────────────────────────────────────

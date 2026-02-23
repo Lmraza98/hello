@@ -19,6 +19,7 @@ class RunPaths:
     stdout: Path
     junit: Path
     results: Path
+    trace: Path
 
 
 class RunStore:
@@ -48,6 +49,7 @@ class RunStore:
             stdout=run_dir / "stdout.log",
             junit=run_dir / "results.junit.xml",
             results=run_dir / "results.json",
+            trace=run_dir / "run_trace.json",
         )
 
         self.write_metadata(
@@ -61,6 +63,7 @@ class RunStore:
                     "stdout": str(paths.stdout),
                     "junit": str(paths.junit),
                     "json": str(paths.results),
+                    "trace": str(paths.trace),
                 },
             },
         )
@@ -150,3 +153,13 @@ class RunStore:
             payload["run_dir"] = str(run_dir)
             out.append(payload)
         return out
+
+    def load_run_trace(self, run_id: str) -> dict[str, Any] | None:
+        trace_path = self.root / run_id / "run_trace.json"
+        if not trace_path.exists():
+            return None
+        try:
+            payload = json.loads(trace_path.read_text(encoding="utf-8"))
+            return payload if isinstance(payload, dict) else None
+        except Exception:
+            return None

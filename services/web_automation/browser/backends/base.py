@@ -59,3 +59,6 @@ class BrowserBackend(ABC):
         tab_id: str | None = None,
         full_page: bool | None = None,
     ) -> dict[str, Any]: ...
+
+    @abstractmethod
+    async def shutdown(self) -> dict[str, Any]: ...

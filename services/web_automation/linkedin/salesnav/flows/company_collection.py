@@ -48,15 +48,51 @@ class SalesNavCompanyCollectionFlow:
         if not text:
             return None
 
-        text = re.sub(r"^\s*(find|search|show|look up|lookup|collect|scrape)\s+", "", text, flags=re.IGNORECASE)
-        text = re.sub(r"\s+(on|in|from)\s+(linkedin\s+)?sales\s*navigator.*$", "", text, flags=re.IGNORECASE)
+        # Prefer explicit quoted entity if present.
+        quoted = re.search(r"[\"'“”](.+?)[\"'“”]", text)
+        if quoted:
+            candidate = str(quoted.group(1) or "").strip(" .,:;\"'`()[]{}")
+            if candidate:
+                return candidate
+
+        text = re.sub(
+            r"^\s*(please\s+)?(find|search(?:\s+for)?|show|look\s+up|lookup|collect|scrape|get)\s+",
+            "",
+            text,
+            flags=re.IGNORECASE,
+        )
+        text = re.sub(r"^\s*(company|account)\s+(named|called)\s+", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"^\s*(company|account)\s+", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s+(on|in|from|using)\s+(linkedin\s+)?sales\s*navigator.*$", "", text, flags=re.IGNORECASE)
         text = re.sub(r"\s+on\s+linkedin.*$", "", text, flags=re.IGNORECASE)
         text = text.strip(" .,:;\"'`()[]{}")
         if not text:
             return None
 
         lowered = text.lower()
-        if any(word in lowered for word in ["companies", "industry", "vertical", "near me"]):
+        generic_markers = (
+            "companies",
+            "industry",
+            "vertical",
+            "near me",
+            "healthcare",
+            "manufacturing",
+            "startups",
+            "startup",
+            "saas",
+            "software companies",
+        )
+        if any(marker in lowered for marker in generic_markers):
+            return None
+
+        # Reject criteria-heavy strings that are unlikely to be a single company entity.
+        if any(token in lowered for token in (" with ", " where ", " that ", " and ", " or ")):
+            return None
+
+        words = [w for w in re.split(r"\s+", text) if w]
+        if not words:
+            return None
+        if len(words) > 5:
             return None
         return text
 
