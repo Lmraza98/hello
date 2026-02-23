@@ -8,6 +8,32 @@ read_when:
 
 # Implementation Summary - February 15, 2026
 
+## Assistant Panel System Unification
+
+**Problem**: The assistant UI surfaces were fragmented across `ChatDock`, `ChatPane`, and aggressive full-screen live context previews, leading to inconsistent UX across routes.
+
+**Solution**: Unified all chat and assistant surfaces into a single `GlobalAssistantPanel` and a strictly controlled `ContextPreviewDrawer`.
+
+**Files created**:
+- `ui/src/components/chat/UnifiedCard.tsx` — Single standardized wrapper for all assistant cards
+- `docs/concepts/assistant-panel-system-proposal.md` — The original proposal defining the architecture and interaction rules
+
+**Files modified**:
+- `ui/src/components/chat/ActionCard.tsx`, `WorkflowEventCard.tsx`, `InlineConfirmRow.tsx`, `EventRow.tsx`, `PlannedActionsCard.tsx`, `ThinkingMetaCard.tsx`, `WorkflowProgress.tsx` — All refactored to use `UnifiedCard`
+- `ui/src/components/shell/AppShell.tsx` and `ChatFirstShell.tsx` — Removed route-specific assistant panes and fully wired `GlobalAssistantPanel`
+- `ui/src/components/assistant/contextPreviewRules.ts` — Updated `isContextPreviewAllowed` to enforce strict trigger rules for when the context drawer opens (now only opens for drafting/content creation, bulk data review, or deep-dive entity selections)
+
+**Files deleted**:
+- `ui/src/components/chat/ChatPane.tsx` — Deprecated in favor of the global dock
+- `ui/src/components/chat/ChatDock.tsx` is now effectively fully managed by `GlobalAssistantPanel`
+
+**Flow**:
+- Normal interactions (entity lookups, filtering, safe writes) occur exclusively inline within the `GlobalAssistantPanel` without shifting layout.
+- High-density actions (Browser workflows, Template/Email drafting, explicit entity selection) gracefully slide open the `ContextPreviewDrawer`.
+- All rich tool results/confirmations now share identical padding, typography, icon placement, and structural logic via `UnifiedCard`.
+
+---
+
 This document summarizes all changes made in today's implementation session, organized by feature area.
 
 ## 1. Task State Machine (Multi-Turn Workflows)
