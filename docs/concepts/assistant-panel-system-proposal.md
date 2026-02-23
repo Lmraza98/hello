@@ -86,6 +86,40 @@ Transitioning from the mixed patterns to the unified system will occur in 4 phas
 **Phase 4: Preview Engine Overhaul**
 - Replace the aggressive "Chat-first shell with workspace preview" with the targeted `ContextPreviewDrawer` triggered strictly by the rules defined in Section 3.
 
+## Implementation Status (2026-02-23)
+
+- Phase 1 (Card Unification): in progress
+  - `UnifiedCard` exists and now powers shared chat event rendering paths:
+    - `ui/src/components/chat/EventRow.tsx`
+    - `ui/src/components/chat/WorkflowEventCard.tsx`
+  - confirmation and workflow cards now share the same base shell semantics through `UnifiedCard`.
+- Phase 2 (App Shell Integration): foundation complete
+  - introduced `ui/src/components/assistant/GlobalAssistantPanel.tsx`.
+  - introduced `ui/src/components/assistant/ContextPreviewDrawer.tsx`.
+  - shell wiring updated:
+    - `ui/src/components/shell/ChatFirstShell.tsx` now uses `GlobalAssistantPanel` + `ContextPreviewDrawer`.
+    - `ui/src/components/shell/LegacySplitShell.tsx` now uses `GlobalAssistantPanel`.
+- Phase 3 (Route-by-Route Migration): complete
+  - shells now route assistant rendering through `ui/src/components/assistant/GlobalAssistantPanel.tsx`.
+  - deprecated split-shell path removed:
+    - deleted `ui/src/components/shell/LegacySplitShell.tsx`.
+  - deprecated pane renderer removed:
+    - deleted `ui/src/components/chat/ChatPane.tsx`.
+  - legacy shell toggles removed from:
+    - `ui/src/components/shell/AppShell.tsx`
+    - `ui/src/components/settings/SettingsModal.tsx`
+- Phase 4 (Preview Engine Overhaul): in progress
+  - `ContextPreviewDrawer` abstraction is introduced.
+  - `ui/src/chat/actionExecutor.ts` now suppresses workspace interaction preview for:
+    - navigation actions,
+    - list filter actions,
+    - row/entity selection actions.
+  - context preview remains focused on browser workflow actions (`observe`, `annotate`, `synthesize`, `validate`).
+  - strict preview allowlist added via `ui/src/components/assistant/contextPreviewRules.ts` and applied in:
+    - `ui/src/components/shell/ChatFirstShell.tsx` (render gating),
+    - `ui/src/chat/actionExecutor.ts` (open-workspace gating for interaction signals).
+  - additional trigger hardening (drafting/bulk-review-only gating) remains to be completed.
+
 ## 5. UX Spec for Lookups vs. Write/Destructive Actions
 
 **Read-only / Quick Lookups**

@@ -11,11 +11,10 @@
  * G) pendingTaskPlanResume
  * H) taskDecomposition
  * I) browserFollowUp
- * J) deterministicRoutines
- * K) modelFastPath
- * L) paramCollectionGate
- * M) genericRetrievalBootstrap
- * N) routeAndRunPlannerOrFallback
+ * J) modelFastPath
+ * K) paramCollectionGate
+ * L) genericRetrievalBootstrap
+ * M) routeAndRunPlannerOrFallback
  */
 
 import { textMsg } from '../../services/messageHelpers';
@@ -147,9 +146,8 @@ export function buildPipelineContext(
 }
 
 async function stepTrySkillFirst(ctx: PipelineContext): Promise<StepResult> {
-  if (ctx.options.requireToolConfirmation === true && ctx.phase === 'planning' && !(ctx.options.confirmedToolCalls?.length)) {
-    return null;
-  }
+  if (ctx.phase !== 'planning') return null;
+  if (ctx.options.confirmedToolCalls?.length) return null;
   try {
     return await trySkillFirst(ctx);
   } catch {
@@ -666,50 +664,6 @@ async function stepBrowserFollowUp(ctx: PipelineContext, emitPlannerEvent: (msg:
   return result;
 }
 
-function extractActionTarget(message: string): string | null {
-  const trimmed = (message || '').trim();
-  if (!trimmed) return null;
-
-  const actionPattern =
-    /^(?:please\s+)?(?:(?:send|email|message|contact|reach\s+out\s+to|write\s+to|follow\s+up\s+with)\b)(?:\s+(?:an?\s+)?(?:email|message))?(?:\s+to|\s+with)?\s+(.+)$/i;
-  const match = trimmed.match(actionPattern);
-  if (!match) return null;
-
-  const rawTarget = (match[1] || '').trim();
-  if (!rawTarget) return null;
-
-  // Stop at punctuation/clausal continuations so we only resolve the entity target.
-  const cutoffPattern = /[.?!;:]|\b(?:using|via|through|about|regarding|so that|then|and then|after that)\b/i;
-  const cutoff = rawTarget.search(cutoffPattern);
-  const candidate = (cutoff >= 0 ? rawTarget.slice(0, cutoff) : rawTarget).trim();
-  if (!candidate) return null;
-
-  // Remove trailing glue words left behind by cutoff slicing.
-  return candidate.replace(/\b(?:using|via|through|and|then|to)\s*$/i, '').trim() || null;
-}
-
-async function stepDeterministicRoutines(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
-  if (ctx.phase !== 'planning') return null;
-  if (ctx.options.confirmedToolCalls?.length) return null;
-
-  const target = extractActionTarget(ctx.resolvedMessage || ctx.normalizedMessage);
-  if (!target) return null;
-
-  emitPlannerEvent('Deterministic routine detected. Running read-only entity lookup.');
-  return await executeFastPathPlan({
-    ctx,
-    fastPlan: {
-      reason: 'fast_path_entity_lookup',
-      calls: [{ name: 'hybrid_search', args: { query: target, entity_types: ['contact'], k: 10 } }],
-    },
-    routeReason: 'fast_path_intent',
-    selectedTools: ['hybrid_search'],
-    userMessageForHistory: ctx.userMessage,
-    normalizedMessageForSynthesis: ctx.resolvedMessage || ctx.normalizedMessage,
-    previousSessionState: ctx.options.sessionState,
-  });
-}
-
 async function stepModelFastPath(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
   const browserFollowUp = Boolean((ctx.options.sessionState?.browser?.active || hasOpenBrowserSessionSignal(ctx.history)) &&
     isBrowserFollowUpIntent(ctx.resolvedMessage || ctx.normalizedMessage));
@@ -839,6 +793,7 @@ async function stepParamCollectionGate(ctx: PipelineContext): Promise<StepResult
 }
 
 async function stepGenericRetrievalBootstrap(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
+  if (ctx.intentKind === 'conversational') return null;
   const complexity = assessComplexity(ctx.resolvedMessage || ctx.normalizedMessage);
   const useGenericRetrievalBootstrap =
     ENABLE_GENERIC_RETRIEVAL_BOOTSTRAP &&
@@ -1032,11 +987,10 @@ export async function processMessagePipeline(
     () => stepPendingTaskPlanResume(ctx, emitPlannerEvent),                  // G
     () => stepTaskDecomposition(ctx, emitPlannerEvent),                      // H
     () => stepBrowserFollowUp(ctx, emitPlannerEvent),                        // I
-    () => stepDeterministicRoutines(ctx, emitPlannerEvent),                  // J
-    () => stepModelFastPath(ctx, emitPlannerEvent),                          // K
-    () => stepParamCollectionGate(ctx),                                      // L
-    () => stepGenericRetrievalBootstrap(ctx, emitPlannerEvent),              // M
-    () => stepRouteAndRunPlannerOrFallback(ctx, emitPlannerEvent),           // N
+    () => stepModelFastPath(ctx, emitPlannerEvent),                          // J
+    () => stepParamCollectionGate(ctx),                                      // K
+    () => stepGenericRetrievalBootstrap(ctx, emitPlannerEvent),              // L
+    () => stepRouteAndRunPlannerOrFallback(ctx, emitPlannerEvent),           // M
   ];
 
   for (const runStep of steps) {

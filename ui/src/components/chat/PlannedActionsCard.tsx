@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight, Clock3, MousePointerClick, Navigation, TriangleAlert } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { chatTheme } from './themeTokens';
+import { UnifiedCard } from './UnifiedCard';
 
 type ActionRow = {
   label: string;
@@ -56,51 +56,52 @@ export function PlannedActionsCard({
   const visible = expanded ? rows : rows.slice(0, 4);
   const hasFailed = rows.some((r) => r.status === 'failed');
   return (
-    <div className={chatTheme.assistantTextWrap}>
-      <div className={`${chatTheme.assistantCard} max-w-[72ch]`}>
+    <UnifiedCard
+      title="Planned actions"
+      icon={
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}
-          className="mb-2 inline-flex items-center gap-1 text-left text-sm font-semibold text-text"
+          className="inline-flex items-center hover:text-text"
         >
           {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          Planned actions
         </button>
-        <div className="space-y-1.5">
-          {visible.map((row, idx) => (
-            <div key={`${row.label}-${idx}`} className="flex items-center justify-between gap-2 rounded border border-border bg-bg px-2 py-1.5">
-              <div className="flex min-w-0 items-center gap-1.5">
-                {iconFor(row.label)}
-                <p className="truncate text-xs text-text">{row.label}</p>
-              </div>
-              <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${statusChip(row.status)}`}>
-                {row.status}
-              </span>
+      }
+    >
+      <div className="space-y-1.5">
+        {visible.map((row, idx) => (
+          <div key={`${row.label}-${idx}`} className="flex items-center justify-between gap-2 rounded border border-border bg-bg px-2 py-1.5">
+            <div className="flex min-w-0 items-center gap-1.5">
+              {iconFor(row.label)}
+              <p className="truncate text-xs text-text">{row.label}</p>
             </div>
-          ))}
-        </div>
-        {rows.length > 4 ? (
-          <button
-            type="button"
-            onClick={() => setExpanded((prev) => !prev)}
-            className="mt-2 text-xs text-text-muted hover:text-text"
-          >
-            {expanded ? 'Hide actions' : `Show actions (${rows.length})`}
-          </button>
-        ) : null}
-        {hasFailed ? (
-          <div className="mt-2 flex items-center gap-2 rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700">
-            <TriangleAlert className="h-3.5 w-3.5" />
-            <span>Some actions failed.</span>
-            {onRetry ? (
-              <button type="button" onClick={onRetry} className="ml-auto rounded border border-red-300 px-2 py-0.5 text-[11px] hover:bg-red-100">
-                Retry
-              </button>
-            ) : null}
+            <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${statusChip(row.status)}`}>
+              {row.status}
+            </span>
           </div>
-        ) : null}
+        ))}
       </div>
-    </div>
+      {rows.length > 4 ? (
+        <button
+          type="button"
+          onClick={() => setExpanded((prev) => !prev)}
+          className="mt-2 text-xs text-text-muted hover:text-text"
+        >
+          {expanded ? 'Hide actions' : `Show actions (${rows.length})`}
+        </button>
+      ) : null}
+      {hasFailed ? (
+        <div className="mt-2 flex items-center gap-2 rounded border border-red-200 bg-red-50 px-2 py-1.5 text-xs text-red-700">
+          <TriangleAlert className="h-3.5 w-3.5" />
+          <span>Some actions failed.</span>
+          {onRetry ? (
+            <button type="button" onClick={onRetry} className="ml-auto rounded border border-red-300 px-2 py-0.5 text-[11px] hover:bg-red-100">
+              Retry
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </UnifiedCard>
   );
 }
 

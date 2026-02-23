@@ -54,6 +54,18 @@ export type RecipeResult = {
   };
 };
 
+const PROSPECT_SKILL_ID = 'prospect-companies-and-draft-emails';
+const PROSPECT_DISCOVERY_CONTACT_STEP = 'discover_contacts_local';
+const PROSPECT_ESCALATE_STEP = 'escalate_salesnav_background';
+const PROSPECT_CAMPAIGN_STEP_IDS = new Set([
+  'create_campaign',
+  'enroll_contacts',
+  'prepare_drafts',
+  'approve_campaign_queue',
+  'schedule_campaign',
+  'verify_schedule',
+]);
+
 /**
  * Try to route a message through a registered skill.
  * Returns null if no skill matches (caller should fall through to LLM planner).
@@ -128,6 +140,11 @@ export async function trySkillRoute(
 
   for (let i = 0; i < plan.steps.length; i++) {
     const step = plan.steps[i];
+    const localLeadCount = getProspectLocalLeadCount(plan, completedResults);
+
+    if (shouldSkipProspectStep(plan, step.id, localLeadCount)) {
+      continue;
+    }
 
     // Enforce allowed_tools
     if (!allowedTools.has(step.toolCall.name)) {
@@ -139,7 +156,7 @@ export async function trySkillRoute(
 
     // Confirmation gate for write operations
     if (step.requiresConfirmation) {
-      const summary = formatConfirmationSummary(plan, i, resolvedArgs, completedResults);
+      const summary = formatConfirmationSummary(plan, i, resolvedArgs, completedResults, localLeadCount);
       return {
         handled: true,
         response: '',
@@ -238,9 +255,14 @@ export async function resumeSkillExecution(
 
   for (let i = nextStepIndex; i < plan.steps.length; i++) {
     const step = plan.steps[i];
+    const localLeadCount = getProspectLocalLeadCount(plan, results);
 
     // Idempotency guard: skip steps already executed (double-confirm protection)
     if (doneIds.has(step.id)) {
+      continue;
+    }
+
+    if (shouldSkipProspectStep(plan, step.id, localLeadCount)) {
       continue;
     }
 
@@ -248,16 +270,26 @@ export async function resumeSkillExecution(
 
     // If this isn't the confirmed step and it requires confirmation, pause again
     if (i > nextStepIndex && step.requiresConfirmation) {
-      const summary = formatConfirmationSummary(plan, i, resolvedArgs, results);
+      const summary = formatConfirmationSummary(plan, i, resolvedArgs, results, localLeadCount);
+      const resolvedPlan: ExecutionPlan = {
+        ...plan,
+        steps: plan.steps.map((s, idx) => ({
+          ...s,
+          toolCall: {
+            ...s.toolCall,
+            args: idx === i ? resolvedArgs : resolveStepArgs(s.toolCall.args, results),
+          },
+        })),
+      };
       return {
         handled: true,
         response: '',
         messages: [],
         executedCalls,
-        plan,
+        plan: resolvedPlan,
         events,
         pendingConfirmation: {
-          plan,
+          plan: resolvedPlan,
           nextStepIndex: i,
           completedResults: results,
           executedStepIds: [...doneIds],
@@ -312,18 +344,48 @@ function resolveStepArgs(
   args: Record<string, unknown>,
   completedResults: Record<string, unknown>
 ): Record<string, unknown> {
+  const getByPath = (obj: unknown, path: string[]): unknown => {
+    let current: unknown = obj;
+    for (const segment of path) {
+      if (!segment) continue;
+      if (!current || typeof current !== 'object' || Array.isArray(current)) return undefined;
+      current = (current as Record<string, unknown>)[segment];
+    }
+    return current;
+  };
+
+  const resolvePrevReference = (value: string): unknown => {
+    const path = value.slice('$prev.'.length).split('.').filter(Boolean);
+    const stepId = path[0];
+    if (!stepId || !completedResults[stepId]) return value;
+    const stepResult = completedResults[stepId];
+    const nestedPath = path.slice(1);
+    let resolved = nestedPath.length > 0 ? getByPath(stepResult, nestedPath) : stepResult;
+
+    if (resolved === undefined || resolved === null) {
+      const terminal = nestedPath[nestedPath.length - 1] || '';
+      if (terminal === 'id') {
+        resolved =
+          getByPath(stepResult, ['id']) ??
+          getByPath(stepResult, ['campaign_id']) ??
+          getByPath(stepResult, ['campaign', 'id']) ??
+          getByPath(stepResult, ['data', 'id']);
+      } else if (terminal === 'campaign_id') {
+        resolved =
+          getByPath(stepResult, ['campaign_id']) ??
+          getByPath(stepResult, ['id']) ??
+          getByPath(stepResult, ['campaign', 'id']) ??
+          getByPath(stepResult, ['data', 'campaign_id']);
+      }
+    }
+
+    return resolved ?? value;
+  };
+
   const resolved: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(args)) {
     if (typeof value === 'string' && value.startsWith('$prev.')) {
-      const path = value.slice('$prev.'.length).split('.');
-      const stepId = path[0];
-      const field = path[1];
-      if (stepId && completedResults[stepId]) {
-        const stepResult = completedResults[stepId] as Record<string, unknown>;
-        resolved[key] = field ? stepResult[field] : stepResult;
-      } else {
-        resolved[key] = value; // Can't resolve — leave as-is
-      }
+      resolved[key] = resolvePrevReference(value);
     } else {
       resolved[key] = value;
     }
@@ -442,14 +504,60 @@ function formatConfirmationSummary(
   plan: ExecutionPlan,
   stepIndex: number,
   resolvedArgs: Record<string, unknown>,
-  _completedResults: Record<string, unknown>
+  _completedResults: Record<string, unknown>,
+  localLeadCount?: number
 ): string {
   const step = plan.steps[stepIndex];
+  if (
+    plan.skillId === PROSPECT_SKILL_ID &&
+    step.id === PROSPECT_ESCALATE_STEP &&
+    (localLeadCount || 0) <= 0
+  ) {
+    return (
+      "I couldn't find contacts matching those exact filters in your local database. " +
+      'Do you want me to start a background Sales Navigator search for matching leads?'
+    );
+  }
   const argsStr = Object.entries(resolvedArgs)
     .filter(([, v]) => v != null)
     .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
     .join(', ');
-  return `${step.description}\n→ ${step.toolCall.name}(${argsStr})`;
+  return `${step.description}\n-> ${step.toolCall.name}(${argsStr})`;
+}
+
+function countItems(value: unknown): number {
+  if (Array.isArray(value)) return value.length;
+  if (!value || typeof value !== 'object') return 0;
+  const obj = value as Record<string, unknown>;
+  if (Array.isArray(obj.items)) return obj.items.length;
+  if (Array.isArray(obj.results)) return obj.results.length;
+  if (Array.isArray(obj.contacts)) return obj.contacts.length;
+  if (typeof obj.total_matched === 'number' && Number.isFinite(obj.total_matched)) {
+    return Math.max(0, Math.floor(obj.total_matched));
+  }
+  if (typeof obj.count === 'number' && Number.isFinite(obj.count)) {
+    return Math.max(0, Math.floor(obj.count));
+  }
+  return 0;
+}
+
+function getProspectLocalLeadCount(
+  plan: ExecutionPlan,
+  completedResults: Record<string, unknown>
+): number {
+  if (plan.skillId !== PROSPECT_SKILL_ID) return 0;
+  return countItems(completedResults[PROSPECT_DISCOVERY_CONTACT_STEP]);
+}
+
+function shouldSkipProspectStep(
+  plan: ExecutionPlan,
+  stepId: string,
+  localLeadCount: number
+): boolean {
+  if (plan.skillId !== PROSPECT_SKILL_ID) return false;
+  if (localLeadCount > 0 && stepId === PROSPECT_ESCALATE_STEP) return true;
+  if (localLeadCount <= 0 && PROSPECT_CAMPAIGN_STEP_IDS.has(stepId)) return true;
+  return false;
 }
 
 function synthesizeSkillResponse(
@@ -485,6 +593,15 @@ function synthesizeSkillResponse(
         ` — ${matched} total matched the filter.`
       );
     }
+    if (call.name === 'compound_workflow_run') {
+      const workflowId = typeof result.workflow_id === 'string' ? result.workflow_id : '';
+      const status = typeof result.status === 'string' ? result.status : 'running';
+      parts.push(
+        `Started background Sales Navigator search${workflowId ? ` (workflow: ${workflowId})` : ''}. ` +
+        `Current status: ${status}.`
+      );
+    }
+
   }
 
   if (parts.length === 0) return 'Done.';

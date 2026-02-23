@@ -493,13 +493,23 @@ def _build_region_clause(raw: Any) -> tuple[str | None, dict[str, Any] | None, d
     parts: list[str] = []
     resolved: list[dict[str, str]] = []
     for value in values:
-        region_id = _lookup_filter_id("REGION", value, _REGION_ID_BY_NAME)
+        region_value = value
+        region_id = _lookup_filter_id("REGION", region_value, _REGION_ID_BY_NAME)
+        if not region_id and "," in region_value:
+            # Many prompts resolve to state-level strings like "California, United States".
+            # If REGION mapping is unavailable, degrade gracefully to country-level "United States"
+            # so URL-building still succeeds and navigation can start.
+            tail = region_value.split(",")[-1].strip().lower()
+            if tail in {"united states", "usa", "u.s.", "u.s.a"}:
+                region_value = "United States"
+                region_id = _lookup_filter_id("REGION", region_value, _REGION_ID_BY_NAME)
         if not region_id:
             return None, None, {"filter": "headquarters_location", "value": value, "reason": "unmapped_region_id"}
-        parts.append(f"(id:{region_id},text:{_encode_text(value)},selectionType:INCLUDED)")
-        resolved.append({"id": region_id, "text": value})
+        parts.append(f"(id:{region_id},text:{_encode_text(region_value)},selectionType:INCLUDED)")
+        resolved.append({"id": region_id, "text": region_value})
     clause = f"(type:REGION,values:List({','.join(parts)}))"
-    return clause, {"value": values, "applied": True, "resolved": resolved, "source": "url_query"}, None
+    normalized_values = [item.get("text", "") for item in resolved]
+    return clause, {"value": normalized_values, "applied": True, "resolved": resolved, "source": "url_query"}, None
 
 
 def _build_followers_clause(raw: Any) -> tuple[str | None, dict[str, Any] | None, dict[str, str] | None]:

@@ -51,9 +51,14 @@ export function shouldRequireToolConfirmation(
   requireToolConfirmation?: boolean
 ): boolean {
   if (requireToolConfirmation === false) return false;
-  const hasWriteCall = calls.some((call) => !CONFIRMED_READ_ONLY_FASTLANE_TOOLS.has(call.name));
+  const hasWriteCall = calls.some((call) => !CONFIRMED_READ_ONLY_FASTLANE_TOOLS.has(String(call.name || '').trim()));
   if (!hasWriteCall) return false;
   return requireToolConfirmation ?? true;
+}
+
+export function areAllPlannedCallsReadOnly(calls: PlannedToolCall[]): boolean {
+  if (!Array.isArray(calls) || calls.length === 0) return false;
+  return calls.every((call) => CONFIRMED_READ_ONLY_FASTLANE_TOOLS.has(String(call.name || '').trim()));
 }
 
 export function hasOpenBrowserSessionSignal(history: ChatCompletionMessageParam[]): boolean {

@@ -1,8 +1,7 @@
 /**
  * Intent classification utilities used by the chat engine pipeline.
  *
- * This module preserves the legacy classifier behavior from `chatEngine.ts`,
- * including heuristic multi-step detection and lenient parsing of model output.
+ * This module is LLM-first: no regex/keyword deterministic intent routing.
  */
 
 import type { ChatCompletionMessageParam } from '../chatEngineTypes';
@@ -11,44 +10,9 @@ import { CONVERSATION_MODEL, DECOMPOSE_CLASSIFIER_MODEL } from './env';
 
 export type IntentKind = 'conversational' | 'single' | 'multi';
 
-export function hasExplicitMultiStepMarkers(message: string): boolean {
-  const lower = message.toLowerCase();
-  if (/\n\s*\d+\.\s+/.test(lower)) return true;
-  if (lower.includes(';')) return true;
-  const multiMarkers = [
-    ' then ',
-    ' and then ',
-    ' after that',
-    ' before that',
-    ' based on ',
-    ' followed by ',
-    ' next,',
-    ' next ',
-  ];
-  return multiMarkers.some((m) => lower.includes(m));
-}
-
-// NOTE: Decomposition decisions flow through classifyIntent(). Keep the planner fast by skipping LLM classification for very short messages.
 export async function classifyIntent(message: string, onProgress?: (msg: string) => void): Promise<IntentKind> {
   const cleaned = (message || '').trim();
   if (!cleaned) return 'conversational';
-  const lower = cleaned.toLowerCase();
-
-  // Deterministic greeting/casual opener guard.
-  if (/^(hi|hello|hey|yo|good\s+(morning|afternoon|evening))([!.,\s]|$)/i.test(cleaned)) {
-    return 'conversational';
-  }
-
-  // Explicit multi-step markers are conclusive.
-  if (hasExplicitMultiStepMarkers(cleaned)) return 'multi';
-
-  // Deterministic guard: action/write/operator-style requests should never
-  // short-circuit as conversational.
-  if (
-    /\b(send|email|message|create|update|delete|enroll|add|remove|outreach|campaign|contact|company|search|find|lookup|salesforce)\b/.test(lower)
-  ) {
-    return 'single';
-  }
 
   const prompt: ChatCompletionMessageParam[] = [
     {

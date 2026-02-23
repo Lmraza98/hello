@@ -161,9 +161,10 @@ export async function trySkillFirst(ctx: PipelineContext): Promise<ChatEngineRes
         summary,
         executedToolNames: skillResult.executedCalls.map((c) => c.name),
         updatedSession,
-        calls: skillResult.pendingConfirmation.plan.steps
-          .slice(skillResult.pendingConfirmation.nextStepIndex)
-          .map((s) => ({ name: s.toolCall.name, args: s.toolCall.args })),
+        calls: (() => {
+          const step = skillResult.pendingConfirmation?.plan.steps[skillResult.pendingConfirmation.nextStepIndex];
+          return step ? [{ name: step.toolCall.name, args: step.toolCall.args }] : [];
+        })(),
       });
     }
 
@@ -250,9 +251,10 @@ export async function resumeSkillWorkItem(params: {
       summary,
       executedToolNames: skillResult.executedCalls.map((c) => c.name),
       updatedSession,
-      calls: skillResult.pendingConfirmation.plan.steps
-        .slice(skillResult.pendingConfirmation.nextStepIndex)
-        .map((s) => ({ name: s.toolCall.name, args: s.toolCall.args })),
+      calls: (() => {
+        const step = skillResult.pendingConfirmation?.plan.steps[skillResult.pendingConfirmation.nextStepIndex];
+        return step ? [{ name: step.toolCall.name, args: step.toolCall.args }] : [];
+      })(),
     });
   }
 

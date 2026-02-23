@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronRight, CircleCheck, CircleDotDashed, CircleX, Clock3, FileWarning, ShieldAlert, Wrench } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import type { WorkflowChipStatus } from './workflowEventFormatters';
+import { UnifiedCard } from './UnifiedCard';
 
 type WorkflowEventAction = {
   label: string;
@@ -74,61 +75,17 @@ export function WorkflowEventCard({
   const ts = useMemo(() => formatTs(timestamp), [timestamp]);
 
   return (
-    <div className="flex justify-start">
-      <div className="w-full max-w-[76ch] rounded-xl border border-border bg-surface p-3 shadow-[0_1px_2px_rgba(15,23,42,0.08)]">
-        <div className="mb-2 flex items-center justify-between gap-2 text-[10px] text-text-dim">
-          <span className="uppercase tracking-wide">{roleLabel}</span>
-          <span>{ts}</span>
-        </div>
-
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="mb-1.5 flex items-center gap-2">
-              {kindIcon(kind)}
-              <p className="text-sm font-semibold text-text">{title}</p>
-            </div>
-            <p className="text-sm text-text-muted">{summary}</p>
-          </div>
-          <span className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium ${statusClass(status)}`}>
-            {statusIcon(status)}
-            {statusLabel(status)}
-          </span>
-        </div>
-
-        {keyOutputs.length > 0 ? (
-          <ul className="mt-2 space-y-1 pl-4 text-xs text-text-muted">
-            {keyOutputs.map((item, idx) => (
-              <li key={`${item}-${idx}`} className="list-disc">
-                {item}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        {errorText ? (
-          <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-2.5 py-2 text-xs text-red-700">
-            {errorText}
-          </div>
-        ) : null}
-
-        {links.length > 0 ? (
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {links.map((link) => (
-              <a
-                key={`${link.label}-${link.url}`}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-medium text-accent hover:text-accent-hover"
-              >
-                {link.label}
-              </a>
-            ))}
-          </div>
-        ) : null}
-
-        {actions.length > 0 ? (
-          <div className="mt-3 flex items-center gap-2">
+    <UnifiedCard
+      title={title}
+      icon={kindIcon(kind)}
+      statusIcon={statusIcon(status)}
+      statusLabel={statusLabel(status)}
+      statusClass={statusClass(status)}
+      roleLabel={roleLabel}
+      timestamp={ts}
+      actions={
+        actions.length > 0 ? (
+          <>
             {actions.map((action) => (
               <button
                 key={action.label}
@@ -143,11 +100,46 @@ export function WorkflowEventCard({
                 {action.label}
               </button>
             ))}
+          </>
+        ) : undefined
+      }
+    >
+      <div className="space-y-2">
+        <p className="text-sm text-text-muted">{summary}</p>
+        {keyOutputs.length > 0 ? (
+          <ul className="space-y-1 pl-4 text-xs text-text-muted">
+            {keyOutputs.map((item, idx) => (
+              <li key={`${item}-${idx}`} className="list-disc">
+                {item}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        {errorText ? (
+          <div className="rounded-md border border-red-200 bg-red-50 px-2.5 py-2 text-xs text-red-700">
+            {errorText}
+          </div>
+        ) : null}
+
+        {links.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {links.map((link) => (
+              <a
+                key={`${link.label}-${link.url}`}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-medium text-accent hover:text-accent-hover"
+              >
+                {link.label}
+              </a>
+            ))}
           </div>
         ) : null}
 
         {hasDetails ? (
-          <div className="mt-2">
+          <div>
             <button
               type="button"
               onClick={() => setOpen((prev) => !prev)}
@@ -165,9 +157,9 @@ export function WorkflowEventCard({
         ) : null}
 
         {!hasFooterContent && actions.length === 0 ? (
-          <div className="mt-1 text-[11px] text-text-dim">No additional details.</div>
+          <div className="text-[11px] text-text-dim">No additional details.</div>
         ) : null}
       </div>
-    </div>
+    </UnifiedCard>
   );
 }

@@ -3,26 +3,10 @@ import { X, Cloud, Check, AlertTriangle, Loader2, Eye, EyeOff, Trash2 } from 'lu
 import { api } from '../../api';
 import type { SalesforceAuthStatus } from '../../api';
 
-const SHELL_FLAG_KEY = 'hello_feature_chat_first_shell';
-const SHELL_FLAG_EVENT = 'hello:feature-flags-changed';
-
 type SettingsModalProps = {
   isOpen: boolean;
   onClose: () => void;
 };
-
-function readChatFirstDefault(): boolean {
-  const envRaw = String(import.meta.env.VITE_CHAT_FIRST_SHELL ?? 'true').toLowerCase();
-  return envRaw !== 'false' && envRaw !== '0' && envRaw !== 'off';
-}
-
-function readChatFirstOverride(): boolean | null {
-  const raw = localStorage.getItem(SHELL_FLAG_KEY);
-  if (raw == null) return null;
-  if (raw === 'on' || raw === 'true' || raw === '1') return true;
-  if (raw === 'off' || raw === 'false' || raw === '0') return false;
-  return null;
-}
 
 export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   // Salesforce credentials state
@@ -34,18 +18,10 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
   const [sfSaving, setSfSaving] = useState(false);
   const [sfMessage, setSfMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [sfTesting, setSfTesting] = useState(false);
-  const [chatFirstEnabled, setChatFirstEnabled] = useState<boolean>(() => {
-    const override = readChatFirstOverride();
-    if (override == null) return readChatFirstDefault();
-    return override;
-  });
-
   // Load auth status on open
   useEffect(() => {
     if (isOpen) {
       loadSalesforceStatus();
-      const override = readChatFirstOverride();
-      setChatFirstEnabled(override == null ? readChatFirstDefault() : override);
     }
   }, [isOpen]);
 
@@ -124,12 +100,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
       // Refresh status after a delay
       setTimeout(loadSalesforceStatus, 3000);
     }
-  };
-
-  const handleChatFirstToggle = (enabled: boolean) => {
-    setChatFirstEnabled(enabled);
-    localStorage.setItem(SHELL_FLAG_KEY, enabled ? 'on' : 'off');
-    window.dispatchEvent(new Event(SHELL_FLAG_EVENT));
   };
 
   if (!isOpen) return null;
@@ -305,26 +275,6 @@ export function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
             </div>
           </div>
 
-          {/* Divider */}
-          <hr className="border-border" />
-
-          <div>
-            <h3 className="font-medium text-text">Interface</h3>
-            <p className="mt-1 text-sm text-text-muted">
-              Choose the default shell layout. You can temporarily force legacy mode with <code className="rounded bg-bg px-1 py-0.5 text-[11px]">?legacyShell=1</code>.
-            </p>
-            <label className="mt-3 flex items-center justify-between rounded-lg border border-border bg-bg px-3 py-2">
-              <span className="text-sm text-text">Chat-first shell</span>
-              <input
-                type="checkbox"
-                checked={chatFirstEnabled}
-                onChange={(event) => handleChatFirstToggle(event.target.checked)}
-              />
-            </label>
-            <p className="mt-2 text-xs text-text-dim">
-              When enabled, chat docks at the bottom and pages open in the on-demand workspace panel.
-            </p>
-          </div>
         </div>
       </div>
     </div>

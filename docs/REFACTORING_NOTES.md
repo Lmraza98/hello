@@ -413,3 +413,140 @@ eactAdapter.ts to use it.
 - Reduced noisy chat-driven workspace preview churn for exact lookups in `ui/src/hooks/useChat.ts`:
   - exact `search_contacts(name=...)` and exact `search_companies(company_name=...)` results no longer auto-emit `navigate + set_filter` app actions,
   - avoids showing an empty/in-progress "Applying filters" Live UI Preview card for simple person/company find queries.
+- Applied table-density UI compaction for CRM list pages and shared controls:
+  - `ui/src/pages/Contacts.tsx`: reduced header/padding footprint, tighter table header/body spacing, lower virtual row height, smaller action buttons, lighter chip density, narrower table minimum width.
+  - `ui/src/components/contacts/tableColumns.tsx`: compact checkbox/chevron gutter, reduced typography scale, tighter line-height, single-line truncation for title/company, narrower status/actions columns, lighter sort affordances.
+  - `ui/src/components/contacts/SalesforceStatusBadge.tsx`: smaller pill chip treatment (`text-[10px]`, tight padding).
+  - `ui/src/components/shared/SearchToolbar.tsx`: reduced search/input/button heights and icon/label spacing for denser list-page toolbars.
+  - `ui/src/components/shared/PageHeader.tsx`: compressed title/subtitle/action spacing; subtitle now aligns inline with title on desktop for reduced vertical header weight.
+  - `ui/src/pages/Companies.tsx` + `ui/src/components/companies/tableColumns.tsx`: mirrored compact density adjustments so list pages remain visually consistent with Contacts.
+
+## 2026-02-23 - Assistant Panel System (Phase Progress)
+
+- Continued implementation of `docs/concepts/assistant-panel-system-proposal.md`:
+  - Phase 1 card unification: `ui/src/components/chat/EventRow.tsx` and `ui/src/components/chat/WorkflowEventCard.tsx` now render through `ui/src/components/chat/UnifiedCard.tsx`.
+  - Phase 2 shell integration foundation:
+    - added `ui/src/components/assistant/GlobalAssistantPanel.tsx`,
+    - added `ui/src/components/assistant/ContextPreviewDrawer.tsx`,
+    - updated `ui/src/components/shell/ChatFirstShell.tsx` to route assistant and preview surfaces via these new abstractions,
+    - updated `ui/src/components/shell/LegacySplitShell.tsx` to route assistant surface via `GlobalAssistantPanel`.
+- This keeps existing behavior stable while reducing shell-level coupling to legacy chat surface components, enabling Phase 3 deprecation work.
+
+## 2026-02-23 - Assistant Panel System (Phase 4 Trigger Rules)
+
+- Tightened context-preview trigger behavior in `ui/src/chat/actionExecutor.ts`:
+  - removed chat-driven workspace interaction previews for navigation/filter/selection actions,
+  - preserved route updates and chat context while clearing interaction state to prevent unwanted preview takeovers.
+- Context preview now remains primarily tied to complex browser workflow actions (`browser.observe`, `browser.annotate`, `browser.synthesize`, `browser.validate`).
+- Updated shell labeling in `ui/src/components/shell/ChatFirstShell.tsx` from `Live UI Preview` to `Context Preview` to align with the new surface naming.
+
+## 2026-02-23 - Assistant Panel System (Phase 3 Route Migration Complete)
+
+- Unified assistant surface routing to `ui/src/components/assistant/GlobalAssistantPanel.tsx` across shell paths.
+- Removed legacy split-shell implementation:
+  - deleted `ui/src/components/shell/LegacySplitShell.tsx`.
+- Removed deprecated assistant pane implementation:
+  - deleted `ui/src/components/chat/ChatPane.tsx`.
+- Removed legacy shell toggles and query-param fallback:
+  - simplified `ui/src/components/shell/AppShell.tsx` to always render `ChatFirstShell`,
+  - removed interface shell-toggle controls/state from `ui/src/components/settings/SettingsModal.tsx`.
+
+## 2026-02-23 - Assistant Panel System (Phase 4 Strict Preview Allowlist)
+
+- Added centralized preview gating helper:
+  - `ui/src/components/assistant/contextPreviewRules.ts`
+- Enforced allowlist in shell rendering:
+  - `ui/src/components/shell/ChatFirstShell.tsx` now shows `ContextPreviewDrawer` only when `isContextPreviewAllowed(...)` is true.
+- Enforced allowlist in interaction signaling:
+  - `ui/src/chat/actionExecutor.ts` now sets `openWorkspace` from `isContextPreviewAllowed(...)` for routed interaction payloads.
+- Current allowlist behavior:
+  - preview is only eligible for `workflow` interactions on `/browser*` routes.
+
+## 2026-02-23 - Chat Confirmation Regression Guard (Read-only Plans)
+
+- Hardened read-only plan confirmation behavior so lookup plans do not block on confirmation:
+  - added `areAllPlannedCallsReadOnly(...)` in `ui/src/chat/chatEnginePolicy.ts`.
+  - updated `ui/src/chat/chatEngine/responseBuilder.ts` to force `shouldConfirm=false` when all planned calls are read-only.
+- Added a defensive UI-layer fallback in `ui/src/hooks/useChat.ts`:
+  - if a confirmation payload is marked required but contains only read-only calls, it auto-executes immediately instead of rendering confirm/deny controls.
+
+## 2026-02-23 - LLM-first Intent Routing (No Deterministic Regex Fast Path)
+
+- Updated `ui/src/chat/chatEngine/intentClassifier.ts` to remove deterministic regex/keyword intent guards and use LLM classification as the primary route decision path.
+- Removed deterministic regex contact-target fast routine from `ui/src/chat/chatEngine/pipelineSteps.ts` (`extractActionTarget` + `stepDeterministicRoutines`).
+- Added a guard in `stepGenericRetrievalBootstrap` so conversational intents do not fall into automatic `hybrid_search` bootstrap when fast-path planning fails.
+
+## 2026-02-23 - Complex BDR Workflow Routing/Planning Fix
+
+- Re-enabled skill-first routing in planning mode even when `requireToolConfirmation` is true:
+  - `ui/src/chat/chatEngine/pipelineSteps.ts` (`stepTrySkillFirst`).
+  - This prevents complex BDR requests from skipping deterministic skill plans and degrading into shallow generic tool plans.
+- Expanded `prospect-companies-and-draft-emails` skill matching + extraction coverage for realistic enterprise constraints:
+  - `ui/src/assistant-core/skills/loader.ts`
+  - added trigger phrases for decision-maker identification, personalized outreach, revenue/location/years constraints.
+  - added extract fields: `decision_maker_title`, `min_revenue_millions`, `min_years_in_business`.
+- Improved skill handler parsing and query construction for those constraints:
+  - `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts`
+  - parses phrases like "based in California", "revenue over $500 million", and "at least 10 years in business",
+  - carries those constraints into company/contact discovery query strings and campaign enrollment query.
+
+## 2026-02-23 - BDR Local-First Execution + Frontend Rebuild Reliability
+
+- Updated `prospect-companies-and-draft-emails` execution plan to run local CRM discovery first:
+  - `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts`
+  - now starts with `search_companies` and `search_contacts` for constrained BDR prompts.
+  - SalesNav collection (`collect_companies_from_salesnav`) is now only inserted when the user explicitly references Sales Navigator/LinkedIn in the request.
+- Expanded skill allowlist to support local-first steps:
+  - `ui/src/assistant-core/skills/loader.ts`
+  - added `search_companies`, `search_contacts`, and `collect_companies_from_salesnav`.
+- Fixed startup behavior that served stale frontend bundles:
+  - `scripts/start_backend.bat` now rebuilds `ui` on every backend start by default (set `SKIP_UI_BUILD=1` to bypass).
+
+## 2026-02-23 - BDR Discovery-Only Requests No Longer Auto-Create Campaigns
+
+- Refined `prospect-companies-and-draft-emails` flow assembly in:
+  - `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts`
+- Behavior change:
+  - discovery steps (`search_companies`, optional SalesNav expansion, `search_contacts`) always run for matched prospecting requests.
+  - campaign/email mutation steps are now appended only when the user explicitly asks for campaign/outreach/email/sequence/draft/send/schedule/enroll actions.
+- This prevents prompts like "Identify key decision-makers..." from opening write confirmations before discovery is completed.
+
+## 2026-02-23 - Conditional SalesNav Escalation for Complex BDR Workflows
+
+- Refined complex prospecting orchestration to match expected behavior for prompts that combine strict filters + outreach intent.
+- `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts`:
+  - local-first discovery remains first (`search_companies`, `search_contacts`),
+  - added explicit `escalate_salesnav_background` step using `compound_workflow_run` with Sales Navigator phases,
+  - escalation is confirmation-gated and designed for async background execution.
+- `ui/src/assistant-core/router/recipeRouter.ts`:
+  - added conditional step routing for `prospect-companies-and-draft-emails`:
+    - if local leads exist, skip SalesNav escalation and proceed to campaign steps,
+    - if local leads do not exist, skip campaign steps and pause on a custom escalation confirmation prompt.
+  - improved `$prev.*` argument resolution to support nested/fallback campaign id extraction (`id`, `campaign_id`, nested payloads).
+  - resume path now stores resolved args for follow-on confirmation steps to avoid unresolved template args after confirm.
+- `ui/src/chat/chatEngine/skillAdapter.ts`:
+  - confirmation payload now includes only the next pending step call (not all remaining steps), preventing accidental execution with unresolved downstream args.
+
+## 2026-02-23 - SalesNav Escalation Now Builds Structured URL Filters
+
+- Improved background SalesNav escalation spec generation in:
+  - `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts`
+- Changes:
+  - escalation account-search phase now passes explicit `filter_values` (industry when derivable, headquarters location, annual revenue lower bound),
+  - escalation people-search phase now runs as an iteration over discovered companies and passes structured people filters (`seniority_level`, inferred function, annual revenue, location scope) with company identity templates,
+  - this reduces reliance on raw keyword-only search input and pushes constraints into URL/query builder filter handling.
+
+## 2026-02-23 - Shifted SalesNav Filter Derivation to Backend Canonical Parser/Builder
+
+- Updated `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts` to remove UI-side deterministic people-filter inference.
+- Escalation phases now pass full natural-language query and rely on backend SalesNav workflow decomposition + URL query builder for canonical filter mapping.
+- Canonical mapping sources used by backend:
+  - `data/linkedin/salesnav-filters.json`
+  - `data/linkedin/salesnav-filters-ids.json`
+- This reduces drift between assistant skill prompts and live SalesNav filter-ID coverage.
+
+## 2026-02-23 - Region Filter Fallback for SalesNav URL Builder
+
+- Updated `services/web_automation/linkedin/salesnav/query_builder.py`:
+  - `_build_region_clause` now gracefully degrades state-level values like `"California, United States"` to `"United States"` when a state REGION id is not mapped.
+  - This prevents hard failures (`salesnav_filter_unmapped` / `unmapped_region_id`) and allows SalesNav URL navigation to proceed with country-level filtering.

@@ -20,12 +20,12 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../../api';
 import { useIsMobile } from '../../hooks/useIsMobile';
-import { ChatDock } from '../chat/ChatDock';
+import { GlobalAssistantPanel } from '../assistant/GlobalAssistantPanel';
+import { ContextPreviewDrawer } from '../assistant/ContextPreviewDrawer';
+import { isContextPreviewAllowed } from '../assistant/contextPreviewRules';
 import { SettingsModal } from '../settings/SettingsModal';
 import type { AppShellOutletContext, AppShellQuickAddTarget } from './appShellContext';
 import { useWorkspaceLayout } from './workspaceLayout';
-import { ContextualInteractionPanel } from './ContextualInteractionPanel';
-import { WorkspaceSurface } from './WorkspaceSurface';
 
 export function ChatFirstShell() {
   const isMobile = useIsMobile();
@@ -95,8 +95,8 @@ export function ChatFirstShell() {
   };
 
   const clearAddModalTarget = () => setOpenAddModalTarget(null);
-  const showingChatInteraction = workspace.source === 'chat' && Boolean(workspace.interaction);
-  const workspaceTitle = showingChatInteraction ? 'Live UI Preview' : activeNavItem?.label || 'Workspace';
+  const showingChatInteraction = workspace.source === 'chat' && isContextPreviewAllowed(workspace.interaction);
+  const workspaceTitle = showingChatInteraction ? 'Context Preview' : activeNavItem?.label || 'Workspace';
   const workspaceSubtitle = showingChatInteraction
     ? 'Contextual components surfaced by the assistant'
     : 'Manual workspace';
@@ -273,25 +273,19 @@ export function ChatFirstShell() {
         <div className="flex flex-1 min-h-0 flex-col overflow-hidden p-2 md:p-3">
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/80 bg-surface">
             {showingChatInteraction ? (
-              <WorkspaceSurface
+              <ContextPreviewDrawer
                 open={workspace.open}
                 mode={workspace.mode}
                 mobile={isMobile}
+                interaction={workspace.interaction}
                 title={workspaceTitle}
                 subtitle={workspaceSubtitle}
-                closedLabel="Open Preview"
                 onOpen={() => workspace.openWorkspace({ source: 'system' })}
                 onClose={workspace.closeWorkspace}
                 onModeChange={(nextMode) => workspace.setWorkspaceMode(nextMode)}
-              >
-                {workspace.interaction ? (
-                  <ContextualInteractionPanel
-                    interaction={workspace.interaction}
-                    onOpenRoute={openRouteWorkspace}
-                    onDismiss={workspace.clearInteraction}
-                  />
-                ) : null}
-              </WorkspaceSurface>
+                onOpenRoute={openRouteWorkspace}
+                onDismiss={workspace.clearInteraction}
+              />
             ) : (
               <main className="min-h-0 flex-1 overflow-y-auto p-3 md:p-4">
                 <Outlet context={{ openAddModalTarget, clearAddModalTarget } satisfies AppShellOutletContext} />
@@ -300,12 +294,14 @@ export function ChatFirstShell() {
 
             {!hideDockOnContacts ? (
               <div className={`min-h-0 overflow-hidden p-2 md:p-3 ${chatExpanded ? 'flex-1' : 'shrink-0 mt-auto'}`}>
-                <ChatDock
-                  onHeightChange={() => {}}
-                  fullHeight
-                  embedded
-                  collapseSignal={chatCollapseSignal}
-                  onExpandedChange={setChatExpanded}
+                <GlobalAssistantPanel
+                  dock={{
+                    onHeightChange: () => {},
+                    fullHeight: true,
+                    embedded: true,
+                    collapseSignal: chatCollapseSignal,
+                    onExpandedChange: setChatExpanded,
+                  }}
                 />
               </div>
             ) : null}

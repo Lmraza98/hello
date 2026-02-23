@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronRight, CircleCheck, CircleDot, CircleX, Clock3, Wrench } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import type { WorkflowChipStatus } from './workflowEventFormatters';
+import { UnifiedCard } from './UnifiedCard';
 
 function statusIcon(status: WorkflowChipStatus): ReactNode {
   if (status === 'running') return <Clock3 className="h-3.5 w-3.5 text-amber-700" />;
@@ -40,48 +41,60 @@ export function EventRow({
 }) {
   const [open, setOpen] = useState(false);
   const hasDetails = Boolean(details && details.trim().length > 0);
+  const statusClass =
+    status === 'running'
+      ? 'border-amber-200 bg-amber-50 text-amber-800'
+      : status === 'done'
+        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+        : status === 'failed'
+          ? 'border-red-200 bg-red-50 text-red-800'
+          : 'border-slate-200 bg-slate-50 text-slate-700';
+
   return (
-    <div className="ml-1 max-w-[74ch] border-l border-border/70 pl-3">
-      <div className="flex items-center gap-2 text-xs text-text">
-        {kindIcon(kind)}
-        {statusIcon(status)}
-        <span className="font-medium">{label}</span>
-        <span className="text-[10px] text-text-dim">{formatTs(timestamp)}</span>
-      </div>
-      {summary ? <p className="mt-1 text-xs text-text-muted">{summary}</p> : null}
-      {links.length > 0 ? (
-        <div className="mt-1 flex flex-wrap items-center gap-2">
-          {links.map((link) => (
-            <a
-              key={`${link.label}-${link.url}`}
-              href={link.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[11px] font-medium text-accent hover:text-accent-hover"
+    <UnifiedCard
+      title={label}
+      icon={kindIcon(kind)}
+      timestamp={formatTs(timestamp)}
+      statusIcon={statusIcon(status)}
+      statusLabel={status}
+      statusClass={statusClass}
+    >
+      <div className="space-y-1.5">
+        {summary ? <p className="text-xs text-text-muted">{summary}</p> : null}
+        {links.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            {links.map((link) => (
+              <a
+                key={`${link.label}-${link.url}`}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] font-medium text-accent hover:text-accent-hover"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        ) : null}
+        {actions ? <div>{actions}</div> : null}
+        {hasDetails ? (
+          <div>
+            <button
+              type="button"
+              onClick={() => setOpen((prev) => !prev)}
+              className="inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-text"
             >
-              {link.label}
-            </a>
-          ))}
-        </div>
-      ) : null}
-      {actions ? <div className="mt-1.5">{actions}</div> : null}
-      {hasDetails ? (
-        <div className="mt-1.5">
-          <button
-            type="button"
-            onClick={() => setOpen((prev) => !prev)}
-            className="inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-text"
-          >
-            {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-            Show details
-          </button>
-          {open ? (
-            <pre className="mt-1.5 max-h-52 overflow-auto rounded-md border border-border bg-bg p-2 text-[11px] text-text-dim">
-              {details}
-            </pre>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
+              {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              Show details
+            </button>
+            {open ? (
+              <pre className="mt-1.5 max-h-52 overflow-auto rounded-md border border-border bg-bg p-2 text-[11px] text-text-dim">
+                {details}
+              </pre>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    </UnifiedCard>
   );
 }

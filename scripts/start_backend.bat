@@ -39,8 +39,9 @@ if exist "venv\Scripts\activate.bat" (
   call "venv\Scripts\activate.bat"
 )
 
-REM Build frontend if missing
-if not exist "ui\\dist\\NUL" (
+REM Build frontend on each start so latest ui/src changes are served.
+REM Set SKIP_UI_BUILD=1 to skip this step for faster backend restarts.
+if /I not "%SKIP_UI_BUILD%"=="1" (
   echo Building frontend...
   pushd "ui"
   if not exist "node_modules\\NUL" (
@@ -48,6 +49,8 @@ if not exist "ui\\dist\\NUL" (
   )
   call npm run build
   popd
+) else (
+  echo Skipping frontend build because SKIP_UI_BUILD=1
 )
 
 REM Start uvicorn in a minimized window

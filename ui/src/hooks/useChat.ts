@@ -30,6 +30,7 @@ import type {
 } from '../types/chat';
 import type { ChatAction } from '../chat/actions';
 import { normalizeQueryFilterParam } from '../utils/filterNormalization';
+import { areAllPlannedCallsReadOnly } from '../chat/chatEnginePolicy';
 
 let _counter = 0;
 function createId() {
@@ -1596,6 +1597,30 @@ export function useChat(options?: {
           }
 
           if (result.confirmation?.required) {
+            const readOnlyConfirmation = areAllPlannedCallsReadOnly(result.confirmation.calls || []);
+            if (readOnlyConfirmation) {
+              pendingToolPlanRef.current = null;
+              pendingFilterSelectionRef.current = null;
+              appendMessages([
+                {
+                  id: createId(),
+                  type: 'text',
+                  sender: 'bot',
+                  content: 'Running read-only plan now.',
+                  timestamp: new Date(),
+                },
+              ]);
+              await runConfirmedToolPlan({
+                uiActions: result.confirmation.uiActions || [],
+                calls: result.confirmation.calls,
+                summary: result.confirmation.summary,
+                sourceUserMessage: trimmed,
+                reactTrace: result.confirmation.traceSnapshot || result.debugTrace?.reactTraceRaw || [],
+                pendingTaskPlan: result.confirmation.pendingTaskPlan,
+              });
+              completeThought();
+              return;
+            }
             appendRunEvent({
               lane: 'primary',
               phase: 'confirmation',

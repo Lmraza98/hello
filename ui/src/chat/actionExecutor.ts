@@ -8,6 +8,7 @@ import { normalizeQueryFilterParam } from '../utils/filterNormalization';
 import { api } from '../api';
 import { dispatchBrowserWorkflowCommand } from '../components/browser/workbenchBridge';
 import type { WorkspaceMode } from '../components/shell/workspaceLayout';
+import { isContextPreviewAllowed } from '../components/assistant/contextPreviewRules';
 
 export interface ActionExecutorOptions {
   openModal?: (modal: 'create_campaign' | 'email_contact' | 'confirm_delete', payload?: Record<string, unknown>) => void;
@@ -51,35 +52,6 @@ export function shouldPreferFullscreenForBrowserAction(actionId: string): boolea
 
 function isCapabilityAction(action: ChatAction): action is UIAction {
   return Boolean(action && typeof action === 'object' && 'action' in action && typeof (action as { action?: unknown }).action === 'string');
-}
-
-function routeDisplayName(route: string): string {
-  if (route === '/admin/tests') return 'admin';
-  if (route.startsWith('/')) return route.slice(1) || 'dashboard';
-  return route;
-}
-
-function buildFilterChips(params: URLSearchParams): string[] {
-  const chips: string[] = [];
-  for (const [key, value] of params.entries()) {
-    chips.push(`${key}: ${value}`);
-    if (chips.length >= 6) break;
-  }
-  return chips;
-}
-
-function inferPersonName(query: string): string | null {
-  const raw = query.trim().replace(/\s+/g, ' ');
-  if (!raw || raw.length < 3 || raw.length > 80) return null;
-  if (/[:=@/\\]/.test(raw)) return null;
-  if (/\d/.test(raw)) return null;
-  const words = raw
-    .split(' ')
-    .map((word) => word.replace(/[^a-zA-Z'.-]/g, ''))
-    .filter(Boolean);
-  if (words.length < 2 || words.length > 4) return null;
-  if (words.some((word) => word.length < 2)) return null;
-  return words.map((word) => word[0].toUpperCase() + word.slice(1)).join(' ');
 }
 
 function isParamTypeValid(value: unknown, schema: ActionParamSchema): boolean {
@@ -153,8 +125,13 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
           options.workspace?.ensureVisibleForRoute(currentPath, { source });
         } else {
           options.workspace?.setWorkspaceSource(source);
+          options.workspace?.clearInteraction();
         }
         if (optionsForRoute.interaction) {
+          const previewAllowed = isContextPreviewAllowed({
+            kind: optionsForRoute.interaction.kind,
+            route: currentPath,
+          });
           options.workspace?.signalInteraction(
             optionsForRoute.interaction.kind,
             optionsForRoute.interaction.label,
@@ -163,7 +140,7 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
               route: currentPath,
               summary: optionsForRoute.interaction.summary,
               chips: optionsForRoute.interaction.chips,
-              openWorkspace: true,
+              openWorkspace: previewAllowed,
               status: optionsForRoute.interaction.status || 'success',
               resultLabel: optionsForRoute.interaction.resultLabel,
               resultCount: optionsForRoute.interaction.resultCount,
@@ -305,13 +282,7 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
         }
 
         if (registration.action.category === 'navigation') {
-          applyRoute(registration.page.route, {
-            interaction: {
-              kind: 'navigation',
-              label: `Preparing ${registration.page.title} view`,
-              summary: 'Previewing relevant UI controls before opening the full page.',
-            },
-          });
+          applyRoute(registration.page.route);
           return { success: true };
         }
 
@@ -327,123 +298,26 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
             if (normalized === null) currentParams.delete(param.name);
             else currentParams.set(param.name, normalized);
           }
-          const chips = buildFilterChips(currentParams);
           options.workspace?.setWorkspaceSource('chat');
-          options.workspace?.signalInteraction('filter', `Applying ${registration.page.title} filters`, {
-            source: 'chat',
-            route: currentPath,
-            summary: 'Filter controls are being applied and table results are updating.',
-            chips,
-            openWorkspace: true,
-            status: 'in_progress',
-            resultLabel: 'Applying filters...',
-          });
+          options.workspace?.clearInteraction();
           navigate(`${currentPath}${currentParams.toString() ? `?${currentParams.toString()}` : ''}`, { replace: true });
-
-          if (currentPath === '/contacts') {
-            const searchQuery = String(currentParams.get('q') || '').trim();
-            if (searchQuery) {
-              try {
-                const rows = await fetch(`/api/contacts?q=${encodeURIComponent(searchQuery)}`, {
-                  headers: { 'Content-Type': 'application/json' },
-                }).then(async (res) => {
-                  if (!res.ok) throw new Error(`Contacts lookup failed (${res.status})`);
-                  return res.json();
-                });
-                const resultCount = Array.isArray(rows) ? rows.length : 0;
-                const inferredName = inferPersonName(searchQuery) || searchQuery;
-                const noMatches = resultCount === 0;
-                options.workspace?.signalInteraction(
-                  'filter',
-                  noMatches ? 'No contact found' : 'Filters applied',
-                  {
-                    source: 'chat',
-                    route: currentPath,
-                    summary: noMatches
-                      ? `No contact found. Add details to create ${inferredName}.`
-                      : `Found ${resultCount} matching contact${resultCount === 1 ? '' : 's'}.`,
-                    chips,
-                    openWorkspace: true,
-                    status: 'success',
-                    resultLabel: noMatches ? '0 contacts matched' : `${resultCount} contacts matched`,
-                    resultCount,
-                    createContactPrefill: noMatches
-                      ? { name: inferredName, company_name: '', email: '', phone: '', title: '' }
-                      : undefined,
-                    missingFields: noMatches ? ['email', 'phone'] : [],
-                  }
-                );
-              } catch (error) {
-                options.workspace?.signalInteraction('filter', 'Could not apply filters', {
-                  source: 'chat',
-                  route: currentPath,
-                  summary: error instanceof Error ? error.message : 'Unable to fetch filtered contacts.',
-                  chips,
-                  openWorkspace: true,
-                  status: 'failed',
-                  resultLabel: 'Could not fetch filtered contacts',
-                });
-              }
-            } else {
-              options.workspace?.signalInteraction('filter', 'Filters applied', {
-                source: 'chat',
-                route: currentPath,
-                summary: 'Contacts filters updated.',
-                chips,
-                openWorkspace: true,
-                status: 'success',
-                resultLabel: 'Contacts filter updated',
-              });
-            }
-          } else {
-            options.workspace?.signalInteraction('filter', 'Filters applied', {
-              source: 'chat',
-              route: currentPath,
-              summary: `${registration.page.title} filters are now active.`,
-              chips,
-              openWorkspace: true,
-              status: 'success',
-              resultLabel: 'Filters applied',
-            });
-          }
           return { success: true };
         }
 
         if (registration.action.id === 'companies.expand_row') {
           const companyId = Number(actionRecord.company_id);
-          applyRoute(`/companies?selectedCompanyId=${companyId}`, {
-            interaction: {
-              kind: 'selection',
-              label: `Opening company #${companyId}`,
-              summary: 'Surfacing selected company details and row-level actions.',
-              chips: [`company_id: ${companyId}`],
-            },
-          });
+          applyRoute(`/companies?selectedCompanyId=${companyId}`);
           return { success: true };
         }
         if (registration.action.id === 'contacts.select_row') {
           const contactId = Number(actionRecord.contact_id);
-          applyRoute(`/contacts?selectedContactId=${contactId}`, {
-            interaction: {
-              kind: 'selection',
-              label: `Opening contact #${contactId}`,
-              summary: 'Showing contact-level actions and communication context.',
-              chips: [`contact_id: ${contactId}`],
-            },
-          });
+          applyRoute(`/contacts?selectedContactId=${contactId}`);
           return { success: true };
         }
         if (registration.action.id === 'documents.select_row') {
           const documentId = String(actionRecord.document_id || '').trim();
           if (!documentId) return { success: false, error: 'document_id is required' };
-          applyRoute(`/documents?selectedDocumentId=${encodeURIComponent(documentId)}`, {
-            interaction: {
-              kind: 'selection',
-              label: 'Opening document details',
-              summary: 'Loading document metadata and linked entities.',
-              chips: [`document_id: ${documentId}`],
-            },
-          });
+          applyRoute(`/documents?selectedDocumentId=${encodeURIComponent(documentId)}`);
           return { success: true };
         }
 
@@ -613,14 +487,7 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
         }
 
         if (action.type === 'navigate') {
-          const [routePath] = action.to.split('?');
-          applyRoute(action.to, {
-            interaction: {
-              kind: 'navigation',
-              label: `Preparing ${routeDisplayName(routePath || '/dashboard')} view`,
-              summary: 'Previewing context-relevant controls from this page.',
-            },
-          });
+          applyRoute(action.to);
           continue;
         }
 
@@ -632,39 +499,19 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
           const currentUrl = `${location.pathname}${location.search || ''}`;
           if (nextUrl !== currentUrl) {
             options.workspace?.setWorkspaceSource('chat');
-            options.workspace?.signalInteraction('filter', 'Applying filters', {
-              source: 'chat',
-              route: currentPath,
-              summary: 'Updating table filters and recalculating visible rows.',
-              chips: buildFilterChips(currentParams),
-              openWorkspace: true,
-            });
+            options.workspace?.clearInteraction();
             navigate(nextUrl, { replace: true });
           }
           continue;
         }
 
         if (action.type === 'select_contact') {
-          applyRoute(`/contacts?selectedContactId=${action.contactId}`, {
-            interaction: {
-              kind: 'selection',
-              label: `Opening contact #${action.contactId}`,
-              summary: 'Showing contact record details and quick actions.',
-              chips: [`contact_id: ${action.contactId}`],
-            },
-          });
+          applyRoute(`/contacts?selectedContactId=${action.contactId}`);
           continue;
         }
 
         if (action.type === 'select_company') {
-          applyRoute(`/companies?selectedCompanyId=${action.companyId}`, {
-            interaction: {
-              kind: 'selection',
-              label: `Opening company #${action.companyId}`,
-              summary: 'Showing company details and related contacts.',
-              chips: [`company_id: ${action.companyId}`],
-            },
-          });
+          applyRoute(`/companies?selectedCompanyId=${action.companyId}`);
           continue;
         }
 
