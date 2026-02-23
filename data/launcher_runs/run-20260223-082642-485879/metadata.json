@@ -1,0 +1,94 @@
+{
+  "run_id": "run-20260223-082642-485879",
+  "started_at": "2026-02-23T08:26:42Z",
+  "status": "passed",
+  "selected_test_ids": [],
+  "selected_step_ids": [
+    "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+    "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+  ],
+  "selected_tags": [],
+  "artifacts": {
+    "events": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-082642-485879\\events.ndjson",
+    "stdout": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-082642-485879\\stdout.log",
+    "junit": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-082642-485879\\results.junit.xml",
+    "json": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-082642-485879\\results.json",
+    "trace": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-082642-485879\\run_trace.json"
+  },
+  "duration_sec": 4.0531158447265625e-05,
+  "tests": [
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "status": "passed",
+      "duration_sec": 0.0,
+      "message": "passed (cache satisfied)",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "cached": true,
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 0
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "status": "passed",
+      "duration_sec": 0.0,
+      "message": "passed (cache satisfied)",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "cached": true,
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 0
+      }
+    }
+  ],
+  "dependency_analysis": {
+    "version": "1",
+    "run_id": "run-20260223-082642-485879",
+    "planned_edges": [
+      {
+        "from": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "to": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+      }
+    ],
+    "observed_edges": [],
+    "drift": {
+      "missing_planned_edges": [],
+      "unexpected_observed_edges": [],
+      "nodes_started_before_planned_ready": []
+    },
+    "nodes": [
+      {
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+        "status": "passed",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": 1771835202.604443
+      },
+      {
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "status": "passed",
+        "attempts": 0,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": 1771835202.604421
+      }
+    ]
+  },
+  "finished_at": "2026-02-23T08:26:42.674750+00:00"
+}

@@ -1,0 +1,902 @@
+{
+  "schema_version": "run_trace.v1",
+  "run": {
+    "id": "run-20260223-154115-879657",
+    "timestamp": "2026-02-23T15:41:15Z",
+    "env": {
+      "profile": "local",
+      "server_port": 8000,
+      "bridge_port": 9223,
+      "python": "3.13.7"
+    },
+    "git": {
+      "commit": "0b78779068007f21f63e335dfd97ec2c783c94dc",
+      "branch": "main",
+      "dirty": true
+    },
+    "config_snapshot": {
+      "selected_ids": [
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+      ],
+      "selected_tags": [],
+      "mode": "steps"
+    },
+    "status": "failed",
+    "finished_at_ts": 1771861276.4362752,
+    "duration_sec": 0.4189608097076416,
+    "tests_count": 6
+  },
+  "plan": {
+    "mode": "steps",
+    "ordered_steps": [
+      {
+        "order": 1,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "label": "Open or Reuse Browser Tab",
+        "kind": "action",
+        "deps": [],
+        "dependency_reasons": [],
+        "skip": true,
+        "cache_key": "3ee28808609c7ecdee536eab309da9171a934d7c8d6bc63ce1db57ef0c429b67"
+      },
+      {
+        "order": 2,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+        "label": "Navigate and Collect Companies",
+        "kind": "action",
+        "deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "dependency_reasons": [
+          "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "skip": true,
+        "cache_key": "2405fcf98e5891f24874c6c0f9bdd614c9905d4680073ab9593e84798b5bd78a"
+      },
+      {
+        "order": 3,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+        "label": "Capture Observation Screenshot",
+        "kind": "action",
+        "deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+        ],
+        "dependency_reasons": [
+          "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+        ],
+        "skip": false,
+        "cache_key": "a136f32000c629c72fb14b7802ec69979c83d7a8473149dd450e67801b04717d"
+      },
+      {
+        "order": 4,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+        "label": "Assert Minimum Company Count (5)",
+        "kind": "assertion",
+        "deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+        ],
+        "dependency_reasons": [
+          "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+        ],
+        "skip": false,
+        "cache_key": "c31c71f35497d6002b1abeac23d7d128a8635c105fc519dee3d17704f8b7ab11"
+      },
+      {
+        "order": 5,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+        "label": "Assert Required Fields (name,url)",
+        "kind": "assertion",
+        "deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+        ],
+        "dependency_reasons": [
+          "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+        ],
+        "skip": false,
+        "cache_key": "89e5f70bc2994497f688bfd06cf05fe62dcee231f0f575e02f5626554f3a42ee"
+      },
+      {
+        "order": 6,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+        "label": "Persist Workflow Summary Artifact",
+        "kind": "assertion",
+        "deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+        ],
+        "dependency_reasons": [
+          "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+        ],
+        "skip": false,
+        "cache_key": "93f0c8200e80641da34b602b4b1f5f7afca93396a1c1cd69ceb218840503726e"
+      }
+    ],
+    "plan_text": "{\"mode\": \"steps\", \"ordered_steps\": [{\"order\": 1, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab\", \"label\": \"Open or Reuse Browser Tab\", \"kind\": \"action\", \"deps\": [], \"dependency_reasons\": [], \"skip\": true, \"cache_key\": \"3ee28808609c7ecdee536eab309da9171a934d7c8d6bc63ce1db57ef0c429b67\"}, {\"order\": 2, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect\", \"label\": \"Navigate and Collect Companies\", \"kind\": \"action\", \"deps\": [\"python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab\"], \"dependency_reasons\": [\"depends on python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab\"], \"skip\": true, \"cache_key\": \"2405fcf98e5891f24874c6c0f9bdd614c9905d4680073ab9593e84798b5bd78a\"}, {\"order\": 3, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation\", \"label\": \"Capture Observation Screenshot\", \"kind\": \"action\", \"deps\": [\"python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect\"], \"dependency_reasons\": [\"depends on python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect\"], \"skip\": false, \"cache_key\": \"a136f32000c629c72fb14b7802ec69979c83d7a8473149dd450e67801b04717d\"}, {\"order\": 4, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5\", \"label\": \"Assert Minimum Company Count (5)\", \"kind\": \"assertion\", \"deps\": [\"python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation\"], \"dependency_reasons\": [\"depends on python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation\"], \"skip\": false, \"cache_key\": \"c31c71f35497d6002b1abeac23d7d128a8635c105fc519dee3d17704f8b7ab11\"}, {\"order\": 5, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields\", \"label\": \"Assert Required Fields (name,url)\", \"kind\": \"assertion\", \"deps\": [\"python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5\"], \"dependency_reasons\": [\"depends on python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5\"], \"skip\": false, \"cache_key\": \"89e5f70bc2994497f688bfd06cf05fe62dcee231f0f575e02f5626554f3a42ee\"}, {\"order\": 6, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary\", \"label\": \"Persist Workflow Summary Artifact\", \"kind\": \"assertion\", \"deps\": [\"python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields\"], \"dependency_reasons\": [\"depends on python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields\"], \"skip\": false, \"cache_key\": \"93f0c8200e80641da34b602b4b1f5f7afca93396a1c1cd69ceb218840503726e\"}]}",
+    "plan_json": {
+      "mode": "steps",
+      "ordered_steps": [
+        {
+          "order": 1,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+          "label": "Open or Reuse Browser Tab",
+          "kind": "action",
+          "deps": [],
+          "dependency_reasons": [],
+          "skip": true,
+          "cache_key": "3ee28808609c7ecdee536eab309da9171a934d7c8d6bc63ce1db57ef0c429b67"
+        },
+        {
+          "order": 2,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+          "label": "Navigate and Collect Companies",
+          "kind": "action",
+          "deps": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+          ],
+          "dependency_reasons": [
+            "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+          ],
+          "skip": true,
+          "cache_key": "2405fcf98e5891f24874c6c0f9bdd614c9905d4680073ab9593e84798b5bd78a"
+        },
+        {
+          "order": 3,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+          "label": "Capture Observation Screenshot",
+          "kind": "action",
+          "deps": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+          ],
+          "dependency_reasons": [
+            "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+          ],
+          "skip": false,
+          "cache_key": "a136f32000c629c72fb14b7802ec69979c83d7a8473149dd450e67801b04717d"
+        },
+        {
+          "order": 4,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+          "label": "Assert Minimum Company Count (5)",
+          "kind": "assertion",
+          "deps": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+          ],
+          "dependency_reasons": [
+            "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+          ],
+          "skip": false,
+          "cache_key": "c31c71f35497d6002b1abeac23d7d128a8635c105fc519dee3d17704f8b7ab11"
+        },
+        {
+          "order": 5,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+          "label": "Assert Required Fields (name,url)",
+          "kind": "assertion",
+          "deps": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+          ],
+          "dependency_reasons": [
+            "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+          ],
+          "skip": false,
+          "cache_key": "89e5f70bc2994497f688bfd06cf05fe62dcee231f0f575e02f5626554f3a42ee"
+        },
+        {
+          "order": 6,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+          "label": "Persist Workflow Summary Artifact",
+          "kind": "assertion",
+          "deps": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+          ],
+          "dependency_reasons": [
+            "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+          ],
+          "skip": false,
+          "cache_key": "93f0c8200e80641da34b602b4b1f5f7afca93396a1c1cd69ceb218840503726e"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "status": "passed",
+      "started_at_ts": 1771861275.9873056,
+      "started_at": "2026-02-23T15:41:15Z",
+      "inputs": {
+        "status": "queued"
+      },
+      "finished_at_ts": 1771861275.996498,
+      "finished_at": "2026-02-23T15:41:15Z",
+      "duration_sec": 0.0,
+      "outputs": {
+        "attempt": 0,
+        "message": "passed (cache satisfied)",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "status": "passed",
+      "started_at_ts": 1771861275.9891956,
+      "started_at": "2026-02-23T15:41:15Z",
+      "inputs": {
+        "status": "queued"
+      },
+      "finished_at_ts": 1771861275.9985955,
+      "finished_at": "2026-02-23T15:41:15Z",
+      "duration_sec": 0.0,
+      "outputs": {
+        "attempt": 0,
+        "message": "passed (cache satisfied)",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+      "status": "failed",
+      "started_at_ts": 1771861276.000902,
+      "started_at": "2026-02-23T15:41:16Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771861276.2052805,
+      "finished_at": "2026-02-23T15:41:16Z",
+      "duration_sec": 0.10027098655700684,
+      "outputs": {
+        "attempt": 1,
+        "message": "exit code 1",
+        "cache_key": "a136f32000c629c72fb14b7802ec69979c83d7a8473149dd450e67801b04717d",
+        "tool_response": {
+          "step": "capture_observation",
+          "error": "state missing tab_id; run open_or_reuse_tab first"
+        },
+        "outputs": {}
+      },
+      "error": "state missing tab_id; run open_or_reuse_tab first"
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+      "status": "failed",
+      "started_at_ts": 1771861276.2073834,
+      "started_at": "2026-02-23T15:41:16Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771861276.2130713,
+      "finished_at": "2026-02-23T15:41:16Z",
+      "duration_sec": 0.10043883323669434,
+      "outputs": {
+        "attempt": 1,
+        "message": "exit code 1",
+        "cache_key": "c31c71f35497d6002b1abeac23d7d128a8635c105fc519dee3d17704f8b7ab11",
+        "tool_response": {
+          "step": "assert_min_count_5",
+          "error": "expected at least 5 companies, observed 0"
+        },
+        "outputs": {}
+      },
+      "error": "expected at least 5 companies, observed 0"
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+      "status": "passed",
+      "started_at_ts": 1771861276.214911,
+      "started_at": "2026-02-23T15:41:16Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771861276.4171796,
+      "finished_at": "2026-02-23T15:41:16Z",
+      "duration_sec": 0.10038065910339355,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": "89e5f70bc2994497f688bfd06cf05fe62dcee231f0f575e02f5626554f3a42ee",
+        "inputs": {
+          "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+          "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\artifacts\\workflow.salesnav.collect_companies_5\\assert_required_fields",
+          "limit": 5
+        },
+        "tool_call": {
+          "op": "assert_required_fields",
+          "required": [
+            "name",
+            "url"
+          ]
+        },
+        "tool_response": {
+          "missing": []
+        },
+        "outputs": {
+          "items_checked": 0,
+          "missing_count": 0
+        },
+        "normalized_output_hash": "9e137c2cc6c5fcc40e5eaa1f4af3853874df5490159e8eb7ff566b5271876452",
+        "artifacts": []
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+      "status": "passed",
+      "started_at_ts": 1771861276.41872,
+      "started_at": "2026-02-23T15:41:16Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771861276.4211526,
+      "finished_at": "2026-02-23T15:41:16Z",
+      "duration_sec": 0.10020065307617188,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": "93f0c8200e80641da34b602b4b1f5f7afca93396a1c1cd69ceb218840503726e",
+        "inputs": {
+          "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+          "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\artifacts\\workflow.salesnav.collect_companies_5\\persist_summary",
+          "limit": 5
+        },
+        "tool_call": {
+          "op": "persist_summary"
+        },
+        "tool_response": {
+          "ok": true
+        },
+        "outputs": {
+          "tab_id": null,
+          "count": 0,
+          "sample_names": [],
+          "screenshot": null
+        },
+        "normalized_output_hash": "856c625702d91d7d5bdce703fbfcbdec0bf553571b3321348477cb84c0993a1c",
+        "artifacts": [
+          {
+            "type": "json",
+            "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\artifacts\\workflow.salesnav.collect_companies_5\\persist_summary\\workflow_summary.json"
+          }
+        ]
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "ts": 1771861275.9762578,
+      "type": "run_started",
+      "run_id": "run-20260223-154115-879657"
+    },
+    {
+      "ts": 1771861275.977069,
+      "type": "plan_updated"
+    },
+    {
+      "ts": 1771861275.9873214,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+    },
+    {
+      "ts": 1771861275.9892077,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+    },
+    {
+      "ts": 1771861275.990546,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+    },
+    {
+      "ts": 1771861275.9919136,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+    },
+    {
+      "ts": 1771861275.9928644,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+    },
+    {
+      "ts": 1771861275.9937778,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+    },
+    {
+      "ts": 1771861275.9949257,
+      "type": "log",
+      "level": "info",
+      "step_id": null
+    },
+    {
+      "ts": 1771861275.9965074,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "status": "passed",
+      "duration_sec": 0.0
+    },
+    {
+      "ts": 1771861275.9986048,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "status": "passed",
+      "duration_sec": 0.0
+    },
+    {
+      "ts": 1771861275.999769,
+      "type": "command",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+    },
+    {
+      "ts": 1771861276.0009115,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+    },
+    {
+      "ts": 1771861276.203216,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+    },
+    {
+      "ts": 1771861276.2043052,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+    },
+    {
+      "ts": 1771861276.205293,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+      "status": "failed",
+      "duration_sec": 0.10027098655700684
+    },
+    {
+      "ts": 1771861276.2063656,
+      "type": "command",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+    },
+    {
+      "ts": 1771861276.2073956,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+    },
+    {
+      "ts": 1771861276.2106164,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+    },
+    {
+      "ts": 1771861276.2118993,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+    },
+    {
+      "ts": 1771861276.2130811,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+      "status": "failed",
+      "duration_sec": 0.10043883323669434
+    },
+    {
+      "ts": 1771861276.214195,
+      "type": "command",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+    },
+    {
+      "ts": 1771861276.2149212,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+    },
+    {
+      "ts": 1771861276.4161742,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+    },
+    {
+      "ts": 1771861276.4171937,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+      "status": "passed",
+      "duration_sec": 0.10038065910339355
+    },
+    {
+      "ts": 1771861276.418047,
+      "type": "command",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+    },
+    {
+      "ts": 1771861276.4187295,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+    },
+    {
+      "ts": 1771861276.42021,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+    },
+    {
+      "ts": 1771861276.4211607,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+      "status": "passed",
+      "duration_sec": 0.10020065307617188
+    },
+    {
+      "ts": 1771861276.4316084,
+      "type": "verification"
+    },
+    {
+      "ts": 1771861276.4325058,
+      "type": "verification"
+    },
+    {
+      "ts": 1771861276.4332457,
+      "type": "artifact",
+      "artifact_type": "events",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\events.ndjson"
+    },
+    {
+      "ts": 1771861276.4339564,
+      "type": "artifact",
+      "artifact_type": "stdout",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\stdout.log"
+    },
+    {
+      "ts": 1771861276.4346235,
+      "type": "artifact",
+      "artifact_type": "json",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\results.json"
+    },
+    {
+      "ts": 1771861276.4353747,
+      "type": "artifact",
+      "artifact_type": "junit",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\results.junit.xml"
+    },
+    {
+      "ts": 1771861276.4362772,
+      "type": "run_finished",
+      "status": "failed",
+      "duration_sec": 0.4189608097076416
+    }
+  ],
+  "evidence": {
+    "logs": [
+      {
+        "ts": 1771861275.9949234,
+        "level": "info",
+        "message": "run started",
+        "data": {
+          "run_id": "run-20260223-154115-879657",
+          "test_ids": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+          ]
+        }
+      },
+      {
+        "ts": 1771861276.203212,
+        "level": "info",
+        "message": "[launcher-step-json] {\"outputs\": {}, \"error_trace\": \"state missing tab_id; run open_or_reuse_tab first\", \"tool_response\": {\"step\": \"capture_observation\", \"error\": \"state missing tab_id; run open_or_reuse_tab first\"}}",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+      },
+      {
+        "ts": 1771861276.2043035,
+        "level": "info",
+        "message": "[workflow-step-error] state missing tab_id; run open_or_reuse_tab first",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+      },
+      {
+        "ts": 1771861276.2106142,
+        "level": "info",
+        "message": "[launcher-step-json] {\"outputs\": {}, \"error_trace\": \"expected at least 5 companies, observed 0\", \"tool_response\": {\"step\": \"assert_min_count_5\", \"error\": \"expected at least 5 companies, observed 0\"}}",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+      },
+      {
+        "ts": 1771861276.2118974,
+        "level": "info",
+        "message": "[workflow-step-error] expected at least 5 companies, observed 0",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+      },
+      {
+        "ts": 1771861276.4161706,
+        "level": "info",
+        "message": "[launcher-step-json] {\"step\": \"assert_required_fields\", \"inputs\": {\"state_file\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-154115-879657\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\state.json\", \"artifacts_dir\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-154115-879657\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\assert_required_fields\", \"limit\": 5}, \"tool_call\": {\"op\": \"assert_required_fields\", \"required\": [\"name\", \"url\"]}, \"tool_response\": {\"missing\": []}, \"outputs\": {\"items_checked\": 0, \"missing_count\": 0}, \"normalized_output_hash\": \"9e137c2cc6c5fcc40e5eaa1f4af3853874df5490159e8eb7ff566b5271876452\", \"artifacts\": []}",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+      },
+      {
+        "ts": 1771861276.4202085,
+        "level": "info",
+        "message": "[launcher-step-json] {\"step\": \"persist_summary\", \"inputs\": {\"state_file\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-154115-879657\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\state.json\", \"artifacts_dir\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-154115-879657\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\persist_summary\", \"limit\": 5}, \"tool_call\": {\"op\": \"persist_summary\"}, \"tool_response\": {\"ok\": true}, \"outputs\": {\"tab_id\": null, \"count\": 0, \"sample_names\": [], \"screenshot\": null}, \"normalized_output_hash\": \"856c625702d91d7d5bdce703fbfcbdec0bf553571b3321348477cb84c0993a1c\", \"artifacts\": [{\"type\": \"json\", \"path\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-154115-879657\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\persist_summary\\\\workflow_summary.json\"}]}",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+      }
+    ],
+    "commands": [
+      {
+        "ts": 1771861275.9997668,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "scripts/salesnav_workflow_step.py",
+          "--step",
+          "capture_observation",
+          "--state-file",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657/artifacts/workflow.salesnav.collect_companies_5/state.json",
+          "--artifacts-dir",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657/artifacts/workflow.salesnav.collect_companies_5/capture_observation"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+      },
+      {
+        "ts": 1771861276.2063632,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "scripts/salesnav_workflow_step.py",
+          "--step",
+          "assert_min_count_5",
+          "--state-file",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657/artifacts/workflow.salesnav.collect_companies_5/state.json",
+          "--artifacts-dir",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657/artifacts/workflow.salesnav.collect_companies_5/assert_min_count_5",
+          "--limit",
+          "5"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+      },
+      {
+        "ts": 1771861276.2141936,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "scripts/salesnav_workflow_step.py",
+          "--step",
+          "assert_required_fields",
+          "--state-file",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657/artifacts/workflow.salesnav.collect_companies_5/state.json",
+          "--artifacts-dir",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657/artifacts/workflow.salesnav.collect_companies_5/assert_required_fields"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+      },
+      {
+        "ts": 1771861276.4180458,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "scripts/salesnav_workflow_step.py",
+          "--step",
+          "persist_summary",
+          "--state-file",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657/artifacts/workflow.salesnav.collect_companies_5/state.json",
+          "--artifacts-dir",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657/artifacts/workflow.salesnav.collect_companies_5/persist_summary"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+      }
+    ],
+    "network_calls": [],
+    "artifacts": [
+      {
+        "ts": 1771861276.433243,
+        "type": "events",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\events.ndjson",
+        "meta": {}
+      },
+      {
+        "ts": 1771861276.4339542,
+        "type": "stdout",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\stdout.log",
+        "meta": {}
+      },
+      {
+        "ts": 1771861276.4346223,
+        "type": "json",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\results.json",
+        "meta": {}
+      },
+      {
+        "ts": 1771861276.4353733,
+        "type": "junit",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\results.junit.xml",
+        "meta": {}
+      }
+    ],
+    "verification": [
+      {
+        "ts": 1771861276.4316068,
+        "source": "worker.run_finished",
+        "status": "failed",
+        "tests": [
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+            "status": "passed",
+            "duration_sec": 0.0,
+            "message": "passed (cache satisfied)",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+            "cached": true,
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "mocked_or_unit",
+              "browser_evidence": false,
+              "flagged": false,
+              "line_count": 0
+            }
+          },
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+            "status": "passed",
+            "duration_sec": 0.0,
+            "message": "passed (cache satisfied)",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+            "cached": true,
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "mocked_or_unit",
+              "browser_evidence": false,
+              "flagged": false,
+              "line_count": 0
+            }
+          },
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+            "status": "failed",
+            "duration_sec": 0.10027098655700684,
+            "message": "exit code 1",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+            "cache_key": "a136f32000c629c72fb14b7802ec69979c83d7a8473149dd450e67801b04717d",
+            "tool_response": {
+              "step": "capture_observation",
+              "error": "state missing tab_id; run open_or_reuse_tab first"
+            },
+            "outputs": {},
+            "error_trace": "state missing tab_id; run open_or_reuse_tab first",
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "live_browser",
+              "browser_evidence": true,
+              "flagged": false,
+              "line_count": 2
+            }
+          },
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+            "status": "failed",
+            "duration_sec": 0.10043883323669434,
+            "message": "exit code 1",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+            "cache_key": "c31c71f35497d6002b1abeac23d7d128a8635c105fc519dee3d17704f8b7ab11",
+            "tool_response": {
+              "step": "assert_min_count_5",
+              "error": "expected at least 5 companies, observed 0"
+            },
+            "outputs": {},
+            "error_trace": "expected at least 5 companies, observed 0",
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "mocked_or_unit",
+              "browser_evidence": false,
+              "flagged": false,
+              "line_count": 2
+            }
+          },
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+            "status": "passed",
+            "duration_sec": 0.10038065910339355,
+            "message": "",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+            "cache_key": "89e5f70bc2994497f688bfd06cf05fe62dcee231f0f575e02f5626554f3a42ee",
+            "inputs": {
+              "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+              "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\artifacts\\workflow.salesnav.collect_companies_5\\assert_required_fields",
+              "limit": 5
+            },
+            "tool_call": {
+              "op": "assert_required_fields",
+              "required": [
+                "name",
+                "url"
+              ]
+            },
+            "tool_response": {
+              "missing": []
+            },
+            "outputs": {
+              "items_checked": 0,
+              "missing_count": 0
+            },
+            "normalized_output_hash": "9e137c2cc6c5fcc40e5eaa1f4af3853874df5490159e8eb7ff566b5271876452",
+            "artifacts": [],
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "mocked_or_unit",
+              "browser_evidence": false,
+              "flagged": false,
+              "line_count": 1
+            }
+          },
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+            "status": "passed",
+            "duration_sec": 0.10020065307617188,
+            "message": "",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+            "cache_key": "93f0c8200e80641da34b602b4b1f5f7afca93396a1c1cd69ceb218840503726e",
+            "inputs": {
+              "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+              "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\artifacts\\workflow.salesnav.collect_companies_5\\persist_summary",
+              "limit": 5
+            },
+            "tool_call": {
+              "op": "persist_summary"
+            },
+            "tool_response": {
+              "ok": true
+            },
+            "outputs": {
+              "tab_id": null,
+              "count": 0,
+              "sample_names": [],
+              "screenshot": null
+            },
+            "normalized_output_hash": "856c625702d91d7d5bdce703fbfcbdec0bf553571b3321348477cb84c0993a1c",
+            "artifacts": [
+              {
+                "type": "json",
+                "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-154115-879657\\artifacts\\workflow.salesnav.collect_companies_5\\persist_summary\\workflow_summary.json"
+              }
+            ],
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "live_browser",
+              "browser_evidence": true,
+              "flagged": false,
+              "line_count": 1
+            }
+          }
+        ],
+        "duration_sec": 0.4189608097076416
+      },
+      {
+        "ts": 1771861276.4325044,
+        "source": "launcher.dependency_analysis",
+        "planned_edges": 5,
+        "observed_edges": 4,
+        "missing_planned_edges": 0,
+        "unexpected_observed_edges": 0
+      }
+    ]
+  },
+  "changes": []
+}

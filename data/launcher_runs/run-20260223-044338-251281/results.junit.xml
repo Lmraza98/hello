@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="launcher-run" tests="13" failures="1" skipped="1" time="159.830">
+  <testcase classname="launcher" name="backend-gate-pytest-ready" time="0.104">
+  </testcase>
+  <testcase classname="launcher" name="frontend-gate-node-ready" time="0.105">
+  </testcase>
+  <testcase classname="launcher" name="python-builder-routes" time="5.739">
+  </testcase>
+  <testcase classname="launcher" name="live-gate-backend-api-ready" time="3.420">
+  </testcase>
+  <testcase classname="launcher" name="live-gate-bridge-ready" time="1.109">
+  </testcase>
+  <testcase classname="launcher" name="python-api-routes-browser" time="8.253">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core" time="26.812">
+  </testcase>
+  <testcase classname="launcher" name="python-launcher-core" time="11.809">
+    <failure message="2 child test(s) failed"/>
+  </testcase>
+  <testcase classname="launcher" name="python-platform-core" time="2.727">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core" time="52.338">
+  </testcase>
+  <testcase classname="launcher" name="python-workflow-core" time="8.168">
+  </testcase>
+  <testcase classname="launcher" name="ui-tests-all" time="1.848">
+  </testcase>
+  <testcase classname="launcher" name="workflow-builder-live" time="37.399">
+    <skipped message="canceled"/>
+  </testcase>
+</testsuite>

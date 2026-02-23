@@ -1,0 +1,49 @@
+{
+  "run_id": "run-20260223-044619-004739",
+  "status": "canceled",
+  "duration_sec": 0.9594388008117676,
+  "tests": [
+    {
+      "id": "backend-gate-pytest-ready",
+      "status": "passed",
+      "duration_sec": 0.10303950309753418,
+      "message": "",
+      "retries": 1,
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 1
+      }
+    },
+    {
+      "id": "python-salesnav-core",
+      "status": "canceled",
+      "duration_sec": 0.8563492298126221,
+      "message": "canceled by user",
+      "retries": 0,
+      "children": [
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_company_focus_filters_generic_queries",
+          "parent_id": "python-salesnav-core",
+          "status": "canceled",
+          "attempt": 1,
+          "duration_sec": 0.8537187576293945,
+          "message": "canceled by user"
+        }
+      ],
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 2
+      }
+    }
+  ],
+  "exports": {
+    "json": true,
+    "junit": true
+  }
+}

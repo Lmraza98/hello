@@ -39,7 +39,14 @@ This topic was split into focused guides to keep maintenance and scanning fast.
 - Details pane Summary now surfaces dependency drift directly for both aggregate and node contexts (counts plus node-level unsatisfied planned deps at start when present).
 - SalesNav workflow DAG steps can now be loaded from `config/launcher_workflow_steps.v1.json` and executed via `Run Selected` as dependency-closed step plans.
 - Workflow step nodes now emit structured node artifacts (`inputs`, `tool_call`, `tool_response`, `outputs`, `normalized_output_hash`, `artifacts`) that are persisted into run results and shown in node details.
+- SalesNav `capture_observation` step now attempts a direct `/api/browser/screenshot` fallback when observation-pack does not return screenshot bytes, and persists the image path in node outputs/artifacts when available.
+- SalesNav workflow browser-interaction steps now capture an incremental screenshot per step (for example `open_or_reuse_tab`, `navigate_and_collect`) and persist it in step outputs/artifacts for node details playback.
+- Node details status now prefers run artifact status over stale graph-node status, so replayed attempts do not show `not_run` when the selected attempt actually passed/failed.
+- Node details screenshot preview now falls back to related workflow-step artifacts in the same run when the selected step has no direct screenshot payload.
+- Node Artifacts panel now renders from fallback workflow-step rows as well (not only direct node-row matches), so screenshots/output still appear when node ID matching is partial during replay.
+- Screenshot rendering in pywebview now resolves local artifact image paths through the launcher bridge (`resolve_artifact_image`) into data URLs, avoiding `file:///` image loading issues in embedded Chromium.
 - Wave-1 SalesNav gold flow is represented as workflow child nodes under `Python: salesnav core`; selecting a downstream workflow child and clicking `Run Selected` executes its prerequisites sequentially.
+- Top action bar includes `Clear Cache`, which clears launcher step cache (`data/launcher_runs/step_cache.json`) so subsequent runs do not short-circuit as cache-satisfied.
 
 ## Full Change History
 

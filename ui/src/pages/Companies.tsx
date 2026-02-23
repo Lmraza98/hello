@@ -32,7 +32,7 @@ import { getPageCapability } from '../capabilities/catalog';
 
 /* ── Constants ─────────────────────────── */
 
-const ROW_HEIGHT = 52;
+const ROW_HEIGHT = 44;
 const EXPANDED_HEIGHT = 160;
 
 /* ── Main Component ────────────────────────────────────── */
@@ -206,8 +206,8 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
   return (
     <div className="h-full flex flex-col bg-surface">
       {/* Header */}
-      <div className="sticky top-0 z-10 pb-3 md:pb-6">
-        <div className="pt-5 px-4 md:pt-8 md:px-8">
+      <div className="sticky top-0 z-10 pb-2 md:pb-4">
+        <div className="pt-3 px-3 md:pt-4 md:px-6">
           <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
           <PageHeader
             title="Companies"
@@ -216,21 +216,21 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
               <>
                 <button
                   onClick={() => setShowResetConfirm(true)}
-                  className="flex items-center gap-2 px-4 py-2 border border-border text-text-muted rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors"
+                  className="inline-flex h-8 items-center gap-1.5 px-3 border border-border text-text-muted rounded-md text-xs font-medium hover:bg-surface-hover transition-colors"
                 >
-                  <RotateCcw className="w-4 h-4" /> Reset All
+                  <RotateCcw className="w-3.5 h-3.5" /> Reset All
                 </button>
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 border border-border text-text rounded-lg text-sm font-medium hover:bg-surface-hover transition-colors"
+                  className="inline-flex h-8 items-center gap-1.5 px-3 border border-border text-text rounded-md text-xs font-medium hover:bg-surface-hover transition-colors"
                 >
-                  <Plus className="w-4 h-4" /> Add
+                  <Plus className="w-3.5 h-3.5" /> Add
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition-colors"
+                  className="inline-flex h-8 items-center gap-1.5 px-3 bg-accent text-white rounded-md text-xs font-medium hover:bg-accent-hover transition-colors"
                 >
-                  <Upload className="w-4 h-4" /> Import CSV
+                  <Upload className="w-3.5 h-3.5" /> Import CSV
                 </button>
               </>
             }
@@ -238,15 +238,15 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
               <>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors"
+                  className="p-1.5 bg-accent text-white rounded-md hover:bg-accent-hover transition-colors"
                 >
-                  <Upload className="w-4 h-4" />
+                  <Upload className="w-3.5 h-3.5" />
                 </button>
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="p-2 border border-border text-text rounded-lg hover:bg-surface-hover transition-colors"
+                  className="p-1.5 border border-border text-text rounded-md hover:bg-surface-hover transition-colors"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5" />
                 </button>
               </>
             }
@@ -254,12 +254,12 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
 
           {/* Bulk Actions Bar */}
           {selectedCount > 0 && (
-            <div className="mb-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+            <div className="mb-2 p-2.5 bg-indigo-50 border border-indigo-200 rounded-md">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-xs md:text-sm font-medium text-indigo-900 mr-1">{selectedCount} selected</span>
+                <span className="text-[11px] md:text-xs font-medium text-indigo-900 mr-1">{selectedCount} selected</span>
                 <button
                   onClick={handleBulkDelete}
-                  className="flex items-center gap-1 px-2 py-1.5 border border-red-300 text-red-700 rounded-md text-xs font-medium hover:bg-red-50 transition-colors"
+                  className="flex items-center gap-1 px-2 py-1 border border-red-300 text-red-700 rounded-md text-[11px] font-medium hover:bg-red-50 transition-colors"
                 >
                   <Trash2 className="w-3 h-3" />
                   <span className="hidden md:inline">Delete</span>
@@ -293,9 +293,9 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
 
           {/* Filter pills — scrollable on mobile */}
           {activeFilterCount > 0 && (
-            <div className="flex items-center gap-1.5 mt-2 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-1 mt-1.5 overflow-x-auto no-scrollbar">
               {columnFilters.map((f) => (
-                <span key={f.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[11px] font-medium whitespace-nowrap shrink-0">
+                <span key={f.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[10px] font-medium whitespace-nowrap shrink-0">
                   {f.id}: {String(f.value)}
                   <button onClick={() => setColumnFilters((prev) => prev.filter((cf) => cf.id !== f.id))} className="hover:text-accent/70">
                     <X className="w-3 h-3" />
@@ -319,7 +319,7 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
       )}
 
       {/* Virtualized Table / List */}
-      <div className="flex-1 min-h-0 px-4 md:px-8 pb-4 md:pb-8">
+      <div className="flex-1 min-h-0 px-3 md:px-6 pb-3 md:pb-6">
         {isLoading ? (
           <LoadingSpinner />
         ) : (
@@ -327,14 +327,14 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
             {/* Desktop: fixed thead — ONLY on desktop */}
             {!isMobile && (
               <div className="shrink-0">
-                <table className="w-full" style={{ tableLayout: 'fixed' }}>
+                <table className="w-full min-w-[860px]" style={{ tableLayout: 'fixed' }}>
                   {colGroup}
                   <thead>
                     {table.getHeaderGroups().map((headerGroup) => (
-                      <tr key={headerGroup.id} className="border-b border-border bg-surface-hover/50">
+                      <tr key={headerGroup.id} className="h-9 border-b border-border-subtle bg-surface-hover/30">
                         {headerGroup.headers.map((header) => (
                           <th key={header.id}
-                            className="text-left px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">
+                            className="text-left px-3 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide">
                             {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                           </th>
                         ))}
@@ -398,7 +398,7 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
                                 }}
                               >
                                 {row.getVisibleCells().map((cell) => (
-                                  <td key={cell.id} className="px-4 py-3.5">
+                                  <td key={cell.id} className="px-3 py-2 leading-tight">
                                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                   </td>
                                 ))}
@@ -406,7 +406,7 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
                               {isExpanded && (
                                 <tr className="bg-surface-hover/30 border-b border-border-subtle">
                                   <td colSpan={row.getVisibleCells().length} className="p-0">
-                                    <div className="px-6 py-4 overflow-x-auto">
+                                    <div className="px-4 py-3 overflow-x-auto">
                                       <CompanyDetail company={company} />
                                     </div>
                                   </td>

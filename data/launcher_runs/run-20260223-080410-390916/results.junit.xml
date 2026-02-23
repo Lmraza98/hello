@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="launcher-run" tests="2" failures="0" skipped="2" time="0.000">
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab" time="0.000">
+    <skipped message="canceled"/>
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect" time="0.000">
+    <skipped message="canceled"/>
+  </testcase>
+</testsuite>

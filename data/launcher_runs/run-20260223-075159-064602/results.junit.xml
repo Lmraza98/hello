@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="launcher-run" tests="17" failures="0" skipped="2" time="17.555">
+  <testcase classname="launcher" name="backend-gate-pytest-ready" time="0.101">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core" time="0.000">
+    <skipped message="canceled"/>
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_hq_filter_value_prefers_first_non_empty_item" time="1.103">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_maps_shape_and_limits_rows" time="1.104">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_preserves_enriched_salesnav_fields" time="1.104">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit" time="1.304">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error" time="1.304">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback" time="1.305">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save" time="1.304">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_passes_parser_output_to_execution_payload" time="1.305">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception" time="1.306">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_save_companies_to_db_insert_and_update_with_vertical" time="1.104">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_host_and_auth_url_contract" time="1.103">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_manager_delegates_auth_check" time="1.104">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_filters_normalization_and_similarity_contract" time="1.103">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_parsing_contract_for_headcount_and_employee_text" time="1.205">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_operation_retryable_error_markers" time="0.000">
+    <skipped message="canceled"/>
+  </testcase>
+</testsuite>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="launcher-run" tests="2" failures="0" skipped="0" time="51.512">
+  <testcase classname="launcher" name="backend-gate-pytest-ready" time="0.104">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core" time="51.408">
+  </testcase>
+</testsuite>

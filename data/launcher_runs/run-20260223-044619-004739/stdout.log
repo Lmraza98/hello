@@ -1,0 +1,3 @@
+[backend-gate-pytest-ready] Python 3.13.7
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_company_focus_filters_generic_queries] [child-note] started tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_company_focus_filters_generic_queries
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_company_focus_filters_generic_queries] [child-note] finished canceled

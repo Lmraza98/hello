@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="launcher-run" tests="3" failures="0" skipped="1" time="4.490">
+  <testcase classname="launcher" name="backend-gate-pytest-ready" time="0.105">
+  </testcase>
+  <testcase classname="launcher" name="frontend-gate-node-ready" time="0.104">
+  </testcase>
+  <testcase classname="launcher" name="python-builder-routes" time="4.281">
+    <skipped message="canceled"/>
+  </testcase>
+</testsuite>

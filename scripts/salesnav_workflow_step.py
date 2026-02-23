@@ -97,6 +97,30 @@ def _pick_screenshot_base64(observation_payload: dict[str, Any]) -> str:
     return ""
 
 
+def _pick_direct_screenshot_base64(payload: dict[str, Any]) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    for key in ("image", "screenshot_base64", "base64"):
+        val = payload.get(key)
+        if isinstance(val, str) and val.strip():
+            return val.strip()
+    return ""
+
+
+def _capture_step_screenshot(*, base_url: str, tab_id: str, artifacts_dir: Path, filename: str) -> str:
+    tab = str(tab_id or "").strip()
+    if not tab:
+        return ""
+    req = {"tab_id": tab, "full_page": False}
+    resp = _request(base_url, "POST", "/api/browser/screenshot", req, timeout=45)
+    shot_b64 = _pick_direct_screenshot_base64(resp if isinstance(resp, dict) else {})
+    if not shot_b64:
+        return ""
+    out_path = artifacts_dir / filename
+    out_path.write_bytes(base64.b64decode(shot_b64))
+    return str(out_path)
+
+
 def _emit_structured(payload: dict[str, Any]) -> None:
     print(PREFIX + json.dumps(payload, ensure_ascii=True), flush=True)
 
@@ -127,8 +151,16 @@ def run_step(*, step: str, base_url: str, state_file: Path, artifacts_dir: Path,
         seed_url = os.getenv("WORKFLOW_BUILDER_LIVE_SEED_URL", "https://www.linkedin.com/sales/search/company").strip()
         nav_call = {"method": "POST", "path": "/api/browser/navigate", "tab_id": tab_id, "url": seed_url}
         nav_resp = _request(base_url, "POST", "/api/browser/navigate", {"tab_id": tab_id, "url": seed_url, "timeout_ms": 45000})
+        step_shot = _capture_step_screenshot(
+            base_url=base_url,
+            tab_id=tab_id,
+            artifacts_dir=artifacts_dir,
+            filename="open_or_reuse_tab_screenshot.jpg",
+        )
         tool_response = {"tabs_count": len(tab_rows), "navigate": nav_resp}
-        outputs = {"tab_id": tab_id, "seed_url": seed_url, "tool_calls": [tool_call, nav_call]}
+        outputs = {"tab_id": tab_id, "seed_url": seed_url, "tool_calls": [tool_call, nav_call], "screenshot": step_shot or None}
+        if step_shot:
+            artifact_rows.append({"type": "screenshot", "path": step_shot})
 
     elif step == "navigate_and_collect":
         tab_id = str(state.get("tab_id") or "").strip()
@@ -160,9 +192,17 @@ def run_step(*, step: str, base_url: str, state_file: Path, artifacts_dir: Path,
         items = _extract_items(collected)
         state["search_result"] = collected
         state["items"] = items
-        outputs = {"query": query, "count": len(items), "tab_id": tab_id}
+        step_shot = _capture_step_screenshot(
+            base_url=base_url,
+            tab_id=tab_id,
+            artifacts_dir=artifacts_dir,
+            filename="navigate_and_collect_screenshot.jpg",
+        )
+        outputs = {"query": query, "count": len(items), "tab_id": tab_id, "screenshot": step_shot or None}
         _save_json(artifacts_dir / "search_result.json", {"result": collected, "items": items})
         artifact_rows.append({"type": "json", "path": str(artifacts_dir / "search_result.json")})
+        if step_shot:
+            artifact_rows.append({"type": "screenshot", "path": step_shot})
 
     elif step == "capture_observation":
         tab_id = str(state.get("tab_id") or "").strip()
@@ -173,14 +213,26 @@ def run_step(*, step: str, base_url: str, state_file: Path, artifacts_dir: Path,
         obs = _request(base_url, "POST", "/api/browser/workflows/observation-pack", req, timeout=90)
         tool_response = {"ok": bool(obs.get("ok")), "tab_id": obs.get("tab_id")}
         shot_b64 = _pick_screenshot_base64(obs)
+        if not shot_b64:
+            fallback_req = {"tab_id": tab_id, "full_page": False}
+            fallback_call = {"method": "POST", "path": "/api/browser/screenshot", "payload": fallback_req}
+            fallback_resp = _request(base_url, "POST", "/api/browser/screenshot", fallback_req, timeout=45)
+            tool_response["fallback_screenshot"] = {
+                "ok": bool(fallback_resp),
+                "keys": sorted(list(fallback_resp.keys())) if isinstance(fallback_resp, dict) else [],
+            }
+            tool_call = {"primary": tool_call, "fallback": fallback_call}
+            shot_b64 = _pick_direct_screenshot_base64(fallback_resp if isinstance(fallback_resp, dict) else {})
+        image_path_str = ""
         if shot_b64:
             image_path = artifacts_dir / "observation_screenshot.jpg"
             image_path.write_bytes(base64.b64decode(shot_b64))
-            state["observation_screenshot"] = str(image_path)
+            image_path_str = str(image_path)
+            state["observation_screenshot"] = image_path_str
             artifact_rows.append({"type": "screenshot", "path": str(image_path)})
         _save_json(artifacts_dir / "observation_pack.json", obs if isinstance(obs, dict) else {"raw": obs})
         artifact_rows.append({"type": "json", "path": str(artifacts_dir / "observation_pack.json")})
-        outputs = {"tab_id": tab_id, "has_screenshot": bool(shot_b64)}
+        outputs = {"tab_id": tab_id, "has_screenshot": bool(shot_b64), "screenshot": image_path_str or None}
 
     elif step == "assert_min_count_5":
         items = state.get("items") if isinstance(state.get("items"), list) else []

@@ -151,6 +151,40 @@ describe('buildDispatchBackedResult (Phase 2A golden)', () => {
     expect(result.debugTrace?.synthesisPromptChars).toBe(0);
   });
 
+  it('does not require confirmation for read-only lookups when confirmation mode is enabled', async () => {
+    const ctx = makeCtx({
+      options: { requireToolConfirmation: true },
+      phase: 'planning',
+    });
+    const calls = [{ name: 'search_contacts', args: { name: 'Randy Peterson' } }];
+
+    mocks.dispatchToolCalls.mockResolvedValue({
+      success: true,
+      toolsUsed: ['search_contacts'],
+      executed: [
+        {
+          name: 'search_contacts',
+          args: { name: 'Randy Peterson' },
+          ok: true,
+          result: [{ id: 1, name: 'Randy Peterson' }],
+          durationMs: 10,
+        },
+      ],
+      summary: 'Found Randy Peterson',
+    });
+
+    const result = await buildDispatchBackedResult({
+      ctx,
+      calls,
+      routeReason: 'golden_read_only_no_confirm',
+      allowSkipSynthesis: true,
+    });
+
+    expect(result.confirmation).toBeUndefined();
+    expect(result.response).toBeTruthy();
+    expect(mocks.dispatchToolCalls).toHaveBeenCalledTimes(1);
+  });
+
   it('dispatch path: applies metaOverride + phaseOverride + postProcessAssistantText', async () => {
     const ctx = makeCtx({
       options: { requireToolConfirmation: false },

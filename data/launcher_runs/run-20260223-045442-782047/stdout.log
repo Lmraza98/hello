@@ -1,0 +1,11 @@
+[backend-gate-pytest-ready] Python 3.13.7
+[frontend-gate-node-ready] v22.19.0
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] 1 passed in 0.66s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] .                                                                        [100%]
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] 1 passed in 0.62s
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success] [child-note] finished passed
+[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success

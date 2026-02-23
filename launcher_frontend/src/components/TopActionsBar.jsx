@@ -28,6 +28,7 @@ export default function TopActionsBar({
   anyRunActive,
   waitingFirstEvent,
   onClearState,
+  onClearCache,
   activeFilterCount = 0,
   onClearFilters,
 }) {
@@ -93,6 +94,14 @@ export default function TopActionsBar({
           ) : null}
           <button type="button" title="Clear/Reset UI State" onClick={onClearState} className={`${secondaryBtn} border-rose-500/30 text-rose-300 hover:bg-rose-950/40`}>
             Reset State
+          </button>
+          <button
+            type="button"
+            title="Clear test step cache"
+            onClick={onClearCache}
+            className={`${secondaryBtn} border-amber-500/30 text-amber-200 hover:bg-amber-950/30`}
+          >
+            Clear Cache
           </button>
           <button
             type="button"

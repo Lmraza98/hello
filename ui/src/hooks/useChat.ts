@@ -523,6 +523,16 @@ export function useChat(options?: {
     if (searchContacts) {
       actions.push({ type: 'navigate', to: '/contacts' });
       const args = searchContacts.args || {};
+      const exactNameOnlyLookup =
+        typeof args.name === 'string' &&
+        args.name.trim().length > 0 &&
+        (typeof args.company !== 'string' || args.company.trim().length === 0) &&
+        (typeof args.query !== 'string' || args.query.trim().length === 0) &&
+        args.has_email == null &&
+        args.today_only == null;
+      if (exactNameOnlyLookup) {
+        return [];
+      }
       pushFilter(actions, 'q', args.name);
       pushFilter(actions, 'company', args.company);
       pushFilter(actions, 'hasEmail', args.has_email);
@@ -533,6 +543,15 @@ export function useChat(options?: {
     if (searchCompanies) {
       actions.push({ type: 'navigate', to: '/companies' });
       const args = searchCompanies.args || {};
+      const exactCompanyOnlyLookup =
+        typeof args.company_name === 'string' &&
+        args.company_name.trim().length > 0 &&
+        (typeof args.q !== 'string' || args.q.trim().length === 0) &&
+        (typeof args.vertical !== 'string' || args.vertical.trim().length === 0) &&
+        (typeof args.tier !== 'string' || args.tier.trim().length === 0);
+      if (exactCompanyOnlyLookup) {
+        return [];
+      }
       pushFilter(actions, 'q', args.q);
       pushFilter(actions, 'company', args.company_name);
       pushFilter(actions, 'vertical', args.vertical);

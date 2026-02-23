@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="launcher-run" tests="61" failures="0" skipped="7" time="46.726">
+  <testcase classname="launcher" name="backend-gate-pytest-ready" time="0.100">
+  </testcase>
+  <testcase classname="launcher" name="python-api-routes-browser" time="8.257">
+  </testcase>
+  <testcase classname="launcher" name="python-builder-routes" time="5.542">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core" time="26.310">
+  </testcase>
+  <testcase classname="launcher" name="python-launcher-core" time="0.000">
+    <skipped message="canceled"/>
+  </testcase>
+  <testcase classname="launcher" name="python-platform-core" time="0.000">
+    <skipped message="canceled"/>
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core" time="0.000">
+    <skipped message="canceled"/>
+  </testcase>
+  <testcase classname="launcher" name="python-workflow-core" time="0.000">
+    <skipped message="canceled"/>
+  </testcase>
+  <testcase classname="launcher" name="frontend-gate-node-ready" time="0.100">
+  </testcase>
+  <testcase classname="launcher" name="ui-tests-all" time="0.000">
+    <skipped message="canceled"/>
+  </testcase>
+  <testcase classname="launcher" name="live-gate-backend-api-ready" time="3.017">
+  </testcase>
+  <testcase classname="launcher" name="live-gate-bridge-ready" time="1.008">
+  </testcase>
+  <testcase classname="launcher" name="workflow-builder-live" time="0.000">
+    <skipped message="canceled"/>
+  </testcase>
+  <testcase classname="launcher" name="python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success" time="1.104">
+  </testcase>
+  <testcase classname="launcher" name="python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success" time="1.104">
+  </testcase>
+  <testcase classname="launcher" name="python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success" time="1.104">
+  </testcase>
+  <testcase classname="launcher" name="python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success" time="1.105">
+  </testcase>
+  <testcase classname="launcher" name="python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error" time="1.103">
+  </testcase>
+  <testcase classname="launcher" name="live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready" time="0.501">
+  </testcase>
+  <testcase classname="launcher" name="live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready" time="2.507">
+  </testcase>
+  <testcase classname="launcher" name="live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready" time="0.502">
+  </testcase>
+  <testcase classname="launcher" name="live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready" time="0.502">
+  </testcase>
+  <testcase classname="launcher" name="python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend" time="0.703">
+  </testcase>
+  <testcase classname="launcher" name="python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task" time="0.702">
+  </testcase>
+  <testcase classname="launcher" name="python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync" time="1.105">
+  </testcase>
+  <testcase classname="launcher" name="python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status" time="2.307">
+  </testcase>
+  <testcase classname="launcher" name="python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error" time="1.205">
+  </testcase>
+  <testcase classname="launcher" name="python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404" time="1.104">
+  </testcase>
+  <testcase classname="launcher" name="python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows" time="1.103">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend" time="0.702">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_defaults_to_local_backend" time="0.702">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env" time="0.802">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_policy.py::test_token_bucket_wait_and_consume" time="0.401">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_enforces_hourly_budget" time="0.401">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_cooldown_after_friction" time="0.703">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip" time="1.003">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_match_skill_prefers_fingerprint" time="1.104">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_item_validation_detects_uniqueness_failure" time="1.104">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_skill_regression.py::test_extract_regression_tests_from_markdown_section" time="1.105">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_regression_expectation" time="1.004">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_promotion_gate" time="1.002">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_skill_regression.py::test_update_skill_frontmatter_sets_qa_fields" time="1.003">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_workflow_builder.py::test_classify_page_mode_login_wall" time="1.004">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_workflow_builder.py::test_infer_href_pattern_picks_stable_segment" time="1.104">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_scores_good_candidate" time="1.003">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_rejects_missing_urls" time="1.003">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_prefers_positive_segment" time="1.004">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_uses_fallback_without_positives" time="1.003">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_candidate_from_feedback_infers_label_and_role_constraints" time="1.003">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints" time="1.104">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches" time="1.104">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled" time="1.004">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled" time="1.004">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_recaptcha_v2_as_visible" time="0.903">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_turnstile_as_behavioral" time="0.903">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_respects_research_host_gate" time="0.903">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_hands_off_behavioral_and_resumes_when_cleared" time="1.103">
+  </testcase>
+  <testcase classname="launcher" name="python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary" time="0.703">
+  </testcase>
+  <testcase classname="launcher" name="python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters" time="0.702">
+  </testcase>
+  <testcase classname="launcher" name="python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist" time="0.702">
+  </testcase>
+  <testcase classname="launcher" name="python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic" time="0.000">
+    <skipped message="canceled"/>
+  </testcase>
+</testsuite>

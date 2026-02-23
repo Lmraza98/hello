@@ -1,0 +1,1662 @@
+{
+  "schema_version": "run_trace.v1",
+  "run": {
+    "id": "run-20260223-153432-319561",
+    "timestamp": "2026-02-23T15:34:32Z",
+    "env": {
+      "profile": "local",
+      "server_port": 8000,
+      "bridge_port": 9223,
+      "python": "3.13.7"
+    },
+    "git": {
+      "commit": "0b78779068007f21f63e335dfd97ec2c783c94dc",
+      "branch": "main",
+      "dirty": true
+    },
+    "config_snapshot": {
+      "selected_ids": [
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+      ],
+      "selected_tags": [],
+      "mode": "steps"
+    },
+    "status": "passed",
+    "finished_at_ts": 1771860912.0151334,
+    "duration_sec": 39.55516219139099,
+    "tests_count": 6
+  },
+  "plan": {
+    "mode": "steps",
+    "ordered_steps": [
+      {
+        "order": 1,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "label": "Open or Reuse Browser Tab",
+        "kind": "action",
+        "deps": [],
+        "dependency_reasons": [],
+        "skip": false,
+        "cache_key": "3ee28808609c7ecdee536eab309da9171a934d7c8d6bc63ce1db57ef0c429b67"
+      },
+      {
+        "order": 2,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+        "label": "Navigate and Collect Companies",
+        "kind": "action",
+        "deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "dependency_reasons": [
+          "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "skip": false,
+        "cache_key": "2405fcf98e5891f24874c6c0f9bdd614c9905d4680073ab9593e84798b5bd78a"
+      },
+      {
+        "order": 3,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+        "label": "Capture Observation Screenshot",
+        "kind": "action",
+        "deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+        ],
+        "dependency_reasons": [
+          "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+        ],
+        "skip": false,
+        "cache_key": "a136f32000c629c72fb14b7802ec69979c83d7a8473149dd450e67801b04717d"
+      },
+      {
+        "order": 4,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+        "label": "Assert Minimum Company Count (5)",
+        "kind": "assertion",
+        "deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+        ],
+        "dependency_reasons": [
+          "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+        ],
+        "skip": false,
+        "cache_key": "c31c71f35497d6002b1abeac23d7d128a8635c105fc519dee3d17704f8b7ab11"
+      },
+      {
+        "order": 5,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+        "label": "Assert Required Fields (name,url)",
+        "kind": "assertion",
+        "deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+        ],
+        "dependency_reasons": [
+          "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+        ],
+        "skip": false,
+        "cache_key": "89e5f70bc2994497f688bfd06cf05fe62dcee231f0f575e02f5626554f3a42ee"
+      },
+      {
+        "order": 6,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+        "label": "Persist Workflow Summary Artifact",
+        "kind": "assertion",
+        "deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+        ],
+        "dependency_reasons": [
+          "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+        ],
+        "skip": false,
+        "cache_key": "93f0c8200e80641da34b602b4b1f5f7afca93396a1c1cd69ceb218840503726e"
+      }
+    ],
+    "plan_text": "{\"mode\": \"steps\", \"ordered_steps\": [{\"order\": 1, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab\", \"label\": \"Open or Reuse Browser Tab\", \"kind\": \"action\", \"deps\": [], \"dependency_reasons\": [], \"skip\": false, \"cache_key\": \"3ee28808609c7ecdee536eab309da9171a934d7c8d6bc63ce1db57ef0c429b67\"}, {\"order\": 2, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect\", \"label\": \"Navigate and Collect Companies\", \"kind\": \"action\", \"deps\": [\"python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab\"], \"dependency_reasons\": [\"depends on python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab\"], \"skip\": false, \"cache_key\": \"2405fcf98e5891f24874c6c0f9bdd614c9905d4680073ab9593e84798b5bd78a\"}, {\"order\": 3, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation\", \"label\": \"Capture Observation Screenshot\", \"kind\": \"action\", \"deps\": [\"python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect\"], \"dependency_reasons\": [\"depends on python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect\"], \"skip\": false, \"cache_key\": \"a136f32000c629c72fb14b7802ec69979c83d7a8473149dd450e67801b04717d\"}, {\"order\": 4, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5\", \"label\": \"Assert Minimum Company Count (5)\", \"kind\": \"assertion\", \"deps\": [\"python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation\"], \"dependency_reasons\": [\"depends on python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation\"], \"skip\": false, \"cache_key\": \"c31c71f35497d6002b1abeac23d7d128a8635c105fc519dee3d17704f8b7ab11\"}, {\"order\": 5, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields\", \"label\": \"Assert Required Fields (name,url)\", \"kind\": \"assertion\", \"deps\": [\"python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5\"], \"dependency_reasons\": [\"depends on python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5\"], \"skip\": false, \"cache_key\": \"89e5f70bc2994497f688bfd06cf05fe62dcee231f0f575e02f5626554f3a42ee\"}, {\"order\": 6, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary\", \"label\": \"Persist Workflow Summary Artifact\", \"kind\": \"assertion\", \"deps\": [\"python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields\"], \"dependency_reasons\": [\"depends on python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields\"], \"skip\": false, \"cache_key\": \"93f0c8200e80641da34b602b4b1f5f7afca93396a1c1cd69ceb218840503726e\"}]}",
+    "plan_json": {
+      "mode": "steps",
+      "ordered_steps": [
+        {
+          "order": 1,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+          "label": "Open or Reuse Browser Tab",
+          "kind": "action",
+          "deps": [],
+          "dependency_reasons": [],
+          "skip": false,
+          "cache_key": "3ee28808609c7ecdee536eab309da9171a934d7c8d6bc63ce1db57ef0c429b67"
+        },
+        {
+          "order": 2,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+          "label": "Navigate and Collect Companies",
+          "kind": "action",
+          "deps": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+          ],
+          "dependency_reasons": [
+            "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+          ],
+          "skip": false,
+          "cache_key": "2405fcf98e5891f24874c6c0f9bdd614c9905d4680073ab9593e84798b5bd78a"
+        },
+        {
+          "order": 3,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+          "label": "Capture Observation Screenshot",
+          "kind": "action",
+          "deps": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+          ],
+          "dependency_reasons": [
+            "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+          ],
+          "skip": false,
+          "cache_key": "a136f32000c629c72fb14b7802ec69979c83d7a8473149dd450e67801b04717d"
+        },
+        {
+          "order": 4,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+          "label": "Assert Minimum Company Count (5)",
+          "kind": "assertion",
+          "deps": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+          ],
+          "dependency_reasons": [
+            "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+          ],
+          "skip": false,
+          "cache_key": "c31c71f35497d6002b1abeac23d7d128a8635c105fc519dee3d17704f8b7ab11"
+        },
+        {
+          "order": 5,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+          "label": "Assert Required Fields (name,url)",
+          "kind": "assertion",
+          "deps": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+          ],
+          "dependency_reasons": [
+            "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+          ],
+          "skip": false,
+          "cache_key": "89e5f70bc2994497f688bfd06cf05fe62dcee231f0f575e02f5626554f3a42ee"
+        },
+        {
+          "order": 6,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+          "label": "Persist Workflow Summary Artifact",
+          "kind": "assertion",
+          "deps": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+          ],
+          "dependency_reasons": [
+            "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+          ],
+          "skip": false,
+          "cache_key": "93f0c8200e80641da34b602b4b1f5f7afca93396a1c1cd69ceb218840503726e"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "status": "passed",
+      "started_at_ts": 1771860872.4950788,
+      "started_at": "2026-02-23T15:34:32Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771860895.3413103,
+      "finished_at": "2026-02-23T15:34:55Z",
+      "duration_sec": 22.77383852005005,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": "3ee28808609c7ecdee536eab309da9171a934d7c8d6bc63ce1db57ef0c429b67",
+        "inputs": {
+          "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+          "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\open_or_reuse_tab",
+          "limit": 5
+        },
+        "tool_call": {
+          "method": "GET",
+          "path": "/api/browser/tabs"
+        },
+        "tool_response": {
+          "tabs_count": 1,
+          "navigate": {
+            "ok": true,
+            "tab_id": "tab-0",
+            "url": "https://www.linkedin.com/sales/search/company",
+            "title": "Search | Sales Navigator",
+            "mode": "camoufox",
+            "task_id": "45505f43-46b3-4bf4-9d22-6dc276747871",
+            "task_status": "finished"
+          }
+        },
+        "outputs": {
+          "tab_id": "tab-0",
+          "seed_url": "https://www.linkedin.com/sales/search/company",
+          "tool_calls": [
+            {
+              "method": "GET",
+              "path": "/api/browser/tabs"
+            },
+            {
+              "method": "POST",
+              "path": "/api/browser/navigate",
+              "tab_id": "tab-0",
+              "url": "https://www.linkedin.com/sales/search/company"
+            }
+          ],
+          "screenshot": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\open_or_reuse_tab\\open_or_reuse_tab_screenshot.jpg"
+        },
+        "normalized_output_hash": "64a229800fc14bc56ab36f374f96c8e7e4d94ec6ac5808a5ed7dc3a9b9b64c87",
+        "artifacts": [
+          {
+            "type": "screenshot",
+            "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\open_or_reuse_tab\\open_or_reuse_tab_screenshot.jpg"
+          }
+        ]
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "status": "passed",
+      "started_at_ts": 1771860895.3429525,
+      "started_at": "2026-02-23T15:34:55Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771860911.3781154,
+      "finished_at": "2026-02-23T15:35:11Z",
+      "duration_sec": 16.150988817214966,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": "2405fcf98e5891f24874c6c0f9bdd614c9905d4680073ab9593e84798b5bd78a",
+        "inputs": {
+          "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+          "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\navigate_and_collect",
+          "limit": 5
+        },
+        "tool_call": {
+          "method": "POST",
+          "path": "/api/browser/workflows/search-and-extract",
+          "payload": {
+            "task": "salesnav_search_account",
+            "query": "graphics card companies on sales navigator",
+            "tab_id": "tab-0",
+            "limit": 5,
+            "wait_ms": 3500
+          }
+        },
+        "tool_response": {
+          "ok": true,
+          "tab_id": "tab-0",
+          "skill_id": "linkedin-salesnav-accounts",
+          "skill_match_score": 105,
+          "task": "salesnav_search_account",
+          "query": "graphics card companies on sales navigator",
+          "url": "https://www.linkedin.com/sales/search/company?query=(spellCorrectionEnabled%3Atrue%2Ckeywords%3Agraphics)&sessionId=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D&viewAllFilters=true",
+          "applied_filters": {},
+          "items": [
+            {
+              "company_name": "graphics",
+              "name": "graphics",
+              "sales_nav_url": "https://www.linkedin.com/sales/company/817740?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+              "linkedin_url": "https://www.linkedin.com/sales/company/817740?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+              "industry": "Graphic Design",
+              "subtitle": "Graphic Design",
+              "employee_count": "1.5K+ employees",
+              "company_size": "1.5K+ employees",
+              "location": "",
+              "about": "Clippingpathmaster is an online Clipping Path service provider, which remove image background for web and print usage. We have professional graphic designers and deliver images in outstanding quality within 1-24 hours. All designers of Clippingpathmaster manually create Photoshop clipping path, masking, image retouching , web design, and desktop publishing software. Clippingpathmaster offers one ($1) US dollar any kinds of clipping path within 12 hours & Free trial for quality evaluation before sending a job.",
+              "strategic_priorities": [
+                "Expanding service offerings"
+              ],
+              "interaction_map": {
+                "company_name_click": true,
+                "company_logo_click": true,
+                "all_employees_click": true,
+                "save_click": true,
+                "overflow_menu_click": true,
+                "spotlight_click": true
+              },
+              "control_names": [
+                "view_company_via_result_image",
+                "view_company_via_result_name",
+                "search_spotlight_aiq_strategic_priorities"
+              ],
+              "has_spotlight_ai": true,
+              "source_url": "https://www.linkedin.com/sales/company/817740",
+              "extracted_at": "2026-02-23T15:35:09.123408+00:00",
+              "skill_id": "linkedin-salesnav-accounts",
+              "match_score": 105
+            },
+            {
+              "company_name": "Graphics and Design",
+              "name": "Graphics and Design",
+              "sales_nav_url": "https://www.linkedin.com/sales/company/505627?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+              "linkedin_url": "https://www.linkedin.com/sales/company/505627?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+              "industry": "Graphic Design",
+              "subtitle": "Graphic Design",
+              "employee_count": "470 employees",
+              "company_size": "470 employees",
+              "location": "",
+              "about": "Advertising/Marketing/Communications for print, web, display, and multi media strategies. We have worked for many types of industries for over 30 years including state and federal agencies. Our environmental work is award winning and innovative, Please visit www.graphicsanddesign.net/ and see how easy it is to work with us. Testimonials \u201cI appreciated the time that the team gave me with regards to understanding the dynamics my business. I also feel that the entirety and availability of their capable product realm is very expansive and diverse and that\u2019s a great positive. I\u2019m also very grateful for the continued communication with the company.\u201d -Brandon \"Graphics and Design brings three critical skills to the table: an eye for detail, patience, and raw creative talent. All of the little things that make good design so recognizable were present from the very first rough drafts they sent us. They were exceedingly patient for the (many) revisions we requested. Lastly, the cohesive look and feel that permeates all their work, I feel like they \"get\"\u200b our brand, and we couldn't be happier with how everything they did fits together.\"\u200b -Chris",
+              "strategic_priorities": [],
+              "interaction_map": {
+                "company_name_click": true,
+                "company_logo_click": true,
+                "all_employees_click": true,
+                "save_click": true,
+                "overflow_menu_click": true,
+                "spotlight_click": false
+              },
+              "control_names": [
+                "view_company_via_result_image",
+                "view_company_via_result_name"
+              ],
+              "has_spotlight_ai": false,
+              "source_url": "https://www.linkedin.com/sales/company/505627",
+              "extracted_at": "2026-02-23T15:35:09.123424+00:00",
+              "skill_id": "linkedin-salesnav-accounts",
+              "match_score": 105
+            },
+            {
+              "company_name": "GRAPHICS SYSTEM SA",
+              "name": "GRAPHICS SYSTEM SA",
+              "sales_nav_url": "https://www.linkedin.com/sales/company/30103679?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+              "linkedin_url": "https://www.linkedin.com/sales/company/30103679?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+              "industry": "Printing Services",
+              "subtitle": "Printing Services",
+              "employee_count": "210 employees",
+              "company_size": "210 employees",
+              "location": "",
+              "about": "Graphics System SA est une entreprise du secteur de l'imprimerie, cr\u00e9\u00e9e en 1990 par M. SANGA Jean-Baptiste. Leader sur le plan national, elle se distingue notamment dans les secteurs du Packaging, de l'Offset, de la Signal\u00e9tique, du Num\u00e9rique, de la S\u00e9rigraphie et des Objets publicitaires; elle constitue une cha\u00eene graphique int\u00e9grale.",
+              "strategic_priorities": [],
+              "interaction_map": {
+                "company_name_click": true,
+                "company_logo_click": true,
+                "all_employees_click": true,
+                "save_click": true,
+                "overflow_menu_click": true,
+                "spotlight_click": false
+              },
+              "control_names": [
+                "view_company_via_result_image",
+                "view_company_via_result_name",
+                "search_spotlight_hiring_on_linkedin"
+              ],
+              "has_spotlight_ai": false,
+              "source_url": "https://www.linkedin.com/sales/company/30103679",
+              "extracted_at": "2026-02-23T15:35:09.123428+00:00",
+              "skill_id": "linkedin-salesnav-accounts",
+              "match_score": 105
+            },
+            {
+              "company_name": "Graphics Lodge",
+              "name": "Graphics Lodge",
+              "sales_nav_url": "https://www.linkedin.com/sales/company/83513175?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+              "linkedin_url": "https://www.linkedin.com/sales/company/83513175?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+              "industry": "IT System Custom Software Development",
+              "subtitle": "IT System Custom Software Development",
+              "employee_count": "19 employees",
+              "company_size": "19 employees",
+              "location": "",
+              "about": "Graphicslodge Web Designs is a new age creative agency that has a primary focus on providing digital solutions that are a dire need of the time. We are a full house digital branding and development organization that offers high-quality digital solutions. From developing a professional website with an imposing website design to crafting logos and making animations, our team of experts is nailing every digital sector.",
+              "strategic_priorities": [],
+              "interaction_map": {
+                "company_name_click": true,
+                "company_logo_click": true,
+                "all_employees_click": true,
+                "save_click": true,
+                "overflow_menu_click": true,
+                "spotlight_click": false
+              },
+              "control_names": [
+                "view_company_via_result_image",
+                "view_company_via_result_name"
+              ],
+              "has_spotlight_ai": false,
+              "source_url": "https://www.linkedin.com/sales/company/83513175",
+              "extracted_at": "2026-02-23T15:35:09.123431+00:00",
+              "skill_id": "linkedin-salesnav-accounts",
+              "match_score": 105
+            },
+            {
+              "company_name": "Graphics Design World",
+              "name": "Graphics Design World",
+              "sales_nav_url": "https://www.linkedin.com/sales/company/108101125?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+              "linkedin_url": "https://www.linkedin.com/sales/company/108101125?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+              "industry": "Graphic Design",
+              "subtitle": "Graphic Design",
+              "employee_count": "14 employees",
+              "company_size": "14 employees",
+              "location": "",
+              "about": "",
+              "strategic_priorities": [],
+              "interaction_map": {
+                "company_name_click": true,
+                "company_logo_click": true,
+                "all_employees_click": true,
+                "save_click": true,
+                "overflow_menu_click": true,
+                "spotlight_click": false
+              },
+              "control_names": [
+                "view_company_via_result_image",
+                "view_company_via_result_name"
+              ],
+              "has_spotlight_ai": false,
+              "source_url": "https://www.linkedin.com/sales/company/108101125",
+              "extracted_at": "2026-02-23T15:35:09.123434+00:00",
+              "skill_id": "linkedin-salesnav-accounts",
+              "match_score": 105
+            }
+          ],
+          "count": 5,
+          "click": null,
+          "extract_type": "company",
+          "item_validation": {
+            "ok": true,
+            "reasons": [],
+            "metrics": {
+              "count": 5,
+              "min_items": 1,
+              "max_items": 200,
+              "name_non_empty_rate": 1.0,
+              "url_non_empty_rate": 1.0,
+              "unique_url_fraction": 1.0,
+              "min_unique_url_fraction": 0.7
+            }
+          },
+          "query_decomposition": {
+            "original_query": "graphics card companies on sales navigator",
+            "effective_keywords": "graphics",
+            "filters_applied": {}
+          },
+          "task_id": "41f77402-8487-49dc-9140-5f0606c79207",
+          "task_status": "finished"
+        },
+        "outputs": {
+          "query": "graphics card companies on sales navigator",
+          "count": 5,
+          "tab_id": "tab-0",
+          "screenshot": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\navigate_and_collect\\navigate_and_collect_screenshot.jpg"
+        },
+        "normalized_output_hash": "e814edef7a01beacc37e19102ca29d4056a510f3e4a966ade5c3173809bf10f1",
+        "artifacts": [
+          {
+            "type": "json",
+            "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\navigate_and_collect\\search_result.json"
+          },
+          {
+            "type": "screenshot",
+            "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\navigate_and_collect\\navigate_and_collect_screenshot.jpg"
+          }
+        ]
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+      "status": "passed",
+      "started_at_ts": 1771860911.3807678,
+      "started_at": "2026-02-23T15:35:11Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771860911.7847714,
+      "finished_at": "2026-02-23T15:35:11Z",
+      "duration_sec": 0.30139732360839844,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": "a136f32000c629c72fb14b7802ec69979c83d7a8473149dd450e67801b04717d",
+        "inputs": {
+          "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+          "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\capture_observation",
+          "limit": 5
+        },
+        "tool_call": {
+          "primary": {
+            "method": "POST",
+            "path": "/api/browser/workflows/observation-pack",
+            "payload": {
+              "tab_id": "tab-0",
+              "include_screenshot": true,
+              "include_semantic_nodes": true
+            }
+          },
+          "fallback": {
+            "method": "POST",
+            "path": "/api/browser/screenshot",
+            "payload": {
+              "tab_id": "tab-0",
+              "full_page": false
+            }
+          }
+        },
+        "tool_response": {
+          "ok": true,
+          "tab_id": "tab-0",
+          "fallback_screenshot": {
+            "ok": true,
+            "keys": [
+              "base64",
+              "mime",
+              "ok",
+              "tab_id",
+              "task_id",
+              "task_status"
+            ]
+          }
+        },
+        "outputs": {
+          "tab_id": "tab-0",
+          "has_screenshot": true,
+          "screenshot": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\capture_observation\\observation_screenshot.jpg"
+        },
+        "normalized_output_hash": "3d86d01c855b214c0b5d270f71e9424df3ee10cae4fec59818179113b3e2e9bc",
+        "artifacts": [
+          {
+            "type": "screenshot",
+            "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\capture_observation\\observation_screenshot.jpg"
+          },
+          {
+            "type": "json",
+            "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\capture_observation\\observation_pack.json"
+          }
+        ]
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+      "status": "passed",
+      "started_at_ts": 1771860911.7865865,
+      "started_at": "2026-02-23T15:35:11Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771860911.7886472,
+      "finished_at": "2026-02-23T15:35:11Z",
+      "duration_sec": 0.10039520263671875,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": "c31c71f35497d6002b1abeac23d7d128a8635c105fc519dee3d17704f8b7ab11",
+        "inputs": {
+          "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+          "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\assert_min_count_5",
+          "limit": 5
+        },
+        "tool_call": {
+          "op": "assert_min_count_5",
+          "expected": 5
+        },
+        "tool_response": {
+          "observed": 5
+        },
+        "outputs": {
+          "count": 5,
+          "limit": 5
+        },
+        "normalized_output_hash": "bc11fd4c7269cc0d8aaa39a50fa4bae0fce6b6c0a6da5ef5fea54055d12e8842",
+        "artifacts": []
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+      "status": "passed",
+      "started_at_ts": 1771860911.790977,
+      "started_at": "2026-02-23T15:35:11Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771860911.9942362,
+      "finished_at": "2026-02-23T15:35:11Z",
+      "duration_sec": 0.10068106651306152,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": "89e5f70bc2994497f688bfd06cf05fe62dcee231f0f575e02f5626554f3a42ee",
+        "inputs": {
+          "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+          "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\assert_required_fields",
+          "limit": 5
+        },
+        "tool_call": {
+          "op": "assert_required_fields",
+          "required": [
+            "name",
+            "url"
+          ]
+        },
+        "tool_response": {
+          "missing": []
+        },
+        "outputs": {
+          "items_checked": 5,
+          "missing_count": 0
+        },
+        "normalized_output_hash": "2e37afd9c5d6225d010951f3dbcb9c31451a42322085935e014caebba61a6939",
+        "artifacts": []
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+      "status": "passed",
+      "started_at_ts": 1771860911.9964905,
+      "started_at": "2026-02-23T15:35:11Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771860911.9987595,
+      "finished_at": "2026-02-23T15:35:11Z",
+      "duration_sec": 0.10054349899291992,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": "93f0c8200e80641da34b602b4b1f5f7afca93396a1c1cd69ceb218840503726e",
+        "inputs": {
+          "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+          "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\persist_summary",
+          "limit": 5
+        },
+        "tool_call": {
+          "op": "persist_summary"
+        },
+        "tool_response": {
+          "ok": true
+        },
+        "outputs": {
+          "tab_id": "tab-0",
+          "count": 5,
+          "sample_names": [
+            "graphics",
+            "Graphics and Design",
+            "GRAPHICS SYSTEM SA",
+            "Graphics Lodge",
+            "Graphics Design World"
+          ],
+          "screenshot": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\capture_observation\\observation_screenshot.jpg"
+        },
+        "normalized_output_hash": "84f64e00585ed5367ef94789ebf0497215984ea65bc677c6cdea0729f7b9f064",
+        "artifacts": [
+          {
+            "type": "json",
+            "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\persist_summary\\workflow_summary.json"
+          }
+        ]
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "ts": 1771860872.4187257,
+      "type": "run_started",
+      "run_id": "run-20260223-153432-319561"
+    },
+    {
+      "ts": 1771860872.4195633,
+      "type": "plan_updated"
+    },
+    {
+      "ts": 1771860872.4864628,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+    },
+    {
+      "ts": 1771860872.4875307,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+    },
+    {
+      "ts": 1771860872.4901652,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+    },
+    {
+      "ts": 1771860872.491208,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+    },
+    {
+      "ts": 1771860872.4918427,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+    },
+    {
+      "ts": 1771860872.4925838,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+    },
+    {
+      "ts": 1771860872.4933186,
+      "type": "log",
+      "level": "info",
+      "step_id": null
+    },
+    {
+      "ts": 1771860872.4942775,
+      "type": "command",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+    },
+    {
+      "ts": 1771860872.4950888,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+    },
+    {
+      "ts": 1771860882.511777,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+    },
+    {
+      "ts": 1771860892.5313835,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+    },
+    {
+      "ts": 1771860895.340165,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+    },
+    {
+      "ts": 1771860895.3413248,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "status": "passed",
+      "duration_sec": 22.77383852005005
+    },
+    {
+      "ts": 1771860895.3421955,
+      "type": "command",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+    },
+    {
+      "ts": 1771860895.3429627,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+    },
+    {
+      "ts": 1771860905.3592794,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+    },
+    {
+      "ts": 1771860911.376578,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+    },
+    {
+      "ts": 1771860911.3781333,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "status": "passed",
+      "duration_sec": 16.150988817214966
+    },
+    {
+      "ts": 1771860911.3796372,
+      "type": "command",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+    },
+    {
+      "ts": 1771860911.3807795,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+    },
+    {
+      "ts": 1771860911.78336,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+    },
+    {
+      "ts": 1771860911.7847843,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+      "status": "passed",
+      "duration_sec": 0.30139732360839844
+    },
+    {
+      "ts": 1771860911.7858396,
+      "type": "command",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+    },
+    {
+      "ts": 1771860911.7865963,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+    },
+    {
+      "ts": 1771860911.7876465,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+    },
+    {
+      "ts": 1771860911.7886581,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+      "status": "passed",
+      "duration_sec": 0.10039520263671875
+    },
+    {
+      "ts": 1771860911.7898633,
+      "type": "command",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+    },
+    {
+      "ts": 1771860911.7909877,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+    },
+    {
+      "ts": 1771860911.9929564,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+    },
+    {
+      "ts": 1771860911.994254,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+      "status": "passed",
+      "duration_sec": 0.10068106651306152
+    },
+    {
+      "ts": 1771860911.9955559,
+      "type": "command",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+    },
+    {
+      "ts": 1771860911.996502,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+    },
+    {
+      "ts": 1771860911.9976985,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+    },
+    {
+      "ts": 1771860911.9987679,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+      "status": "passed",
+      "duration_sec": 0.10054349899291992
+    },
+    {
+      "ts": 1771860912.0089679,
+      "type": "verification"
+    },
+    {
+      "ts": 1771860912.009931,
+      "type": "verification"
+    },
+    {
+      "ts": 1771860912.0111437,
+      "type": "artifact",
+      "artifact_type": "events",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\events.ndjson"
+    },
+    {
+      "ts": 1771860912.0121658,
+      "type": "artifact",
+      "artifact_type": "stdout",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\stdout.log"
+    },
+    {
+      "ts": 1771860912.0131388,
+      "type": "artifact",
+      "artifact_type": "json",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\results.json"
+    },
+    {
+      "ts": 1771860912.0141494,
+      "type": "artifact",
+      "artifact_type": "junit",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\results.junit.xml"
+    },
+    {
+      "ts": 1771860912.0151358,
+      "type": "run_finished",
+      "status": "passed",
+      "duration_sec": 39.55516219139099
+    }
+  ],
+  "evidence": {
+    "logs": [
+      {
+        "ts": 1771860872.4933164,
+        "level": "info",
+        "message": "run started",
+        "data": {
+          "run_id": "run-20260223-153432-319561",
+          "test_ids": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+          ]
+        }
+      },
+      {
+        "ts": 1771860882.5117726,
+        "level": "info",
+        "message": "[worker-heartbeat] still running (10s elapsed)",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+      },
+      {
+        "ts": 1771860892.5313797,
+        "level": "info",
+        "message": "[worker-heartbeat] still running (20s elapsed)",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+      },
+      {
+        "ts": 1771860895.340162,
+        "level": "info",
+        "message": "[launcher-step-json] {\"step\": \"open_or_reuse_tab\", \"inputs\": {\"state_file\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\state.json\", \"artifacts_dir\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\open_or_reuse_tab\", \"limit\": 5}, \"tool_call\": {\"method\": \"GET\", \"path\": \"/api/browser/tabs\"}, \"tool_response\": {\"tabs_count\": 1, \"navigate\": {\"ok\": true, \"tab_id\": \"tab-0\", \"url\": \"https://www.linkedin.com/sales/search/company\", \"title\": \"Search | Sales Navigator\", \"mode\": \"camoufox\", \"task_id\": \"45505f43-46b3-4bf4-9d22-6dc276747871\", \"task_status\": \"finished\"}}, \"outputs\": {\"tab_id\": \"tab-0\", \"seed_url\": \"https://www.linkedin.com/sales/search/company\", \"tool_calls\": [{\"method\": \"GET\", \"path\": \"/api/browser/tabs\"}, {\"method\": \"POST\", \"path\": \"/api/browser/navigate\", \"tab_id\": \"tab-0\", \"url\": \"https://www.linkedin.com/sales/search/company\"}], \"screenshot\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\open_or_reuse_tab\\\\open_or_reuse_tab_screenshot.jpg\"}, \"normalized_output_hash\": \"64a229800fc14bc56ab36f374f96c8e7e4d94ec6ac5808a5ed7dc3a9b9b64c87\", \"artifacts\": [{\"type\": \"screenshot\", \"path\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\open_or_reuse_tab\\\\open_or_reuse_tab_screenshot.jpg\"}]}",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+      },
+      {
+        "ts": 1771860905.359276,
+        "level": "info",
+        "message": "[worker-heartbeat] still running (10s elapsed)",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+      },
+      {
+        "ts": 1771860911.3765745,
+        "level": "info",
+        "message": "[launcher-step-json] {\"step\": \"navigate_and_collect\", \"inputs\": {\"state_file\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\state.json\", \"artifacts_dir\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\navigate_and_collect\", \"limit\": 5}, \"tool_call\": {\"method\": \"POST\", \"path\": \"/api/browser/workflows/search-and-extract\", \"payload\": {\"task\": \"salesnav_search_account\", \"query\": \"graphics card companies on sales navigator\", \"tab_id\": \"tab-0\", \"limit\": 5, \"wait_ms\": 3500}}, \"tool_response\": {\"ok\": true, \"tab_id\": \"tab-0\", \"skill_id\": \"linkedin-salesnav-accounts\", \"skill_match_score\": 105, \"task\": \"salesnav_search_account\", \"query\": \"graphics card companies on sales navigator\", \"url\": \"https://www.linkedin.com/sales/search/company?query=(spellCorrectionEnabled%3Atrue%2Ckeywords%3Agraphics)&sessionId=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D&viewAllFilters=true\", \"applied_filters\": {}, \"items\": [{\"company_name\": \"graphics\", \"name\": \"graphics\", \"sales_nav_url\": \"https://www.linkedin.com/sales/company/817740?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D\", \"linkedin_url\": \"https://www.linkedin.com/sales/company/817740?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D\", \"industry\": \"Graphic Design\", \"subtitle\": \"Graphic Design\", \"employee_count\": \"1.5K+ employees\", \"company_size\": \"1.5K+ employees\", \"location\": \"\", \"about\": \"Clippingpathmaster is an online Clipping Path service provider, which remove image background for web and print usage. We have professional graphic designers and deliver images in outstanding quality within 1-24 hours. All designers of Clippingpathmaster manually create Photoshop clipping path, masking, image retouching , web design, and desktop publishing software. Clippingpathmaster offers one ($1) US dollar any kinds of clipping path within 12 hours & Free trial for quality evaluation before sending a job.\", \"strategic_priorities\": [\"Expanding service offerings\"], \"interaction_map\": {\"company_name_click\": true, \"company_logo_click\": true, \"all_employees_click\": true, \"save_click\": true, \"overflow_menu_click\": true, \"spotlight_click\": true}, \"control_names\": [\"view_company_via_result_image\", \"view_company_via_result_name\", \"search_spotlight_aiq_strategic_priorities\"], \"has_spotlight_ai\": true, \"source_url\": \"https://www.linkedin.com/sales/company/817740\", \"extracted_at\": \"2026-02-23T15:35:09.123408+00:00\", \"skill_id\": \"linkedin-salesnav-accounts\", \"match_score\": 105}, {\"company_name\": \"Graphics and Design\", \"name\": \"Graphics and Design\", \"sales_nav_url\": \"https://www.linkedin.com/sales/company/505627?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D\", \"linkedin_url\": \"https://www.linkedin.com/sales/company/505627?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D\", \"industry\": \"Graphic Design\", \"subtitle\": \"Graphic Design\", \"employee_count\": \"470 employees\", \"company_size\": \"470 employees\", \"location\": \"\", \"about\": \"Advertising/Marketing/Communications for print, web, display, and multi media strategies. We have worked for many types of industries for over 30 years including state and federal agencies. Our environmental work is award winning and innovative, Please visit www.graphicsanddesign.net/ and see how easy it is to work with us. Testimonials \\u201cI appreciated the time that the team gave me with regards to understanding the dynamics my business. I also feel that the entirety and availability of their capable product realm is very expansive and diverse and that\\u2019s a great positive. I\\u2019m also very grateful for the continued communication with the company.\\u201d -Brandon \\\"Graphics and Design brings three critical skills to the table: an eye for detail, patience, and raw creative talent. All of the little things that make good design so recognizable were present from the very first rough drafts they sent us. They were exceedingly patient for the (many) revisions we requested. Lastly, the cohesive look and feel that permeates all their work, I feel like they \\\"get\\\"\\u200b our brand, and we couldn't be happier with how everything they did fits together.\\\"\\u200b -Chris\", \"strategic_priorities\": [], \"interaction_map\": {\"company_name_click\": true, \"company_logo_click\": true, \"all_employees_click\": true, \"save_click\": true, \"overflow_menu_click\": true, \"spotlight_click\": false}, \"control_names\": [\"view_company_via_result_image\", \"view_company_via_result_name\"], \"has_spotlight_ai\": false, \"source_url\": \"https://www.linkedin.com/sales/company/505627\", \"extracted_at\": \"2026-02-23T15:35:09.123424+00:00\", \"skill_id\": \"linkedin-salesnav-accounts\", \"match_score\": 105}, {\"company_name\": \"GRAPHICS SYSTEM SA\", \"name\": \"GRAPHICS SYSTEM SA\", \"sales_nav_url\": \"https://www.linkedin.com/sales/company/30103679?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D\", \"linkedin_url\": \"https://www.linkedin.com/sales/company/30103679?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D\", \"industry\": \"Printing Services\", \"subtitle\": \"Printing Services\", \"employee_count\": \"210 employees\", \"company_size\": \"210 employees\", \"location\": \"\", \"about\": \"Graphics System SA est une entreprise du secteur de l'imprimerie, cr\\u00e9\\u00e9e en 1990 par M. SANGA Jean-Baptiste. Leader sur le plan national, elle se distingue notamment dans les secteurs du Packaging, de l'Offset, de la Signal\\u00e9tique, du Num\\u00e9rique, de la S\\u00e9rigraphie et des Objets publicitaires; elle constitue une cha\\u00eene graphique int\\u00e9grale.\", \"strategic_priorities\": [], \"interaction_map\": {\"company_name_click\": true, \"company_logo_click\": true, \"all_employees_click\": true, \"save_click\": true, \"overflow_menu_click\": true, \"spotlight_click\": false}, \"control_names\": [\"view_company_via_result_image\", \"view_company_via_result_name\", \"search_spotlight_hiring_on_linkedin\"], \"has_spotlight_ai\": false, \"source_url\": \"https://www.linkedin.com/sales/company/30103679\", \"extracted_at\": \"2026-02-23T15:35:09.123428+00:00\", \"skill_id\": \"linkedin-salesnav-accounts\", \"match_score\": 105}, {\"company_name\": \"Graphics Lodge\", \"name\": \"Graphics Lodge\", \"sales_nav_url\": \"https://www.linkedin.com/sales/company/83513175?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D\", \"linkedin_url\": \"https://www.linkedin.com/sales/company/83513175?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D\", \"industry\": \"IT System Custom Software Development\", \"subtitle\": \"IT System Custom Software Development\", \"employee_count\": \"19 employees\", \"company_size\": \"19 employees\", \"location\": \"\", \"about\": \"Graphicslodge Web Designs is a new age creative agency that has a primary focus on providing digital solutions that are a dire need of the time. We are a full house digital branding and development organization that offers high-quality digital solutions. From developing a professional website with an imposing website design to crafting logos and making animations, our team of experts is nailing every digital sector.\", \"strategic_priorities\": [], \"interaction_map\": {\"company_name_click\": true, \"company_logo_click\": true, \"all_employees_click\": true, \"save_click\": true, \"overflow_menu_click\": true, \"spotlight_click\": false}, \"control_names\": [\"view_company_via_result_image\", \"view_company_via_result_name\"], \"has_spotlight_ai\": false, \"source_url\": \"https://www.linkedin.com/sales/company/83513175\", \"extracted_at\": \"2026-02-23T15:35:09.123431+00:00\", \"skill_id\": \"linkedin-salesnav-accounts\", \"match_score\": 105}, {\"company_name\": \"Graphics Design World\", \"name\": \"Graphics Design World\", \"sales_nav_url\": \"https://www.linkedin.com/sales/company/108101125?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D\", \"linkedin_url\": \"https://www.linkedin.com/sales/company/108101125?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D\", \"industry\": \"Graphic Design\", \"subtitle\": \"Graphic Design\", \"employee_count\": \"14 employees\", \"company_size\": \"14 employees\", \"location\": \"\", \"about\": \"\", \"strategic_priorities\": [], \"interaction_map\": {\"company_name_click\": true, \"company_logo_click\": true, \"all_employees_click\": true, \"save_click\": true, \"overflow_menu_click\": true, \"spotlight_click\": false}, \"control_names\": [\"view_company_via_result_image\", \"view_company_via_result_name\"], \"has_spotlight_ai\": false, \"source_url\": \"https://www.linkedin.com/sales/company/108101125\", \"extracted_at\": \"2026-02-23T15:35:09.123434+00:00\", \"skill_id\": \"linkedin-salesnav-accounts\", \"match_score\": 105}], \"count\": 5, \"click\": null, \"extract_type\": \"company\", \"item_validation\": {\"ok\": true, \"reasons\": [], \"metrics\": {\"count\": 5, \"min_items\": 1, \"max_items\": 200, \"name_non_empty_rate\": 1.0, \"url_non_empty_rate\": 1.0, \"unique_url_fraction\": 1.0, \"min_unique_url_fraction\": 0.7}}, \"query_decomposition\": {\"original_query\": \"graphics card companies on sales navigator\", \"effective_keywords\": \"graphics\", \"filters_applied\": {}}, \"task_id\": \"41f77402-8487-49dc-9140-5f0606c79207\", \"task_status\": \"finished\"}, \"outputs\": {\"query\": \"graphics card companies on sales navigator\", \"count\": 5, \"tab_id\": \"tab-0\", \"screenshot\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\navigate_and_collect\\\\navigate_and_collect_screenshot.jpg\"}, \"normalized_output_hash\": \"e814edef7a01beacc37e19102ca29d4056a510f3e4a966ade5c3173809bf10f1\", \"artifacts\": [{\"type\": \"json\", \"path\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\navigate_and_collect\\\\search_result.json\"}, {\"type\": \"screenshot\", \"path\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\navigate_and_collect\\\\navigate_and_collect_screenshot.jpg\"}]}",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+      },
+      {
+        "ts": 1771860911.7833564,
+        "level": "info",
+        "message": "[launcher-step-json] {\"step\": \"capture_observation\", \"inputs\": {\"state_file\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\state.json\", \"artifacts_dir\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\capture_observation\", \"limit\": 5}, \"tool_call\": {\"primary\": {\"method\": \"POST\", \"path\": \"/api/browser/workflows/observation-pack\", \"payload\": {\"tab_id\": \"tab-0\", \"include_screenshot\": true, \"include_semantic_nodes\": true}}, \"fallback\": {\"method\": \"POST\", \"path\": \"/api/browser/screenshot\", \"payload\": {\"tab_id\": \"tab-0\", \"full_page\": false}}}, \"tool_response\": {\"ok\": true, \"tab_id\": \"tab-0\", \"fallback_screenshot\": {\"ok\": true, \"keys\": [\"base64\", \"mime\", \"ok\", \"tab_id\", \"task_id\", \"task_status\"]}}, \"outputs\": {\"tab_id\": \"tab-0\", \"has_screenshot\": true, \"screenshot\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\capture_observation\\\\observation_screenshot.jpg\"}, \"normalized_output_hash\": \"3d86d01c855b214c0b5d270f71e9424df3ee10cae4fec59818179113b3e2e9bc\", \"artifacts\": [{\"type\": \"screenshot\", \"path\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\capture_observation\\\\observation_screenshot.jpg\"}, {\"type\": \"json\", \"path\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\capture_observation\\\\observation_pack.json\"}]}",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+      },
+      {
+        "ts": 1771860911.7876449,
+        "level": "info",
+        "message": "[launcher-step-json] {\"step\": \"assert_min_count_5\", \"inputs\": {\"state_file\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\state.json\", \"artifacts_dir\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\assert_min_count_5\", \"limit\": 5}, \"tool_call\": {\"op\": \"assert_min_count_5\", \"expected\": 5}, \"tool_response\": {\"observed\": 5}, \"outputs\": {\"count\": 5, \"limit\": 5}, \"normalized_output_hash\": \"bc11fd4c7269cc0d8aaa39a50fa4bae0fce6b6c0a6da5ef5fea54055d12e8842\", \"artifacts\": []}",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+      },
+      {
+        "ts": 1771860911.9929533,
+        "level": "info",
+        "message": "[launcher-step-json] {\"step\": \"assert_required_fields\", \"inputs\": {\"state_file\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\state.json\", \"artifacts_dir\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\assert_required_fields\", \"limit\": 5}, \"tool_call\": {\"op\": \"assert_required_fields\", \"required\": [\"name\", \"url\"]}, \"tool_response\": {\"missing\": []}, \"outputs\": {\"items_checked\": 5, \"missing_count\": 0}, \"normalized_output_hash\": \"2e37afd9c5d6225d010951f3dbcb9c31451a42322085935e014caebba61a6939\", \"artifacts\": []}",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+      },
+      {
+        "ts": 1771860911.9976969,
+        "level": "info",
+        "message": "[launcher-step-json] {\"step\": \"persist_summary\", \"inputs\": {\"state_file\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\state.json\", \"artifacts_dir\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\persist_summary\", \"limit\": 5}, \"tool_call\": {\"op\": \"persist_summary\"}, \"tool_response\": {\"ok\": true}, \"outputs\": {\"tab_id\": \"tab-0\", \"count\": 5, \"sample_names\": [\"graphics\", \"Graphics and Design\", \"GRAPHICS SYSTEM SA\", \"Graphics Lodge\", \"Graphics Design World\"], \"screenshot\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\capture_observation\\\\observation_screenshot.jpg\"}, \"normalized_output_hash\": \"84f64e00585ed5367ef94789ebf0497215984ea65bc677c6cdea0729f7b9f064\", \"artifacts\": [{\"type\": \"json\", \"path\": \"C:\\\\Users\\\\lmraz\\\\Hello\\\\data\\\\launcher_runs\\\\run-20260223-153432-319561\\\\artifacts\\\\workflow.salesnav.collect_companies_5\\\\persist_summary\\\\workflow_summary.json\"}]}",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+      }
+    ],
+    "commands": [
+      {
+        "ts": 1771860872.4942753,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "scripts/salesnav_workflow_step.py",
+          "--step",
+          "open_or_reuse_tab",
+          "--state-file",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561/artifacts/workflow.salesnav.collect_companies_5/state.json",
+          "--artifacts-dir",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561/artifacts/workflow.salesnav.collect_companies_5/open_or_reuse_tab"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+      },
+      {
+        "ts": 1771860895.3421931,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "scripts/salesnav_workflow_step.py",
+          "--step",
+          "navigate_and_collect",
+          "--state-file",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561/artifacts/workflow.salesnav.collect_companies_5/state.json",
+          "--artifacts-dir",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561/artifacts/workflow.salesnav.collect_companies_5/navigate_and_collect",
+          "--limit",
+          "5"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+      },
+      {
+        "ts": 1771860911.379635,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "scripts/salesnav_workflow_step.py",
+          "--step",
+          "capture_observation",
+          "--state-file",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561/artifacts/workflow.salesnav.collect_companies_5/state.json",
+          "--artifacts-dir",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561/artifacts/workflow.salesnav.collect_companies_5/capture_observation"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation"
+      },
+      {
+        "ts": 1771860911.7858384,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "scripts/salesnav_workflow_step.py",
+          "--step",
+          "assert_min_count_5",
+          "--state-file",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561/artifacts/workflow.salesnav.collect_companies_5/state.json",
+          "--artifacts-dir",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561/artifacts/workflow.salesnav.collect_companies_5/assert_min_count_5",
+          "--limit",
+          "5"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5"
+      },
+      {
+        "ts": 1771860911.7898617,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "scripts/salesnav_workflow_step.py",
+          "--step",
+          "assert_required_fields",
+          "--state-file",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561/artifacts/workflow.salesnav.collect_companies_5/state.json",
+          "--artifacts-dir",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561/artifacts/workflow.salesnav.collect_companies_5/assert_required_fields"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields"
+      },
+      {
+        "ts": 1771860911.9955544,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "scripts/salesnav_workflow_step.py",
+          "--step",
+          "persist_summary",
+          "--state-file",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561/artifacts/workflow.salesnav.collect_companies_5/state.json",
+          "--artifacts-dir",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561/artifacts/workflow.salesnav.collect_companies_5/persist_summary"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary"
+      }
+    ],
+    "network_calls": [],
+    "artifacts": [
+      {
+        "ts": 1771860912.0111413,
+        "type": "events",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\events.ndjson",
+        "meta": {}
+      },
+      {
+        "ts": 1771860912.0121636,
+        "type": "stdout",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\stdout.log",
+        "meta": {}
+      },
+      {
+        "ts": 1771860912.0131369,
+        "type": "json",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\results.json",
+        "meta": {}
+      },
+      {
+        "ts": 1771860912.014148,
+        "type": "junit",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\results.junit.xml",
+        "meta": {}
+      }
+    ],
+    "verification": [
+      {
+        "ts": 1771860912.0089662,
+        "source": "worker.run_finished",
+        "status": "passed",
+        "tests": [
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+            "status": "passed",
+            "duration_sec": 22.77383852005005,
+            "message": "",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+            "cache_key": "3ee28808609c7ecdee536eab309da9171a934d7c8d6bc63ce1db57ef0c429b67",
+            "inputs": {
+              "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+              "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\open_or_reuse_tab",
+              "limit": 5
+            },
+            "tool_call": {
+              "method": "GET",
+              "path": "/api/browser/tabs"
+            },
+            "tool_response": {
+              "tabs_count": 1,
+              "navigate": {
+                "ok": true,
+                "tab_id": "tab-0",
+                "url": "https://www.linkedin.com/sales/search/company",
+                "title": "Search | Sales Navigator",
+                "mode": "camoufox",
+                "task_id": "45505f43-46b3-4bf4-9d22-6dc276747871",
+                "task_status": "finished"
+              }
+            },
+            "outputs": {
+              "tab_id": "tab-0",
+              "seed_url": "https://www.linkedin.com/sales/search/company",
+              "tool_calls": [
+                {
+                  "method": "GET",
+                  "path": "/api/browser/tabs"
+                },
+                {
+                  "method": "POST",
+                  "path": "/api/browser/navigate",
+                  "tab_id": "tab-0",
+                  "url": "https://www.linkedin.com/sales/search/company"
+                }
+              ],
+              "screenshot": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\open_or_reuse_tab\\open_or_reuse_tab_screenshot.jpg"
+            },
+            "normalized_output_hash": "64a229800fc14bc56ab36f374f96c8e7e4d94ec6ac5808a5ed7dc3a9b9b64c87",
+            "artifacts": [
+              {
+                "type": "screenshot",
+                "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\open_or_reuse_tab\\open_or_reuse_tab_screenshot.jpg"
+              }
+            ],
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "live_browser",
+              "browser_evidence": true,
+              "flagged": false,
+              "line_count": 3
+            }
+          },
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+            "status": "passed",
+            "duration_sec": 16.150988817214966,
+            "message": "",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+            "cache_key": "2405fcf98e5891f24874c6c0f9bdd614c9905d4680073ab9593e84798b5bd78a",
+            "inputs": {
+              "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+              "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\navigate_and_collect",
+              "limit": 5
+            },
+            "tool_call": {
+              "method": "POST",
+              "path": "/api/browser/workflows/search-and-extract",
+              "payload": {
+                "task": "salesnav_search_account",
+                "query": "graphics card companies on sales navigator",
+                "tab_id": "tab-0",
+                "limit": 5,
+                "wait_ms": 3500
+              }
+            },
+            "tool_response": {
+              "ok": true,
+              "tab_id": "tab-0",
+              "skill_id": "linkedin-salesnav-accounts",
+              "skill_match_score": 105,
+              "task": "salesnav_search_account",
+              "query": "graphics card companies on sales navigator",
+              "url": "https://www.linkedin.com/sales/search/company?query=(spellCorrectionEnabled%3Atrue%2Ckeywords%3Agraphics)&sessionId=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D&viewAllFilters=true",
+              "applied_filters": {},
+              "items": [
+                {
+                  "company_name": "graphics",
+                  "name": "graphics",
+                  "sales_nav_url": "https://www.linkedin.com/sales/company/817740?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+                  "linkedin_url": "https://www.linkedin.com/sales/company/817740?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+                  "industry": "Graphic Design",
+                  "subtitle": "Graphic Design",
+                  "employee_count": "1.5K+ employees",
+                  "company_size": "1.5K+ employees",
+                  "location": "",
+                  "about": "Clippingpathmaster is an online Clipping Path service provider, which remove image background for web and print usage. We have professional graphic designers and deliver images in outstanding quality within 1-24 hours. All designers of Clippingpathmaster manually create Photoshop clipping path, masking, image retouching , web design, and desktop publishing software. Clippingpathmaster offers one ($1) US dollar any kinds of clipping path within 12 hours & Free trial for quality evaluation before sending a job.",
+                  "strategic_priorities": [
+                    "Expanding service offerings"
+                  ],
+                  "interaction_map": {
+                    "company_name_click": true,
+                    "company_logo_click": true,
+                    "all_employees_click": true,
+                    "save_click": true,
+                    "overflow_menu_click": true,
+                    "spotlight_click": true
+                  },
+                  "control_names": [
+                    "view_company_via_result_image",
+                    "view_company_via_result_name",
+                    "search_spotlight_aiq_strategic_priorities"
+                  ],
+                  "has_spotlight_ai": true,
+                  "source_url": "https://www.linkedin.com/sales/company/817740",
+                  "extracted_at": "2026-02-23T15:35:09.123408+00:00",
+                  "skill_id": "linkedin-salesnav-accounts",
+                  "match_score": 105
+                },
+                {
+                  "company_name": "Graphics and Design",
+                  "name": "Graphics and Design",
+                  "sales_nav_url": "https://www.linkedin.com/sales/company/505627?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+                  "linkedin_url": "https://www.linkedin.com/sales/company/505627?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+                  "industry": "Graphic Design",
+                  "subtitle": "Graphic Design",
+                  "employee_count": "470 employees",
+                  "company_size": "470 employees",
+                  "location": "",
+                  "about": "Advertising/Marketing/Communications for print, web, display, and multi media strategies. We have worked for many types of industries for over 30 years including state and federal agencies. Our environmental work is award winning and innovative, Please visit www.graphicsanddesign.net/ and see how easy it is to work with us. Testimonials \u201cI appreciated the time that the team gave me with regards to understanding the dynamics my business. I also feel that the entirety and availability of their capable product realm is very expansive and diverse and that\u2019s a great positive. I\u2019m also very grateful for the continued communication with the company.\u201d -Brandon \"Graphics and Design brings three critical skills to the table: an eye for detail, patience, and raw creative talent. All of the little things that make good design so recognizable were present from the very first rough drafts they sent us. They were exceedingly patient for the (many) revisions we requested. Lastly, the cohesive look and feel that permeates all their work, I feel like they \"get\"\u200b our brand, and we couldn't be happier with how everything they did fits together.\"\u200b -Chris",
+                  "strategic_priorities": [],
+                  "interaction_map": {
+                    "company_name_click": true,
+                    "company_logo_click": true,
+                    "all_employees_click": true,
+                    "save_click": true,
+                    "overflow_menu_click": true,
+                    "spotlight_click": false
+                  },
+                  "control_names": [
+                    "view_company_via_result_image",
+                    "view_company_via_result_name"
+                  ],
+                  "has_spotlight_ai": false,
+                  "source_url": "https://www.linkedin.com/sales/company/505627",
+                  "extracted_at": "2026-02-23T15:35:09.123424+00:00",
+                  "skill_id": "linkedin-salesnav-accounts",
+                  "match_score": 105
+                },
+                {
+                  "company_name": "GRAPHICS SYSTEM SA",
+                  "name": "GRAPHICS SYSTEM SA",
+                  "sales_nav_url": "https://www.linkedin.com/sales/company/30103679?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+                  "linkedin_url": "https://www.linkedin.com/sales/company/30103679?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+                  "industry": "Printing Services",
+                  "subtitle": "Printing Services",
+                  "employee_count": "210 employees",
+                  "company_size": "210 employees",
+                  "location": "",
+                  "about": "Graphics System SA est une entreprise du secteur de l'imprimerie, cr\u00e9\u00e9e en 1990 par M. SANGA Jean-Baptiste. Leader sur le plan national, elle se distingue notamment dans les secteurs du Packaging, de l'Offset, de la Signal\u00e9tique, du Num\u00e9rique, de la S\u00e9rigraphie et des Objets publicitaires; elle constitue une cha\u00eene graphique int\u00e9grale.",
+                  "strategic_priorities": [],
+                  "interaction_map": {
+                    "company_name_click": true,
+                    "company_logo_click": true,
+                    "all_employees_click": true,
+                    "save_click": true,
+                    "overflow_menu_click": true,
+                    "spotlight_click": false
+                  },
+                  "control_names": [
+                    "view_company_via_result_image",
+                    "view_company_via_result_name",
+                    "search_spotlight_hiring_on_linkedin"
+                  ],
+                  "has_spotlight_ai": false,
+                  "source_url": "https://www.linkedin.com/sales/company/30103679",
+                  "extracted_at": "2026-02-23T15:35:09.123428+00:00",
+                  "skill_id": "linkedin-salesnav-accounts",
+                  "match_score": 105
+                },
+                {
+                  "company_name": "Graphics Lodge",
+                  "name": "Graphics Lodge",
+                  "sales_nav_url": "https://www.linkedin.com/sales/company/83513175?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+                  "linkedin_url": "https://www.linkedin.com/sales/company/83513175?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+                  "industry": "IT System Custom Software Development",
+                  "subtitle": "IT System Custom Software Development",
+                  "employee_count": "19 employees",
+                  "company_size": "19 employees",
+                  "location": "",
+                  "about": "Graphicslodge Web Designs is a new age creative agency that has a primary focus on providing digital solutions that are a dire need of the time. We are a full house digital branding and development organization that offers high-quality digital solutions. From developing a professional website with an imposing website design to crafting logos and making animations, our team of experts is nailing every digital sector.",
+                  "strategic_priorities": [],
+                  "interaction_map": {
+                    "company_name_click": true,
+                    "company_logo_click": true,
+                    "all_employees_click": true,
+                    "save_click": true,
+                    "overflow_menu_click": true,
+                    "spotlight_click": false
+                  },
+                  "control_names": [
+                    "view_company_via_result_image",
+                    "view_company_via_result_name"
+                  ],
+                  "has_spotlight_ai": false,
+                  "source_url": "https://www.linkedin.com/sales/company/83513175",
+                  "extracted_at": "2026-02-23T15:35:09.123431+00:00",
+                  "skill_id": "linkedin-salesnav-accounts",
+                  "match_score": 105
+                },
+                {
+                  "company_name": "Graphics Design World",
+                  "name": "Graphics Design World",
+                  "sales_nav_url": "https://www.linkedin.com/sales/company/108101125?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+                  "linkedin_url": "https://www.linkedin.com/sales/company/108101125?_ntb=xQeFyLR4QyaUGj%2BXYc4%2FVw%3D%3D",
+                  "industry": "Graphic Design",
+                  "subtitle": "Graphic Design",
+                  "employee_count": "14 employees",
+                  "company_size": "14 employees",
+                  "location": "",
+                  "about": "",
+                  "strategic_priorities": [],
+                  "interaction_map": {
+                    "company_name_click": true,
+                    "company_logo_click": true,
+                    "all_employees_click": true,
+                    "save_click": true,
+                    "overflow_menu_click": true,
+                    "spotlight_click": false
+                  },
+                  "control_names": [
+                    "view_company_via_result_image",
+                    "view_company_via_result_name"
+                  ],
+                  "has_spotlight_ai": false,
+                  "source_url": "https://www.linkedin.com/sales/company/108101125",
+                  "extracted_at": "2026-02-23T15:35:09.123434+00:00",
+                  "skill_id": "linkedin-salesnav-accounts",
+                  "match_score": 105
+                }
+              ],
+              "count": 5,
+              "click": null,
+              "extract_type": "company",
+              "item_validation": {
+                "ok": true,
+                "reasons": [],
+                "metrics": {
+                  "count": 5,
+                  "min_items": 1,
+                  "max_items": 200,
+                  "name_non_empty_rate": 1.0,
+                  "url_non_empty_rate": 1.0,
+                  "unique_url_fraction": 1.0,
+                  "min_unique_url_fraction": 0.7
+                }
+              },
+              "query_decomposition": {
+                "original_query": "graphics card companies on sales navigator",
+                "effective_keywords": "graphics",
+                "filters_applied": {}
+              },
+              "task_id": "41f77402-8487-49dc-9140-5f0606c79207",
+              "task_status": "finished"
+            },
+            "outputs": {
+              "query": "graphics card companies on sales navigator",
+              "count": 5,
+              "tab_id": "tab-0",
+              "screenshot": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\navigate_and_collect\\navigate_and_collect_screenshot.jpg"
+            },
+            "normalized_output_hash": "e814edef7a01beacc37e19102ca29d4056a510f3e4a966ade5c3173809bf10f1",
+            "artifacts": [
+              {
+                "type": "json",
+                "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\navigate_and_collect\\search_result.json"
+              },
+              {
+                "type": "screenshot",
+                "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\navigate_and_collect\\navigate_and_collect_screenshot.jpg"
+              }
+            ],
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "live_browser",
+              "browser_evidence": true,
+              "flagged": false,
+              "line_count": 2
+            }
+          },
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+            "status": "passed",
+            "duration_sec": 0.30139732360839844,
+            "message": "",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation",
+            "cache_key": "a136f32000c629c72fb14b7802ec69979c83d7a8473149dd450e67801b04717d",
+            "inputs": {
+              "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+              "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\capture_observation",
+              "limit": 5
+            },
+            "tool_call": {
+              "primary": {
+                "method": "POST",
+                "path": "/api/browser/workflows/observation-pack",
+                "payload": {
+                  "tab_id": "tab-0",
+                  "include_screenshot": true,
+                  "include_semantic_nodes": true
+                }
+              },
+              "fallback": {
+                "method": "POST",
+                "path": "/api/browser/screenshot",
+                "payload": {
+                  "tab_id": "tab-0",
+                  "full_page": false
+                }
+              }
+            },
+            "tool_response": {
+              "ok": true,
+              "tab_id": "tab-0",
+              "fallback_screenshot": {
+                "ok": true,
+                "keys": [
+                  "base64",
+                  "mime",
+                  "ok",
+                  "tab_id",
+                  "task_id",
+                  "task_status"
+                ]
+              }
+            },
+            "outputs": {
+              "tab_id": "tab-0",
+              "has_screenshot": true,
+              "screenshot": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\capture_observation\\observation_screenshot.jpg"
+            },
+            "normalized_output_hash": "3d86d01c855b214c0b5d270f71e9424df3ee10cae4fec59818179113b3e2e9bc",
+            "artifacts": [
+              {
+                "type": "screenshot",
+                "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\capture_observation\\observation_screenshot.jpg"
+              },
+              {
+                "type": "json",
+                "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\capture_observation\\observation_pack.json"
+              }
+            ],
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "live_browser",
+              "browser_evidence": true,
+              "flagged": false,
+              "line_count": 1
+            }
+          },
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+            "status": "passed",
+            "duration_sec": 0.10039520263671875,
+            "message": "",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_min_count_5",
+            "cache_key": "c31c71f35497d6002b1abeac23d7d128a8635c105fc519dee3d17704f8b7ab11",
+            "inputs": {
+              "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+              "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\assert_min_count_5",
+              "limit": 5
+            },
+            "tool_call": {
+              "op": "assert_min_count_5",
+              "expected": 5
+            },
+            "tool_response": {
+              "observed": 5
+            },
+            "outputs": {
+              "count": 5,
+              "limit": 5
+            },
+            "normalized_output_hash": "bc11fd4c7269cc0d8aaa39a50fa4bae0fce6b6c0a6da5ef5fea54055d12e8842",
+            "artifacts": [],
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "mocked_or_unit",
+              "browser_evidence": false,
+              "flagged": false,
+              "line_count": 1
+            }
+          },
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+            "status": "passed",
+            "duration_sec": 0.10068106651306152,
+            "message": "",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields",
+            "cache_key": "89e5f70bc2994497f688bfd06cf05fe62dcee231f0f575e02f5626554f3a42ee",
+            "inputs": {
+              "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+              "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\assert_required_fields",
+              "limit": 5
+            },
+            "tool_call": {
+              "op": "assert_required_fields",
+              "required": [
+                "name",
+                "url"
+              ]
+            },
+            "tool_response": {
+              "missing": []
+            },
+            "outputs": {
+              "items_checked": 5,
+              "missing_count": 0
+            },
+            "normalized_output_hash": "2e37afd9c5d6225d010951f3dbcb9c31451a42322085935e014caebba61a6939",
+            "artifacts": [],
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "mocked_or_unit",
+              "browser_evidence": false,
+              "flagged": false,
+              "line_count": 1
+            }
+          },
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+            "status": "passed",
+            "duration_sec": 0.10054349899291992,
+            "message": "",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary",
+            "cache_key": "93f0c8200e80641da34b602b4b1f5f7afca93396a1c1cd69ceb218840503726e",
+            "inputs": {
+              "state_file": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\state.json",
+              "artifacts_dir": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\persist_summary",
+              "limit": 5
+            },
+            "tool_call": {
+              "op": "persist_summary"
+            },
+            "tool_response": {
+              "ok": true
+            },
+            "outputs": {
+              "tab_id": "tab-0",
+              "count": 5,
+              "sample_names": [
+                "graphics",
+                "Graphics and Design",
+                "GRAPHICS SYSTEM SA",
+                "Graphics Lodge",
+                "Graphics Design World"
+              ],
+              "screenshot": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\capture_observation\\observation_screenshot.jpg"
+            },
+            "normalized_output_hash": "84f64e00585ed5367ef94789ebf0497215984ea65bc677c6cdea0729f7b9f064",
+            "artifacts": [
+              {
+                "type": "json",
+                "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-153432-319561\\artifacts\\workflow.salesnav.collect_companies_5\\persist_summary\\workflow_summary.json"
+              }
+            ],
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "live_browser",
+              "browser_evidence": true,
+              "flagged": false,
+              "line_count": 1
+            }
+          }
+        ],
+        "duration_sec": 39.55516219139099
+      },
+      {
+        "ts": 1771860912.0099297,
+        "source": "launcher.dependency_analysis",
+        "planned_edges": 5,
+        "observed_edges": 5,
+        "missing_planned_edges": 0,
+        "unexpected_observed_edges": 0
+      }
+    ]
+  },
+  "changes": []
+}

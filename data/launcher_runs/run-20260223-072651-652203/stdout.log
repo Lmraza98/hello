@@ -1,0 +1,153 @@
+[backend-gate-pytest-ready] Python 3.13.7
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_hq_filter_value_prefers_first_non_empty_item] [child-note] started tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_hq_filter_value_prefers_first_non_empty_item
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_hq_filter_value_prefers_first_non_empty_item] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_hq_filter_value_prefers_first_non_empty_item] 1 passed in 0.65s
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_hq_filter_value_prefers_first_non_empty_item] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_maps_shape_and_limits_rows] [child-note] started tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_maps_shape_and_limits_rows
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_maps_shape_and_limits_rows] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_maps_shape_and_limits_rows] 1 passed in 0.60s
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_maps_shape_and_limits_rows] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_preserves_enriched_salesnav_fields] [child-note] started tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_preserves_enriched_salesnav_fields
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_preserves_enriched_salesnav_fields] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_preserves_enriched_salesnav_fields] 1 passed in 0.60s
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_preserves_enriched_salesnav_fields] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit] [child-note] started tests/salesnav/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit] 1 passed in 0.79s
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error] [child-note] started tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error] 1 passed in 0.78s
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback] [child-note] started tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback] 1 passed in 0.77s
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save] [child-note] started tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save] 1 passed in 0.76s
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_passes_parser_output_to_execution_payload] [child-note] started tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_passes_parser_output_to_execution_payload
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_passes_parser_output_to_execution_payload] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_passes_parser_output_to_execution_payload] 1 passed in 0.77s
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_passes_parser_output_to_execution_payload] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception] [child-note] started tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception] 1 passed in 0.78s
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_save_companies_to_db_insert_and_update_with_vertical] [child-note] started tests/salesnav/test_salesnav_company_collection_flow.py::test_save_companies_to_db_insert_and_update_with_vertical
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_save_companies_to_db_insert_and_update_with_vertical] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_save_companies_to_db_insert_and_update_with_vertical] 1 passed in 0.62s
+[python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_save_companies_to_db_insert_and_update_with_vertical] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_host_and_auth_url_contract] [child-note] started tests/salesnav/test_salesnav_core_contracts.py::test_session_host_and_auth_url_contract
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_host_and_auth_url_contract] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_host_and_auth_url_contract] 1 passed in 0.60s
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_host_and_auth_url_contract] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_manager_delegates_auth_check] [child-note] started tests/salesnav/test_salesnav_core_contracts.py::test_session_manager_delegates_auth_check
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_manager_delegates_auth_check] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_manager_delegates_auth_check] 1 passed in 0.62s
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_manager_delegates_auth_check] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_filters_normalization_and_similarity_contract] [child-note] started tests/salesnav/test_salesnav_core_contracts.py::test_filters_normalization_and_similarity_contract
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_filters_normalization_and_similarity_contract] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_filters_normalization_and_similarity_contract] 1 passed in 0.59s
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_filters_normalization_and_similarity_contract] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_parsing_contract_for_headcount_and_employee_text] [child-note] started tests/salesnav/test_salesnav_core_contracts.py::test_parsing_contract_for_headcount_and_employee_text
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_parsing_contract_for_headcount_and_employee_text] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_parsing_contract_for_headcount_and_employee_text] 1 passed in 0.60s
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_parsing_contract_for_headcount_and_employee_text] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_operation_retryable_error_markers] [child-note] started tests/salesnav/test_salesnav_core_contracts.py::test_operation_retryable_error_markers
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_operation_retryable_error_markers] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_operation_retryable_error_markers] 1 passed in 0.60s
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_operation_retryable_error_markers] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_recovers_retryable_error] [child-note] started tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_recovers_retryable_error
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_recovers_retryable_error] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_recovers_retryable_error] 1 passed in 0.70s
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_recovers_retryable_error] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_captures_debug_on_terminal_failure] [child-note] started tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_captures_debug_on_terminal_failure
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_captures_debug_on_terminal_failure] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_captures_debug_on_terminal_failure] 1 passed in 0.60s
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_captures_debug_on_terminal_failure] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_waits_url_contains_contract] [child-note] started tests/salesnav/test_salesnav_core_contracts.py::test_waits_url_contains_contract
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_waits_url_contains_contract] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_waits_url_contains_contract] 1 passed in 1.21s
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_waits_url_contains_contract] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_navigator_go_to_account_search_happy_path_clicks_tab] [child-note] started tests/salesnav/test_salesnav_core_contracts.py::test_navigator_go_to_account_search_happy_path_clicks_tab
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_navigator_go_to_account_search_happy_path_clicks_tab] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_navigator_go_to_account_search_happy_path_clicks_tab] 1 passed in 1.10s
+[python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_navigator_go_to_account_search_happy_path_clicks_tab] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_applies_all_parsed_salesnav_filters] [child-note] started tests/salesnav/test_salesnav_filters.py::test_search_and_extract_applies_all_parsed_salesnav_filters
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_applies_all_parsed_salesnav_filters] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_applies_all_parsed_salesnav_filters] 1 passed in 2.68s
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_applies_all_parsed_salesnav_filters] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_url_builder_without_typing] [child-note] started tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_url_builder_without_typing
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_url_builder_without_typing] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_url_builder_without_typing] 1 passed in 2.72s
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_url_builder_without_typing] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_single_keyword_for_salesnav] [child-note] started tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_single_keyword_for_salesnav
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_single_keyword_for_salesnav] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_single_keyword_for_salesnav] 1 passed in 2.65s
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_single_keyword_for_salesnav] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_returns_unmapped_error_when_builder_fails] [child-note] started tests/salesnav/test_salesnav_filters.py::test_search_and_extract_returns_unmapped_error_when_builder_fails
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_returns_unmapped_error_when_builder_fails] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_returns_unmapped_error_when_builder_fails] 1 passed in 0.61s
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_returns_unmapped_error_when_builder_fails] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_uses_url_builder_without_typing] [child-note] started tests/salesnav/test_salesnav_filters.py::test_people_search_uses_url_builder_without_typing
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_uses_url_builder_without_typing] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_uses_url_builder_without_typing] 1 passed in 2.61s
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_uses_url_builder_without_typing] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_retries_without_keyword_in_compound_mode] [child-note] started tests/salesnav/test_salesnav_filters.py::test_people_search_retries_without_keyword_in_compound_mode
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_retries_without_keyword_in_compound_mode] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_retries_without_keyword_in_compound_mode] 1 passed in 2.77s
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_retries_without_keyword_in_compound_mode] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_falls_back_when_exact_company_returns_empty] [child-note] started tests/salesnav/test_salesnav_filters.py::test_people_search_falls_back_when_exact_company_returns_empty
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_falls_back_when_exact_company_returns_empty] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_falls_back_when_exact_company_returns_empty] 1 passed in 2.67s
+[python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_falls_back_when_exact_company_returns_empty] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters] [child-note] started tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters] 1 passed in 0.61s
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges] [child-note] started tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges] 1 passed in 0.61s
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values] [child-note] started tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values] 1 passed in 0.62s
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file] [child-note] started tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file] 1 passed in 0.66s
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges] [child-note] started tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges] 1 passed in 0.60s
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges] [child-note] started tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges] 1 passed in 0.62s
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn] [child-note] started tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn] 1 passed in 0.62s
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id] [child-note] started tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id] 1 passed in 0.62s
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values] [child-note] started tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values] 1 passed in 0.62s
+[python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_collector_save_companies_without_vertical_column] [child-note] started tests/salesnav/test_targets_schema_compat.py::test_collector_save_companies_without_vertical_column
+[python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_collector_save_companies_without_vertical_column] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_collector_save_companies_without_vertical_column] 1 passed in 0.64s
+[python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_collector_save_companies_without_vertical_column] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_lookup_company_profile_without_vertical_column] [child-note] started tests/salesnav/test_targets_schema_compat.py::test_filter_parser_lookup_company_profile_without_vertical_column
+[python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_lookup_company_profile_without_vertical_column] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_lookup_company_profile_without_vertical_column] 1 passed in 0.64s
+[python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_lookup_company_profile_without_vertical_column] [child-note] finished passed
+[python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_target_market_heuristic_overrides_industry] [child-note] started tests/salesnav/test_targets_schema_compat.py::test_filter_parser_target_market_heuristic_overrides_industry
+[python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_target_market_heuristic_overrides_industry] .                                                                        [100%]
+[python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_target_market_heuristic_overrides_industry] 1 passed in 0.61s
+[python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_target_market_heuristic_overrides_industry] [child-note] finished passed

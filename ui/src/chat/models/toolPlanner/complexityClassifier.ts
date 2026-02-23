@@ -34,7 +34,6 @@ export function assessComplexity(query: string, context: ComplexityContext = {})
   const normalized = (query || '').trim();
   const signals: string[] = [];
   let compoundWorkflowRequired = false;
-  const lower = normalized.toLowerCase();
 
   if (context.requiresDecomposition) {
     signals.push('requires_decomposition');

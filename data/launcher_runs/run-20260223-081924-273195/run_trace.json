@@ -1,0 +1,301 @@
+{
+  "schema_version": "run_trace.v1",
+  "run": {
+    "id": "run-20260223-081924-273195",
+    "timestamp": "2026-02-23T08:19:24Z",
+    "env": {
+      "profile": "local",
+      "server_port": 8000,
+      "bridge_port": 9223,
+      "python": "3.13.7"
+    },
+    "git": {
+      "commit": "535c71ca828b53ddeb7e2a2731a99691d1d3dbf9",
+      "branch": "main",
+      "dirty": true
+    },
+    "config_snapshot": {
+      "selected_ids": [
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+      ],
+      "selected_tags": [],
+      "mode": "steps"
+    },
+    "status": "passed",
+    "finished_at_ts": 1771834764.5340867,
+    "duration_sec": 4.124641418457031e-05,
+    "tests_count": 2
+  },
+  "plan": {
+    "mode": "steps",
+    "ordered_steps": [
+      {
+        "order": 1,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "label": "Open or Reuse Browser Tab",
+        "kind": "action",
+        "deps": [],
+        "dependency_reasons": [],
+        "skip": true,
+        "cache_key": "912d334aebefb9b7991660dbb60ece1e538c343b2c9bd9b5584f1d49eb0c1931"
+      },
+      {
+        "order": 2,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+        "label": "Navigate and Collect Companies",
+        "kind": "action",
+        "deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "dependency_reasons": [
+          "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "skip": true,
+        "cache_key": "26dc784576a40121a3f05b98ee44265e6f3f427509f2a82855bd93c404005ec1"
+      }
+    ],
+    "plan_text": "{\"mode\": \"steps\", \"ordered_steps\": [{\"order\": 1, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab\", \"label\": \"Open or Reuse Browser Tab\", \"kind\": \"action\", \"deps\": [], \"dependency_reasons\": [], \"skip\": true, \"cache_key\": \"912d334aebefb9b7991660dbb60ece1e538c343b2c9bd9b5584f1d49eb0c1931\"}, {\"order\": 2, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect\", \"label\": \"Navigate and Collect Companies\", \"kind\": \"action\", \"deps\": [\"python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab\"], \"dependency_reasons\": [\"depends on python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab\"], \"skip\": true, \"cache_key\": \"26dc784576a40121a3f05b98ee44265e6f3f427509f2a82855bd93c404005ec1\"}]}",
+    "plan_json": {
+      "mode": "steps",
+      "ordered_steps": [
+        {
+          "order": 1,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+          "label": "Open or Reuse Browser Tab",
+          "kind": "action",
+          "deps": [],
+          "dependency_reasons": [],
+          "skip": true,
+          "cache_key": "912d334aebefb9b7991660dbb60ece1e538c343b2c9bd9b5584f1d49eb0c1931"
+        },
+        {
+          "order": 2,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+          "label": "Navigate and Collect Companies",
+          "kind": "action",
+          "deps": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+          ],
+          "dependency_reasons": [
+            "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+          ],
+          "skip": true,
+          "cache_key": "26dc784576a40121a3f05b98ee44265e6f3f427509f2a82855bd93c404005ec1"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "status": "passed",
+      "started_at_ts": 1771834764.4950366,
+      "started_at": "2026-02-23T08:19:24Z",
+      "inputs": {
+        "status": "queued"
+      },
+      "finished_at_ts": 1771834764.5206418,
+      "finished_at": "2026-02-23T08:19:24Z",
+      "duration_sec": 0.0,
+      "outputs": {
+        "attempt": 0,
+        "message": "passed (cache satisfied)",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "status": "passed",
+      "started_at_ts": 1771834764.5176888,
+      "started_at": "2026-02-23T08:19:24Z",
+      "inputs": {
+        "status": "queued"
+      },
+      "finished_at_ts": 1771834764.5215259,
+      "finished_at": "2026-02-23T08:19:24Z",
+      "duration_sec": 0.0,
+      "outputs": {
+        "attempt": 0,
+        "message": "passed (cache satisfied)",
+        "cache_key": null
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "ts": 1771834764.3871174,
+      "type": "run_started",
+      "run_id": "run-20260223-081924-273195"
+    },
+    {
+      "ts": 1771834764.3879411,
+      "type": "plan_updated"
+    },
+    {
+      "ts": 1771834764.4950576,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+    },
+    {
+      "ts": 1771834764.5177069,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+    },
+    {
+      "ts": 1771834764.5186582,
+      "type": "log",
+      "level": "info",
+      "step_id": null
+    },
+    {
+      "ts": 1771834764.5206559,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "status": "passed",
+      "duration_sec": 0.0
+    },
+    {
+      "ts": 1771834764.5215342,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+      "status": "passed",
+      "duration_sec": 0.0
+    },
+    {
+      "ts": 1771834764.5302105,
+      "type": "verification"
+    },
+    {
+      "ts": 1771834764.5308018,
+      "type": "verification"
+    },
+    {
+      "ts": 1771834764.531502,
+      "type": "artifact",
+      "artifact_type": "events",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-081924-273195\\events.ndjson"
+    },
+    {
+      "ts": 1771834764.5321066,
+      "type": "artifact",
+      "artifact_type": "stdout",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-081924-273195\\stdout.log"
+    },
+    {
+      "ts": 1771834764.5327766,
+      "type": "artifact",
+      "artifact_type": "json",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-081924-273195\\results.json"
+    },
+    {
+      "ts": 1771834764.5335011,
+      "type": "artifact",
+      "artifact_type": "junit",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-081924-273195\\results.junit.xml"
+    },
+    {
+      "ts": 1771834764.5340884,
+      "type": "run_finished",
+      "status": "passed",
+      "duration_sec": 4.124641418457031e-05
+    }
+  ],
+  "evidence": {
+    "logs": [
+      {
+        "ts": 1771834764.518655,
+        "level": "info",
+        "message": "run started",
+        "data": {
+          "run_id": "run-20260223-081924-273195",
+          "test_ids": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect"
+          ]
+        }
+      }
+    ],
+    "commands": [],
+    "network_calls": [],
+    "artifacts": [
+      {
+        "ts": 1771834764.5314991,
+        "type": "events",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-081924-273195\\events.ndjson",
+        "meta": {}
+      },
+      {
+        "ts": 1771834764.5321047,
+        "type": "stdout",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-081924-273195\\stdout.log",
+        "meta": {}
+      },
+      {
+        "ts": 1771834764.532775,
+        "type": "json",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-081924-273195\\results.json",
+        "meta": {}
+      },
+      {
+        "ts": 1771834764.5334995,
+        "type": "junit",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-081924-273195\\results.junit.xml",
+        "meta": {}
+      }
+    ],
+    "verification": [
+      {
+        "ts": 1771834764.5302095,
+        "source": "worker.run_finished",
+        "status": "passed",
+        "tests": [
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+            "status": "passed",
+            "duration_sec": 0.0,
+            "message": "passed (cache satisfied)",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+            "cached": true,
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "mocked_or_unit",
+              "browser_evidence": false,
+              "flagged": false,
+              "line_count": 0
+            }
+          },
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+            "status": "passed",
+            "duration_sec": 0.0,
+            "message": "passed (cache satisfied)",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect",
+            "cached": true,
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "mocked_or_unit",
+              "browser_evidence": false,
+              "flagged": false,
+              "line_count": 0
+            }
+          }
+        ],
+        "duration_sec": 4.124641418457031e-05
+      },
+      {
+        "ts": 1771834764.5308,
+        "source": "launcher.dependency_analysis",
+        "planned_edges": 1,
+        "observed_edges": 0,
+        "missing_planned_edges": 0,
+        "unexpected_observed_edges": 0
+      }
+    ]
+  },
+  "changes": []
+}

@@ -1,0 +1,313 @@
+{
+  "run_id": "run-20260223-061840-675683",
+  "status": "passed",
+  "duration_sec": 51.512155532836914,
+  "tests": [
+    {
+      "id": "backend-gate-pytest-ready",
+      "status": "passed",
+      "duration_sec": 0.10419440269470215,
+      "message": "",
+      "retries": 1,
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 1
+      }
+    },
+    {
+      "id": "python-salesnav-core",
+      "status": "passed",
+      "duration_sec": 51.40792918205261,
+      "message": "",
+      "retries": 0,
+      "children": [
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_company_focus_filters_generic_queries",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1025416851043701,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_hq_filter_value_prefers_first_non_empty_item",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.10447359085083,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_maps_shape_and_limits_rows",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1037468910217285,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_preserves_enriched_salesnav_fields",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1036474704742432,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.3035686016082764,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.3037316799163818,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.3036386966705322,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.3050155639648438,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.2035772800445557,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_save_companies_to_db_insert_and_update_with_vertical",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1042182445526123,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_salesnav_skill_frontmatter_has_all_filter_wiring",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1036465167999268,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_supports_all_salesnav_filters",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1040945053100586,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_applies_all_parsed_salesnav_filters",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 3.312321424484253,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_url_builder_without_typing",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 3.309425115585327,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_single_keyword_for_salesnav",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 3.2110865116119385,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_returns_unmapped_error_when_builder_fails",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1042969226837158,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_uses_url_builder_without_typing",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 3.2084200382232666,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_retries_without_keyword_in_compound_mode",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 3.2099382877349854,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_falls_back_when_exact_company_returns_empty",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 3.2097575664520264,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_honors_boolean_frontmatter_flags",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1031713485717773,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_can_select_option_even_when_input_typing_fails",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1034839153289795,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_salesnav_accounts_suggestion_clicks_option",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1035950183868408,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.102658748626709,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1038775444030762,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1031689643859863,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1042866706848145,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.104377031326294,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1030464172363281,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1031882762908936,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1038594245910645,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1039814949035645,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_collector_save_companies_without_vertical_column",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1036944389343262,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_lookup_company_profile_without_vertical_column",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1031744480133057,
+          "message": ""
+        },
+        {
+          "id": "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_target_market_heuristic_overrides_industry",
+          "parent_id": "python-salesnav-core",
+          "status": "passed",
+          "attempt": 1,
+          "duration_sec": 1.1026535034179688,
+          "message": ""
+        }
+      ],
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 136
+      }
+    }
+  ],
+  "exports": {
+    "json": true,
+    "junit": true
+  }
+}

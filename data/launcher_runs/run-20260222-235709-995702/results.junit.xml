@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="launcher-run" tests="8" failures="1" skipped="0" time="113.840">
+  <testcase classname="launcher" name="backend-gate-pytest-ready" time="0.102">
+  </testcase>
+  <testcase classname="launcher" name="python-api-routes-browser" time="8.155">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core" time="26.111">
+  </testcase>
+  <testcase classname="launcher" name="python-builder-routes" time="5.540">
+  </testcase>
+  <testcase classname="launcher" name="python-launcher-core" time="13.926">
+    <failure message="2 child test(s) failed"/>
+  </testcase>
+  <testcase classname="launcher" name="python-platform-core" time="1.727">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core" time="50.718">
+  </testcase>
+  <testcase classname="launcher" name="python-workflow-core" time="7.561">
+  </testcase>
+</testsuite>

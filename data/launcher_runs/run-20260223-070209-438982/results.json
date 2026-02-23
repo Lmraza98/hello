@@ -1,0 +1,3160 @@
+{
+  "run_id": "run-20260223-070209-438982",
+  "status": "canceled",
+  "duration_sec": 46.725507497787476,
+  "tests": [
+    {
+      "id": "backend-gate-pytest-ready",
+      "status": "passed",
+      "duration_sec": 0.10038018226623535,
+      "message": "",
+      "attempt": 1
+    },
+    {
+      "id": "python-api-routes-browser",
+      "status": "passed",
+      "duration_sec": 8.256760358810425,
+      "message": "",
+      "attempt": 1
+    },
+    {
+      "id": "python-builder-routes",
+      "status": "passed",
+      "duration_sec": 5.5421319007873535,
+      "message": "",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core",
+      "status": "passed",
+      "duration_sec": 26.310235023498535,
+      "message": "",
+      "attempt": 1
+    },
+    {
+      "id": "python-launcher-core",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": 1
+    },
+    {
+      "id": "python-platform-core",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "python-salesnav-core",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "python-workflow-core",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "frontend-gate-node-ready",
+      "status": "passed",
+      "duration_sec": 0.10014081001281738,
+      "message": "",
+      "attempt": 1
+    },
+    {
+      "id": "ui-tests-all",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "live-gate-backend-api-ready",
+      "status": "passed",
+      "duration_sec": 3.0168159008026123,
+      "message": "",
+      "attempt": 1
+    },
+    {
+      "id": "live-gate-bridge-ready",
+      "status": "passed",
+      "duration_sec": 1.008359670639038,
+      "message": "",
+      "attempt": 1
+    },
+    {
+      "id": "workflow-builder-live",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success",
+      "status": "passed",
+      "duration_sec": 1.1037859916687012,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success",
+      "status": "passed",
+      "duration_sec": 1.104050874710083,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success",
+      "status": "passed",
+      "duration_sec": 1.1041984558105469,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success",
+      "status": "passed",
+      "duration_sec": 1.1052775382995605,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error",
+      "status": "passed",
+      "duration_sec": 1.1029760837554932,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+      "status": "passed",
+      "duration_sec": 0.5012996196746826,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+      "status": "passed",
+      "duration_sec": 2.507328987121582,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+      "status": "passed",
+      "duration_sec": 0.5019984245300293,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+      "status": "passed",
+      "duration_sec": 0.5015530586242676,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend",
+      "status": "passed",
+      "duration_sec": 0.7027180194854736,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task",
+      "status": "passed",
+      "duration_sec": 0.7017080783843994,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync",
+      "status": "passed",
+      "duration_sec": 1.1047449111938477,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status",
+      "status": "passed",
+      "duration_sec": 2.3066349029541016,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error",
+      "status": "passed",
+      "duration_sec": 1.2045133113861084,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404",
+      "status": "passed",
+      "duration_sec": 1.1037886142730713,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows",
+      "status": "passed",
+      "duration_sec": 1.1030912399291992,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend",
+      "status": "passed",
+      "duration_sec": 0.7023196220397949,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_defaults_to_local_backend",
+      "status": "passed",
+      "duration_sec": 0.7021794319152832,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env",
+      "status": "passed",
+      "duration_sec": 0.8022706508636475,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_policy.py::test_token_bucket_wait_and_consume",
+      "status": "passed",
+      "duration_sec": 0.4010636806488037,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_enforces_hourly_budget",
+      "status": "passed",
+      "duration_sec": 0.4009277820587158,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_cooldown_after_friction",
+      "status": "passed",
+      "duration_sec": 0.7027921676635742,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip",
+      "status": "passed",
+      "duration_sec": 1.003298044204712,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_match_skill_prefers_fingerprint",
+      "status": "passed",
+      "duration_sec": 1.1044220924377441,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_item_validation_detects_uniqueness_failure",
+      "status": "passed",
+      "duration_sec": 1.1036620140075684,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_extract_regression_tests_from_markdown_section",
+      "status": "passed",
+      "duration_sec": 1.104593276977539,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_regression_expectation",
+      "status": "passed",
+      "duration_sec": 1.0036931037902832,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_promotion_gate",
+      "status": "passed",
+      "duration_sec": 1.0021512508392334,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_update_skill_frontmatter_sets_qa_fields",
+      "status": "passed",
+      "duration_sec": 1.002744436264038,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_classify_page_mode_login_wall",
+      "status": "passed",
+      "duration_sec": 1.0035829544067383,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_infer_href_pattern_picks_stable_segment",
+      "status": "passed",
+      "duration_sec": 1.1040987968444824,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_scores_good_candidate",
+      "status": "passed",
+      "duration_sec": 1.002955675125122,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_rejects_missing_urls",
+      "status": "passed",
+      "duration_sec": 1.0031487941741943,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_prefers_positive_segment",
+      "status": "passed",
+      "duration_sec": 1.0041289329528809,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_uses_fallback_without_positives",
+      "status": "passed",
+      "duration_sec": 1.0030837059020996,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_candidate_from_feedback_infers_label_and_role_constraints",
+      "status": "passed",
+      "duration_sec": 1.0033245086669922,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints",
+      "status": "passed",
+      "duration_sec": 1.104421615600586,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches",
+      "status": "passed",
+      "duration_sec": 1.1044175624847412,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled",
+      "status": "passed",
+      "duration_sec": 1.0037908554077148,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled",
+      "status": "passed",
+      "duration_sec": 1.0038843154907227,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_recaptcha_v2_as_visible",
+      "status": "passed",
+      "duration_sec": 0.9033265113830566,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_turnstile_as_behavioral",
+      "status": "passed",
+      "duration_sec": 0.9028024673461914,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_respects_research_host_gate",
+      "status": "passed",
+      "duration_sec": 0.9029407501220703,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_hands_off_behavioral_and_resumes_when_cleared",
+      "status": "passed",
+      "duration_sec": 1.1031482219696045,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary",
+      "status": "passed",
+      "duration_sec": 0.7026379108428955,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters",
+      "status": "passed",
+      "duration_sec": 0.702040433883667,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist",
+      "status": "passed",
+      "duration_sec": 0.7018578052520752,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": 1
+    }
+  ],
+  "dependency_analysis": {
+    "version": "1",
+    "run_id": "run-20260223-070209-438982",
+    "planned_edges": [
+      {
+        "from": "live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+        "to": "live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready"
+      },
+      {
+        "from": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+        "to": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready"
+      },
+      {
+        "from": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task",
+        "to": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+      },
+      {
+        "from": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend",
+        "to": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+      },
+      {
+        "from": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status",
+        "to": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+      },
+      {
+        "from": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync",
+        "to": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+      },
+      {
+        "from": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error",
+        "to": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+      },
+      {
+        "from": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404",
+        "to": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows"
+      },
+      {
+        "from": "python-api-routes-browser::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+        "to": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_defaults_to_local_backend",
+        "to": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env",
+        "to": "python-browser-core::tests/browser/test_browser_policy.py::test_token_bucket_wait_and_consume"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend",
+        "to": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_defaults_to_local_backend"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_cooldown_after_friction",
+        "to": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_enforces_hourly_budget",
+        "to": "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_cooldown_after_friction"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_policy.py::test_token_bucket_wait_and_consume",
+        "to": "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_enforces_hourly_budget"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip",
+        "to": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_match_skill_prefers_fingerprint"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_item_validation_detects_uniqueness_failure",
+        "to": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_extract_regression_tests_from_markdown_section"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_match_skill_prefers_fingerprint",
+        "to": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_item_validation_detects_uniqueness_failure"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_promotion_gate",
+        "to": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_update_skill_frontmatter_sets_qa_fields"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_regression_expectation",
+        "to": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_promotion_gate"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_extract_regression_tests_from_markdown_section",
+        "to": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_regression_expectation"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_update_skill_frontmatter_sets_qa_fields",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_classify_page_mode_login_wall"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_classify_page_mode_login_wall",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_infer_href_pattern_picks_stable_segment"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_infer_href_pattern_picks_stable_segment",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_scores_good_candidate"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_candidate_from_feedback_infers_label_and_role_constraints",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_prefers_positive_segment",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_uses_fallback_without_positives"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_uses_fallback_without_positives",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_candidate_from_feedback_infers_label_and_role_constraints"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_rejects_missing_urls",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_prefers_positive_segment"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_scores_good_candidate",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_rejects_missing_urls"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches",
+        "to": "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled",
+        "to": "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_recaptcha_v2_as_visible"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled",
+        "to": "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_recaptcha_v2_as_visible",
+        "to": "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_turnstile_as_behavioral"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_turnstile_as_behavioral",
+        "to": "python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_respects_research_host_gate"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_respects_research_host_gate",
+        "to": "python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_hands_off_behavioral_and_resumes_when_cleared"
+      },
+      {
+        "from": "python-browser-core::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+        "to": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend"
+      },
+      {
+        "from": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success",
+        "to": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+      },
+      {
+        "from": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success",
+        "to": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+      },
+      {
+        "from": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success",
+        "to": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error"
+      },
+      {
+        "from": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success",
+        "to": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+      },
+      {
+        "from": "python-builder-routes::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+        "to": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist",
+        "to": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary",
+        "to": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters",
+        "to": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_aggregate_meta_node_is_not_executed_but_expands_dependencies",
+        "to": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_detects_cycle"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic",
+        "to": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_aggregate_meta_node_is_not_executed_but_expands_dependencies"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_detects_cycle",
+        "to": "python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_rejects_bad_shape"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_accepts_valid",
+        "to": "python-launcher-core::tests/launcher/test_launcher_run_store.py::test_prune_by_count_and_age"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_rejects_bad_shape",
+        "to": "python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_accepts_valid"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_run_store.py::test_prune_by_count_and_age",
+        "to": "python-launcher-core::tests/launcher/test_launcher_startup.py::test_preflight_detects_port_conflict"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_startup.py::test_preflight_detects_port_conflict",
+        "to": "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_drawer_markup_exists"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_assertions_progressive_disclosure_exists",
+        "to": "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_search_filter_cases_exists"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_drawer_markup_exists",
+        "to": "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_keyboard_handlers_exist"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_keyboard_handlers_exist",
+        "to": "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_assertions_progressive_disclosure_exists"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_search_filter_cases_exists",
+        "to": "python-launcher-core::tests/launcher/test_launcher_worker_integration.py::test_worker_timeout"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_worker_integration.py::test_worker_timeout",
+        "to": "python-launcher-core::tests/launcher/test_launcher_worker_integration.py::test_worker_cancel_run"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+        "to": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+        "to": "python-launcher-core::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready"
+      },
+      {
+        "from": "python-platform-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+        "to": "python-platform-core::tests/platform/test_service_boundaries.py::test_service_boundaries"
+      },
+      {
+        "from": "python-platform-core::tests/platform/test_service_boundaries.py::test_service_boundaries",
+        "to": "python-platform-core::tests/platform/test_template_renderer.py::test_render_fallback_token"
+      },
+      {
+        "from": "python-platform-core::tests/platform/test_template_renderer.py::test_render_fallback_token",
+        "to": "python-platform-core::tests/platform/test_template_renderer.py::test_unknown_token_detection"
+      },
+      {
+        "from": "python-platform-core::tests/platform/test_template_renderer.py::test_unknown_token_detection",
+        "to": "python-platform-core::tests/platform/test_template_renderer.py::test_unsubscribe_validation_error"
+      },
+      {
+        "from": "python-salesnav-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_company_focus_filters_generic_queries"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_save_companies_to_db_insert_and_update_with_vertical"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_company_focus_filters_generic_queries",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_hq_filter_value_prefers_first_non_empty_item"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_hq_filter_value_prefers_first_non_empty_item",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_maps_shape_and_limits_rows"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_maps_shape_and_limits_rows",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_preserves_enriched_salesnav_fields"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_preserves_enriched_salesnav_fields",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_save_companies_to_db_insert_and_update_with_vertical",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_host_and_auth_url_contract"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_filters_normalization_and_similarity_contract",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_parsing_contract_for_headcount_and_employee_text"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_navigator_go_to_account_search_happy_path_clicks_tab",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_salesnav_skill_frontmatter_has_all_filter_wiring"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_operation_retryable_error_markers",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_recovers_retryable_error"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_parsing_contract_for_headcount_and_employee_text",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_operation_retryable_error_markers"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_captures_debug_on_terminal_failure",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_waits_url_contains_contract"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_recovers_retryable_error",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_captures_debug_on_terminal_failure"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_host_and_auth_url_contract",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_manager_delegates_auth_check"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_manager_delegates_auth_check",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_filters_normalization_and_similarity_contract"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_waits_url_contains_contract",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_navigator_go_to_account_search_happy_path_clicks_tab"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_can_select_option_even_when_input_typing_fails",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_salesnav_accounts_suggestion_clicks_option"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_honors_boolean_frontmatter_flags",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_can_select_option_even_when_input_typing_fails"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_supports_all_salesnav_filters",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_applies_all_parsed_salesnav_filters"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_falls_back_when_exact_company_returns_empty",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_honors_boolean_frontmatter_flags"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_retries_without_keyword_in_compound_mode",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_falls_back_when_exact_company_returns_empty"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_uses_url_builder_without_typing",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_retries_without_keyword_in_compound_mode"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_salesnav_accounts_suggestion_clicks_option",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_salesnav_skill_frontmatter_has_all_filter_wiring",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_supports_all_salesnav_filters"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_applies_all_parsed_salesnav_filters",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_url_builder_without_typing"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_returns_unmapped_error_when_builder_fails",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_uses_url_builder_without_typing"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_single_keyword_for_salesnav",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_returns_unmapped_error_when_builder_fails"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_url_builder_without_typing",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_single_keyword_for_salesnav"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values",
+        "to": "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_collector_save_companies_without_vertical_column"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id",
+        "to": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_collector_save_companies_without_vertical_column",
+        "to": "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_lookup_company_profile_without_vertical_column"
+      },
+      {
+        "from": "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_lookup_company_profile_without_vertical_column",
+        "to": "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_target_market_heuristic_overrides_industry"
+      },
+      {
+        "from": "python-workflow-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+        "to": "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_create_start_complete"
+      },
+      {
+        "from": "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_checkpoint_continue",
+        "to": "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_template_substitution_recurses_objects"
+      },
+      {
+        "from": "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_create_start_complete",
+        "to": "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_checkpoint_continue"
+      },
+      {
+        "from": "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_fails_when_browser_tool_returns_error",
+        "to": "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_normalize_google_redirect_url"
+      },
+      {
+        "from": "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_template_substitution_recurses_objects",
+        "to": "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_fails_when_browser_tool_returns_error"
+      },
+      {
+        "from": "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_extract_ai_overview_from_snapshot_text",
+        "to": "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_extract_organic_results_filters_google_and_ads"
+      },
+      {
+        "from": "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_extract_organic_results_filters_google_and_ads",
+        "to": "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_human_keystrokes_with_typos_still_reconstructs_text"
+      },
+      {
+        "from": "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_human_keystrokes_with_typos_still_reconstructs_text",
+        "to": "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_detects_google_unusual_traffic_page"
+      },
+      {
+        "from": "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_normalize_google_redirect_url",
+        "to": "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_extract_ai_overview_from_snapshot_text"
+      },
+      {
+        "from": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_annotate_candidate",
+        "to": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_synthesize_from_feedback"
+      },
+      {
+        "from": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_observation_pack",
+        "to": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_validate_candidate"
+      },
+      {
+        "from": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_synthesize_from_feedback",
+        "to": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_tasks"
+      },
+      {
+        "from": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_tabs",
+        "to": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_observation_pack"
+      },
+      {
+        "from": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_validate_candidate",
+        "to": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_annotate_candidate"
+      },
+      {
+        "from": "workflow-builder-live::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+        "to": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_tabs"
+      }
+    ],
+    "observed_edges": [
+      {
+        "from": "backend-gate-pytest-ready",
+        "to": "frontend-gate-node-ready",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      },
+      {
+        "from": "frontend-gate-node-ready",
+        "to": "python-builder-routes",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      },
+      {
+        "from": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success",
+        "to": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-builder-routes"
+      },
+      {
+        "from": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success",
+        "to": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-builder-routes"
+      },
+      {
+        "from": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success",
+        "to": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-builder-routes"
+      },
+      {
+        "from": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success",
+        "to": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-builder-routes"
+      },
+      {
+        "from": "python-builder-routes",
+        "to": "live-gate-backend-api-ready",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      },
+      {
+        "from": "live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+        "to": "live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+        "kind": "stream_predecessor",
+        "stream": "parent:live-gate-backend-api-ready"
+      },
+      {
+        "from": "live-gate-backend-api-ready",
+        "to": "live-gate-bridge-ready",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      },
+      {
+        "from": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+        "to": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+        "kind": "stream_predecessor",
+        "stream": "parent:live-gate-bridge-ready"
+      },
+      {
+        "from": "live-gate-bridge-ready",
+        "to": "python-api-routes-browser",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      },
+      {
+        "from": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend",
+        "to": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-api-routes-browser"
+      },
+      {
+        "from": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task",
+        "to": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-api-routes-browser"
+      },
+      {
+        "from": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync",
+        "to": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-api-routes-browser"
+      },
+      {
+        "from": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status",
+        "to": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-api-routes-browser"
+      },
+      {
+        "from": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error",
+        "to": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-api-routes-browser"
+      },
+      {
+        "from": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404",
+        "to": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-api-routes-browser"
+      },
+      {
+        "from": "python-api-routes-browser",
+        "to": "python-browser-core",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend",
+        "to": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_defaults_to_local_backend",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_defaults_to_local_backend",
+        "to": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env",
+        "to": "python-browser-core::tests/browser/test_browser_policy.py::test_token_bucket_wait_and_consume",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_policy.py::test_token_bucket_wait_and_consume",
+        "to": "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_enforces_hourly_budget",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_enforces_hourly_budget",
+        "to": "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_cooldown_after_friction",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_cooldown_after_friction",
+        "to": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip",
+        "to": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_match_skill_prefers_fingerprint",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_match_skill_prefers_fingerprint",
+        "to": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_item_validation_detects_uniqueness_failure",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_item_validation_detects_uniqueness_failure",
+        "to": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_extract_regression_tests_from_markdown_section",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_extract_regression_tests_from_markdown_section",
+        "to": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_regression_expectation",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_regression_expectation",
+        "to": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_promotion_gate",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_promotion_gate",
+        "to": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_update_skill_frontmatter_sets_qa_fields",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_update_skill_frontmatter_sets_qa_fields",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_classify_page_mode_login_wall",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_classify_page_mode_login_wall",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_infer_href_pattern_picks_stable_segment",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_infer_href_pattern_picks_stable_segment",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_scores_good_candidate",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_scores_good_candidate",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_rejects_missing_urls",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_rejects_missing_urls",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_prefers_positive_segment",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_prefers_positive_segment",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_uses_fallback_without_positives",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_uses_fallback_without_positives",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_candidate_from_feedback_infers_label_and_role_constraints",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_candidate_from_feedback_infers_label_and_role_constraints",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints",
+        "to": "python-browser-core::tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches",
+        "to": "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled",
+        "to": "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled",
+        "to": "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_recaptcha_v2_as_visible",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_recaptcha_v2_as_visible",
+        "to": "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_turnstile_as_behavioral",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_turnstile_as_behavioral",
+        "to": "python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_respects_research_host_gate",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_respects_research_host_gate",
+        "to": "python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_hands_off_behavioral_and_resumes_when_cleared",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-browser-core"
+      },
+      {
+        "from": "python-browser-core",
+        "to": "python-launcher-core",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary",
+        "to": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-launcher-core"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters",
+        "to": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-launcher-core"
+      },
+      {
+        "from": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist",
+        "to": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic",
+        "kind": "stream_predecessor",
+        "stream": "parent:python-launcher-core"
+      }
+    ],
+    "drift": {
+      "missing_planned_edges": [
+        {
+          "from": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+          "to": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready"
+        },
+        {
+          "from": "python-api-routes-browser::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+          "to": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+        },
+        {
+          "from": "python-browser-core::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+          "to": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend"
+        },
+        {
+          "from": "python-builder-routes::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+          "to": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+        },
+        {
+          "from": "python-launcher-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+          "to": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+        }
+      ],
+      "unexpected_observed_edges": [
+        {
+          "from": "backend-gate-pytest-ready",
+          "to": "frontend-gate-node-ready"
+        },
+        {
+          "from": "python-builder-routes",
+          "to": "live-gate-backend-api-ready"
+        },
+        {
+          "from": "live-gate-backend-api-ready",
+          "to": "live-gate-bridge-ready"
+        },
+        {
+          "from": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+          "to": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        },
+        {
+          "from": "live-gate-bridge-ready",
+          "to": "python-api-routes-browser"
+        },
+        {
+          "from": "python-api-routes-browser",
+          "to": "python-browser-core"
+        },
+        {
+          "from": "frontend-gate-node-ready",
+          "to": "python-builder-routes"
+        },
+        {
+          "from": "python-browser-core",
+          "to": "python-launcher-core"
+        }
+      ],
+      "nodes_started_before_planned_ready": [
+        {
+          "id": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+          "unsatisfied_deps": [
+            "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+          ]
+        },
+        {
+          "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend",
+          "unsatisfied_deps": [
+            "python-api-routes-browser::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready"
+          ]
+        },
+        {
+          "id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend",
+          "unsatisfied_deps": [
+            "python-browser-core::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready"
+          ]
+        },
+        {
+          "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success",
+          "unsatisfied_deps": [
+            "python-builder-routes::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+          ]
+        },
+        {
+          "id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary",
+          "unsatisfied_deps": [
+            "python-launcher-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+          ]
+        }
+      ]
+    },
+    "nodes": [
+      {
+        "id": "backend-gate-pytest-ready",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830129.561202,
+        "last_finished_at": 1771830129.665612
+      },
+      {
+        "id": "frontend-gate-node-ready",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830129.666016,
+        "last_finished_at": 1771830129.769962
+      },
+      {
+        "id": "live-gate-backend-api-ready",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830135.312561,
+        "last_finished_at": 1771830138.329449
+      },
+      {
+        "id": "live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830135.312641,
+        "last_finished_at": 1771830135.817846
+      },
+      {
+        "id": "live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830135.817916,
+        "last_finished_at": 1771830138.329417
+      },
+      {
+        "id": "live-gate-bridge-ready",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830138.329652,
+        "last_finished_at": 1771830139.3381
+      },
+      {
+        "id": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830138.833793,
+        "last_finished_at": 1771830139.338055
+      },
+      {
+        "id": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [
+          "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "first_started_at": 1771830138.329749,
+        "last_finished_at": 1771830138.833722
+      },
+      {
+        "id": "python-api-routes-browser",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830139.338332,
+        "last_finished_at": 1771830147.595185
+      },
+      {
+        "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830140.045026,
+        "last_finished_at": 1771830140.751211
+      },
+      {
+        "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-api-routes-browser::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready"
+        ],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [
+          "python-api-routes-browser::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready"
+        ],
+        "first_started_at": 1771830139.338432,
+        "last_finished_at": 1771830140.044891
+      },
+      {
+        "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830141.859915,
+        "last_finished_at": 1771830144.170837
+      },
+      {
+        "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830140.751257,
+        "last_finished_at": 1771830141.859867
+      },
+      {
+        "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830144.17091,
+        "last_finished_at": 1771830145.379721
+      },
+      {
+        "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830145.379792,
+        "last_finished_at": 1771830146.48776
+      },
+      {
+        "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830146.487795,
+        "last_finished_at": 1771830147.5951
+      },
+      {
+        "id": "python-browser-core",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830147.595517,
+        "last_finished_at": 1771830173.905873
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_defaults_to_local_backend",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830148.3021,
+        "last_finished_at": 1771830149.008078
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_defaults_to_local_backend"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_defaults_to_local_backend"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830149.008112,
+        "last_finished_at": 1771830149.814907
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready"
+        ],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [
+          "python-browser-core::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready"
+        ],
+        "first_started_at": 1771830147.595653,
+        "last_finished_at": 1771830148.302064
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_cooldown_after_friction",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_enforces_hourly_budget"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_enforces_hourly_budget"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830150.625072,
+        "last_finished_at": 1771830151.331792
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_enforces_hourly_budget",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_policy.py::test_token_bucket_wait_and_consume"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_policy.py::test_token_bucket_wait_and_consume"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830150.220193,
+        "last_finished_at": 1771830150.625013
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_policy.py::test_token_bucket_wait_and_consume",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selection_ignores_workflow_async_env"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830149.814971,
+        "last_finished_at": 1771830150.220158
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_cooldown_after_friction"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_policy.py::test_browser_policy_cooldown_after_friction"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830151.331824,
+        "last_finished_at": 1771830152.339283
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_item_validation_detects_uniqueness_failure",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_match_skill_prefers_fingerprint"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_match_skill_prefers_fingerprint"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830153.44835,
+        "last_finished_at": 1771830154.556709
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_match_skill_prefers_fingerprint",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_fingerprint_roundtrip"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830152.339317,
+        "last_finished_at": 1771830153.448272
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_promotion_gate",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_regression_expectation"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_regression_expectation"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830156.673603,
+        "last_finished_at": 1771830157.679834
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_regression_expectation",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_skill_regression.py::test_extract_regression_tests_from_markdown_section"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_skill_regression.py::test_extract_regression_tests_from_markdown_section"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830155.665757,
+        "last_finished_at": 1771830156.673545
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_extract_regression_tests_from_markdown_section",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_item_validation_detects_uniqueness_failure"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_skill_fingerprints.py::test_item_validation_detects_uniqueness_failure"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830154.556786,
+        "last_finished_at": 1771830155.665683
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_skill_regression.py::test_update_skill_frontmatter_sets_qa_fields",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_promotion_gate"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_skill_regression.py::test_evaluate_promotion_gate"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830157.67988,
+        "last_finished_at": 1771830158.686955
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_classify_page_mode_login_wall",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_skill_regression.py::test_update_skill_frontmatter_sets_qa_fields"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_skill_regression.py::test_update_skill_frontmatter_sets_qa_fields"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830158.686989,
+        "last_finished_at": 1771830159.694421
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_infer_href_pattern_picks_stable_segment",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_classify_page_mode_login_wall"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_classify_page_mode_login_wall"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830159.694478,
+        "last_finished_at": 1771830160.802518
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_candidate_from_feedback_infers_label_and_role_constraints",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_uses_fallback_without_positives"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_uses_fallback_without_positives"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830164.832744,
+        "last_finished_at": 1771830165.840429
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_prefers_positive_segment",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_rejects_missing_urls"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_rejects_missing_urls"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830162.81714,
+        "last_finished_at": 1771830163.825351
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_uses_fallback_without_positives",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_prefers_positive_segment"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_href_pattern_from_feedback_prefers_positive_segment"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830163.825385,
+        "last_finished_at": 1771830164.832691
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_candidate_from_feedback_infers_label_and_role_constraints"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_synthesize_candidate_from_feedback_infers_label_and_role_constraints"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830165.840468,
+        "last_finished_at": 1771830166.949508
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_rejects_missing_urls",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_scores_good_candidate"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_scores_good_candidate"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830161.809736,
+        "last_finished_at": 1771830162.817107
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_scores_good_candidate",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_infer_href_pattern_picks_stable_segment"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_infer_href_pattern_picks_stable_segment"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830160.802591,
+        "last_finished_at": 1771830161.809676
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830166.949585,
+        "last_finished_at": 1771830168.058128
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830169.066052,
+        "last_finished_at": 1771830170.074228
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830168.058194,
+        "last_finished_at": 1771830169.066017
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_recaptcha_v2_as_visible",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830170.074261,
+        "last_finished_at": 1771830170.981724
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_turnstile_as_behavioral",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_recaptcha_v2_as_visible"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_recaptcha_v2_as_visible"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830170.981885,
+        "last_finished_at": 1771830171.890848
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_hands_off_behavioral_and_resumes_when_cleared",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_respects_research_host_gate"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_respects_research_host_gate"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830172.798826,
+        "last_finished_at": 1771830173.905804
+      },
+      {
+        "id": "python-browser-core::tests/browser/test_challenge_resolver.py::test_handler_respects_research_host_gate",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_turnstile_as_behavioral"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-browser-core::tests/browser/test_challenge_resolver.py::test_detector_classifies_turnstile_as_behavioral"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830171.890967,
+        "last_finished_at": 1771830172.798753
+      },
+      {
+        "id": "python-builder-routes",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830129.770169,
+        "last_finished_at": 1771830135.312378
+      },
+      {
+        "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830131.985998,
+        "last_finished_at": 1771830133.094553
+      },
+      {
+        "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830134.204265,
+        "last_finished_at": 1771830135.312353
+      },
+      {
+        "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-builder-routes::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [
+          "python-builder-routes::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "first_started_at": 1771830129.770258,
+        "last_finished_at": 1771830130.878048
+      },
+      {
+        "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830133.094624,
+        "last_finished_at": 1771830134.204221
+      },
+      {
+        "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830130.878114,
+        "last_finished_at": 1771830131.985932
+      },
+      {
+        "id": "python-launcher-core",
+        "status": "canceled",
+        "attempts": 1,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830173.906128,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830175.320363,
+        "last_finished_at": 1771830176.026543
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "first_started_at": 1771830173.906235,
+        "last_finished_at": 1771830174.613279
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830174.613337,
+        "last_finished_at": 1771830175.320319
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_aggregate_meta_node_is_not_executed_but_expands_dependencies",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic",
+        "status": "canceled",
+        "attempts": 1,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771830176.026588,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_detects_cycle",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_planner.py::test_aggregate_meta_node_is_not_executed_but_expands_dependencies"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_planner.py::test_aggregate_meta_node_is_not_executed_but_expands_dependencies"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_accepts_valid",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_rejects_bad_shape"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_rejects_bad_shape"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_rejects_bad_shape",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_planner.py::test_detects_cycle"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_planner.py::test_detects_cycle"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_run_store.py::test_prune_by_count_and_age",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_accepts_valid"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_protocol.py::test_parse_message_accepts_valid"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_startup.py::test_preflight_detects_port_conflict",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_run_store.py::test_prune_by_count_and_age"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_run_store.py::test_prune_by_count_and_age"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_assertions_progressive_disclosure_exists",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_keyboard_handlers_exist"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_keyboard_handlers_exist"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_drawer_markup_exists",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_startup.py::test_preflight_detects_port_conflict"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_startup.py::test_preflight_detects_port_conflict"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_keyboard_handlers_exist",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_drawer_markup_exists"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_drawer_markup_exists"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_search_filter_cases_exists",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_assertions_progressive_disclosure_exists"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_assertions_progressive_disclosure_exists"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_worker_integration.py::test_worker_cancel_run",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_worker_integration.py::test_worker_timeout"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_worker_integration.py::test_worker_timeout"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_launcher_worker_integration.py::test_worker_timeout",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_search_filter_cases_exists"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_launcher_ui_contract.py::test_search_filter_cases_exists"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-launcher-core::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-launcher-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-launcher-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-platform-core",
+        "status": "canceled",
+        "attempts": 0,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-platform-core::tests/platform/test_service_boundaries.py::test_service_boundaries",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-platform-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-platform-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-platform-core::tests/platform/test_template_renderer.py::test_render_fallback_token",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-platform-core::tests/platform/test_service_boundaries.py::test_service_boundaries"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-platform-core::tests/platform/test_service_boundaries.py::test_service_boundaries"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-platform-core::tests/platform/test_template_renderer.py::test_unknown_token_detection",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-platform-core::tests/platform/test_template_renderer.py::test_render_fallback_token"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-platform-core::tests/platform/test_template_renderer.py::test_render_fallback_token"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-platform-core::tests/platform/test_template_renderer.py::test_unsubscribe_validation_error",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-platform-core::tests/platform/test_template_renderer.py::test_unknown_token_detection"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-platform-core::tests/platform/test_template_renderer.py::test_unknown_token_detection"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core",
+        "status": "canceled",
+        "attempts": 0,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_company_focus_filters_generic_queries",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_hq_filter_value_prefers_first_non_empty_item",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_company_focus_filters_generic_queries"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_company_focus_filters_generic_queries"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_maps_shape_and_limits_rows",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_hq_filter_value_prefers_first_non_empty_item"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_hq_filter_value_prefers_first_non_empty_item"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_preserves_enriched_salesnav_fields",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_maps_shape_and_limits_rows"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_maps_shape_and_limits_rows"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_preserves_enriched_salesnav_fields"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_preserves_enriched_salesnav_fields"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_save_companies_to_db_insert_and_update_with_vertical",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_filters_normalization_and_similarity_contract",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_manager_delegates_auth_check"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_manager_delegates_auth_check"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_navigator_go_to_account_search_happy_path_clicks_tab",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_waits_url_contains_contract"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_waits_url_contains_contract"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_operation_retryable_error_markers",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_parsing_contract_for_headcount_and_employee_text"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_parsing_contract_for_headcount_and_employee_text"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_parsing_contract_for_headcount_and_employee_text",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_filters_normalization_and_similarity_contract"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_filters_normalization_and_similarity_contract"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_captures_debug_on_terminal_failure",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_recovers_retryable_error"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_recovers_retryable_error"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_recovers_retryable_error",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_operation_retryable_error_markers"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_operation_retryable_error_markers"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_host_and_auth_url_contract",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_save_companies_to_db_insert_and_update_with_vertical"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_company_collection_flow.py::test_save_companies_to_db_insert_and_update_with_vertical"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_manager_delegates_auth_check",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_host_and_auth_url_contract"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_session_host_and_auth_url_contract"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_waits_url_contains_contract",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_captures_debug_on_terminal_failure"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_captures_debug_on_terminal_failure"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_can_select_option_even_when_input_typing_fails",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_honors_boolean_frontmatter_flags"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_honors_boolean_frontmatter_flags"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_honors_boolean_frontmatter_flags",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_falls_back_when_exact_company_returns_empty"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_falls_back_when_exact_company_returns_empty"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_supports_all_salesnav_filters",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_salesnav_skill_frontmatter_has_all_filter_wiring"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_salesnav_skill_frontmatter_has_all_filter_wiring"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_falls_back_when_exact_company_returns_empty",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_retries_without_keyword_in_compound_mode"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_retries_without_keyword_in_compound_mode"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_retries_without_keyword_in_compound_mode",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_uses_url_builder_without_typing"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_uses_url_builder_without_typing"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_people_search_uses_url_builder_without_typing",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_returns_unmapped_error_when_builder_fails"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_returns_unmapped_error_when_builder_fails"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_salesnav_accounts_suggestion_clicks_option",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_can_select_option_even_when_input_typing_fails"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_can_select_option_even_when_input_typing_fails"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_salesnav_skill_frontmatter_has_all_filter_wiring",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_navigator_go_to_account_search_happy_path_clicks_tab"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_core_contracts.py::test_navigator_go_to_account_search_happy_path_clicks_tab"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_applies_all_parsed_salesnav_filters",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_supports_all_salesnav_filters"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_apply_filter_supports_all_salesnav_filters"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_returns_unmapped_error_when_builder_fails",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_single_keyword_for_salesnav"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_single_keyword_for_salesnav"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_single_keyword_for_salesnav",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_url_builder_without_typing"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_url_builder_without_typing"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_url_builder_without_typing",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_applies_all_parsed_salesnav_filters"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_search_and_extract_applies_all_parsed_salesnav_filters"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_salesnav_accounts_suggestion_clicks_option"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_filters.py::test_salesnav_accounts_suggestion_clicks_option"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_collector_save_companies_without_vertical_column",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_lookup_company_profile_without_vertical_column",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_collector_save_companies_without_vertical_column"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_collector_save_companies_without_vertical_column"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_target_market_heuristic_overrides_industry",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_lookup_company_profile_without_vertical_column"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::tests/salesnav/test_targets_schema_compat.py::test_filter_parser_lookup_company_profile_without_vertical_column"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-workflow-core",
+        "status": "canceled",
+        "attempts": 0,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_checkpoint_continue",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_create_start_complete"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_create_start_complete"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_create_start_complete",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-workflow-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-workflow-core::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_fails_when_browser_tool_returns_error",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_template_substitution_recurses_objects"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_template_substitution_recurses_objects"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_template_substitution_recurses_objects",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_checkpoint_continue"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_checkpoint_continue"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_detects_google_unusual_traffic_page",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_human_keystrokes_with_typos_still_reconstructs_text"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_human_keystrokes_with_typos_still_reconstructs_text"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_extract_ai_overview_from_snapshot_text",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_normalize_google_redirect_url"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_normalize_google_redirect_url"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_extract_organic_results_filters_google_and_ads",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_extract_ai_overview_from_snapshot_text"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_extract_ai_overview_from_snapshot_text"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_human_keystrokes_with_typos_still_reconstructs_text",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_extract_organic_results_filters_google_and_ads"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_extract_organic_results_filters_google_and_ads"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "python-workflow-core::tests/workflow_core/test_google_workflow.py::test_normalize_google_redirect_url",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_fails_when_browser_tool_returns_error"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-workflow-core::tests/workflow_core/test_compound_workflow.py::test_compound_workflow_fails_when_browser_tool_returns_error"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "ui-tests-all",
+        "status": "canceled",
+        "attempts": 0,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "workflow-builder-live",
+        "status": "canceled",
+        "attempts": 0,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_annotate_candidate",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_validate_candidate"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_validate_candidate"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_observation_pack",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_tabs"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_tabs"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_synthesize_from_feedback",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_annotate_candidate"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_annotate_candidate"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_tabs",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "workflow-builder-live::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "workflow-builder-live::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_tasks",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_synthesize_from_feedback"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_synthesize_from_feedback"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      },
+      {
+        "id": "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_validate_candidate",
+        "status": "",
+        "attempts": 0,
+        "planned_deps": [
+          "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_observation_pack"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "workflow-builder-live::tests/api_routes/browser/test_workflow_builder_live_e2e.py::test_live_observation_pack"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": null
+      }
+    ]
+  },
+  "exports": {
+    "json": true,
+    "junit": true
+  }
+}

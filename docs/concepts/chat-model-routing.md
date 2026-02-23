@@ -14,6 +14,12 @@ title: "Chat Model Routing"
 - `ui/src/chat/chatEngine.ts` applies runtime routing overrides (for example Ollama availability checks).
 - `ui/src/chat/fallbackPipeline.ts` executes fallback chains.
 
+### Conversational Guardrails
+
+- Conversational requests (for example `hello`) should short-circuit before tool planning.
+- This short-circuit now applies even when confirmation mode is enabled for tool plans, so confirmation UX does not hijack pure conversational turns.
+- Intent classification includes a deterministic greeting guard to avoid planner fallback on basic openers if classifier model output is noisy.
+
 ## OpenAI Controls
 
 OpenAI path is disabled by default.
@@ -24,6 +30,14 @@ OpenAI path is disabled by default.
   - Prevents fallback chain from ending in OpenAI when local routes fail.
 
 When both are false, assistant behavior is local-first and local-only.
+
+### Local-Only Exhaustion Behavior
+
+When `VITE_CHAT_ALLOW_OPENAI_FALLBACK=false` and local routes are unavailable/exhausted, `ui/src/chat/fallbackPipeline.ts` now returns a deterministic offline-safe reply instead of a hard failure string.
+
+- Greeting inputs (for example `hello`) return a normal greeting plus limited-mode notice.
+- Capability/help prompts return a limited-mode capability response.
+- Other prompts return a clear "limited mode" instruction with recovery steps (`Start Ollama` or enable OpenAI fallback).
 
 ## Backend Chat Default Model
 

@@ -275,7 +275,6 @@ async function stepBenchmarkSinglePass(ctx: PipelineContext, emitPlannerEvent: (
 }
 
 async function stepConversationalShortCircuit(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
-  if (ctx.options.requireToolConfirmation === true) return null;
   if (isAffirmativeToken(ctx.resolvedMessage || ctx.normalizedMessage) && lastAssistantAskedToConfirm(ctx.history)) {
     return null;
   }
@@ -692,9 +691,6 @@ function extractActionTarget(message: string): string | null {
 async function stepDeterministicRoutines(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
   if (ctx.phase !== 'planning') return null;
   if (ctx.options.confirmedToolCalls?.length) return null;
-  // When caller explicitly requires confirmation, keep write-intent requests
-  // on the planner path so confirmation metadata is preserved.
-  if (ctx.options.requireToolConfirmation === true) return null;
 
   const target = extractActionTarget(ctx.resolvedMessage || ctx.normalizedMessage);
   if (!target) return null;

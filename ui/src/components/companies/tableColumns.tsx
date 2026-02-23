@@ -1,5 +1,13 @@
 import { createColumnHelper } from '@tanstack/react-table';
-import { Building2, ChevronDown, ChevronRight, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import {
+  Building2,
+  ChevronDown,
+  ChevronRight,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+} from 'lucide-react';
 import type { Company } from '../../api';
 import { TierBadge } from './TierBadge';
 import { StatusBadge } from './StatusBadge';
@@ -9,14 +17,17 @@ const columnHelper = createColumnHelper<Company>();
 function SortableHeader({ column, children }: { column: any; children: React.ReactNode }) {
   const sorted = column.getIsSorted();
   return (
-    <button className="flex items-center gap-1 hover:text-text transition-colors" onClick={column.getToggleSortingHandler()}>
+    <button
+      className="flex items-center gap-0.5 hover:text-text transition-colors text-[11px] font-medium tracking-wide uppercase"
+      onClick={column.getToggleSortingHandler()}
+    >
       {children}
       {sorted === 'asc' ? (
-        <ArrowUp className="w-3 h-3" />
+        <ArrowUp className="w-2.5 h-2.5" />
       ) : sorted === 'desc' ? (
-        <ArrowDown className="w-3 h-3" />
+        <ArrowDown className="w-2.5 h-2.5" />
       ) : (
-        <ArrowUpDown className="w-3 h-3 opacity-40" />
+        <ArrowUpDown className="w-2.5 h-2.5 opacity-40" />
       )}
     </button>
   );
@@ -31,7 +42,7 @@ export function createCompanyColumns(onDelete: (id: number, name: string) => voi
           type="checkbox"
           checked={table.getIsAllRowsSelected()}
           onChange={table.getToggleAllRowsSelectedHandler()}
-          className="rounded border-border accent-accent"
+          className="w-3.5 h-3.5 rounded border-border accent-accent"
         />
       ),
       cell: ({ row }) => (
@@ -40,30 +51,30 @@ export function createCompanyColumns(onDelete: (id: number, name: string) => voi
           checked={row.getIsSelected()}
           onChange={row.getToggleSelectedHandler()}
           onClick={(e) => e.stopPropagation()}
-          className="rounded border-border accent-accent"
+          className="w-3.5 h-3.5 rounded border-border accent-accent"
         />
       ),
-      size: 40,
+      size: 36,
     }),
     columnHelper.display({
       id: 'expand',
       header: () => null,
       cell: ({ row }) =>
         row.getIsExpanded() ? (
-          <ChevronDown className="w-3.5 h-3.5 text-text-dim" />
+          <ChevronDown className="w-3 h-3 text-text-dim" />
         ) : (
-          <ChevronRight className="w-3.5 h-3.5 text-text-dim" />
+          <ChevronRight className="w-3 h-3 text-text-dim" />
         ),
-      size: 32,
+      size: 24,
     }),
     columnHelper.accessor('company_name', {
       header: ({ column }) => <SortableHeader column={column}>Company</SortableHeader>,
       cell: ({ getValue }) => (
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-8 h-8 rounded-lg bg-surface-hover flex items-center justify-center shrink-0">
-            <Building2 className="w-4 h-4 text-text-muted" />
+        <div className="flex items-center gap-2 overflow-hidden">
+          <div className="w-6 h-6 rounded-md bg-surface-hover flex items-center justify-center shrink-0">
+            <Building2 className="w-3.5 h-3.5 text-text-muted" />
           </div>
-          <span className="font-medium text-text truncate" title={getValue()}>
+          <span className="text-[13px] font-semibold leading-tight text-text truncate" title={getValue()}>
             {getValue()}
           </span>
         </div>
@@ -88,13 +99,13 @@ export function createCompanyColumns(onDelete: (id: number, name: string) => voi
         if (!normalized || normalized === 'all') return true;
         return String(row.original.status || 'pending').trim().toLowerCase() === normalized;
       },
-      size: 120,
+      size: 112,
     }),
     columnHelper.accessor('vertical', {
       header: ({ column }) => <SortableHeader column={column}>Vertical</SortableHeader>,
       cell: ({ getValue }) => (
-        <span className="text-sm text-text-muted truncate block" title={getValue() || '—'}>
-          {getValue() || '—'}
+        <span className="text-[12px] leading-tight text-text-muted truncate block" title={getValue() || '-'}>
+          {getValue() || '-'}
         </span>
       ),
       filterFn: (row, _id, value) => {
@@ -108,7 +119,7 @@ export function createCompanyColumns(onDelete: (id: number, name: string) => voi
         if (selected.length === 0) return true;
         return selected.includes(current);
       },
-      size: 150,
+      size: 132,
     }),
     columnHelper.display({
       id: 'actions',
@@ -121,14 +132,14 @@ export function createCompanyColumns(onDelete: (id: number, name: string) => voi
               const c = row.original;
               if (c.id) onDelete(c.id, c.company_name);
             }}
-            className="p-1.5 hover:bg-red-50 rounded text-text-muted hover:text-red-600"
+            className="p-1 hover:bg-red-50 rounded text-text-muted hover:text-red-600"
             title="Delete"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       ),
-      size: 48,
+      size: 40,
     }),
   ];
 }

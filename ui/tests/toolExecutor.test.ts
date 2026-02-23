@@ -117,4 +117,48 @@ describe('dispatchToolCalls', () => {
     expect(secondBody.query).toBe('companies in new hampshire');
     expect(secondBody.max_results).toBe(5);
   });
+
+  it('search_contacts falls back to hybrid_search when exact-name lookup has no close match', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: async () => ([]),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        headers: { get: () => 'application/json' },
+        json: async () => ({ results: [{ entity_type: 'contact', entity_id: '1', title: 'Randy Peterson' }] }),
+      });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await dispatchToolCalls([
+      { name: 'search_contacts', args: { name: 'Randy Peterson' } },
+    ]);
+
+    expect(result.success).toBe(true);
+    expect(result.executed[0]?.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[0]?.[0] || '')).toContain('/api/contacts');
+    expect(String(fetchMock.mock.calls[1]?.[0] || '')).toContain('/api/search/hybrid');
+  });
+
+  it('search_contacts does not fall back when a close name match exists', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: { get: () => 'application/json' },
+      json: async () => ([{ id: 7, name: 'Randy Peterson' }]),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await dispatchToolCalls([
+      { name: 'search_contacts', args: { name: 'Randy Peterson' } },
+    ]);
+
+    expect(result.success).toBe(true);
+    expect(result.executed[0]?.ok).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0]?.[0] || '')).toContain('/api/contacts');
+  });
 });

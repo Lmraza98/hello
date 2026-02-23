@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="launcher-run" tests="5" failures="0" skipped="2" time="16.729">
+  <testcase classname="launcher" name="backend-gate-pytest-ready" time="0.104">
+  </testcase>
+  <testcase classname="launcher" name="python-api-routes-browser" time="8.154">
+  </testcase>
+  <testcase classname="launcher" name="python-browser-core" time="0.255">
+    <skipped message="canceled"/>
+  </testcase>
+  <testcase classname="launcher" name="python-builder-routes" time="5.539">
+  </testcase>
+  <testcase classname="launcher" name="python-launcher-core" time="2.676">
+    <skipped message="canceled"/>
+  </testcase>
+</testsuite>

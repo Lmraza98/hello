@@ -1,0 +1,201 @@
+{
+  "run_id": "run-20260223-045217-583692",
+  "started_at": "2026-02-23T04:52:17Z",
+  "status": "canceled",
+  "selected_test_ids": [
+    "backend-gate-pytest-ready",
+    "frontend-gate-node-ready",
+    "python-builder-routes",
+    "live-gate-backend-api-ready",
+    "live-gate-bridge-ready",
+    "python-api-routes-browser",
+    "python-browser-core",
+    "python-launcher-core",
+    "python-platform-core",
+    "python-salesnav-core",
+    "python-workflow-core",
+    "ui-tests-all",
+    "workflow-builder-live"
+  ],
+  "selected_step_ids": [],
+  "selected_tags": [],
+  "artifacts": {
+    "events": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-045217-583692\\events.ndjson",
+    "stdout": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-045217-583692\\stdout.log",
+    "junit": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-045217-583692\\results.junit.xml",
+    "json": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-045217-583692\\results.json",
+    "trace": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-045217-583692\\run_trace.json"
+  },
+  "duration_sec": 10.983821630477905,
+  "tests": [
+    {
+      "id": "backend-gate-pytest-ready",
+      "status": "passed",
+      "duration_sec": 0.1006317138671875,
+      "message": "",
+      "attempt": 1
+    },
+    {
+      "id": "python-api-routes-browser",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": 1
+    },
+    {
+      "id": "python-builder-routes",
+      "status": "passed",
+      "duration_sec": 5.539849281311035,
+      "message": "",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "python-launcher-core",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "python-platform-core",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "python-salesnav-core",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "python-workflow-core",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "frontend-gate-node-ready",
+      "status": "passed",
+      "duration_sec": 0.10043644905090332,
+      "message": "",
+      "attempt": 1
+    },
+    {
+      "id": "ui-tests-all",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "live-gate-backend-api-ready",
+      "status": "passed",
+      "duration_sec": 3.320793628692627,
+      "message": "",
+      "attempt": 1
+    },
+    {
+      "id": "live-gate-bridge-ready",
+      "status": "passed",
+      "duration_sec": 1.0077545642852783,
+      "message": "",
+      "attempt": 1
+    },
+    {
+      "id": "workflow-builder-live",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success",
+      "status": "passed",
+      "duration_sec": 1.1042497158050537,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success",
+      "status": "passed",
+      "duration_sec": 1.1038894653320312,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success",
+      "status": "passed",
+      "duration_sec": 1.103949785232544,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success",
+      "status": "passed",
+      "duration_sec": 1.1030282974243164,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error",
+      "status": "passed",
+      "duration_sec": 1.1040725708007812,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+      "status": "passed",
+      "duration_sec": 0.501471757888794,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "live-gate-backend-api-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+      "status": "passed",
+      "duration_sec": 2.8104021549224854,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready",
+      "status": "passed",
+      "duration_sec": 0.50130295753479,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "live-gate-bridge-ready::tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready",
+      "status": "passed",
+      "duration_sec": 0.5017356872558594,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend",
+      "status": "passed",
+      "duration_sec": 0.7015058994293213,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": 1
+    }
+  ],
+  "finished_at": "2026-02-23T04:52:28.851801+00:00"
+}

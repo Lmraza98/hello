@@ -32,6 +32,31 @@ const FALLBACK_CHAINS: Record<ModelRoute, ModelRoute[]> = {
   openai: ['openai'],
 };
 
+function buildOfflineFallbackResponse(userMessage: string): string {
+  const raw = (userMessage || '').trim();
+  const lower = raw.toLowerCase();
+
+  if (!raw) {
+    return 'I am online, but local language models are unavailable. Start Ollama (or enable OpenAI fallback) to restore full chat responses.';
+  }
+
+  if (/^(hi|hello|hey|yo|good\s+(morning|afternoon|evening))\b/.test(lower)) {
+    return 'Hi. I am in limited mode because local language models are unavailable. Start Ollama (or enable OpenAI fallback) for full chat.';
+  }
+
+  if (/\b(help|what can you do|capabilit(?:y|ies)|how can you help)\b/.test(lower)) {
+    return (
+      'I am in limited mode because local language models are unavailable. ' +
+      'I can still run deterministic actions and tools, but for full conversational answers start Ollama (or enable OpenAI fallback).'
+    );
+  }
+
+  return (
+    'I cannot run full conversational responses right now because local language models are unavailable. ' +
+    'Start Ollama (or enable OpenAI fallback), or ask me to run a deterministic action.'
+  );
+}
+
 export async function runWithFallback(
   route: ModelRoute,
   userMessage: string,
@@ -68,13 +93,12 @@ export async function runWithFallback(
 
   const exhausted = shouldFallback(result);
   if (exhausted && !ALLOW_OPENAI_FALLBACK) {
-    const response =
-      'I could not complete that because local models are unavailable. Start Ollama (or enable OpenAI fallback) and try again.';
+    const response = buildOfflineFallbackResponse(userMessage);
     return {
       response,
       messages: [textMsg(response)],
       toolsUsed: result.toolsUsed,
-      success: false,
+      success: true,
       modelUsed: current,
       fallbackUsed: true,
       switches,

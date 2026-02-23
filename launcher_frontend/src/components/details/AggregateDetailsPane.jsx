@@ -49,8 +49,8 @@ export default function AggregateDetailsPane({
   const [showChildrenList, setShowChildrenList] = React.useState(true);
 
   return (
-    <div className="mt-4 space-y-2.5 text-xs">
-      <div className="rounded border border-slate-700/70 bg-slate-900/35 px-2.5 py-2">
+    <div className="mt-2.5 space-y-2 text-xs">
+      <div className="rounded border border-slate-700/70 bg-slate-900/35 px-2 py-1.5">
         <div className="grid grid-cols-4 gap-2 text-[11px]">
           <div><span className="text-emerald-300">{passed}</span> Passed</div>
           <div><span className="text-rose-300">{failed}</span> Failed</div>
@@ -67,7 +67,7 @@ export default function AggregateDetailsPane({
 
       {!hasRunData ? <div className="text-[11px] text-slate-300">No execution data for selected run.</div> : null}
 
-      <div className="space-y-1 rounded border border-slate-800/70 bg-slate-900/20 px-2.5 py-2">
+      <div className="space-y-1 rounded border border-slate-800/70 bg-slate-900/20 px-2 py-1.5">
         <div className="text-[11px] font-semibold text-slate-200">Runtime</div>
         <div>Status: <span className="text-slate-100">{effectiveStatus}</span></div>
         <div>Duration: <span className="text-slate-100">{graphNode?.durationMs ? `${(graphNode.durationMs / 1000).toFixed(2)}s` : fmtDuration(statusRow.duration)}</span></div>
@@ -83,7 +83,7 @@ export default function AggregateDetailsPane({
         Details
       </button>
       {showMoreMeta ? (
-        <div className="space-y-1 rounded border border-slate-800/70 bg-slate-900/20 px-2.5 py-2 text-slate-300">
+        <div className="space-y-1 rounded border border-slate-800/70 bg-slate-900/20 px-2 py-1.5 text-slate-300">
           <div className="truncate">File: <span className="text-slate-100" title={graphNode?.filePath || selectedCase?.file_path || ""}>{graphNode?.filePath || selectedCase?.file_path || "-"}</span></div>
           <div>Suite: <span className="text-slate-100">{graphNode?.suiteId || testMeta?.suite_name || testMeta?.suite_id || "-"}</span></div>
           <div>Retries: <span className="text-slate-100">{testMeta?.retries ?? "-"}</span></div>
@@ -94,7 +94,7 @@ export default function AggregateDetailsPane({
         </div>
       ) : null}
 
-      <div className="mt-2 rounded border border-slate-800/70 p-2">
+      <div className="mt-1.5 rounded border border-slate-800/70 p-1.5">
         <button type="button" onClick={() => setShowChildrenList((v) => !v)} className="mb-1 flex w-full items-center justify-between gap-2 text-left">
           <div className="text-[11px] font-semibold text-slate-200">Children ({aggregateSummary.total})</div>
           <div className="text-[10px] text-slate-400">

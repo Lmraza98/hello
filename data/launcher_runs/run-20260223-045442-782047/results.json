@@ -1,0 +1,123 @@
+{
+  "run_id": "run-20260223-045442-782047",
+  "status": "canceled",
+  "duration_sec": 3.414985418319702,
+  "tests": [
+    {
+      "id": "backend-gate-pytest-ready",
+      "status": "passed",
+      "duration_sec": 0.10062646865844727,
+      "message": "",
+      "attempt": 1
+    },
+    {
+      "id": "python-api-routes-browser",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "python-builder-routes",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": 1
+    },
+    {
+      "id": "python-browser-core",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "python-launcher-core",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "python-platform-core",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "python-salesnav-core",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "python-workflow-core",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "frontend-gate-node-ready",
+      "status": "passed",
+      "duration_sec": 0.10038042068481445,
+      "message": "",
+      "attempt": 1
+    },
+    {
+      "id": "ui-tests-all",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "live-gate-backend-api-ready",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "live-gate-bridge-ready",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "workflow-builder-live",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": null
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success",
+      "status": "passed",
+      "duration_sec": 1.2030165195465088,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success",
+      "status": "passed",
+      "duration_sec": 1.103879690170288,
+      "message": "passed",
+      "attempt": 1
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success",
+      "status": "canceled",
+      "duration_sec": 0.0,
+      "message": "terminated by stop",
+      "attempt": 1
+    }
+  ],
+  "exports": {
+    "json": true,
+    "junit": true
+  }
+}

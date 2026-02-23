@@ -1,0 +1,1847 @@
+{
+  "ok": true,
+  "tab_id": "tab-0",
+  "observation": {
+    "tab_id": "tab-0",
+    "url": "https://www.linkedin.com/sales/search/company?query=(spellCorrectionEnabled%3Atrue%2Ckeywords%3Agraphics)&sessionId=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D&viewAllFilters=true",
+    "domain": "www.linkedin.com",
+    "page_mode": "list_page",
+    "data_source_preference": [
+      "dom",
+      "structured_markup"
+    ],
+    "policy_summary": {
+      "read_only_default": true,
+      "unsafe_actions_blocked_by_default": true
+    },
+    "stabilization": {
+      "method": "snapshot_role_plus_ai",
+      "network_idle_confirmed": false,
+      "layout_stable_confirmed": false
+    },
+    "dom": {
+      "role_snapshot_text": "[ref=e1] a -> /sales/index\n[ref=e2] a \"Home\" -> /sales/home\n[ref=e3] a \"Accounts\" -> /sales/accounts/dashboard\n[ref=e4] a \"Leads\" -> /sales/lists/people\n[ref=e5] a \"Messaging\" -> /sales/inbox?trk=d_sales2_app_header_inbox\n[ref=e6] a \"Referrals\" -> /sales/referrals\n[ref=e7] button \"Open help center\"\n[ref=e8] div\n[ref=e9] button \"Notifications: You have 7 unseen notifications\"\n[ref=e10] button \"Lucas Raza\"\n[ref=e11] a \"Lead tabitem 1 of 2\" -> /sales/search/people?query=(spellCorrectionEnabled%3Atrue%2Ckeywords%3Agraphics)&sessionId=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e12] a \"Account tabitem 2 of 2 selected\" -> /sales/search/company?query=(spellCorrectionEnabled%3Atrue%2Ckeywords%3Agraphics)&sessionId=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D&viewAllFilters=true\n[ref=e13] button \"Collapse filter panel\"\n[ref=e14] input\n[ref=e15] button \"Expand Annual revenue filter\"\n[ref=e16] button \"Expand Company headcount filter\"\n[ref=e17] button \"Add 1-10 (81K+) to filters\"\n[ref=e18] button \"Expand Company headcount growth filter\"\n[ref=e19] button \"Expand Fortune filter\"\n[ref=e20] button \"Expand Headquarters location filter\"\n[ref=e21] button \"Add United States (37K+) to filters\"\n[ref=e22] button \"Expand Industry filter\"\n[ref=e23] button \"Add Professional Services (63K+) to filters\"\n[ref=e24] button \"Expand Number of followers filter\"\n[ref=e25] button \"Expand Department headcount filter\"\n[ref=e26] button \"Expand Department headcount growth filter\"\n[ref=e27] button \"Expand Job opportunities filter\"\n[ref=e28] button \"Expand Recent activities filter\"\n[ref=e29] button \"Expand Connection filter\"\n[ref=e30] button \"Expand Companies in CRM filter\"\n[ref=e31] button \"Expand Saved accounts filter\"\n[ref=e32] button \"Expand Account lists filter\"\n[ref=e33] button \"Share search\"\n[ref=e34] button \"Edit pinned filters\"\n[ref=e35] a \"Advanced Filter Definitions\" -> https://www.linkedin.com/help/sales-navigator/answer/a1452817\n[ref=e36] button \"Clear all filter values\"\n[ref=e37] combobox \"Search keywords\"\n[ref=e38] button \"Clear the search\"\n[ref=e39] button \"Saved searches\"\n[ref=e40] input\n[ref=e41] button \"Save as an account. Save to list.\"\n[ref=e42] button \"Unsave all selected accounts.\"\n[ref=e43] button \"View current employees at\"\n[ref=e44] input\n[ref=e45] a -> /sales/company/817740?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e46] a \"graphics\" -> /sales/company/817740?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e47] a \"View all 1.5K+ employees at graphics on LinkedIn\" -> /sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A817740%2CselectionType%3AINCLUDED)))))\n[ref=e48] button \"\u2026 Show more\"\n[ref=e49] button \"Expanding service offerings\"\n[ref=e50] button \"Open dropdown menu for more account actions\"\n[ref=e51] button \"Save graphics as an account. Save to list.\"\n[ref=e52] input\n[ref=e53] a -> /sales/company/505627?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e54] a \"Graphics and Design\" -> /sales/company/505627?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e55] a \"View all 470 employees at Graphics and Design on LinkedIn\" -> /sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A505627%2CselectionType%3AINCLUDED)))))\n[ref=e56] button \"\u2026 Show more\"\n[ref=e57] button \"Open dropdown menu for more account actions\"\n[ref=e58] button \"Save Graphics and Design as an account. Save to list.\"\n[ref=e59] input\n[ref=e60] a -> /sales/company/30103679?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e61] a \"GRAPHICS SYSTEM SA\" -> /sales/company/30103679?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e62] a \"View all 210 employees at GRAPHICS SYSTEM SA on LinkedIn\" -> /sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A30103679%2CselectionType%3AINCLUDED)))))\n[ref=e63] button \"\u2026 Show more\"\n[ref=e64] button \"Hiring on Linkedin\"\n[ref=e65] button \"Open dropdown menu for more account actions\"\n[ref=e66] button \"Save GRAPHICS SYSTEM SA as an account. Save to list.\"\n[ref=e67] input\n[ref=e68] a -> /sales/company/83513175?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e69] a \"Graphics Lodge\" -> /sales/company/83513175?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e70] a \"View all 19 employees at Graphics Lodge on LinkedIn\" -> /sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A83513175%2CselectionType%3AINCLUDED)))))\n[ref=e71] button \"\u2026 Show more\"\n[ref=e72] button \"Open dropdown menu for more account actions\"\n[ref=e73] button \"Save Graphics Lodge as an account. Save to list.\"\n[ref=e74] input\n[ref=e75] a -> /sales/company/108101125?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e76] a \"Graphics Design World\" -> /sales/company/108101125?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e77] a \"View all 14 employees at Graphics Design World on LinkedIn\" -> /sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A108101125%2CselectionType%3AINCLUDED)))))\n[ref=e78] button \"Open dropdown menu for more account actions\"\n[ref=e79] button \"Save Graphics Design World as an account. Save to list.\"\n[ref=e80] input\n[ref=e81] a -> /sales/company/13354815?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e82] a \"Graphics Designer\" -> /sales/company/13354815?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e83] a \"View all 844 employees at Graphics Designer on LinkedIn\" -> /sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A13354815%2CselectionType%3AINCLUDED)))))\n[ref=e84] button \"Open dropdown menu for more account actions\"\n[ref=e85] button \"Save Graphics Designer as an account. Save to list.\"\n[ref=e86] input\n[ref=e87] a -> /sales/company/14426050?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e88] a \"GRAPHICS DESIGN\" -> /sales/company/14426050?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e89] a \"View all 208 employees at GRAPHICS DESIGN on LinkedIn\" -> /sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A14426050%2CselectionType%3AINCLUDED)))))\n[ref=e90] button \"\u2026 Show more\"\n[ref=e91] button \"Open dropdown menu for more account actions\"\n[ref=e92] button \"Save GRAPHICS DESIGN as an account. Save to list.\"\n[ref=e93] input\n[ref=e94] a -> /sales/company/9292977?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e95] a \"Graphics Beyond\" -> /sales/company/9292977?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D\n[ref=e96] a \"View all 54 employees at Graphics Beyond on LinkedIn\" -> /sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A9292977%2CselectionType%3AINCLUDED)))))\n[ref=e97] button \"\u2026 Show more\"\n[ref=e98] button \"Open dropdown menu for more account actions\"\n[ref=e99] button \"Save Graphics Beyond as an account. Save to list.\"\n[ref=e100] input\n[ref=e101] input\n[ref=e102] input\n[ref=e103] input\n[ref=e104] input\n[ref=e105] input\n[ref=e106] input\n[ref=e107] input\n[ref=e108] input\n[ref=e109] input\n[ref=e110] input\n[ref=e111] input\n[ref=e112] input\n[ref=e113] input\n[ref=e114] input\n[ref=e115] input\n[ref=e116] input\n[ref=e117] button \"These results were helpful (Thumbs up)\"\n[ref=e118] button \"These results were not helpful (Thumbs down)\"\n[ref=e119] button \"Previous\"\n[ref=e120] button \"Page 1\"\n[ref=e121] button \"Page 2\"\n[ref=e122] button \"Page 3\"\n[ref=e123] button \"Page 4\"\n[ref=e124] button \"Page 5\"\n[ref=e125] button \"Page 6\"\n[ref=e126] button \"Page 7\"\n[ref=e127] button \"Page 8\"\n[ref=e128] button \"Page 9\"\n[ref=e129] button \"Next\"",
+      "role_refs": [
+        {
+          "ref": "e1",
+          "index": 21,
+          "role": "a",
+          "label": "",
+          "href": "/sales/index"
+        },
+        {
+          "ref": "e2",
+          "index": 22,
+          "role": "a",
+          "label": "Home",
+          "href": "/sales/home"
+        },
+        {
+          "ref": "e3",
+          "index": 23,
+          "role": "a",
+          "label": "Accounts",
+          "href": "/sales/accounts/dashboard"
+        },
+        {
+          "ref": "e4",
+          "index": 24,
+          "role": "a",
+          "label": "Leads",
+          "href": "/sales/lists/people"
+        },
+        {
+          "ref": "e5",
+          "index": 25,
+          "role": "a",
+          "label": "Messaging",
+          "href": "/sales/inbox?trk=d_sales2_app_header_inbox"
+        },
+        {
+          "ref": "e6",
+          "index": 26,
+          "role": "a",
+          "label": "Referrals",
+          "href": "/sales/referrals"
+        },
+        {
+          "ref": "e7",
+          "index": 27,
+          "role": "button",
+          "label": "Open help center",
+          "href": ""
+        },
+        {
+          "ref": "e8",
+          "index": 28,
+          "role": "div",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e9",
+          "index": 29,
+          "role": "button",
+          "label": "Notifications: You have 7 unseen notifications",
+          "href": ""
+        },
+        {
+          "ref": "e10",
+          "index": 30,
+          "role": "button",
+          "label": "Lucas Raza",
+          "href": ""
+        },
+        {
+          "ref": "e11",
+          "index": 31,
+          "role": "a",
+          "label": "Lead tabitem 1 of 2",
+          "href": "/sales/search/people?query=(spellCorrectionEnabled%3Atrue%2Ckeywords%3Agraphics)&sessionId=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e12",
+          "index": 32,
+          "role": "a",
+          "label": "Account tabitem 2 of 2 selected",
+          "href": "/sales/search/company?query=(spellCorrectionEnabled%3Atrue%2Ckeywords%3Agraphics)&sessionId=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D&viewAllFilters=true"
+        },
+        {
+          "ref": "e13",
+          "index": 33,
+          "role": "button",
+          "label": "Collapse filter panel",
+          "href": ""
+        },
+        {
+          "ref": "e14",
+          "index": 34,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e15",
+          "index": 38,
+          "role": "button",
+          "label": "Expand Annual revenue filter",
+          "href": ""
+        },
+        {
+          "ref": "e16",
+          "index": 39,
+          "role": "button",
+          "label": "Expand Company headcount filter",
+          "href": ""
+        },
+        {
+          "ref": "e17",
+          "index": 40,
+          "role": "button",
+          "label": "Add 1-10 (81K+) to filters",
+          "href": ""
+        },
+        {
+          "ref": "e18",
+          "index": 41,
+          "role": "button",
+          "label": "Expand Company headcount growth filter",
+          "href": ""
+        },
+        {
+          "ref": "e19",
+          "index": 42,
+          "role": "button",
+          "label": "Expand Fortune filter",
+          "href": ""
+        },
+        {
+          "ref": "e20",
+          "index": 43,
+          "role": "button",
+          "label": "Expand Headquarters location filter",
+          "href": ""
+        },
+        {
+          "ref": "e21",
+          "index": 44,
+          "role": "button",
+          "label": "Add United States (37K+) to filters",
+          "href": ""
+        },
+        {
+          "ref": "e22",
+          "index": 45,
+          "role": "button",
+          "label": "Expand Industry filter",
+          "href": ""
+        },
+        {
+          "ref": "e23",
+          "index": 46,
+          "role": "button",
+          "label": "Add Professional Services (63K+) to filters",
+          "href": ""
+        },
+        {
+          "ref": "e24",
+          "index": 47,
+          "role": "button",
+          "label": "Expand Number of followers filter",
+          "href": ""
+        },
+        {
+          "ref": "e25",
+          "index": 48,
+          "role": "button",
+          "label": "Expand Department headcount filter",
+          "href": ""
+        },
+        {
+          "ref": "e26",
+          "index": 49,
+          "role": "button",
+          "label": "Expand Department headcount growth filter",
+          "href": ""
+        },
+        {
+          "ref": "e27",
+          "index": 50,
+          "role": "button",
+          "label": "Expand Job opportunities filter",
+          "href": ""
+        },
+        {
+          "ref": "e28",
+          "index": 51,
+          "role": "button",
+          "label": "Expand Recent activities filter",
+          "href": ""
+        },
+        {
+          "ref": "e29",
+          "index": 52,
+          "role": "button",
+          "label": "Expand Connection filter",
+          "href": ""
+        },
+        {
+          "ref": "e30",
+          "index": 53,
+          "role": "button",
+          "label": "Expand Companies in CRM filter",
+          "href": ""
+        },
+        {
+          "ref": "e31",
+          "index": 54,
+          "role": "button",
+          "label": "Expand Saved accounts filter",
+          "href": ""
+        },
+        {
+          "ref": "e32",
+          "index": 55,
+          "role": "button",
+          "label": "Expand Account lists filter",
+          "href": ""
+        },
+        {
+          "ref": "e33",
+          "index": 56,
+          "role": "button",
+          "label": "Share search",
+          "href": ""
+        },
+        {
+          "ref": "e34",
+          "index": 57,
+          "role": "button",
+          "label": "Edit pinned filters",
+          "href": ""
+        },
+        {
+          "ref": "e35",
+          "index": 58,
+          "role": "a",
+          "label": "Advanced Filter Definitions",
+          "href": "https://www.linkedin.com/help/sales-navigator/answer/a1452817"
+        },
+        {
+          "ref": "e36",
+          "index": 59,
+          "role": "button",
+          "label": "Clear all filter values",
+          "href": ""
+        },
+        {
+          "ref": "e37",
+          "index": 60,
+          "role": "combobox",
+          "label": "Search keywords",
+          "href": ""
+        },
+        {
+          "ref": "e38",
+          "index": 62,
+          "role": "button",
+          "label": "Clear the search",
+          "href": ""
+        },
+        {
+          "ref": "e39",
+          "index": 63,
+          "role": "button",
+          "label": "Saved searches",
+          "href": ""
+        },
+        {
+          "ref": "e40",
+          "index": 64,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e41",
+          "index": 65,
+          "role": "button",
+          "label": "Save as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "e42",
+          "index": 66,
+          "role": "button",
+          "label": "Unsave all selected accounts.",
+          "href": ""
+        },
+        {
+          "ref": "e43",
+          "index": 67,
+          "role": "button",
+          "label": "View current employees at",
+          "href": ""
+        },
+        {
+          "ref": "e44",
+          "index": 74,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e45",
+          "index": 75,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/817740?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e46",
+          "index": 76,
+          "role": "a",
+          "label": "graphics",
+          "href": "/sales/company/817740?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e47",
+          "index": 77,
+          "role": "a",
+          "label": "View all 1.5K+ employees at graphics on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A817740%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "e48",
+          "index": 78,
+          "role": "button",
+          "label": "\u2026 Show more",
+          "href": ""
+        },
+        {
+          "ref": "e49",
+          "index": 79,
+          "role": "button",
+          "label": "Expanding service offerings",
+          "href": ""
+        },
+        {
+          "ref": "e50",
+          "index": 80,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "e51",
+          "index": 82,
+          "role": "button",
+          "label": "Save graphics as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "e52",
+          "index": 83,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e53",
+          "index": 84,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/505627?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e54",
+          "index": 85,
+          "role": "a",
+          "label": "Graphics and Design",
+          "href": "/sales/company/505627?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e55",
+          "index": 86,
+          "role": "a",
+          "label": "View all 470 employees at Graphics and Design on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A505627%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "e56",
+          "index": 87,
+          "role": "button",
+          "label": "\u2026 Show more",
+          "href": ""
+        },
+        {
+          "ref": "e57",
+          "index": 88,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "e58",
+          "index": 90,
+          "role": "button",
+          "label": "Save Graphics and Design as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "e59",
+          "index": 91,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e60",
+          "index": 92,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/30103679?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e61",
+          "index": 93,
+          "role": "a",
+          "label": "GRAPHICS SYSTEM SA",
+          "href": "/sales/company/30103679?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e62",
+          "index": 94,
+          "role": "a",
+          "label": "View all 210 employees at GRAPHICS SYSTEM SA on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A30103679%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "e63",
+          "index": 95,
+          "role": "button",
+          "label": "\u2026 Show more",
+          "href": ""
+        },
+        {
+          "ref": "e64",
+          "index": 96,
+          "role": "button",
+          "label": "Hiring on Linkedin",
+          "href": ""
+        },
+        {
+          "ref": "e65",
+          "index": 97,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "e66",
+          "index": 99,
+          "role": "button",
+          "label": "Save GRAPHICS SYSTEM SA as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "e67",
+          "index": 100,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e68",
+          "index": 101,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/83513175?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e69",
+          "index": 102,
+          "role": "a",
+          "label": "Graphics Lodge",
+          "href": "/sales/company/83513175?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e70",
+          "index": 103,
+          "role": "a",
+          "label": "View all 19 employees at Graphics Lodge on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A83513175%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "e71",
+          "index": 104,
+          "role": "button",
+          "label": "\u2026 Show more",
+          "href": ""
+        },
+        {
+          "ref": "e72",
+          "index": 105,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "e73",
+          "index": 107,
+          "role": "button",
+          "label": "Save Graphics Lodge as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "e74",
+          "index": 108,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e75",
+          "index": 109,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/108101125?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e76",
+          "index": 110,
+          "role": "a",
+          "label": "Graphics Design World",
+          "href": "/sales/company/108101125?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e77",
+          "index": 111,
+          "role": "a",
+          "label": "View all 14 employees at Graphics Design World on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A108101125%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "e78",
+          "index": 112,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "e79",
+          "index": 114,
+          "role": "button",
+          "label": "Save Graphics Design World as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "e80",
+          "index": 115,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e81",
+          "index": 116,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/13354815?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e82",
+          "index": 117,
+          "role": "a",
+          "label": "Graphics Designer",
+          "href": "/sales/company/13354815?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e83",
+          "index": 118,
+          "role": "a",
+          "label": "View all 844 employees at Graphics Designer on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A13354815%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "e84",
+          "index": 119,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "e85",
+          "index": 121,
+          "role": "button",
+          "label": "Save Graphics Designer as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "e86",
+          "index": 122,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e87",
+          "index": 123,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/14426050?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e88",
+          "index": 124,
+          "role": "a",
+          "label": "GRAPHICS DESIGN",
+          "href": "/sales/company/14426050?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e89",
+          "index": 125,
+          "role": "a",
+          "label": "View all 208 employees at GRAPHICS DESIGN on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A14426050%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "e90",
+          "index": 126,
+          "role": "button",
+          "label": "\u2026 Show more",
+          "href": ""
+        },
+        {
+          "ref": "e91",
+          "index": 127,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "e92",
+          "index": 129,
+          "role": "button",
+          "label": "Save GRAPHICS DESIGN as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "e93",
+          "index": 130,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e94",
+          "index": 131,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/9292977?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e95",
+          "index": 132,
+          "role": "a",
+          "label": "Graphics Beyond",
+          "href": "/sales/company/9292977?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "e96",
+          "index": 133,
+          "role": "a",
+          "label": "View all 54 employees at Graphics Beyond on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A9292977%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "e97",
+          "index": 134,
+          "role": "button",
+          "label": "\u2026 Show more",
+          "href": ""
+        },
+        {
+          "ref": "e98",
+          "index": 135,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "e99",
+          "index": 137,
+          "role": "button",
+          "label": "Save Graphics Beyond as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "e100",
+          "index": 138,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e101",
+          "index": 139,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e102",
+          "index": 140,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e103",
+          "index": 141,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e104",
+          "index": 142,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e105",
+          "index": 143,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e106",
+          "index": 144,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e107",
+          "index": 145,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e108",
+          "index": 146,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e109",
+          "index": 147,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e110",
+          "index": 148,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e111",
+          "index": 149,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e112",
+          "index": 150,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e113",
+          "index": 151,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e114",
+          "index": 152,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e115",
+          "index": 153,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e116",
+          "index": 154,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e117",
+          "index": 155,
+          "role": "button",
+          "label": "These results were helpful (Thumbs up)",
+          "href": ""
+        },
+        {
+          "ref": "e118",
+          "index": 156,
+          "role": "button",
+          "label": "These results were not helpful (Thumbs down)",
+          "href": ""
+        },
+        {
+          "ref": "e119",
+          "index": 157,
+          "role": "button",
+          "label": "Previous",
+          "href": ""
+        },
+        {
+          "ref": "e120",
+          "index": 158,
+          "role": "button",
+          "label": "Page 1",
+          "href": ""
+        },
+        {
+          "ref": "e121",
+          "index": 159,
+          "role": "button",
+          "label": "Page 2",
+          "href": ""
+        },
+        {
+          "ref": "e122",
+          "index": 160,
+          "role": "button",
+          "label": "Page 3",
+          "href": ""
+        },
+        {
+          "ref": "e123",
+          "index": 161,
+          "role": "button",
+          "label": "Page 4",
+          "href": ""
+        },
+        {
+          "ref": "e124",
+          "index": 162,
+          "role": "button",
+          "label": "Page 5",
+          "href": ""
+        },
+        {
+          "ref": "e125",
+          "index": 163,
+          "role": "button",
+          "label": "Page 6",
+          "href": ""
+        },
+        {
+          "ref": "e126",
+          "index": 164,
+          "role": "button",
+          "label": "Page 7",
+          "href": ""
+        },
+        {
+          "ref": "e127",
+          "index": 165,
+          "role": "button",
+          "label": "Page 8",
+          "href": ""
+        },
+        {
+          "ref": "e128",
+          "index": 166,
+          "role": "button",
+          "label": "Page 9",
+          "href": ""
+        },
+        {
+          "ref": "e129",
+          "index": 168,
+          "role": "button",
+          "label": "Next",
+          "href": ""
+        }
+      ],
+      "ai_refs": [
+        {
+          "ref": "130",
+          "index": 21,
+          "role": "a",
+          "label": "",
+          "href": "/sales/index"
+        },
+        {
+          "ref": "131",
+          "index": 22,
+          "role": "a",
+          "label": "Home",
+          "href": "/sales/home"
+        },
+        {
+          "ref": "132",
+          "index": 23,
+          "role": "a",
+          "label": "Accounts",
+          "href": "/sales/accounts/dashboard"
+        },
+        {
+          "ref": "133",
+          "index": 24,
+          "role": "a",
+          "label": "Leads",
+          "href": "/sales/lists/people"
+        },
+        {
+          "ref": "134",
+          "index": 25,
+          "role": "a",
+          "label": "Messaging",
+          "href": "/sales/inbox?trk=d_sales2_app_header_inbox"
+        },
+        {
+          "ref": "135",
+          "index": 26,
+          "role": "a",
+          "label": "Referrals",
+          "href": "/sales/referrals"
+        },
+        {
+          "ref": "136",
+          "index": 27,
+          "role": "button",
+          "label": "Open help center",
+          "href": ""
+        },
+        {
+          "ref": "137",
+          "index": 28,
+          "role": "div",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "138",
+          "index": 29,
+          "role": "button",
+          "label": "Notifications: You have 7 unseen notifications",
+          "href": ""
+        },
+        {
+          "ref": "139",
+          "index": 30,
+          "role": "button",
+          "label": "Lucas Raza",
+          "href": ""
+        },
+        {
+          "ref": "140",
+          "index": 31,
+          "role": "a",
+          "label": "Lead tabitem 1 of 2",
+          "href": "/sales/search/people?query=(spellCorrectionEnabled%3Atrue%2Ckeywords%3Agraphics)&sessionId=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "141",
+          "index": 32,
+          "role": "a",
+          "label": "Account tabitem 2 of 2 selected",
+          "href": "/sales/search/company?query=(spellCorrectionEnabled%3Atrue%2Ckeywords%3Agraphics)&sessionId=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D&viewAllFilters=true"
+        },
+        {
+          "ref": "142",
+          "index": 33,
+          "role": "button",
+          "label": "Collapse filter panel",
+          "href": ""
+        },
+        {
+          "ref": "143",
+          "index": 34,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "144",
+          "index": 38,
+          "role": "button",
+          "label": "Expand Annual revenue filter",
+          "href": ""
+        },
+        {
+          "ref": "145",
+          "index": 39,
+          "role": "button",
+          "label": "Expand Company headcount filter",
+          "href": ""
+        },
+        {
+          "ref": "146",
+          "index": 40,
+          "role": "button",
+          "label": "Add 1-10 (81K+) to filters",
+          "href": ""
+        },
+        {
+          "ref": "147",
+          "index": 41,
+          "role": "button",
+          "label": "Expand Company headcount growth filter",
+          "href": ""
+        },
+        {
+          "ref": "148",
+          "index": 42,
+          "role": "button",
+          "label": "Expand Fortune filter",
+          "href": ""
+        },
+        {
+          "ref": "149",
+          "index": 43,
+          "role": "button",
+          "label": "Expand Headquarters location filter",
+          "href": ""
+        },
+        {
+          "ref": "150",
+          "index": 44,
+          "role": "button",
+          "label": "Add United States (37K+) to filters",
+          "href": ""
+        },
+        {
+          "ref": "151",
+          "index": 45,
+          "role": "button",
+          "label": "Expand Industry filter",
+          "href": ""
+        },
+        {
+          "ref": "152",
+          "index": 46,
+          "role": "button",
+          "label": "Add Professional Services (63K+) to filters",
+          "href": ""
+        },
+        {
+          "ref": "153",
+          "index": 47,
+          "role": "button",
+          "label": "Expand Number of followers filter",
+          "href": ""
+        },
+        {
+          "ref": "154",
+          "index": 48,
+          "role": "button",
+          "label": "Expand Department headcount filter",
+          "href": ""
+        },
+        {
+          "ref": "155",
+          "index": 49,
+          "role": "button",
+          "label": "Expand Department headcount growth filter",
+          "href": ""
+        },
+        {
+          "ref": "156",
+          "index": 50,
+          "role": "button",
+          "label": "Expand Job opportunities filter",
+          "href": ""
+        },
+        {
+          "ref": "157",
+          "index": 51,
+          "role": "button",
+          "label": "Expand Recent activities filter",
+          "href": ""
+        },
+        {
+          "ref": "158",
+          "index": 52,
+          "role": "button",
+          "label": "Expand Connection filter",
+          "href": ""
+        },
+        {
+          "ref": "159",
+          "index": 53,
+          "role": "button",
+          "label": "Expand Companies in CRM filter",
+          "href": ""
+        },
+        {
+          "ref": "160",
+          "index": 54,
+          "role": "button",
+          "label": "Expand Saved accounts filter",
+          "href": ""
+        },
+        {
+          "ref": "161",
+          "index": 55,
+          "role": "button",
+          "label": "Expand Account lists filter",
+          "href": ""
+        },
+        {
+          "ref": "162",
+          "index": 56,
+          "role": "button",
+          "label": "Share search",
+          "href": ""
+        },
+        {
+          "ref": "163",
+          "index": 57,
+          "role": "button",
+          "label": "Edit pinned filters",
+          "href": ""
+        },
+        {
+          "ref": "164",
+          "index": 58,
+          "role": "a",
+          "label": "Advanced Filter Definitions",
+          "href": "https://www.linkedin.com/help/sales-navigator/answer/a1452817"
+        },
+        {
+          "ref": "165",
+          "index": 59,
+          "role": "button",
+          "label": "Clear all filter values",
+          "href": ""
+        },
+        {
+          "ref": "166",
+          "index": 60,
+          "role": "combobox",
+          "label": "Search keywords",
+          "href": ""
+        },
+        {
+          "ref": "167",
+          "index": 62,
+          "role": "button",
+          "label": "Clear the search",
+          "href": ""
+        },
+        {
+          "ref": "168",
+          "index": 63,
+          "role": "button",
+          "label": "Saved searches",
+          "href": ""
+        },
+        {
+          "ref": "169",
+          "index": 64,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "170",
+          "index": 65,
+          "role": "button",
+          "label": "Save as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "171",
+          "index": 66,
+          "role": "button",
+          "label": "Unsave all selected accounts.",
+          "href": ""
+        },
+        {
+          "ref": "172",
+          "index": 67,
+          "role": "button",
+          "label": "View current employees at",
+          "href": ""
+        },
+        {
+          "ref": "173",
+          "index": 74,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "174",
+          "index": 75,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/817740?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "175",
+          "index": 76,
+          "role": "a",
+          "label": "graphics",
+          "href": "/sales/company/817740?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "176",
+          "index": 77,
+          "role": "a",
+          "label": "View all 1.5K+ employees at graphics on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A817740%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "177",
+          "index": 78,
+          "role": "button",
+          "label": "\u2026 Show more",
+          "href": ""
+        },
+        {
+          "ref": "178",
+          "index": 79,
+          "role": "button",
+          "label": "Expanding service offerings",
+          "href": ""
+        },
+        {
+          "ref": "179",
+          "index": 80,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "180",
+          "index": 82,
+          "role": "button",
+          "label": "Save graphics as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "181",
+          "index": 83,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "182",
+          "index": 84,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/505627?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "183",
+          "index": 85,
+          "role": "a",
+          "label": "Graphics and Design",
+          "href": "/sales/company/505627?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "184",
+          "index": 86,
+          "role": "a",
+          "label": "View all 470 employees at Graphics and Design on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A505627%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "185",
+          "index": 87,
+          "role": "button",
+          "label": "\u2026 Show more",
+          "href": ""
+        },
+        {
+          "ref": "186",
+          "index": 88,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "187",
+          "index": 90,
+          "role": "button",
+          "label": "Save Graphics and Design as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "188",
+          "index": 91,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "189",
+          "index": 92,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/30103679?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "190",
+          "index": 93,
+          "role": "a",
+          "label": "GRAPHICS SYSTEM SA",
+          "href": "/sales/company/30103679?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "191",
+          "index": 94,
+          "role": "a",
+          "label": "View all 210 employees at GRAPHICS SYSTEM SA on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A30103679%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "192",
+          "index": 95,
+          "role": "button",
+          "label": "\u2026 Show more",
+          "href": ""
+        },
+        {
+          "ref": "193",
+          "index": 96,
+          "role": "button",
+          "label": "Hiring on Linkedin",
+          "href": ""
+        },
+        {
+          "ref": "194",
+          "index": 97,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "195",
+          "index": 99,
+          "role": "button",
+          "label": "Save GRAPHICS SYSTEM SA as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "196",
+          "index": 100,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "197",
+          "index": 101,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/83513175?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "198",
+          "index": 102,
+          "role": "a",
+          "label": "Graphics Lodge",
+          "href": "/sales/company/83513175?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "199",
+          "index": 103,
+          "role": "a",
+          "label": "View all 19 employees at Graphics Lodge on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A83513175%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "200",
+          "index": 104,
+          "role": "button",
+          "label": "\u2026 Show more",
+          "href": ""
+        },
+        {
+          "ref": "201",
+          "index": 105,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "202",
+          "index": 107,
+          "role": "button",
+          "label": "Save Graphics Lodge as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "203",
+          "index": 108,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "204",
+          "index": 109,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/108101125?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "205",
+          "index": 110,
+          "role": "a",
+          "label": "Graphics Design World",
+          "href": "/sales/company/108101125?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "206",
+          "index": 111,
+          "role": "a",
+          "label": "View all 14 employees at Graphics Design World on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A108101125%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "207",
+          "index": 112,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "208",
+          "index": 114,
+          "role": "button",
+          "label": "Save Graphics Design World as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "209",
+          "index": 115,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "210",
+          "index": 116,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/13354815?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "211",
+          "index": 117,
+          "role": "a",
+          "label": "Graphics Designer",
+          "href": "/sales/company/13354815?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "212",
+          "index": 118,
+          "role": "a",
+          "label": "View all 844 employees at Graphics Designer on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A13354815%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "213",
+          "index": 119,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "214",
+          "index": 121,
+          "role": "button",
+          "label": "Save Graphics Designer as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "215",
+          "index": 122,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "216",
+          "index": 123,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/14426050?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "217",
+          "index": 124,
+          "role": "a",
+          "label": "GRAPHICS DESIGN",
+          "href": "/sales/company/14426050?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "218",
+          "index": 125,
+          "role": "a",
+          "label": "View all 208 employees at GRAPHICS DESIGN on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A14426050%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "219",
+          "index": 126,
+          "role": "button",
+          "label": "\u2026 Show more",
+          "href": ""
+        },
+        {
+          "ref": "220",
+          "index": 127,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "221",
+          "index": 129,
+          "role": "button",
+          "label": "Save GRAPHICS DESIGN as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "222",
+          "index": 130,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "223",
+          "index": 131,
+          "role": "a",
+          "label": "",
+          "href": "/sales/company/9292977?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "224",
+          "index": 132,
+          "role": "a",
+          "label": "Graphics Beyond",
+          "href": "/sales/company/9292977?_ntb=KkBVdbkeS3Wg9uYdtmOgyQ%3D%3D"
+        },
+        {
+          "ref": "225",
+          "index": 133,
+          "role": "a",
+          "label": "View all 54 employees at Graphics Beyond on LinkedIn",
+          "href": "/sales/search/people?query=(filters%3AList((type%3ACURRENT_COMPANY%2Cvalues%3AList((id%3A9292977%2CselectionType%3AINCLUDED)))))"
+        },
+        {
+          "ref": "226",
+          "index": 134,
+          "role": "button",
+          "label": "\u2026 Show more",
+          "href": ""
+        },
+        {
+          "ref": "227",
+          "index": 135,
+          "role": "button",
+          "label": "Open dropdown menu for more account actions",
+          "href": ""
+        },
+        {
+          "ref": "228",
+          "index": 137,
+          "role": "button",
+          "label": "Save Graphics Beyond as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "229",
+          "index": 138,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "230",
+          "index": 139,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "231",
+          "index": 140,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "232",
+          "index": 141,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "233",
+          "index": 142,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "234",
+          "index": 143,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "235",
+          "index": 144,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "236",
+          "index": 145,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "237",
+          "index": 146,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "238",
+          "index": 147,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "239",
+          "index": 148,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "240",
+          "index": 149,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "241",
+          "index": 150,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "242",
+          "index": 151,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "243",
+          "index": 152,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "244",
+          "index": 153,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "245",
+          "index": 154,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "246",
+          "index": 155,
+          "role": "button",
+          "label": "These results were helpful (Thumbs up)",
+          "href": ""
+        },
+        {
+          "ref": "247",
+          "index": 156,
+          "role": "button",
+          "label": "These results were not helpful (Thumbs down)",
+          "href": ""
+        },
+        {
+          "ref": "248",
+          "index": 157,
+          "role": "button",
+          "label": "Previous",
+          "href": ""
+        },
+        {
+          "ref": "249",
+          "index": 158,
+          "role": "button",
+          "label": "Page 1",
+          "href": ""
+        },
+        {
+          "ref": "250",
+          "index": 159,
+          "role": "button",
+          "label": "Page 2",
+          "href": ""
+        },
+        {
+          "ref": "251",
+          "index": 160,
+          "role": "button",
+          "label": "Page 3",
+          "href": ""
+        },
+        {
+          "ref": "252",
+          "index": 161,
+          "role": "button",
+          "label": "Page 4",
+          "href": ""
+        },
+        {
+          "ref": "253",
+          "index": 162,
+          "role": "button",
+          "label": "Page 5",
+          "href": ""
+        },
+        {
+          "ref": "254",
+          "index": 163,
+          "role": "button",
+          "label": "Page 6",
+          "href": ""
+        },
+        {
+          "ref": "255",
+          "index": 164,
+          "role": "button",
+          "label": "Page 7",
+          "href": ""
+        },
+        {
+          "ref": "256",
+          "index": 165,
+          "role": "button",
+          "label": "Page 8",
+          "href": ""
+        },
+        {
+          "ref": "257",
+          "index": 166,
+          "role": "button",
+          "label": "Page 9",
+          "href": ""
+        },
+        {
+          "ref": "258",
+          "index": 168,
+          "role": "button",
+          "label": "Next",
+          "href": ""
+        }
+      ],
+      "semantic_nodes": []
+    },
+    "visual": {
+      "screenshot_base64": null,
+      "has_screenshot": false
+    },
+    "network": {
+      "available": false,
+      "note": "Network capture is backend-dependent and not yet exposed in browser_nav.",
+      "request_index": [],
+      "json_samples": []
+    }
+  }
+}

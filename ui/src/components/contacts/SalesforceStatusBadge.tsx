@@ -13,5 +13,12 @@ const SF_COLORS: Record<string, string> = {
 
 export function SalesforceStatusBadge({ status }: { status: string | null }) {
   if (!status || status === 'pending') return null;
-  return <Badge label={status} colorMap={SF_COLORS} defaultColor="bg-surface-hover text-text-dim" className="capitalize" />;
+  return (
+    <Badge
+      label={status}
+      colorMap={SF_COLORS}
+      defaultColor="bg-surface-hover text-text-dim"
+      className="capitalize rounded-full px-2 py-0.5 text-[10px] leading-tight"
+    />
+  );
 }

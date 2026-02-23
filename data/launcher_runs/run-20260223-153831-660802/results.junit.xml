@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="launcher-run" tests="2" failures="0" skipped="0" time="37.731">
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab" time="19.361">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect" time="18.361">
+  </testcase>
+</testsuite>

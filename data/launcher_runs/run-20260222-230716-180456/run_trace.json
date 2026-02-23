@@ -1,0 +1,2512 @@
+{
+  "schema_version": "run_trace.v1",
+  "run": {
+    "id": "run-20260222-230716-180456",
+    "timestamp": "2026-02-22T23:07:16Z",
+    "env": {
+      "profile": "local",
+      "server_port": 8000,
+      "bridge_port": 9223,
+      "python": "3.13.7"
+    },
+    "git": {
+      "commit": "535c71ca828b53ddeb7e2a2731a99691d1d3dbf9",
+      "branch": "main",
+      "dirty": true
+    },
+    "config_snapshot": {
+      "selected_ids": [
+        "backend-gate-pytest-ready",
+        "python-api-routes-browser",
+        "python-browser-core",
+        "python-builder-routes",
+        "python-launcher-core",
+        "python-platform-core",
+        "python-salesnav-core",
+        "python-workflow-core"
+      ],
+      "selected_tags": [],
+      "mode": "catalog"
+    },
+    "status": "canceled",
+    "finished_at_ts": 1771801653.0628335,
+    "duration_sec": 16.729405403137207,
+    "tests_count": 5
+  },
+  "plan": {
+    "mode": "catalog",
+    "selected_tags": [],
+    "ordered_steps": [
+      {
+        "order": 1,
+        "id": "backend-gate-pytest-ready",
+        "label": "Gate: pytest runtime ready",
+        "kind": "smoke",
+        "deps": [],
+        "dependency_reasons": [],
+        "skip": false
+      },
+      {
+        "order": 2,
+        "id": "python-api-routes-browser",
+        "label": "Python: API routes (browser)",
+        "kind": "integration",
+        "deps": [
+          "backend-gate-pytest-ready"
+        ],
+        "dependency_reasons": [
+          "depends on backend-gate-pytest-ready"
+        ],
+        "skip": false
+      },
+      {
+        "order": 3,
+        "id": "python-browser-core",
+        "label": "Python: browser core",
+        "kind": "unit",
+        "deps": [
+          "backend-gate-pytest-ready"
+        ],
+        "dependency_reasons": [
+          "depends on backend-gate-pytest-ready"
+        ],
+        "skip": false
+      },
+      {
+        "order": 4,
+        "id": "python-builder-routes",
+        "label": "Python: workflow builder routes",
+        "kind": "integration",
+        "deps": [
+          "backend-gate-pytest-ready"
+        ],
+        "dependency_reasons": [
+          "depends on backend-gate-pytest-ready"
+        ],
+        "skip": false
+      },
+      {
+        "order": 5,
+        "id": "python-launcher-core",
+        "label": "Python: launcher core",
+        "kind": "unit",
+        "deps": [
+          "backend-gate-pytest-ready"
+        ],
+        "dependency_reasons": [
+          "depends on backend-gate-pytest-ready"
+        ],
+        "skip": false
+      },
+      {
+        "order": 6,
+        "id": "python-platform-core",
+        "label": "Python: platform core",
+        "kind": "unit",
+        "deps": [
+          "backend-gate-pytest-ready"
+        ],
+        "dependency_reasons": [
+          "depends on backend-gate-pytest-ready"
+        ],
+        "skip": false
+      },
+      {
+        "order": 7,
+        "id": "python-salesnav-core",
+        "label": "Python: salesnav core",
+        "kind": "unit",
+        "deps": [
+          "backend-gate-pytest-ready"
+        ],
+        "dependency_reasons": [
+          "depends on backend-gate-pytest-ready"
+        ],
+        "skip": false
+      },
+      {
+        "order": 8,
+        "id": "python-workflow-core",
+        "label": "Python: workflow core",
+        "kind": "unit",
+        "deps": [
+          "backend-gate-pytest-ready"
+        ],
+        "dependency_reasons": [
+          "depends on backend-gate-pytest-ready"
+        ],
+        "skip": false
+      }
+    ],
+    "plan_text": "{\"mode\": \"catalog\", \"selected_tags\": [], \"ordered_steps\": [{\"order\": 1, \"id\": \"backend-gate-pytest-ready\", \"label\": \"Gate: pytest runtime ready\", \"kind\": \"smoke\", \"deps\": [], \"dependency_reasons\": [], \"skip\": false}, {\"order\": 2, \"id\": \"python-api-routes-browser\", \"label\": \"Python: API routes (browser)\", \"kind\": \"integration\", \"deps\": [\"backend-gate-pytest-ready\"], \"dependency_reasons\": [\"depends on backend-gate-pytest-ready\"], \"skip\": false}, {\"order\": 3, \"id\": \"python-browser-core\", \"label\": \"Python: browser core\", \"kind\": \"unit\", \"deps\": [\"backend-gate-pytest-ready\"], \"dependency_reasons\": [\"depends on backend-gate-pytest-ready\"], \"skip\": false}, {\"order\": 4, \"id\": \"python-builder-routes\", \"label\": \"Python: workflow builder routes\", \"kind\": \"integration\", \"deps\": [\"backend-gate-pytest-ready\"], \"dependency_reasons\": [\"depends on backend-gate-pytest-ready\"], \"skip\": false}, {\"order\": 5, \"id\": \"python-launcher-core\", \"label\": \"Python: launcher core\", \"kind\": \"unit\", \"deps\": [\"backend-gate-pytest-ready\"], \"dependency_reasons\": [\"depends on backend-gate-pytest-ready\"], \"skip\": false}, {\"order\": 6, \"id\": \"python-platform-core\", \"label\": \"Python: platform core\", \"kind\": \"unit\", \"deps\": [\"backend-gate-pytest-ready\"], \"dependency_reasons\": [\"depends on backend-gate-pytest-ready\"], \"skip\": false}, {\"order\": 7, \"id\": \"python-salesnav-core\", \"label\": \"Python: salesnav core\", \"kind\": \"unit\", \"deps\": [\"backend-gate-pytest-ready\"], \"dependency_reasons\": [\"depends on backend-gate-pytest-ready\"], \"skip\": false}, {\"order\": 8, \"id\": \"python-workflow-core\", \"label\": \"Python: workflow core\", \"kind\": \"unit\", \"deps\": [\"backend-gate-pytest-ready\"], \"dependency_reasons\": [\"depends on backend-gate-pytest-ready\"], \"skip\": false}]}",
+    "plan_json": {
+      "mode": "catalog",
+      "selected_tags": [],
+      "ordered_steps": [
+        {
+          "order": 1,
+          "id": "backend-gate-pytest-ready",
+          "label": "Gate: pytest runtime ready",
+          "kind": "smoke",
+          "deps": [],
+          "dependency_reasons": [],
+          "skip": false
+        },
+        {
+          "order": 2,
+          "id": "python-api-routes-browser",
+          "label": "Python: API routes (browser)",
+          "kind": "integration",
+          "deps": [
+            "backend-gate-pytest-ready"
+          ],
+          "dependency_reasons": [
+            "depends on backend-gate-pytest-ready"
+          ],
+          "skip": false
+        },
+        {
+          "order": 3,
+          "id": "python-browser-core",
+          "label": "Python: browser core",
+          "kind": "unit",
+          "deps": [
+            "backend-gate-pytest-ready"
+          ],
+          "dependency_reasons": [
+            "depends on backend-gate-pytest-ready"
+          ],
+          "skip": false
+        },
+        {
+          "order": 4,
+          "id": "python-builder-routes",
+          "label": "Python: workflow builder routes",
+          "kind": "integration",
+          "deps": [
+            "backend-gate-pytest-ready"
+          ],
+          "dependency_reasons": [
+            "depends on backend-gate-pytest-ready"
+          ],
+          "skip": false
+        },
+        {
+          "order": 5,
+          "id": "python-launcher-core",
+          "label": "Python: launcher core",
+          "kind": "unit",
+          "deps": [
+            "backend-gate-pytest-ready"
+          ],
+          "dependency_reasons": [
+            "depends on backend-gate-pytest-ready"
+          ],
+          "skip": false
+        },
+        {
+          "order": 6,
+          "id": "python-platform-core",
+          "label": "Python: platform core",
+          "kind": "unit",
+          "deps": [
+            "backend-gate-pytest-ready"
+          ],
+          "dependency_reasons": [
+            "depends on backend-gate-pytest-ready"
+          ],
+          "skip": false
+        },
+        {
+          "order": 7,
+          "id": "python-salesnav-core",
+          "label": "Python: salesnav core",
+          "kind": "unit",
+          "deps": [
+            "backend-gate-pytest-ready"
+          ],
+          "dependency_reasons": [
+            "depends on backend-gate-pytest-ready"
+          ],
+          "skip": false
+        },
+        {
+          "order": 8,
+          "id": "python-workflow-core",
+          "label": "Python: workflow core",
+          "kind": "unit",
+          "deps": [
+            "backend-gate-pytest-ready"
+          ],
+          "dependency_reasons": [
+            "depends on backend-gate-pytest-ready"
+          ],
+          "skip": false
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "id": "python-platform-core",
+      "label": "python-platform-core",
+      "status": "running",
+      "started_at_ts": 1771801636.4594054,
+      "started_at": "2026-02-22T23:07:16Z",
+      "inputs": {
+        "status": "queued"
+      }
+    },
+    {
+      "id": "python-salesnav-core",
+      "label": "python-salesnav-core",
+      "status": "running",
+      "started_at_ts": 1771801636.4600313,
+      "started_at": "2026-02-22T23:07:16Z",
+      "inputs": {
+        "status": "queued"
+      }
+    },
+    {
+      "id": "python-workflow-core",
+      "label": "python-workflow-core",
+      "status": "running",
+      "started_at_ts": 1771801636.4608657,
+      "started_at": "2026-02-22T23:07:16Z",
+      "inputs": {
+        "status": "queued"
+      }
+    },
+    {
+      "id": "backend-gate-pytest-ready",
+      "label": "backend-gate-pytest-ready",
+      "status": "passed",
+      "started_at_ts": 1771801636.4643066,
+      "started_at": "2026-02-22T23:07:16Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801636.466516,
+      "finished_at": "2026-02-22T23:07:16Z",
+      "duration_sec": 0.1002345085144043,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-api-routes-browser",
+      "label": "python-api-routes-browser",
+      "status": "passed",
+      "started_at_ts": 1771801636.4681807,
+      "started_at": "2026-02-22T23:07:16Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801644.7405577,
+      "finished_at": "2026-02-22T23:07:24Z",
+      "duration_sec": 8.154101133346558,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend",
+      "label": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend",
+      "status": "passed",
+      "started_at_ts": 1771801636.4695716,
+      "started_at": "2026-02-22T23:07:16Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801637.2749896,
+      "finished_at": "2026-02-22T23:07:17Z",
+      "duration_sec": 0.7020330429077148,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task",
+      "label": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task",
+      "status": "passed",
+      "started_at_ts": 1771801637.2786455,
+      "started_at": "2026-02-22T23:07:17Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801637.8846982,
+      "finished_at": "2026-02-22T23:07:17Z",
+      "duration_sec": 0.7016756534576416,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync",
+      "label": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync",
+      "status": "passed",
+      "started_at_ts": 1771801637.8880613,
+      "started_at": "2026-02-22T23:07:17Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801639.095552,
+      "finished_at": "2026-02-22T23:07:19Z",
+      "duration_sec": 1.1037251949310303,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status",
+      "label": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status",
+      "status": "passed",
+      "started_at_ts": 1771801639.098777,
+      "started_at": "2026-02-22T23:07:19Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801641.3063378,
+      "finished_at": "2026-02-22T23:07:21Z",
+      "duration_sec": 2.306443214416504,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error",
+      "label": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error",
+      "status": "passed",
+      "started_at_ts": 1771801641.3092797,
+      "started_at": "2026-02-22T23:07:21Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801642.5168471,
+      "finished_at": "2026-02-22T23:07:22Z",
+      "duration_sec": 1.1038134098052979,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404",
+      "label": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404",
+      "status": "passed",
+      "started_at_ts": 1771801642.5202363,
+      "started_at": "2026-02-22T23:07:22Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801643.5276482,
+      "finished_at": "2026-02-22T23:07:23Z",
+      "duration_sec": 1.103994607925415,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows",
+      "label": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows",
+      "status": "passed",
+      "started_at_ts": 1771801643.530887,
+      "started_at": "2026-02-22T23:07:23Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801644.738086,
+      "finished_at": "2026-02-22T23:07:24Z",
+      "duration_sec": 1.1031129360198975,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-browser-core",
+      "label": "python-browser-core",
+      "status": "canceled",
+      "started_at_ts": 1771801644.7425132,
+      "started_at": "2026-02-22T23:07:24Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801644.9505348,
+      "finished_at": "2026-02-22T23:07:24Z",
+      "duration_sec": 0.2551555633544922,
+      "outputs": {
+        "attempt": 1,
+        "message": "canceled by user",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend",
+      "label": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend",
+      "status": "canceled",
+      "started_at_ts": 1771801644.7447488,
+      "started_at": "2026-02-22T23:07:24Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801644.9477801,
+      "finished_at": "2026-02-22T23:07:24Z",
+      "duration_sec": 0.2512834072113037,
+      "outputs": {
+        "attempt": 1,
+        "message": "canceled by user",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-builder-routes",
+      "label": "python-builder-routes",
+      "status": "passed",
+      "started_at_ts": 1771801644.952752,
+      "started_at": "2026-02-22T23:07:24Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801650.4086607,
+      "finished_at": "2026-02-22T23:07:30Z",
+      "duration_sec": 5.539003133773804,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success",
+      "label": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success",
+      "status": "passed",
+      "started_at_ts": 1771801644.9548903,
+      "started_at": "2026-02-22T23:07:24Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801645.9612913,
+      "finished_at": "2026-02-22T23:07:25Z",
+      "duration_sec": 1.1043806076049805,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success",
+      "label": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success",
+      "status": "passed",
+      "started_at_ts": 1771801645.9646564,
+      "started_at": "2026-02-22T23:07:25Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801647.173112,
+      "finished_at": "2026-02-22T23:07:27Z",
+      "duration_sec": 1.10343599319458,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success",
+      "label": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success",
+      "status": "passed",
+      "started_at_ts": 1771801647.1769738,
+      "started_at": "2026-02-22T23:07:27Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801648.183555,
+      "finished_at": "2026-02-22T23:07:28Z",
+      "duration_sec": 1.1034307479858398,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success",
+      "label": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success",
+      "status": "passed",
+      "started_at_ts": 1771801648.187216,
+      "started_at": "2026-02-22T23:07:28Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801649.39502,
+      "finished_at": "2026-02-22T23:07:29Z",
+      "duration_sec": 1.1029069423675537,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error",
+      "label": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error",
+      "status": "passed",
+      "started_at_ts": 1771801649.3988361,
+      "started_at": "2026-02-22T23:07:29Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801650.405954,
+      "finished_at": "2026-02-22T23:07:30Z",
+      "duration_sec": 1.1033320426940918,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-launcher-core",
+      "label": "python-launcher-core",
+      "status": "canceled",
+      "started_at_ts": 1771801650.4110281,
+      "started_at": "2026-02-22T23:07:30Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801653.0551577,
+      "finished_at": "2026-02-22T23:07:33Z",
+      "duration_sec": 2.6756091117858887,
+      "outputs": {
+        "attempt": 1,
+        "message": "canceled by user",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary",
+      "label": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary",
+      "status": "passed",
+      "started_at_ts": 1771801650.4132597,
+      "started_at": "2026-02-22T23:07:30Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801651.2203143,
+      "finished_at": "2026-02-22T23:07:31Z",
+      "duration_sec": 0.7034201622009277,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters",
+      "label": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters",
+      "status": "passed",
+      "started_at_ts": 1771801651.2245162,
+      "started_at": "2026-02-22T23:07:31Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801651.8320718,
+      "finished_at": "2026-02-22T23:07:31Z",
+      "duration_sec": 0.7026307582855225,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist",
+      "label": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist",
+      "status": "passed",
+      "started_at_ts": 1771801651.8361712,
+      "started_at": "2026-02-22T23:07:31Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801652.6435552,
+      "finished_at": "2026-02-22T23:07:32Z",
+      "duration_sec": 0.7017483711242676,
+      "outputs": {
+        "attempt": 1,
+        "message": "",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic",
+      "label": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic",
+      "status": "canceled",
+      "started_at_ts": 1771801652.6476936,
+      "started_at": "2026-02-22T23:07:32Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771801653.0518942,
+      "finished_at": "2026-02-22T23:07:33Z",
+      "duration_sec": 0.5520541667938232,
+      "outputs": {
+        "attempt": 1,
+        "message": "canceled by user",
+        "cache_key": null
+      }
+    }
+  ],
+  "timeline": [
+    {
+      "ts": 1771801636.3015785,
+      "type": "run_started",
+      "run_id": "run-20260222-230716-180456"
+    },
+    {
+      "ts": 1771801636.3023798,
+      "type": "plan_updated"
+    },
+    {
+      "ts": 1771801636.456345,
+      "type": "step_started",
+      "step_id": "backend-gate-pytest-ready",
+      "label": "backend-gate-pytest-ready"
+    },
+    {
+      "ts": 1771801636.457083,
+      "type": "step_started",
+      "step_id": "python-api-routes-browser",
+      "label": "python-api-routes-browser"
+    },
+    {
+      "ts": 1771801636.4577,
+      "type": "step_started",
+      "step_id": "python-browser-core",
+      "label": "python-browser-core"
+    },
+    {
+      "ts": 1771801636.458254,
+      "type": "step_started",
+      "step_id": "python-builder-routes",
+      "label": "python-builder-routes"
+    },
+    {
+      "ts": 1771801636.4588509,
+      "type": "step_started",
+      "step_id": "python-launcher-core",
+      "label": "python-launcher-core"
+    },
+    {
+      "ts": 1771801636.4594126,
+      "type": "step_started",
+      "step_id": "python-platform-core",
+      "label": "python-platform-core"
+    },
+    {
+      "ts": 1771801636.4600408,
+      "type": "step_started",
+      "step_id": "python-salesnav-core",
+      "label": "python-salesnav-core"
+    },
+    {
+      "ts": 1771801636.4608746,
+      "type": "step_started",
+      "step_id": "python-workflow-core",
+      "label": "python-workflow-core"
+    },
+    {
+      "ts": 1771801636.4616098,
+      "type": "log",
+      "level": "info",
+      "step_id": null
+    },
+    {
+      "ts": 1771801636.46356,
+      "type": "command",
+      "step_id": "backend-gate-pytest-ready"
+    },
+    {
+      "ts": 1771801636.4643164,
+      "type": "step_started",
+      "step_id": "backend-gate-pytest-ready",
+      "label": "backend-gate-pytest-ready"
+    },
+    {
+      "ts": 1771801636.4655058,
+      "type": "log",
+      "level": "info",
+      "step_id": "backend-gate-pytest-ready"
+    },
+    {
+      "ts": 1771801636.4665248,
+      "type": "step_finished",
+      "step_id": "backend-gate-pytest-ready",
+      "status": "passed",
+      "duration_sec": 0.1002345085144043
+    },
+    {
+      "ts": 1771801636.4674165,
+      "type": "command",
+      "step_id": "python-api-routes-browser"
+    },
+    {
+      "ts": 1771801636.46819,
+      "type": "step_started",
+      "step_id": "python-api-routes-browser",
+      "label": "python-api-routes-browser"
+    },
+    {
+      "ts": 1771801636.4689753,
+      "type": "command",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+    },
+    {
+      "ts": 1771801636.4695797,
+      "type": "step_started",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend",
+      "label": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+    },
+    {
+      "ts": 1771801636.4704971,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+    },
+    {
+      "ts": 1771801637.0724275,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+    },
+    {
+      "ts": 1771801637.0736642,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+    },
+    {
+      "ts": 1771801637.2750108,
+      "type": "step_finished",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend",
+      "status": "passed",
+      "duration_sec": 0.7020330429077148
+    },
+    {
+      "ts": 1771801637.2762048,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+    },
+    {
+      "ts": 1771801637.277583,
+      "type": "command",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+    },
+    {
+      "ts": 1771801637.2786605,
+      "type": "step_started",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task",
+      "label": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+    },
+    {
+      "ts": 1771801637.2797728,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+    },
+    {
+      "ts": 1771801637.882237,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+    },
+    {
+      "ts": 1771801637.8836153,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+    },
+    {
+      "ts": 1771801637.8847103,
+      "type": "step_finished",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task",
+      "status": "passed",
+      "duration_sec": 0.7016756534576416
+    },
+    {
+      "ts": 1771801637.886058,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+    },
+    {
+      "ts": 1771801637.887133,
+      "type": "command",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+    },
+    {
+      "ts": 1771801637.888073,
+      "type": "step_started",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync",
+      "label": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+    },
+    {
+      "ts": 1771801637.8893895,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+    },
+    {
+      "ts": 1771801639.0931041,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+    },
+    {
+      "ts": 1771801639.094554,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+    },
+    {
+      "ts": 1771801639.0955658,
+      "type": "step_finished",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync",
+      "status": "passed",
+      "duration_sec": 1.1037251949310303
+    },
+    {
+      "ts": 1771801639.0968037,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+    },
+    {
+      "ts": 1771801639.0978496,
+      "type": "command",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+    },
+    {
+      "ts": 1771801639.0987885,
+      "type": "step_started",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status",
+      "label": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+    },
+    {
+      "ts": 1771801639.1000495,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+    },
+    {
+      "ts": 1771801641.3040295,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+    },
+    {
+      "ts": 1771801641.3052478,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+    },
+    {
+      "ts": 1771801641.3063502,
+      "type": "step_finished",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status",
+      "status": "passed",
+      "duration_sec": 2.306443214416504
+    },
+    {
+      "ts": 1771801641.3074856,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+    },
+    {
+      "ts": 1771801641.3084044,
+      "type": "command",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+    },
+    {
+      "ts": 1771801641.3092902,
+      "type": "step_started",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error",
+      "label": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+    },
+    {
+      "ts": 1771801641.3104265,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+    },
+    {
+      "ts": 1771801642.514365,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+    },
+    {
+      "ts": 1771801642.515734,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+    },
+    {
+      "ts": 1771801642.5168617,
+      "type": "step_finished",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error",
+      "status": "passed",
+      "duration_sec": 1.1038134098052979
+    },
+    {
+      "ts": 1771801642.5181215,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+    },
+    {
+      "ts": 1771801642.5192502,
+      "type": "command",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+    },
+    {
+      "ts": 1771801642.5202467,
+      "type": "step_started",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404",
+      "label": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+    },
+    {
+      "ts": 1771801642.5215504,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+    },
+    {
+      "ts": 1771801643.5248525,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+    },
+    {
+      "ts": 1771801643.526458,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+    },
+    {
+      "ts": 1771801643.5276613,
+      "type": "step_finished",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404",
+      "status": "passed",
+      "duration_sec": 1.103994607925415
+    },
+    {
+      "ts": 1771801643.528874,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+    },
+    {
+      "ts": 1771801643.5299282,
+      "type": "command",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows"
+    },
+    {
+      "ts": 1771801643.5308974,
+      "type": "step_started",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows",
+      "label": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows"
+    },
+    {
+      "ts": 1771801643.5323277,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows"
+    },
+    {
+      "ts": 1771801644.7352967,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows"
+    },
+    {
+      "ts": 1771801644.7369144,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows"
+    },
+    {
+      "ts": 1771801644.7380984,
+      "type": "step_finished",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows",
+      "status": "passed",
+      "duration_sec": 1.1031129360198975
+    },
+    {
+      "ts": 1771801644.7394068,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows"
+    },
+    {
+      "ts": 1771801644.740566,
+      "type": "step_finished",
+      "step_id": "python-api-routes-browser",
+      "status": "passed",
+      "duration_sec": 8.154101133346558
+    },
+    {
+      "ts": 1771801644.7415977,
+      "type": "command",
+      "step_id": "python-browser-core"
+    },
+    {
+      "ts": 1771801644.742523,
+      "type": "step_started",
+      "step_id": "python-browser-core",
+      "label": "python-browser-core"
+    },
+    {
+      "ts": 1771801644.743686,
+      "type": "command",
+      "step_id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend"
+    },
+    {
+      "ts": 1771801644.7447581,
+      "type": "step_started",
+      "step_id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend",
+      "label": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend"
+    },
+    {
+      "ts": 1771801644.745905,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend"
+    },
+    {
+      "ts": 1771801644.9478085,
+      "type": "step_finished",
+      "step_id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend",
+      "status": "canceled",
+      "duration_sec": 0.2512834072113037
+    },
+    {
+      "ts": 1771801644.9494166,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend"
+    },
+    {
+      "ts": 1771801644.9505448,
+      "type": "step_finished",
+      "step_id": "python-browser-core",
+      "status": "canceled",
+      "duration_sec": 0.2551555633544922
+    },
+    {
+      "ts": 1771801644.9517221,
+      "type": "command",
+      "step_id": "python-builder-routes"
+    },
+    {
+      "ts": 1771801644.9527624,
+      "type": "step_started",
+      "step_id": "python-builder-routes",
+      "label": "python-builder-routes"
+    },
+    {
+      "ts": 1771801644.9539661,
+      "type": "command",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+    },
+    {
+      "ts": 1771801644.9548998,
+      "type": "step_started",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success",
+      "label": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+    },
+    {
+      "ts": 1771801644.9560256,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+    },
+    {
+      "ts": 1771801645.958552,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+    },
+    {
+      "ts": 1771801645.9600847,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+    },
+    {
+      "ts": 1771801645.9613032,
+      "type": "step_finished",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success",
+      "status": "passed",
+      "duration_sec": 1.1043806076049805
+    },
+    {
+      "ts": 1771801645.9624755,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+    },
+    {
+      "ts": 1771801645.9637012,
+      "type": "command",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+    },
+    {
+      "ts": 1771801645.9646678,
+      "type": "step_started",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success",
+      "label": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+    },
+    {
+      "ts": 1771801645.9659333,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+    },
+    {
+      "ts": 1771801646.9697578,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+    },
+    {
+      "ts": 1771801646.9714434,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+    },
+    {
+      "ts": 1771801647.173133,
+      "type": "step_finished",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success",
+      "status": "passed",
+      "duration_sec": 1.10343599319458
+    },
+    {
+      "ts": 1771801647.1747973,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+    },
+    {
+      "ts": 1771801647.1759565,
+      "type": "command",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+    },
+    {
+      "ts": 1771801647.176985,
+      "type": "step_started",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success",
+      "label": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+    },
+    {
+      "ts": 1771801647.178159,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+    },
+    {
+      "ts": 1771801648.1808217,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+    },
+    {
+      "ts": 1771801648.182357,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+    },
+    {
+      "ts": 1771801648.183569,
+      "type": "step_finished",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success",
+      "status": "passed",
+      "duration_sec": 1.1034307479858398
+    },
+    {
+      "ts": 1771801648.1849627,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+    },
+    {
+      "ts": 1771801648.1861901,
+      "type": "command",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+    },
+    {
+      "ts": 1771801648.1872272,
+      "type": "step_started",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success",
+      "label": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+    },
+    {
+      "ts": 1771801648.1885407,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+    },
+    {
+      "ts": 1771801649.191363,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+    },
+    {
+      "ts": 1771801649.192968,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+    },
+    {
+      "ts": 1771801649.395043,
+      "type": "step_finished",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success",
+      "status": "passed",
+      "duration_sec": 1.1029069423675537
+    },
+    {
+      "ts": 1771801649.3966591,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+    },
+    {
+      "ts": 1771801649.3978584,
+      "type": "command",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error"
+    },
+    {
+      "ts": 1771801649.3988461,
+      "type": "step_started",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error",
+      "label": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error"
+    },
+    {
+      "ts": 1771801649.4001737,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error"
+    },
+    {
+      "ts": 1771801650.4031048,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error"
+    },
+    {
+      "ts": 1771801650.4046142,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error"
+    },
+    {
+      "ts": 1771801650.4059677,
+      "type": "step_finished",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error",
+      "status": "passed",
+      "duration_sec": 1.1033320426940918
+    },
+    {
+      "ts": 1771801650.4073799,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error"
+    },
+    {
+      "ts": 1771801650.408673,
+      "type": "step_finished",
+      "step_id": "python-builder-routes",
+      "status": "passed",
+      "duration_sec": 5.539003133773804
+    },
+    {
+      "ts": 1771801650.4100447,
+      "type": "command",
+      "step_id": "python-launcher-core"
+    },
+    {
+      "ts": 1771801650.4110389,
+      "type": "step_started",
+      "step_id": "python-launcher-core",
+      "label": "python-launcher-core"
+    },
+    {
+      "ts": 1771801650.412273,
+      "type": "command",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+    },
+    {
+      "ts": 1771801650.4132702,
+      "type": "step_started",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary",
+      "label": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+    },
+    {
+      "ts": 1771801650.4146202,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+    },
+    {
+      "ts": 1771801651.0170083,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+    },
+    {
+      "ts": 1771801651.0186083,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+    },
+    {
+      "ts": 1771801651.2203324,
+      "type": "step_finished",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary",
+      "status": "passed",
+      "duration_sec": 0.7034201622009277
+    },
+    {
+      "ts": 1771801651.2221682,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+    },
+    {
+      "ts": 1771801651.2234514,
+      "type": "command",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+    },
+    {
+      "ts": 1771801651.224527,
+      "type": "step_started",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters",
+      "label": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+    },
+    {
+      "ts": 1771801651.2262373,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+    },
+    {
+      "ts": 1771801651.8291967,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+    },
+    {
+      "ts": 1771801651.8307526,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+    },
+    {
+      "ts": 1771801651.8320842,
+      "type": "step_finished",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters",
+      "status": "passed",
+      "duration_sec": 0.7026307582855225
+    },
+    {
+      "ts": 1771801651.833539,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+    },
+    {
+      "ts": 1771801651.8349416,
+      "type": "command",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+    },
+    {
+      "ts": 1771801651.836183,
+      "type": "step_started",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist",
+      "label": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+    },
+    {
+      "ts": 1771801651.8375876,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+    },
+    {
+      "ts": 1771801652.6401687,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+    },
+    {
+      "ts": 1771801652.6419413,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+    },
+    {
+      "ts": 1771801652.6435757,
+      "type": "step_finished",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist",
+      "status": "passed",
+      "duration_sec": 0.7017483711242676
+    },
+    {
+      "ts": 1771801652.6452243,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+    },
+    {
+      "ts": 1771801652.6465483,
+      "type": "command",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic"
+    },
+    {
+      "ts": 1771801652.6477234,
+      "type": "step_started",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic",
+      "label": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic"
+    },
+    {
+      "ts": 1771801652.6494412,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic"
+    },
+    {
+      "ts": 1771801653.0519152,
+      "type": "step_finished",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic",
+      "status": "canceled",
+      "duration_sec": 0.5520541667938232
+    },
+    {
+      "ts": 1771801653.0538895,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic"
+    },
+    {
+      "ts": 1771801653.0551674,
+      "type": "step_finished",
+      "step_id": "python-launcher-core",
+      "status": "canceled",
+      "duration_sec": 2.6756091117858887
+    },
+    {
+      "ts": 1771801653.0574155,
+      "type": "verification"
+    },
+    {
+      "ts": 1771801653.0584683,
+      "type": "artifact",
+      "artifact_type": "events",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-230716-180456\\events.ndjson"
+    },
+    {
+      "ts": 1771801653.0594761,
+      "type": "artifact",
+      "artifact_type": "stdout",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-230716-180456\\stdout.log"
+    },
+    {
+      "ts": 1771801653.0607104,
+      "type": "artifact",
+      "artifact_type": "json",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-230716-180456\\results.json"
+    },
+    {
+      "ts": 1771801653.061797,
+      "type": "artifact",
+      "artifact_type": "junit",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-230716-180456\\results.junit.xml"
+    },
+    {
+      "ts": 1771801653.0628355,
+      "type": "run_finished",
+      "status": "canceled",
+      "duration_sec": 16.729405403137207
+    }
+  ],
+  "evidence": {
+    "logs": [
+      {
+        "ts": 1771801636.4616075,
+        "level": "info",
+        "message": "run started",
+        "data": {
+          "run_id": "run-20260222-230716-180456",
+          "test_ids": [
+            "backend-gate-pytest-ready",
+            "python-api-routes-browser",
+            "python-browser-core",
+            "python-builder-routes",
+            "python-launcher-core",
+            "python-platform-core",
+            "python-salesnav-core",
+            "python-workflow-core"
+          ]
+        }
+      },
+      {
+        "ts": 1771801636.4655035,
+        "level": "info",
+        "message": "Python 3.13.7",
+        "step_id": "backend-gate-pytest-ready"
+      },
+      {
+        "ts": 1771801636.4704955,
+        "level": "info",
+        "message": "[child-note] started tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+      },
+      {
+        "ts": 1771801637.072425,
+        "level": "info",
+        "message": ".                                                                        [100%]",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+      },
+      {
+        "ts": 1771801637.0736628,
+        "level": "info",
+        "message": "1 passed in 0.22s",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+      },
+      {
+        "ts": 1771801637.276203,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+      },
+      {
+        "ts": 1771801637.279771,
+        "level": "info",
+        "message": "[child-note] started tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+      },
+      {
+        "ts": 1771801637.8822343,
+        "level": "info",
+        "message": ".                                                                        [100%]",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+      },
+      {
+        "ts": 1771801637.8836136,
+        "level": "info",
+        "message": "1 passed in 0.23s",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+      },
+      {
+        "ts": 1771801637.8860562,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+      },
+      {
+        "ts": 1771801637.8893878,
+        "level": "info",
+        "message": "[child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+      },
+      {
+        "ts": 1771801639.0931013,
+        "level": "info",
+        "message": ".                                                                        [100%]",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+      },
+      {
+        "ts": 1771801639.0945523,
+        "level": "info",
+        "message": "1 passed in 0.64s",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+      },
+      {
+        "ts": 1771801639.0968022,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+      },
+      {
+        "ts": 1771801639.1000476,
+        "level": "info",
+        "message": "[child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+      },
+      {
+        "ts": 1771801641.3040273,
+        "level": "info",
+        "message": ".                                                                        [100%]",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+      },
+      {
+        "ts": 1771801641.305246,
+        "level": "info",
+        "message": "1 passed in 1.84s",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+      },
+      {
+        "ts": 1771801641.3074844,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+      },
+      {
+        "ts": 1771801641.310425,
+        "level": "info",
+        "message": "[child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+      },
+      {
+        "ts": 1771801642.5143626,
+        "level": "info",
+        "message": ".                                                                        [100%]",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+      },
+      {
+        "ts": 1771801642.5157328,
+        "level": "info",
+        "message": "1 passed in 0.63s",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+      },
+      {
+        "ts": 1771801642.5181196,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+      },
+      {
+        "ts": 1771801642.5215487,
+        "level": "info",
+        "message": "[child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+      },
+      {
+        "ts": 1771801643.52485,
+        "level": "info",
+        "message": ".                                                                        [100%]",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+      },
+      {
+        "ts": 1771801643.5264564,
+        "level": "info",
+        "message": "1 passed in 0.59s",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+      },
+      {
+        "ts": 1771801643.5288727,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+      },
+      {
+        "ts": 1771801643.5323265,
+        "level": "info",
+        "message": "[child-note] started tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows"
+      },
+      {
+        "ts": 1771801644.7352939,
+        "level": "info",
+        "message": ".                                                                        [100%]",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows"
+      },
+      {
+        "ts": 1771801644.736913,
+        "level": "info",
+        "message": "1 passed in 0.63s",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows"
+      },
+      {
+        "ts": 1771801644.7394056,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows"
+      },
+      {
+        "ts": 1771801644.7459037,
+        "level": "info",
+        "message": "[child-note] started tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend",
+        "step_id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend"
+      },
+      {
+        "ts": 1771801644.949415,
+        "level": "info",
+        "message": "[child-note] finished canceled",
+        "step_id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend"
+      },
+      {
+        "ts": 1771801644.9560242,
+        "level": "info",
+        "message": "[child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+      },
+      {
+        "ts": 1771801645.9585469,
+        "level": "info",
+        "message": ".                                                                        [100%]",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+      },
+      {
+        "ts": 1771801645.9600835,
+        "level": "info",
+        "message": "1 passed in 0.60s",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+      },
+      {
+        "ts": 1771801645.9624743,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+      },
+      {
+        "ts": 1771801645.9659314,
+        "level": "info",
+        "message": "[child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+      },
+      {
+        "ts": 1771801646.9697547,
+        "level": "info",
+        "message": ".                                                                        [100%]",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+      },
+      {
+        "ts": 1771801646.9714417,
+        "level": "info",
+        "message": "1 passed in 0.62s",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+      },
+      {
+        "ts": 1771801647.1747959,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+      },
+      {
+        "ts": 1771801647.1781578,
+        "level": "info",
+        "message": "[child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+      },
+      {
+        "ts": 1771801648.1808193,
+        "level": "info",
+        "message": ".                                                                        [100%]",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+      },
+      {
+        "ts": 1771801648.1823556,
+        "level": "info",
+        "message": "1 passed in 0.61s",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+      },
+      {
+        "ts": 1771801648.1849613,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+      },
+      {
+        "ts": 1771801648.1885386,
+        "level": "info",
+        "message": "[child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+      },
+      {
+        "ts": 1771801649.1913605,
+        "level": "info",
+        "message": ".                                                                        [100%]",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+      },
+      {
+        "ts": 1771801649.1929662,
+        "level": "info",
+        "message": "1 passed in 0.59s",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+      },
+      {
+        "ts": 1771801649.3966577,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+      },
+      {
+        "ts": 1771801649.4001722,
+        "level": "info",
+        "message": "[child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error"
+      },
+      {
+        "ts": 1771801650.4031024,
+        "level": "info",
+        "message": "....                                                                     [100%]",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error"
+      },
+      {
+        "ts": 1771801650.4046128,
+        "level": "info",
+        "message": "4 passed in 0.60s",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error"
+      },
+      {
+        "ts": 1771801650.407378,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error"
+      },
+      {
+        "ts": 1771801650.4146187,
+        "level": "info",
+        "message": "[child-note] started tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+      },
+      {
+        "ts": 1771801651.017006,
+        "level": "info",
+        "message": ".                                                                        [100%]",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+      },
+      {
+        "ts": 1771801651.0186067,
+        "level": "info",
+        "message": "1 passed in 0.26s",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+      },
+      {
+        "ts": 1771801651.2221665,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+      },
+      {
+        "ts": 1771801651.2262359,
+        "level": "info",
+        "message": "[child-note] started tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+      },
+      {
+        "ts": 1771801651.8291943,
+        "level": "info",
+        "message": ".                                                                        [100%]",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+      },
+      {
+        "ts": 1771801651.8307512,
+        "level": "info",
+        "message": "1 passed in 0.26s",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+      },
+      {
+        "ts": 1771801651.8335378,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+      },
+      {
+        "ts": 1771801651.8375862,
+        "level": "info",
+        "message": "[child-note] started tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+      },
+      {
+        "ts": 1771801652.640166,
+        "level": "info",
+        "message": ".                                                                        [100%]",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+      },
+      {
+        "ts": 1771801652.6419399,
+        "level": "info",
+        "message": "1 passed in 0.26s",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+      },
+      {
+        "ts": 1771801652.6452231,
+        "level": "info",
+        "message": "[child-note] finished passed",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+      },
+      {
+        "ts": 1771801652.6494386,
+        "level": "info",
+        "message": "[child-note] started tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic"
+      },
+      {
+        "ts": 1771801653.0538878,
+        "level": "info",
+        "message": "[child-note] finished canceled",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic"
+      }
+    ],
+    "commands": [
+      {
+        "ts": 1771801636.4635584,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "--version"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "backend-gate-pytest-ready"
+      },
+      {
+        "ts": 1771801636.4674146,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/api_routes/browser/test_browser_nav_api_routes.py",
+          "tests/api_routes/browser/test_browser_workflow_async_api_routes.py"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-api-routes-browser"
+      },
+      {
+        "ts": 1771801636.468974,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend"
+      },
+      {
+        "ts": 1771801637.277581,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task"
+      },
+      {
+        "ts": 1771801637.8871315,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync"
+      },
+      {
+        "ts": 1771801639.0978484,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status"
+      },
+      {
+        "ts": 1771801641.3084033,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error"
+      },
+      {
+        "ts": 1771801642.519249,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404"
+      },
+      {
+        "ts": 1771801643.5299263,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows"
+      },
+      {
+        "ts": 1771801644.7415965,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/browser"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-browser-core"
+      },
+      {
+        "ts": 1771801644.7436848,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend"
+      },
+      {
+        "ts": 1771801644.951721,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/api_routes/test_browser_workflow_builder_api_routes.py"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-builder-routes"
+      },
+      {
+        "ts": 1771801644.9539645,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success"
+      },
+      {
+        "ts": 1771801645.9637,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success"
+      },
+      {
+        "ts": 1771801647.175955,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success"
+      },
+      {
+        "ts": 1771801648.1861887,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success"
+      },
+      {
+        "ts": 1771801649.3978567,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error"
+      },
+      {
+        "ts": 1771801650.4100432,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/launcher"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-launcher-core"
+      },
+      {
+        "ts": 1771801650.4122715,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary"
+      },
+      {
+        "ts": 1771801651.2234502,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters"
+      },
+      {
+        "ts": 1771801651.83494,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist"
+      },
+      {
+        "ts": 1771801652.6465466,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic"
+      }
+    ],
+    "network_calls": [],
+    "artifacts": [
+      {
+        "ts": 1771801653.0584655,
+        "type": "events",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-230716-180456\\events.ndjson",
+        "meta": {}
+      },
+      {
+        "ts": 1771801653.0594742,
+        "type": "stdout",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-230716-180456\\stdout.log",
+        "meta": {}
+      },
+      {
+        "ts": 1771801653.0607088,
+        "type": "json",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-230716-180456\\results.json",
+        "meta": {}
+      },
+      {
+        "ts": 1771801653.0617952,
+        "type": "junit",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260222-230716-180456\\results.junit.xml",
+        "meta": {}
+      }
+    ],
+    "verification": [
+      {
+        "ts": 1771801653.057414,
+        "source": "worker.run_finished",
+        "status": "canceled",
+        "tests": [
+          {
+            "id": "backend-gate-pytest-ready",
+            "status": "passed",
+            "duration_sec": 0.10424947738647461,
+            "message": "",
+            "retries": 1,
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "mocked_or_unit",
+              "browser_evidence": false,
+              "flagged": false,
+              "line_count": 1
+            }
+          },
+          {
+            "id": "python-api-routes-browser",
+            "status": "passed",
+            "duration_sec": 8.15437626838684,
+            "message": "",
+            "retries": 1,
+            "children": [
+              {
+                "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_passes_timeout_to_backend",
+                "parent_id": "python-api-routes-browser",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 0.7020330429077148,
+                "message": ""
+              },
+              {
+                "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_nav_api_routes.py::test_browser_navigate_creates_tracked_task",
+                "parent_id": "python-api-routes-browser",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 0.7016756534576416,
+                "message": ""
+              },
+              {
+                "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_short_task_runs_sync",
+                "parent_id": "python-api-routes-browser",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 1.1037251949310303,
+                "message": ""
+              },
+              {
+                "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_long_task_runs_async_with_status",
+                "parent_id": "python-api-routes-browser",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 2.306443214416504,
+                "message": ""
+              },
+              {
+                "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_search_and_extract_sync_timeout_returns_structured_error",
+                "parent_id": "python-api-routes-browser",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 1.1038134098052979,
+                "message": ""
+              },
+              {
+                "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_status_unknown_task_raises_404",
+                "parent_id": "python-api-routes-browser",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 1.103994607925415,
+                "message": ""
+              },
+              {
+                "id": "python-api-routes-browser::tests/api_routes/browser/test_browser_workflow_async_api_routes.py::test_tasks_list_endpoint_returns_rows",
+                "parent_id": "python-api-routes-browser",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 1.1031129360198975,
+                "message": ""
+              }
+            ],
+            "evidence": {
+              "expected": "live_browser",
+              "observed": "live_browser",
+              "browser_evidence": true,
+              "flagged": false,
+              "line_count": 28
+            }
+          },
+          {
+            "id": "python-browser-core",
+            "status": "canceled",
+            "duration_sec": 0.2554047107696533,
+            "message": "canceled by user; missing live browser evidence",
+            "retries": 0,
+            "children": [
+              {
+                "id": "python-browser-core::tests/browser/test_browser_backend_factory.py::test_factory_selects_camoufox_backend",
+                "parent_id": "python-browser-core",
+                "status": "canceled",
+                "attempt": 1,
+                "duration_sec": 0.2512834072113037,
+                "message": "canceled by user"
+              }
+            ],
+            "evidence": {
+              "expected": "live_browser",
+              "observed": "none",
+              "browser_evidence": false,
+              "flagged": true,
+              "line_count": 2
+            }
+          },
+          {
+            "id": "python-builder-routes",
+            "status": "passed",
+            "duration_sec": 5.5394299030303955,
+            "message": "",
+            "retries": 1,
+            "children": [
+              {
+                "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success",
+                "parent_id": "python-builder-routes",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 1.1043806076049805,
+                "message": ""
+              },
+              {
+                "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_validate_candidate_success",
+                "parent_id": "python-builder-routes",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 1.10343599319458,
+                "message": ""
+              },
+              {
+                "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_annotate_candidate_success",
+                "parent_id": "python-builder-routes",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 1.1034307479858398,
+                "message": ""
+              },
+              {
+                "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_synthesize_from_feedback_success",
+                "parent_id": "python-builder-routes",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 1.1029069423675537,
+                "message": ""
+              },
+              {
+                "id": "python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_builder_routes_raise_500_on_internal_error",
+                "parent_id": "python-builder-routes",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 1.1033320426940918,
+                "message": ""
+              }
+            ],
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "mocked_or_unit",
+              "browser_evidence": false,
+              "flagged": false,
+              "line_count": 20
+            }
+          },
+          {
+            "id": "python-launcher-core",
+            "status": "canceled",
+            "duration_sec": 2.675868034362793,
+            "message": "canceled by user",
+            "retries": 0,
+            "children": [
+              {
+                "id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_disallowed_binary",
+                "parent_id": "python-launcher-core",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 0.7034201622009277,
+                "message": ""
+              },
+              {
+                "id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_rejects_shell_metacharacters",
+                "parent_id": "python-launcher-core",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 0.7026307582855225,
+                "message": ""
+              },
+              {
+                "id": "python-launcher-core::tests/launcher/test_launcher_catalog.py::test_dependency_reference_must_exist",
+                "parent_id": "python-launcher-core",
+                "status": "passed",
+                "attempt": 1,
+                "duration_sec": 0.7017483711242676,
+                "message": ""
+              },
+              {
+                "id": "python-launcher-core::tests/launcher/test_launcher_planner.py::test_dependency_order_is_deterministic",
+                "parent_id": "python-launcher-core",
+                "status": "canceled",
+                "attempt": 1,
+                "duration_sec": 0.5520541667938232,
+                "message": "canceled by user"
+              }
+            ],
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "mocked_or_unit",
+              "browser_evidence": false,
+              "flagged": false,
+              "line_count": 14
+            }
+          }
+        ],
+        "duration_sec": 16.729405403137207
+      }
+    ]
+  },
+  "changes": []
+}

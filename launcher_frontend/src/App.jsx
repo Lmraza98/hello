@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, PanelLeft, Pin, PinOff } from "lucide-react";
+import { ChevronDown, ChevronUp, PanelLeft } from "lucide-react";
 import BridgeState from "./components/BridgeState";
 import HeaderBar from "./components/HeaderBar";
 import TopActionsBar from "./components/TopActionsBar";
@@ -92,7 +92,6 @@ export default function App() {
     return 420;
   });
   const [graphDrag, setGraphDrag] = useState(null);
-  const [graphDetailsDocked, setGraphDetailsDocked] = useState(false);
   const [graphDetailsOpen, setGraphDetailsOpen] = useState(false);
   const [graphBottomTab, setGraphBottomTab] = useState("timeline");
   const [graphScope, setGraphScope] = useState({ level: "suite", aggregateId: "", childId: "" });
@@ -1839,6 +1838,19 @@ export default function App() {
     await refreshAll();
   }
 
+  async function handleClearCache() {
+    if (!bridge || typeof bridge.clear_step_cache !== "function") return;
+    try {
+      const out = await bridge.clear_step_cache();
+      const cleared = Number(out?.cleared || 0);
+      setPreviewLine(`Cache cleared (${cleared} entries)`);
+    } catch (error) {
+      const message = error?.message ? String(error.message) : "cache clear failed";
+      setPreviewLine(`Cache clear failed: ${message}`);
+    }
+    await refreshAll();
+  }
+
   async function copyLogs() {
     if (!bridge) return;
     const text = await bridge.get_logs();
@@ -2185,6 +2197,7 @@ export default function App() {
         activeFilterCount={activeFilterCount}
         onClearFilters={clearFilters}
         onClearState={handleClearState}
+        onClearCache={() => void handleClearCache()}
       />
 
       {tab === "logs" ? <LogsPanel logs={logs} /> : null}
@@ -2326,13 +2339,13 @@ export default function App() {
                   </div>
                 </>
               ) : (
-                <div className="relative mt-1 shrink-0 overflow-hidden rounded border border-slate-800/80 bg-slate-950/95 px-3" style={{ height: `${runHistoryCollapsedHeight}px`, zIndex: Z_PANE }}>
+                <div className="relative shrink-0 overflow-hidden rounded border border-slate-800/80 bg-slate-950/95" style={{ height: `${runHistoryCollapsedHeight}px`, zIndex: Z_PANE }}>
                   <div className="flex h-full items-center justify-between">
-                    <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-300">Run History</div>
+                    <div className="pl-3 text-[11px] font-semibold uppercase tracking-wide text-slate-300">Run History</div>
                     <button
                       type="button"
                       onClick={() => setRunHistoryCollapsed(false)}
-                      className="inline-flex items-center gap-1 rounded border border-slate-700 bg-slate-900/80 px-2 py-0.5 text-[10px] text-slate-200"
+                      className="mr-3 inline-flex items-center gap-1 rounded border border-slate-700 bg-slate-900/80 px-2 py-0.5 text-[10px] text-slate-200"
                     >
                       <ChevronUp className="h-3 w-3" />
                       Open
@@ -2473,13 +2486,6 @@ export default function App() {
                   <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-slate-700 group-hover:bg-blue-400" />
                 </div>
                 <div className="min-h-0 min-w-0 overflow-hidden rounded-md border border-slate-800/60 bg-slate-950/95" style={{ gridColumn: 3, gridRow: 1 }}>
-                  <div className="flex items-center justify-end gap-2 border-b border-slate-800 px-2 py-1">
-                    {graphDetailsDocked ? (
-                      <button type="button" className="rounded border border-slate-700 p-1 text-xs" onClick={() => setGraphDetailsDocked(false)} title="Undock"><PinOff className="h-3.5 w-3.5" /></button>
-                    ) : (
-                      <button type="button" className="rounded border border-slate-700 p-1 text-xs" onClick={() => setGraphDetailsDocked(true)} title="Pin/dock"><Pin className="h-3.5 w-3.5" /></button>
-                    )}
-                  </div>
                   <DetailsPane
                     drawerOpen={Boolean(graphDetailsNode)}
                     selectedCase={detailsSelectedCase}
@@ -2616,13 +2622,13 @@ export default function App() {
                 </div>
               </>
             ) : (
-              <div className="relative mt-1 shrink-0 overflow-hidden rounded border border-slate-800/80 bg-slate-950/95 px-3" style={{ height: `${runHistoryCollapsedHeight}px`, zIndex: Z_PANE }}>
+              <div className="relative shrink-0 overflow-hidden rounded border border-slate-800/80 bg-slate-950/95" style={{ height: `${runHistoryCollapsedHeight}px`, zIndex: Z_PANE }}>
                 <div className="flex h-full items-center justify-between">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-300">Run History</div>
+                  <div className="pl-3 text-[11px] font-semibold uppercase tracking-wide text-slate-300">Run History</div>
                   <button
                     type="button"
                     onClick={() => setRunHistoryCollapsed(false)}
-                    className="inline-flex items-center gap-1 rounded border border-slate-700 bg-slate-900/80 px-2 py-0.5 text-[10px] text-slate-200"
+                    className="mr-3 inline-flex items-center gap-1 rounded border border-slate-700 bg-slate-900/80 px-2 py-0.5 text-[10px] text-slate-200"
                   >
                     <ChevronUp className="h-3 w-3" />
                     Open

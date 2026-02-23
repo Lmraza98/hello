@@ -397,3 +397,19 @@ eactAdapter.ts to use it.
   - suite inline aggregate expansion remains the canonical graph interaction path for filtered aggregate selection,
   - graph bottom playback controls are artifact-replay scoped (shown only while an artifact run is loaded, hidden otherwise).
 - `launcher_frontend/src/components/graph/GraphCanvas.tsx` was restructured into internal layers (`EdgesLayer`, `NodesLayer`, `OverlaysLayer`) with pure style/state helpers while preserving existing event and rendering semantics.
+
+## 2026-02-23 - UI Build Fix (TypeScript)
+
+- Fixed a strict TypeScript build failure in `ui/src/chat/models/toolPlanner/complexityClassifier.ts` by removing an unused local variable (`lower`) so `tsc -b` passes during `scripts/start_backend.bat`.
+
+## 2026-02-23 - Chat Quick Search Confirmation + Lead-First Lookup
+
+- Updated `ui/src/chat/chatEngine/responseBuilder.ts` confirmation gating so read-only tool plans (for example `search_contacts`, `search_companies`, `hybrid_search`) no longer prompt confirmation just because `requireToolConfirmation` is enabled.
+- Added deterministic quick-lookup routing in `ui/src/chat/chatEngine/pipelineSteps.ts`:
+  - reverted: quick-lookup regex routing for `find/search/who is` was removed to keep these intents on the standard planner flow.
+- Added lead-first fallback behavior in `ui/src/chat/toolExecutor/executeTool.ts` for `search_contacts(name=...)`:
+  - if local contacts return no close name match, automatically fallback to `hybrid_search` for contact recall,
+  - if a close match exists in contacts/leads, no hybrid fallback is triggered.
+- Reduced noisy chat-driven workspace preview churn for exact lookups in `ui/src/hooks/useChat.ts`:
+  - exact `search_contacts(name=...)` and exact `search_companies(company_name=...)` results no longer auto-emit `navigate + set_filter` app actions,
+  - avoids showing an empty/in-progress "Applying filters" Live UI Preview card for simple person/company find queries.

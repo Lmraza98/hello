@@ -55,8 +55,8 @@ export function SearchToolbar({
   filterPanelContent,
 }: SearchToolbarProps) {
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex items-center gap-2 shrink-0">
+    <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1.5 shrink-0">
         <input
           type="checkbox"
           checked={allSelected}
@@ -64,36 +64,36 @@ export function SearchToolbar({
             if (input) input.indeterminate = !!indeterminate;
           }}
           onChange={onToggleSelectAll}
-          className="w-4 h-4 rounded border-gray-300 text-accent focus:ring-accent"
+          className="w-3.5 h-3.5 rounded border-gray-300 text-accent focus:ring-accent"
         />
-        <span className="text-xs md:text-sm text-text-muted tabular-nums">
+        <span className="text-[11px] md:text-xs text-text-muted tabular-nums">
           {displayCount}
         </span>
       </div>
 
       <div className="relative flex-1 min-w-0">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-dim" />
+        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-text-dim" />
         <input
           type="text"
           placeholder="Search..."
           value={globalFilter}
           onChange={(e) => onGlobalFilterChange(e.target.value)}
-          className="w-full pl-8 pr-3 py-2 bg-surface border border-border rounded-lg text-sm text-text placeholder:text-text-dim focus:outline-none focus:border-accent"
+          className="h-9 w-full pl-7 pr-2.5 bg-surface border border-border rounded-md text-[13px] text-text placeholder:text-[12px] placeholder:text-text-dim focus:outline-none focus:border-accent"
         />
       </div>
 
       <div className="relative shrink-0">
         <button
           onClick={onToggleFilters}
-          className={`flex items-center gap-1 px-2.5 md:px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
+          className={`inline-flex h-9 items-center gap-1 px-2.5 md:px-3 border rounded-md text-xs font-medium transition-colors ${
             activeFilterCount > 0
               ? 'border-accent text-accent bg-accent/5'
               : 'border-border text-text-muted hover:text-text hover:bg-surface-hover'
           }`}
         >
-          <SlidersHorizontal className="w-4 h-4" />
+          <SlidersHorizontal className="w-3.5 h-3.5" />
           {activeFilterCount > 0 && (
-            <span className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-accent text-white text-[10px] md:text-xs flex items-center justify-center">
+            <span className="w-4 h-4 rounded-full bg-accent text-white text-[10px] flex items-center justify-center">
               {activeFilterCount}
             </span>
           )}

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="launcher-run" tests="2" failures="0" skipped="1" time="0.959">
+  <testcase classname="launcher" name="backend-gate-pytest-ready" time="0.103">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core" time="0.856">
+    <skipped message="canceled"/>
+  </testcase>
+</testsuite>

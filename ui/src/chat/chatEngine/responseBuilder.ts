@@ -24,7 +24,7 @@ import {
   type ChatSessionState,
 } from '../sessionState';
 import { TOOL_BRAIN_MODEL, TOOL_BRAIN_NAME } from '../models/toolBrainConfig';
-import { buildMixedPlanSummary, CONFIRMED_READ_ONLY_FASTLANE_TOOLS } from '../chatEnginePolicy';
+import { buildMixedPlanSummary, CONFIRMED_READ_ONLY_FASTLANE_TOOLS, shouldRequireToolConfirmation } from '../chatEnginePolicy';
 import type { ChatEngineResult, ChatEngineSizeMetrics, ChatEngineTimings, MessageMeta, PipelineContext } from './pipelineTypes';
 import type { ReActStep } from '../reactLoop';
 
@@ -373,13 +373,9 @@ export async function buildDispatchBackedResult(params: {
   const hasToolCalls = calls.length > 0;
   const hasUiActions = uiActions.length > 0;
   const destructiveCheck = checkPlanDestructive(uiActions, calls);
-  const shouldConfirm =
-    ctx.options.requireToolConfirmation === false
-      ? false
-      : (
-          (phase === 'planning' && ctx.options.requireToolConfirmation === true && hasToolCalls)
-          || destructiveCheck.requiresConfirmation
-        );
+  const shouldConfirm = ctx.options.requireToolConfirmation === false
+    ? false
+    : (destructiveCheck.requiresConfirmation || shouldRequireToolConfirmation(calls, ctx.options.requireToolConfirmation));
 
   if (shouldConfirm) {
     const summary = buildMixedPlanSummary(uiActions, calls);

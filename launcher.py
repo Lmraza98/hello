@@ -7,8 +7,10 @@ and isolated test orchestration via a manifest-driven worker process.
 from __future__ import annotations
 
 import ast
+import base64
 import hashlib
 import json
+import mimetypes
 import os
 import queue
 import re
@@ -1949,6 +1951,37 @@ def main() -> None:
     def open_app() -> None:
         webbrowser.open(f"http://127.0.0.1:{SERVER_PORT}/")
 
+    def clear_step_cache() -> dict[str, Any]:
+        cache: dict[str, dict[str, Any]] = runtime.get("step_cache") or {}
+        cleared = len(cache)
+        runtime["step_cache"] = {}
+        try:
+            _save_step_cache({})
+        except Exception as exc:
+            _log_queue.put(f"[launcher] clear step cache failed: {exc}\n")
+            return {"ok": False, "cleared": 0, "error": str(exc)}
+        _log_queue.put(f"[launcher] cleared step cache ({cleared} entries)\n")
+        return {"ok": True, "cleared": cleared}
+
+    def resolve_artifact_image(path: str) -> dict[str, Any]:
+        raw = str(path or "").strip()
+        if not raw:
+            return {"ok": False, "error": "empty_path"}
+        try:
+            target = Path(raw).expanduser().resolve()
+            root = RUN_STORE_ROOT.resolve()
+            if target != root and root not in target.parents:
+                return {"ok": False, "error": "path_outside_run_store"}
+            if not target.exists() or not target.is_file():
+                return {"ok": False, "error": "file_not_found"}
+            mime, _ = mimetypes.guess_type(str(target))
+            if not mime:
+                mime = "application/octet-stream"
+            encoded = base64.b64encode(target.read_bytes()).decode("ascii")
+            return {"ok": True, "url": f"data:{mime};base64,{encoded}", "mime": mime, "path": str(target)}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+
     def _shutdown_once(reason: str, destroy_window: bool) -> None:
         with shutdown_lock:
             if shutdown_state["done"]:
@@ -1994,6 +2027,8 @@ def main() -> None:
         trace_add_verification,
         open_run_dir,
         get_diagnostics_summary,
+        clear_step_cache,
+        resolve_artifact_image,
         open_app,
         shutdown,
     )

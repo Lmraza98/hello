@@ -75,6 +75,58 @@ function runLogsForRun(rawLogs, runId) {
   return nextStart > start ? lines.slice(start, nextStart) : lines.slice(start);
 }
 
+function hasScreenshotArtifact(row) {
+  if (!row || typeof row !== "object") return false;
+  const outputs = row?.outputs && typeof row.outputs === "object" ? row.outputs : {};
+  const screenshot = outputs?.screenshot;
+  if (typeof screenshot === "string" && screenshot.trim()) return true;
+  if (screenshot && typeof screenshot === "object") {
+    const urlRaw = String(screenshot.url || screenshot.path || "").trim();
+    const b64 = String(screenshot.base64 || screenshot.screenshot_base64 || "").trim();
+    if (urlRaw || b64) return true;
+  }
+  const b64 = String(outputs?.screenshot_base64 || "").trim();
+  if (b64) return true;
+  const artifacts = Array.isArray(row?.artifacts) ? row.artifacts : [];
+  return artifacts.some((art) => {
+    const p = String(art?.path || "").trim();
+    const t = String(art?.type || "").toLowerCase();
+    if (!p) return false;
+    const isImageType = t.includes("image") || t.includes("screenshot") || t === "png" || t === "jpg" || t === "jpeg";
+    const isImagePath = /\.(png|jpg|jpeg|webp|gif|bmp)$/i.test(p);
+    return isImageType || isImagePath;
+  });
+}
+
+function workflowPrefix(id) {
+  const raw = String(id || "").trim();
+  if (!raw) return "";
+  const marker = "::workflow.";
+  const idx = raw.indexOf(marker);
+  if (idx < 0) return "";
+  const tail = raw.slice(idx + marker.length);
+  const lastDot = tail.lastIndexOf(".");
+  if (lastDot <= 0) return "";
+  return `${raw.slice(0, idx + marker.length)}${tail.slice(0, lastDot)}`;
+}
+
+function workflowStepName(id) {
+  const raw = String(id || "").trim();
+  if (!raw) return "";
+  const marker = "::workflow.";
+  const idx = raw.indexOf(marker);
+  if (idx < 0) return "";
+  const tail = raw.slice(idx + marker.length);
+  const lastDot = tail.lastIndexOf(".");
+  if (lastDot <= 0) return "";
+  return tail.slice(lastDot + 1);
+}
+
+function shouldUseWorkflowScreenshotFallback(displayNodeId) {
+  const step = workflowStepName(displayNodeId);
+  return step === "open_or_reuse_tab" || step === "navigate_and_collect" || step === "capture_observation";
+}
+
 export default function DetailsPane({
   drawerOpen,
   selectedCase,
@@ -112,7 +164,7 @@ export default function DetailsPane({
   const testId = selectedCase?.testId || "";
   const caseNodeId = selectedCase?.id || "";
   const graphNodeId = graphNode?.id || "";
-  const displayNodeId = graphNodeId || caseNodeId || testId || "";
+  const displayNodeId = caseNodeId || testId || graphNodeId || "";
   const candidateIds = useMemo(() => {
     const ids = [graphNodeId, caseNodeId, testId, selectedCase?.nodeid].filter(Boolean);
     return Array.from(new Set(ids));
@@ -144,7 +196,22 @@ export default function DetailsPane({
   const runResult = useMemo(() => runResultForNode(activeRun, candidateIds), [activeRun, candidateIds]);
   const attemptId = pickAttempt(runResult, statusRow);
   const durationText = pickDurationText(runResult, statusRow, graphNode);
-  const effectiveStatus = graphNode?.status || runResult?.status || statusRow?.status || "idle";
+  const effectiveStatus = runResult?.status || statusRow?.status || graphNode?.status || "idle";
+  const fallbackRunResult = useMemo(() => {
+    if (!activeRun || !displayNodeId) return null;
+    if (hasScreenshotArtifact(runResult)) return null;
+    if (!shouldUseWorkflowScreenshotFallback(displayNodeId)) return null;
+    const prefix = workflowPrefix(displayNodeId);
+    if (!prefix) return null;
+    const rows = Array.isArray(activeRun?.tests) ? activeRun.tests : [];
+    for (const row of rows) {
+      const rowId = String(row?.id || "").trim();
+      if (!rowId || rowId === displayNodeId) continue;
+      if (!rowId.startsWith(`${prefix}.`)) continue;
+      if (hasScreenshotArtifact(row)) return row;
+    }
+    return null;
+  }, [activeRun, displayNodeId, runResult]);
   const evidence = runResult?.evidence || null;
   const aggregateChildren = Array.isArray(graphNode?.aggregateChildren) ? graphNode.aggregateChildren : [];
   const aggregateSummary = graphNode?.aggregateSummary || null;
@@ -322,35 +389,35 @@ export default function DetailsPane({
   };
 
   return (
-    <aside className="h-full min-h-0 overflow-y-auto overflow-x-hidden border-l border-slate-800/70 pl-3 pr-1">
-      <div className="sticky top-0 z-10 border-b border-slate-800/80 bg-slate-950/95 pb-2">
-        <div className="flex items-start justify-between gap-2 pt-1">
+    <aside className="h-full min-h-0 overflow-y-auto overflow-x-hidden border-l border-slate-800/70 px-2">
+      <div className="sticky top-0 z-10 border-b border-slate-800/80 bg-slate-950/95 pb-1.5">
+        <div className="flex items-start justify-between gap-1.5 pt-0.5">
           <div className="min-w-0">
-            <div className="break-words text-sm font-semibold text-slate-100">{selectedCase?.name || "No case selected"}</div>
-            <div className="mt-1 truncate text-xs text-slate-300" title={selectedCase?.nodeid || displayNodeId || ""}>
+            <div className="break-words text-[13px] font-semibold leading-tight text-slate-100">{selectedCase?.name || "No case selected"}</div>
+            <div className="mt-0.5 truncate text-[11px] text-slate-400" title={selectedCase?.nodeid || displayNodeId || ""}>
               {selectedCase?.nodeid || displayNodeId || ""}
             </div>
             {graphActive && !nodeObservedInEvents ? (
-              <div className="mt-1 rounded border border-amber-700/50 bg-amber-950/30 px-1.5 py-1 text-[10px] text-amber-200">
+              <div className="mt-1 rounded-sm border border-amber-700/50 bg-amber-950/30 px-2 py-0.5 text-[10px] leading-tight text-amber-200">
                 Not observed in run events. This node has not emitted runtime events for the selected run.
               </div>
             ) : null}
-            <div className="truncate text-xs text-slate-300" title={selectedCase?.file_path || graphNode?.filePath || ""}>
+            <div className="mt-0.5 truncate text-[11px] text-slate-500" title={selectedCase?.file_path || graphNode?.filePath || ""}>
               {selectedCase?.file_path || graphNode?.filePath || ""}
             </div>
           </div>
-          <button type="button" onClick={() => setDrawerOpen(false)} className="rounded-md border border-slate-700 px-2 py-1 text-xs">
+          <button type="button" onClick={() => setDrawerOpen(false)} className="inline-flex h-7 items-center justify-center rounded-md border border-slate-700 px-2 text-xs">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
 
-        <div className="mt-3 flex items-center gap-2 text-[11px] text-slate-300">
+        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-300">
           <label className="flex min-w-0 flex-1 items-center gap-1">
             <span className="shrink-0 text-[10px] text-slate-500">Run:</span>
             <select
               value={runSelectorValue}
               onChange={(e) => onSelectRun(e.target.value === "latest" ? null : e.target.value)}
-              className="h-8 w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-[11px] text-slate-200 outline-none"
+              className="h-7 w-full rounded border border-slate-700 bg-slate-900 px-1.5 text-[11px] text-slate-200 outline-none"
             >
               <option value="latest">latest</option>
               {relatedRuns.map((run) => (
@@ -362,16 +429,16 @@ export default function DetailsPane({
           </label>
           <label className="flex min-w-0 flex-1 items-center gap-1">
             <span className="shrink-0 text-[10px] text-slate-500">Attempt:</span>
-            <input readOnly value={String(attemptId)} className="h-8 w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-[11px] text-slate-200 outline-none" />
+            <input readOnly value={String(attemptId)} className="h-7 w-full rounded border border-slate-700 bg-slate-900 px-1.5 text-[11px] text-slate-200 outline-none" />
           </label>
         </div>
 
-        <div className="mt-3 flex items-center gap-2">
+        <div className="mt-2 flex items-center gap-1.5">
           <button
             type="button"
             disabled={!selectedCase}
             onClick={() => selectedCase && bridge.run_plan([selectedCase.id], [])}
-            className="h-8 rounded-md bg-blue-600 px-3 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-7 rounded-md bg-blue-600 px-2.5 text-[11px] font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
           >
             Rerun Test
           </button>
@@ -380,7 +447,7 @@ export default function DetailsPane({
               type="button"
               disabled={!activeRunId}
               onClick={() => graphContext?.onOpenRun?.({ runId: activeRunId, nodeId: displayNodeId })}
-              className="h-8 rounded-md border border-slate-700 px-3 text-xs text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="h-7 rounded-md border border-slate-700 px-2.5 text-[11px] text-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Open Run
             </button>
@@ -390,13 +457,13 @@ export default function DetailsPane({
               type="button"
               disabled={!selectedCase}
               onClick={() => setShowCopyMenu((v) => !v)}
-              className="inline-flex h-8 items-center gap-1 rounded-md border border-slate-700 px-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-7 items-center gap-1 rounded-md border border-slate-700 px-2 text-[11px] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <MoreHorizontal className="h-3.5 w-3.5" />
               Copy
             </button>
             {showCopyMenu ? (
-              <div className="absolute left-0 top-9 w-44 rounded-md border border-slate-700 bg-slate-900 p-1" style={{ zIndex: Z_PANE }}>
+              <div className="absolute left-0 top-8 w-44 rounded-md border border-slate-700 bg-slate-900 p-1" style={{ zIndex: Z_PANE }}>
                 <button type="button" onClick={() => { navigator.clipboard.writeText(selectedCase?.nodeid || displayNodeId || ""); setShowCopyMenu(false); }} className="w-full rounded px-2 py-1 text-left text-xs hover:bg-slate-800">Node ID</button>
                 <button type="button" onClick={() => { navigator.clipboard.writeText(selectedCase?.file_path || graphNode?.filePath || ""); setShowCopyMenu(false); }} className="w-full rounded px-2 py-1 text-left text-xs hover:bg-slate-800">File Path</button>
                 <button type="button" onClick={() => { navigator.clipboard.writeText(JSON.stringify({ runId: activeRunId, nodeId: displayNodeId, attemptId, traceFetchState }, null, 2)); setShowCopyMenu(false); }} className="w-full rounded px-2 py-1 text-left text-xs hover:bg-slate-800">Diagnostics</button>
@@ -405,9 +472,10 @@ export default function DetailsPane({
           </div>
         </div>
 
-        <div className="mt-3 border-t border-slate-800/70 pt-3" />
+        <div className="mt-2 border-t border-slate-800/70 pt-2" />
 
-        <div className="flex items-center gap-1">
+        <div className="overflow-x-auto overflow-y-hidden">
+          <div className="flex items-center gap-1 whitespace-nowrap">
           {tabOrder.map((tabId) => {
             if (tabId === "timeline" && !graphActive) return null;
             const disabled =
@@ -420,12 +488,13 @@ export default function DetailsPane({
                 type="button"
                 disabled={disabled}
                 onClick={() => setTab(tabId)}
-                className={`rounded-md border px-2 py-1 text-[11px] disabled:opacity-45 ${tab === tabId ? "border-blue-500 bg-blue-950/30 text-blue-300" : "border-slate-700"}`}
+                className={`h-7 shrink-0 rounded-md border px-2 text-[10px] disabled:opacity-45 ${tab === tabId ? "border-blue-500 bg-blue-950/30 text-blue-300" : "border-slate-700"}`}
               >
                 {tabLabelById[tabId]}
               </button>
             );
           })}
+          </div>
         </div>
       </div>
 
@@ -470,6 +539,7 @@ export default function DetailsPane({
             />
           ) : (
             <NodeDetailsPane
+              bridge={bridge}
               effectiveStatus={effectiveStatus}
               graphNode={graphNode}
               statusRow={statusRow}
@@ -478,6 +548,7 @@ export default function DetailsPane({
               activeRunId={activeRunId}
               attemptId={attemptId}
               durationText={durationText}
+              runResult={runResult}
               evidence={evidence}
               showMoreMeta={showMoreMeta}
               setShowMoreMeta={setShowMoreMeta}
@@ -485,6 +556,7 @@ export default function DetailsPane({
               fmtDuration={fmtDuration}
               fmtTs={fmtTs}
               nodeDependencyAnalysis={nodeDependencyAnalysis}
+              fallbackRunResult={fallbackRunResult}
             />
           )}
           {selectedTimelineEvent?.screenshotId ? (

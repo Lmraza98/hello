@@ -29,6 +29,41 @@ function parseGoogleSearchIntent(args: Record<string, unknown>): { isGoogleInten
   return { isGoogleIntent: false, query: raw };
 }
 
+function extractContactRows(payload: unknown): Array<Record<string, unknown>> {
+  if (Array.isArray(payload)) {
+    return payload.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === 'object' && !Array.isArray(row));
+  }
+  if (!payload || typeof payload !== 'object') return [];
+  const obj = payload as Record<string, unknown>;
+  const candidates = [obj.items, obj.results, obj.contacts, obj.rows];
+  for (const candidate of candidates) {
+    if (!Array.isArray(candidate)) continue;
+    return candidate.filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === 'object' && !Array.isArray(row));
+  }
+  return [];
+}
+
+function normalizeName(value: string): string {
+  return (value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function hasCloseContactMatch(rows: Array<Record<string, unknown>>, name: string): boolean {
+  const needle = normalizeName(name);
+  if (!needle) return false;
+  return rows.some((row) => {
+    const raw = typeof row.name === 'string'
+      ? row.name
+      : (typeof row.full_name === 'string' ? row.full_name : '');
+    const hay = normalizeName(raw);
+    if (!hay) return false;
+    return hay === needle || hay.includes(needle) || needle.includes(hay);
+  });
+}
+
 export async function executeTool(
   toolName: string,
   args: Record<string, unknown>
@@ -152,8 +187,26 @@ export async function executeTool(
       }
       return api('GET', `/api/documents${qs({ company_id: companyId, limit: normalizedArgs.limit })}`);
     }
-    case 'search_contacts':
-      return api('GET', `/api/contacts${qs(normalizedArgs)}`);
+    case 'search_contacts': {
+      const contacts = await api('GET', `/api/contacts${qs(normalizedArgs)}`);
+      if (contacts && typeof contacts === 'object' && (contacts as Record<string, unknown>).error === true) {
+        return contacts;
+      }
+
+      const explicitName = typeof normalizedArgs.name === 'string' ? normalizedArgs.name.trim() : '';
+      if (!explicitName) return contacts;
+
+      const rows = extractContactRows(contacts);
+      if (rows.length > 0 && hasCloseContactMatch(rows, explicitName)) {
+        return contacts;
+      }
+
+      return api('POST', '/api/search/hybrid', {
+        query: explicitName,
+        entity_types: ['contact'],
+        k: 10,
+      });
+    }
     case 'get_contact': {
       const rawContactId = args.contact_id;
       if (typeof rawContactId !== 'number' || !Number.isFinite(rawContactId) || !Number.isInteger(rawContactId) || rawContactId <= 0) {

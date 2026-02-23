@@ -34,6 +34,11 @@ export async function classifyIntent(message: string, onProgress?: (msg: string)
   if (!cleaned) return 'conversational';
   const lower = cleaned.toLowerCase();
 
+  // Deterministic greeting/casual opener guard.
+  if (/^(hi|hello|hey|yo|good\s+(morning|afternoon|evening))([!.,\s]|$)/i.test(cleaned)) {
+    return 'conversational';
+  }
+
   // Explicit multi-step markers are conclusive.
   if (hasExplicitMultiStepMarkers(cleaned)) return 'multi';
 
