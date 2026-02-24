@@ -1,0 +1,254 @@
+{
+  "run_id": "run-20260224-001151-532363",
+  "status": "failed",
+  "duration_sec": 2.6227447986602783,
+  "tests": [
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "status": "passed",
+      "duration_sec": 0.0,
+      "message": "passed (cache satisfied)",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "cached": true,
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 0
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+      "status": "failed",
+      "duration_sec": 0.2004992961883545,
+      "message": "exit code 1",
+      "label": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+      "cache_key": "c95b1bd216a234be7040b23d503e2e922ca15ec0f4744275e0435b2db7d429cf",
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 4
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.query_builder.people_search_rejects_unmapped_values",
+      "status": "passed",
+      "duration_sec": 1.2037928104400635,
+      "message": "",
+      "label": "python-salesnav-core::workflow.salesnav.query_builder.people_search_rejects_unmapped_values",
+      "cache_key": "80440e2bc2b456acc21e7ee133398a4160ce2207b71d30f5f17c2292ef9eac98",
+      "inputs": {
+        "label": "query_builder_people_search_rejects_unmapped_values",
+        "nodeids": [
+          "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values"
+        ],
+        "timeout_sec": 600
+      },
+      "tool_call": {
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values",
+          "--junitxml=C:/Users/lmraz/Hello/data/launcher_runs/run-20260224-001151-532363/artifacts/workflow.salesnav.query_builder/people_search_rejects_unmapped_values/junit.xml"
+        ]
+      },
+      "tool_response": {
+        "returncode": 0,
+        "stdout_tail": ".                                                                        [100%]\n1 passed in 0.67s\n",
+        "stderr_tail": ""
+      },
+      "outputs": {
+        "label": "query_builder_people_search_rejects_unmapped_values",
+        "duration_sec": 1.1227962970733643,
+        "passed": true
+      },
+      "normalized_output_hash": "5e46fed502437222888a59eead41edd257c97e84433291c856d1745711d9e168",
+      "artifacts": [
+        {
+          "type": "junit",
+          "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-001151-532363\\artifacts\\workflow.salesnav.query_builder\\people_search_rejects_unmapped_values\\junit.xml"
+        },
+        {
+          "type": "log",
+          "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-001151-532363\\artifacts\\workflow.salesnav.query_builder\\people_search_rejects_unmapped_values\\pytest_output.txt"
+        },
+        {
+          "type": "json",
+          "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-001151-532363\\artifacts\\workflow.salesnav.query_builder\\people_search_rejects_unmapped_values\\summary.json"
+        }
+      ],
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 3
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.query_builder.people_search_uses_sales_company_url_for_org_id",
+      "status": "passed",
+      "duration_sec": 1.204441785812378,
+      "message": "",
+      "label": "python-salesnav-core::workflow.salesnav.query_builder.people_search_uses_sales_company_url_for_org_id",
+      "cache_key": "ab43953121b11907ed137f1d3950d5057bdf60b4b0cd7f7aa9a705b9451b30a5",
+      "inputs": {
+        "label": "query_builder_people_search_uses_sales_company_url_for_org_id",
+        "nodeids": [
+          "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id",
+          "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn"
+        ],
+        "timeout_sec": 600
+      },
+      "tool_call": {
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "-m",
+          "pytest",
+          "-q",
+          "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id",
+          "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn",
+          "--junitxml=C:/Users/lmraz/Hello/data/launcher_runs/run-20260224-001151-532363/artifacts/workflow.salesnav.query_builder/people_search_uses_sales_company_url_for_org_id/junit.xml"
+        ]
+      },
+      "tool_response": {
+        "returncode": 0,
+        "stdout_tail": "..                                                                       [100%]\n2 passed in 0.65s\n",
+        "stderr_tail": ""
+      },
+      "outputs": {
+        "label": "query_builder_people_search_uses_sales_company_url_for_org_id",
+        "duration_sec": 1.1011645793914795,
+        "passed": true
+      },
+      "normalized_output_hash": "0238c884855f80e5f7bf6e7413ba203fb69e664bb164a06589509421c3d43585",
+      "artifacts": [
+        {
+          "type": "junit",
+          "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-001151-532363\\artifacts\\workflow.salesnav.query_builder\\people_search_uses_sales_company_url_for_org_id\\junit.xml"
+        },
+        {
+          "type": "log",
+          "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-001151-532363\\artifacts\\workflow.salesnav.query_builder\\people_search_uses_sales_company_url_for_org_id\\pytest_output.txt"
+        },
+        {
+          "type": "json",
+          "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-001151-532363\\artifacts\\workflow.salesnav.query_builder\\people_search_uses_sales_company_url_for_org_id\\summary.json"
+        }
+      ],
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 3
+      }
+    }
+  ],
+  "dependency_analysis": {
+    "version": "1",
+    "run_id": "run-20260224-001151-532363",
+    "planned_edges": [
+      {
+        "from": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "to": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+      },
+      {
+        "from": "python-salesnav-core::workflow.salesnav.query_builder.people_search_rejects_unmapped_values",
+        "to": "python-salesnav-core::workflow.salesnav.query_builder.people_search_uses_sales_company_url_for_org_id"
+      },
+      {
+        "from": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+        "to": "python-salesnav-core::workflow.salesnav.query_builder.people_search_rejects_unmapped_values"
+      }
+    ],
+    "observed_edges": [
+      {
+        "from": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "to": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      },
+      {
+        "from": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+        "to": "python-salesnav-core::workflow.salesnav.query_builder.people_search_rejects_unmapped_values",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      },
+      {
+        "from": "python-salesnav-core::workflow.salesnav.query_builder.people_search_rejects_unmapped_values",
+        "to": "python-salesnav-core::workflow.salesnav.query_builder.people_search_uses_sales_company_url_for_org_id",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      }
+    ],
+    "drift": {
+      "missing_planned_edges": [],
+      "unexpected_observed_edges": [],
+      "nodes_started_before_planned_ready": []
+    },
+    "nodes": [
+      {
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "status": "passed",
+        "attempts": 0,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": 1771891911.630034
+      },
+      {
+        "id": "python-salesnav-core::workflow.salesnav.query_builder.people_search_rejects_unmapped_values",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771891911.834857,
+        "last_finished_at": 1771891913.043509
+      },
+      {
+        "id": "python-salesnav-core::workflow.salesnav.query_builder.people_search_uses_sales_company_url_for_org_id",
+        "status": "passed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-salesnav-core::workflow.salesnav.query_builder.people_search_rejects_unmapped_values"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::workflow.salesnav.query_builder.people_search_rejects_unmapped_values"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771891913.043845,
+        "last_finished_at": 1771891914.252714
+      },
+      {
+        "id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+        "status": "failed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771891911.630286,
+        "last_finished_at": 1771891911.834608
+      }
+    ]
+  },
+  "exports": {
+    "json": true,
+    "junit": true
+  }
+}

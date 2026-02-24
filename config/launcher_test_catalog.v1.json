@@ -5,31 +5,52 @@
       "id": "backend-unit",
       "name": "Backend Unit",
       "description": "Fast backend and service unit coverage.",
-      "tags": ["backend", "unit"],
+      "tags": [
+        "backend",
+        "unit"
+      ],
       "tests": [
         {
           "id": "backend-gate-pytest-ready",
           "name": "Gate: pytest runtime ready",
           "kind": "smoke",
-          "command_template": ["python", "--version"],
+          "command_template": [
+            "python",
+            "--version"
+          ],
           "args": [],
           "cwd": ".",
-          "env_allowlist": ["PYTHONPATH"],
+          "env_allowlist": [
+            "PYTHONPATH"
+          ],
           "timeout_sec": 30,
           "retries": 1,
           "depends_on": [],
-          "artifacts": {"logs": true, "junit": false, "json": true, "screenshots": false},
+          "artifacts": {
+            "logs": true,
+            "junit": false,
+            "json": true,
+            "screenshots": false
+          },
           "enabled": true,
-          "tags": ["gate", "backend-ready"]
+          "tags": [
+            "gate",
+            "backend-ready"
+          ]
         },
         {
           "id": "python-tests-all",
           "name": "Python: all tests (grouped DAG)",
           "kind": "custom",
-          "command_template": ["python", "--version"],
+          "command_template": [
+            "python",
+            "--version"
+          ],
           "args": [],
           "cwd": ".",
-          "env_allowlist": ["PYTHONPATH"],
+          "env_allowlist": [
+            "PYTHONPATH"
+          ],
           "timeout_sec": 60,
           "retries": 0,
           "depends_on": [
@@ -41,118 +62,264 @@
             "python-salesnav-core",
             "python-workflow-core"
           ],
-          "artifacts": {"logs": true, "junit": true, "json": true, "screenshots": false},
+          "artifacts": {
+            "logs": true,
+            "junit": true,
+            "json": true,
+            "screenshots": false
+          },
           "enabled": true,
-          "tags": ["default", "aggregate-meta"]
+          "tags": [
+            "default",
+            "aggregate-meta"
+          ]
         },
         {
           "id": "python-api-routes-browser",
           "name": "Python: API routes (browser)",
           "kind": "integration",
-          "command_template": ["python", "-m", "pytest"],
+          "command_template": [
+            "python",
+            "-m",
+            "pytest"
+          ],
           "args": [
             "-q",
             "tests/api_routes/browser/test_browser_nav_api_routes.py",
             "tests/api_routes/browser/test_browser_workflow_async_api_routes.py"
           ],
           "cwd": ".",
-          "env_allowlist": ["PYTEST_ADDOPTS", "PYTHONPATH"],
+          "env_allowlist": [
+            "PYTEST_ADDOPTS",
+            "PYTHONPATH"
+          ],
           "timeout_sec": 600,
           "retries": 1,
-          "depends_on": ["backend-gate-pytest-ready"],
-          "artifacts": {"logs": true, "junit": true, "json": true, "screenshots": false},
+          "depends_on": [
+            "backend-gate-pytest-ready"
+          ],
+          "artifacts": {
+            "logs": true,
+            "junit": true,
+            "json": true,
+            "screenshots": false
+          },
           "enabled": true,
-          "tags": ["api-routes", "browser"]
+          "tags": [
+            "api-routes",
+            "browser"
+          ]
         },
         {
           "id": "python-builder-routes",
           "name": "Python: workflow builder routes",
           "kind": "integration",
-          "command_template": ["python", "-m", "pytest"],
-          "args": ["-q", "tests/api_routes/test_browser_workflow_builder_api_routes.py"],
+          "command_template": [
+            "python",
+            "-m",
+            "pytest"
+          ],
+          "args": [
+            "-q",
+            "tests/api_routes/test_browser_workflow_builder_api_routes.py"
+          ],
           "cwd": ".",
-          "env_allowlist": ["PYTEST_ADDOPTS", "PYTHONPATH"],
+          "env_allowlist": [
+            "PYTEST_ADDOPTS",
+            "PYTHONPATH"
+          ],
           "timeout_sec": 600,
           "retries": 1,
-          "depends_on": ["backend-gate-pytest-ready"],
-          "artifacts": {"logs": true, "junit": true, "json": true, "screenshots": false},
+          "depends_on": [
+            "backend-gate-pytest-ready"
+          ],
+          "artifacts": {
+            "logs": true,
+            "junit": true,
+            "json": true,
+            "screenshots": false
+          },
           "enabled": true,
-          "tags": ["workflow-builder"]
+          "tags": [
+            "workflow-builder"
+          ]
         },
         {
           "id": "python-browser-core",
           "name": "Python: browser core",
           "kind": "unit",
-          "command_template": ["python", "-m", "pytest"],
-          "args": ["-q", "tests/browser"],
+          "command_template": [
+            "python",
+            "-m",
+            "pytest"
+          ],
+          "args": [
+            "-q",
+            "tests/browser"
+          ],
           "cwd": ".",
-          "env_allowlist": ["PYTEST_ADDOPTS", "PYTHONPATH"],
+          "env_allowlist": [
+            "PYTEST_ADDOPTS",
+            "PYTHONPATH"
+          ],
           "timeout_sec": 900,
           "retries": 0,
-          "depends_on": ["backend-gate-pytest-ready"],
-          "artifacts": {"logs": true, "junit": true, "json": true, "screenshots": false},
+          "depends_on": [
+            "backend-gate-pytest-ready"
+          ],
+          "artifacts": {
+            "logs": true,
+            "junit": true,
+            "json": true,
+            "screenshots": false
+          },
           "enabled": true,
-          "tags": ["browser", "unit"]
+          "tags": [
+            "browser",
+            "unit"
+          ]
         },
         {
           "id": "python-launcher-core",
           "name": "Python: launcher core",
           "kind": "unit",
-          "command_template": ["python", "-m", "pytest"],
-          "args": ["-q", "tests/launcher"],
+          "command_template": [
+            "python",
+            "-m",
+            "pytest"
+          ],
+          "args": [
+            "-q",
+            "tests/launcher"
+          ],
           "cwd": ".",
-          "env_allowlist": ["PYTEST_ADDOPTS", "PYTHONPATH"],
+          "env_allowlist": [
+            "PYTEST_ADDOPTS",
+            "PYTHONPATH"
+          ],
           "timeout_sec": 900,
           "retries": 0,
-          "depends_on": ["backend-gate-pytest-ready"],
-          "artifacts": {"logs": true, "junit": true, "json": true, "screenshots": false},
+          "depends_on": [
+            "backend-gate-pytest-ready"
+          ],
+          "artifacts": {
+            "logs": true,
+            "junit": true,
+            "json": true,
+            "screenshots": false
+          },
           "enabled": true,
-          "tags": ["launcher", "unit"]
+          "tags": [
+            "launcher",
+            "unit"
+          ]
         },
         {
           "id": "python-platform-core",
           "name": "Python: platform core",
           "kind": "unit",
-          "command_template": ["python", "-m", "pytest"],
-          "args": ["-q", "tests/platform"],
+          "command_template": [
+            "python",
+            "-m",
+            "pytest"
+          ],
+          "args": [
+            "-q",
+            "tests/platform"
+          ],
           "cwd": ".",
-          "env_allowlist": ["PYTEST_ADDOPTS", "PYTHONPATH"],
+          "env_allowlist": [
+            "PYTEST_ADDOPTS",
+            "PYTHONPATH"
+          ],
           "timeout_sec": 900,
           "retries": 0,
-          "depends_on": ["backend-gate-pytest-ready"],
-          "artifacts": {"logs": true, "junit": true, "json": true, "screenshots": false},
+          "depends_on": [
+            "backend-gate-pytest-ready"
+          ],
+          "artifacts": {
+            "logs": true,
+            "junit": true,
+            "json": true,
+            "screenshots": false
+          },
           "enabled": true,
-          "tags": ["platform", "unit"]
+          "tags": [
+            "platform",
+            "unit"
+          ]
         },
         {
           "id": "python-salesnav-core",
           "name": "Python: salesnav core",
           "kind": "unit",
-          "command_template": ["python", "-m", "pytest"],
-          "args": ["-q", "tests/salesnav"],
+          "command_template": [
+            "python",
+            "-m",
+            "pytest"
+          ],
+          "args": [
+            "-q",
+            "tests/salesnav",
+            "tests/browser/test_browser_workflow_salesnav_extract.py",
+            "tests/browser/test_browser_workflow_overlays.py"
+          ],
           "cwd": ".",
-          "env_allowlist": ["PYTEST_ADDOPTS", "PYTHONPATH"],
+          "env_allowlist": [
+            "PYTEST_ADDOPTS",
+            "PYTHONPATH"
+          ],
           "timeout_sec": 900,
           "retries": 0,
-          "depends_on": ["backend-gate-pytest-ready"],
-          "artifacts": {"logs": true, "junit": true, "json": true, "screenshots": false},
+          "depends_on": [
+            "backend-gate-pytest-ready"
+          ],
+          "artifacts": {
+            "logs": true,
+            "junit": true,
+            "json": true,
+            "screenshots": false
+          },
           "enabled": true,
-          "tags": ["salesnav", "unit"]
+          "tags": [
+            "salesnav",
+            "unit"
+          ]
         },
         {
           "id": "python-workflow-core",
           "name": "Python: workflow core",
           "kind": "unit",
-          "command_template": ["python", "-m", "pytest"],
-          "args": ["-q", "tests/workflow_core"],
+          "command_template": [
+            "python",
+            "-m",
+            "pytest"
+          ],
+          "args": [
+            "-q",
+            "tests/workflow_core"
+          ],
           "cwd": ".",
-          "env_allowlist": ["PYTEST_ADDOPTS", "PYTHONPATH"],
+          "env_allowlist": [
+            "PYTEST_ADDOPTS",
+            "PYTHONPATH"
+          ],
           "timeout_sec": 900,
           "retries": 0,
-          "depends_on": ["backend-gate-pytest-ready"],
-          "artifacts": {"logs": true, "junit": true, "json": true, "screenshots": false},
+          "depends_on": [
+            "backend-gate-pytest-ready"
+          ],
+          "artifacts": {
+            "logs": true,
+            "junit": true,
+            "json": true,
+            "screenshots": false
+          },
           "enabled": true,
-          "tags": ["workflow", "unit"]
+          "tags": [
+            "workflow",
+            "unit"
+          ]
         }
       ]
     },
@@ -160,37 +327,68 @@
       "id": "frontend-unit",
       "name": "Frontend Unit",
       "description": "Vitest coverage for UI stack.",
-      "tags": ["frontend", "unit"],
+      "tags": [
+        "frontend",
+        "unit"
+      ],
       "tests": [
         {
           "id": "frontend-gate-node-ready",
           "name": "Gate: node runtime ready",
           "kind": "smoke",
-          "command_template": ["node", "--version"],
+          "command_template": [
+            "node",
+            "--version"
+          ],
           "args": [],
           "cwd": ".",
           "env_allowlist": [],
           "timeout_sec": 20,
           "retries": 1,
           "depends_on": [],
-          "artifacts": {"logs": true, "junit": false, "json": true, "screenshots": false},
+          "artifacts": {
+            "logs": true,
+            "junit": false,
+            "json": true,
+            "screenshots": false
+          },
           "enabled": true,
-          "tags": ["gate", "frontend-ready"]
+          "tags": [
+            "gate",
+            "frontend-ready"
+          ]
         },
         {
           "id": "ui-tests-all",
           "name": "UI: all tests",
           "kind": "unit",
-          "command_template": ["npm", "--prefix", "ui", "test", "--"],
+          "command_template": [
+            "npm",
+            "--prefix",
+            "ui",
+            "test",
+            "--"
+          ],
           "args": [],
           "cwd": ".",
-          "env_allowlist": ["CI"],
+          "env_allowlist": [
+            "CI"
+          ],
           "timeout_sec": 1800,
           "retries": 0,
-          "depends_on": ["frontend-gate-node-ready"],
-          "artifacts": {"logs": true, "junit": true, "json": true, "screenshots": false},
+          "depends_on": [
+            "frontend-gate-node-ready"
+          ],
+          "artifacts": {
+            "logs": true,
+            "junit": true,
+            "json": true,
+            "screenshots": false
+          },
           "enabled": true,
-          "tags": ["default"]
+          "tags": [
+            "default"
+          ]
         }
       ]
     },
@@ -198,58 +396,122 @@
       "id": "live-e2e",
       "name": "Live E2E",
       "description": "Live integration checks requiring running services and browser tabs.",
-      "tags": ["live", "e2e"],
+      "tags": [
+        "live",
+        "e2e"
+      ],
       "tests": [
         {
           "id": "live-gate-backend-api-ready",
           "name": "Gate: backend API ready",
           "kind": "smoke",
-          "command_template": ["python", "-m", "pytest"],
+          "command_template": [
+            "python",
+            "-m",
+            "pytest"
+          ],
           "args": [
             "-q",
             "tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
           ],
           "cwd": ".",
-          "env_allowlist": ["WORKFLOW_BUILDER_LIVE_BASE_URL", "PYTEST_ADDOPTS", "PYTHONPATH"],
+          "env_allowlist": [
+            "WORKFLOW_BUILDER_LIVE_BASE_URL",
+            "PYTEST_ADDOPTS",
+            "PYTHONPATH"
+          ],
           "timeout_sec": 60,
           "retries": 1,
-          "depends_on": ["python-builder-routes"],
-          "artifacts": {"logs": true, "junit": false, "json": true, "screenshots": false},
+          "depends_on": [
+            "python-builder-routes"
+          ],
+          "artifacts": {
+            "logs": true,
+            "junit": false,
+            "json": true,
+            "screenshots": false
+          },
           "enabled": true,
-          "tags": ["gate", "backend-api-ready", "requires-live-backend"]
+          "tags": [
+            "gate",
+            "backend-api-ready",
+            "requires-live-backend"
+          ]
         },
         {
           "id": "live-gate-bridge-ready",
           "name": "Gate: browser bridge ready",
           "kind": "smoke",
-          "command_template": ["python", "-m", "pytest"],
+          "command_template": [
+            "python",
+            "-m",
+            "pytest"
+          ],
           "args": [
             "-q",
             "tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready"
           ],
           "cwd": ".",
-          "env_allowlist": ["WORKFLOW_BUILDER_LIVE_BASE_URL", "PYTEST_ADDOPTS", "PYTHONPATH"],
+          "env_allowlist": [
+            "WORKFLOW_BUILDER_LIVE_BASE_URL",
+            "PYTEST_ADDOPTS",
+            "PYTHONPATH"
+          ],
           "timeout_sec": 120,
           "retries": 2,
-          "depends_on": ["live-gate-backend-api-ready"],
-          "artifacts": {"logs": true, "junit": false, "json": true, "screenshots": false},
+          "depends_on": [
+            "live-gate-backend-api-ready"
+          ],
+          "artifacts": {
+            "logs": true,
+            "junit": false,
+            "json": true,
+            "screenshots": false
+          },
           "enabled": true,
-          "tags": ["gate", "bridge-ready", "requires-tabs"]
+          "tags": [
+            "gate",
+            "bridge-ready",
+            "requires-tabs"
+          ]
         },
         {
           "id": "workflow-builder-live",
           "name": "Live: workflow builder API flow",
           "kind": "live",
-          "command_template": ["python", "-m", "pytest"],
-          "args": ["-q", "tests/api_routes/browser/test_workflow_builder_live_e2e.py"],
+          "command_template": [
+            "python",
+            "-m",
+            "pytest"
+          ],
+          "args": [
+            "-q",
+            "tests/api_routes/browser/test_workflow_builder_live_e2e.py"
+          ],
           "cwd": ".",
-          "env_allowlist": ["WORKFLOW_BUILDER_LIVE_BASE_URL", "WORKFLOW_BUILDER_LIVE_TAB_ID", "WORKFLOW_BUILDER_LIVE_SEED_URL", "PYTEST_ADDOPTS", "PYTHONPATH"],
+          "env_allowlist": [
+            "WORKFLOW_BUILDER_LIVE_BASE_URL",
+            "WORKFLOW_BUILDER_LIVE_TAB_ID",
+            "WORKFLOW_BUILDER_LIVE_SEED_URL",
+            "PYTEST_ADDOPTS",
+            "PYTHONPATH"
+          ],
           "timeout_sec": 900,
           "retries": 0,
-          "depends_on": ["live-gate-bridge-ready"],
-          "artifacts": {"logs": true, "junit": true, "json": true, "screenshots": false},
+          "depends_on": [
+            "live-gate-bridge-ready"
+          ],
+          "artifacts": {
+            "logs": true,
+            "junit": true,
+            "json": true,
+            "screenshots": false
+          },
           "enabled": true,
-          "tags": ["workflow-builder", "requires-tabs"]
+          "tags": [
+            "workflow-builder",
+            "requires-tabs"
+          ]
         }
       ]
     }

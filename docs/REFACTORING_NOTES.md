@@ -550,3 +550,40 @@ eactAdapter.ts to use it.
 - Updated `services/web_automation/linkedin/salesnav/query_builder.py`:
   - `_build_region_clause` now gracefully degrades state-level values like `"California, United States"` to `"United States"` when a state REGION id is not mapped.
   - This prevents hard failures (`salesnav_filter_unmapped` / `unmapped_region_id`) and allows SalesNav URL navigation to proceed with country-level filtering.
+
+## 2026-02-23 - Industry Canonicalization Fallback for Noisy NL Outputs
+
+- Updated `services/web_automation/linkedin/salesnav/query_builder.py`:
+  - `_build_industry_clause` now canonicalizes noisy industry strings produced by NL decomposition (for example `"companies in the tech"`) before ID lookup.
+  - Added synonym/token fallback mapping to known canonical industries (for example tech/software -> `Technology, Information and Internet`).
+  - Unmapped error payloads now preserve the original raw input value while using normalized values for successful query construction.
+
+## 2026-02-23 - SalesNav LLM-Driven Keywords + Deterministic Filter-ID Mapping
+
+- Updated `services/web_automation/browser/workflows/recipes.py`:
+  - removed deterministic keyword shaping (`query.split()[0]`, stopword token filtering, and single-token reducers) from SalesNav account/people URL flow.
+  - SalesNav keyword text now comes from parser output only (LLM-driven) for both account and people tasks.
+  - removed deterministic people-filter derivation from raw query text in this path.
+  - removed local regex fallback decomposition when parser fails; failures now fall back to existing query/filter payloads without regex/pattern rewriting.
+  - added decomposition-availability guard: if parser output is unavailable, the workflow never uses raw NL prompt as keyword; it runs filter-only when structured filters exist, otherwise returns `salesnav_decomposition_unavailable`.
+- Updated `services/web_automation/linkedin/salesnav/parser/filter_parser.py` prompt rules:
+  - added explicit guidance to avoid instruction/meta words in `keywords`.
+  - added guidance to emit `keywords: []` when strong structured constraints already capture intent.
+- Deterministic behavior remains in canonical SalesNav filter mapping only, sourced from:
+  - `data/linkedin/salesnav-filters.json`
+  - `data/linkedin/salesnav-filters-ids.json`
+
+## 2026-02-23 - Prospect Handler Now Passes Raw Industry to Backend SalesNav Mapper
+
+- Updated `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts`:
+  - removed narrow UI-side industry allowlist that only forwarded a few verticals.
+  - SalesNav escalation now forwards the parsed `industry` text directly in `filter_values.industry` so backend canonical mapping can resolve values like `tech`.
+  - people-phase SalesNav filter payload now carries location when available (`headquarters_location`) in addition to revenue/industry.
+
+## 2026-02-23 - Backend Industry Fallback When Decomposition Is Unavailable
+
+- Updated `services/web_automation/browser/workflows/recipes.py`:
+  - when SalesNav decomposition is unavailable, account-search fallback now attempts deterministic industry inference from the original query before URL build.
+- Added `infer_industry_from_query_text` in `services/web_automation/linkedin/salesnav/query_builder.py`:
+  - infers canonical industry values using catalog/ID-grounded mappings (including `tech` -> `Technology, Information and Internet`),
+  - keeps deterministic filter matching tied to `data/linkedin/salesnav-filters.json` and `data/linkedin/salesnav-filters-ids.json`.

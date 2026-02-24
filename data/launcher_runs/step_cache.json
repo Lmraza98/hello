@@ -1,1 +1,42 @@
-{}
+{
+  "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab": {
+    "status": "passed",
+    "cache_key": "75b3f7e4baa5c206193ce8dadc568182c0ba45661217a134720fc01a0d10ae1d",
+    "finished_at": 1771883352.2405381
+  },
+  "python-salesnav-core::workflow.salesnav.collect_companies_5.navigate_and_collect": {
+    "status": "passed",
+    "cache_key": "25f595171e9d85d0dd94306582c52c2e60022bfb61412c9c611103c351bd3d4d",
+    "finished_at": 1771883352.2405407
+  },
+  "python-salesnav-core::workflow.salesnav.collect_companies_5.capture_observation": {
+    "status": "passed",
+    "cache_key": "159052a02fdc0408b5d1d9fd3d2d290a559099d58617faed17c53879c1099f91",
+    "finished_at": 1771883352.2405415
+  },
+  "python-salesnav-core::workflow.salesnav.collect_companies_5.assert_required_fields": {
+    "status": "passed",
+    "cache_key": "08f2083fcb77c8a93736cd03f712e076f8decf7e18538203ddd3f85b3e413f42",
+    "finished_at": 1771883352.2405424
+  },
+  "python-salesnav-core::workflow.salesnav.collect_companies_5.persist_summary": {
+    "status": "passed",
+    "cache_key": "be6b22509e0eae628b222a74bd90e414c8111b6a2b91ca3d2286dce2b6b5e142",
+    "finished_at": 1771883352.2405427
+  },
+  "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts": {
+    "status": "passed",
+    "cache_key": "a3684b812e2a0cb4517e718bbaf3f72ccdfb99e97215bcdba6e494eab2a4429c",
+    "finished_at": 1771887297.9622295
+  },
+  "python-salesnav-core::workflow.salesnav.query_builder.people_search_rejects_unmapped_values": {
+    "status": "passed",
+    "cache_key": "80440e2bc2b456acc21e7ee133398a4160ce2207b71d30f5f17c2292ef9eac98",
+    "finished_at": 1771891914.316846
+  },
+  "python-salesnav-core::workflow.salesnav.query_builder.people_search_uses_sales_company_url_for_org_id": {
+    "status": "passed",
+    "cache_key": "ab43953121b11907ed137f1d3950d5057bdf60b4b0cd7f7aa9a705b9451b30a5",
+    "finished_at": 1771891914.3168466
+  }
+}

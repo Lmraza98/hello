@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="launcher-run" tests="5" failures="4" skipped="0" time="0.820">
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab" time="0.000">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay" time="0.201">
+    <failure message="exit code 1"/>
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.account_profile_e2e.navigate_account_profile" time="0.201">
+    <failure message="exit code 1; missing live browser evidence"/>
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.account_profile_e2e.extract_account_profile" time="0.201">
+    <failure message="exit code 1; missing live browser evidence"/>
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.account_profile_e2e.capture_employee_entrypoints" time="0.201">
+    <failure message="exit code 1; missing live browser evidence"/>
+  </testcase>
+</testsuite>

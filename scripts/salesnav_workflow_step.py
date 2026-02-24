@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
 import base64
 import hashlib
 import json
@@ -12,6 +13,8 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
+
+from services.web_automation.browser.core.workflow import BrowserWorkflow
 
 PREFIX = "[launcher-step-json] "
 
@@ -64,6 +67,50 @@ def _extract_items(payload: dict[str, Any]) -> list[dict[str, Any]]:
         if isinstance(rows, list):
             return [row for row in rows if isinstance(row, dict)]
     return []
+
+
+def _extract_employee_entrypoints_from_observation(payload: dict[str, Any]) -> list[dict[str, Any]]:
+    observation = payload.get("observation") if isinstance(payload, dict) else {}
+    dom = observation.get("dom") if isinstance(observation, dict) else {}
+    role_refs = dom.get("role_refs") if isinstance(dom, dict) else []
+    semantic_nodes = dom.get("semantic_nodes") if isinstance(dom, dict) else []
+    candidates: list[dict[str, Any]] = []
+
+    def _ingest(rows: list[Any], source: str) -> None:
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            href = str(row.get("href") or row.get("url") or "").strip()
+            label = " ".join(str(row.get("label") or row.get("text") or "").split()).strip()
+            role = str(row.get("role") or row.get("tag") or "").strip()
+            if not href:
+                continue
+            lower_href = href.lower()
+            lower_label = label.lower()
+            if "/sales/search/people" not in lower_href and "/sales/lead/" not in lower_href:
+                if not any(token in lower_label for token in ("employee", "people", "team", "lead")):
+                    continue
+            candidates.append(
+                {
+                    "href": href,
+                    "label": label,
+                    "role": role,
+                    "source": source,
+                }
+            )
+
+    _ingest(role_refs if isinstance(role_refs, list) else [], "role_ref")
+    _ingest(semantic_nodes if isinstance(semantic_nodes, list) else [], "semantic_node")
+
+    seen: set[str] = set()
+    unique: list[dict[str, Any]] = []
+    for row in candidates:
+        key = f"{str(row.get('href') or '').split('?', 1)[0]}|{str(row.get('label') or '').lower()}"
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(row)
+    return unique
 
 
 def _poll_task(base_url: str, task_id: str, timeout_sec: int = 180) -> dict[str, Any]:
@@ -204,6 +251,121 @@ def run_step(*, step: str, base_url: str, state_file: Path, artifacts_dir: Path,
         if step_shot:
             artifact_rows.append({"type": "screenshot", "path": step_shot})
 
+    elif step == "navigate_account_profile":
+        tab_id = str(state.get("tab_id") or "").strip()
+        if not tab_id:
+            raise RuntimeError("state missing tab_id; run open_or_reuse_tab first")
+        account_url = os.getenv(
+            "SALESNAV_WORKFLOW_ACCOUNT_URL",
+            "https://www.linkedin.com/sales/company/125222?_ntb=yRQdLouQQXqs3hHn%2B7%2FG5Q%3D%3D",
+        ).strip()
+        if not account_url:
+            raise RuntimeError("missing SALESNAV_WORKFLOW_ACCOUNT_URL")
+        req = {"tab_id": tab_id, "url": account_url, "timeout_ms": 45000}
+        tool_call = {"method": "POST", "path": "/api/browser/navigate", "payload": req}
+        nav_resp = _request(base_url, "POST", "/api/browser/navigate", req, timeout=90)
+        state["account_profile_url"] = str((nav_resp.get("url") if isinstance(nav_resp, dict) else "") or account_url)
+        tool_response = nav_resp if isinstance(nav_resp, dict) else {"raw": nav_resp}
+        step_shot = _capture_step_screenshot(
+            base_url=base_url,
+            tab_id=tab_id,
+            artifacts_dir=artifacts_dir,
+            filename="navigate_account_profile_screenshot.jpg",
+        )
+        outputs = {
+            "tab_id": tab_id,
+            "account_profile_url": state["account_profile_url"],
+            "screenshot": step_shot or None,
+        }
+        if step_shot:
+            artifact_rows.append({"type": "screenshot", "path": step_shot})
+
+    elif step == "extract_account_profile":
+        tab_id = str(state.get("tab_id") or "").strip()
+        if not tab_id:
+            raise RuntimeError("state missing tab_id; run open_or_reuse_tab first")
+        req = {"tab_id": tab_id, "limit": 1}
+        tool_call = {"method": "POST", "path": "/api/salesnav/browser/extract-companies", "payload": req}
+        resp = _request(base_url, "POST", "/api/salesnav/browser/extract-companies", req, timeout=90)
+        companies = resp.get("companies") if isinstance(resp, dict) else []
+        if not isinstance(companies, list):
+            companies = []
+        company = companies[0] if companies and isinstance(companies[0], dict) else {}
+        if not company:
+            raise RuntimeError("account profile extraction returned no company row")
+        state["account_profile"] = company
+        _save_json(artifacts_dir / "account_profile.json", {"company": company, "raw": resp})
+        artifact_rows.append({"type": "json", "path": str(artifacts_dir / "account_profile.json")})
+        tool_response = {"count": len(companies), "ok": bool(resp.get("ok")) if isinstance(resp, dict) else True}
+        outputs = {
+            "company_name": str(company.get("company_name") or company.get("name") or "").strip(),
+            "sales_nav_url": str(company.get("sales_nav_url") or company.get("linkedin_url") or "").strip(),
+            "industry": str(company.get("industry") or "").strip(),
+            "website": str(company.get("website") or "").strip(),
+            "tab_id": tab_id,
+        }
+
+    elif step == "capture_account_employee_entrypoints":
+        tab_id = str(state.get("tab_id") or "").strip()
+        if not tab_id:
+            raise RuntimeError("state missing tab_id; run open_or_reuse_tab first")
+        req = {"tab_id": tab_id, "include_screenshot": False, "include_semantic_nodes": True}
+        tool_call = {"method": "POST", "path": "/api/browser/workflows/observation-pack", "payload": req}
+        observation = _request(base_url, "POST", "/api/browser/workflows/observation-pack", req, timeout=90)
+        entrypoints = _extract_employee_entrypoints_from_observation(observation if isinstance(observation, dict) else {})
+        state["account_employee_entrypoints"] = entrypoints
+        _save_json(artifacts_dir / "account_employee_entrypoints.json", {"entrypoints": entrypoints})
+        artifact_rows.append({"type": "json", "path": str(artifacts_dir / "account_employee_entrypoints.json")})
+        tool_response = {"entrypoints_count": len(entrypoints)}
+        outputs = {"tab_id": tab_id, "entrypoints_count": len(entrypoints), "entrypoints": entrypoints[:8]}
+
+    elif step == "assert_account_profile_required_fields":
+        company = state.get("account_profile") if isinstance(state.get("account_profile"), dict) else {}
+        name = str(company.get("company_name") or company.get("name") or "").strip()
+        sales_nav_url = str(company.get("sales_nav_url") or company.get("linkedin_url") or "").strip()
+        entrypoints = state.get("account_employee_entrypoints") if isinstance(state.get("account_employee_entrypoints"), list) else []
+        missing: list[str] = []
+        if not name:
+            missing.append("company_name")
+        if not sales_nav_url:
+            missing.append("sales_nav_url")
+        elif "/sales/company/" not in sales_nav_url.lower():
+            missing.append("sales_nav_url_not_sales_company")
+        if not entrypoints:
+            missing.append("employee_entrypoint")
+        tool_call = {"op": "assert_account_profile_required_fields"}
+        tool_response = {"missing": missing}
+        outputs = {
+            "company_name": name,
+            "sales_nav_url": sales_nav_url,
+            "employee_entrypoints_count": len(entrypoints),
+            "missing_count": len(missing),
+        }
+        if missing:
+            raise RuntimeError(f"account profile assertions failed: {', '.join(missing)}")
+
+    elif step == "dismiss_notifications_overlay":
+        tab_id = str(state.get("tab_id") or "").strip()
+        if not tab_id:
+            raise RuntimeError("state missing tab_id; run open_or_reuse_tab first")
+        tool_call = {"op": "dismiss_common_overlays", "tab_id": tab_id, "max_passes": 3}
+        wf = BrowserWorkflow(tab_id=tab_id)
+        dismissed = asyncio.run(wf.dismiss_common_overlays(max_passes=3))
+        tool_response = dismissed if isinstance(dismissed, dict) else {"result": dismissed}
+        step_shot = _capture_step_screenshot(
+            base_url=base_url,
+            tab_id=tab_id,
+            artifacts_dir=artifacts_dir,
+            filename="dismiss_notifications_overlay_screenshot.jpg",
+        )
+        outputs = {
+            "tab_id": tab_id,
+            "dismiss_result": tool_response,
+            "screenshot": step_shot or None,
+        }
+        if step_shot:
+            artifact_rows.append({"type": "screenshot", "path": step_shot})
+
     elif step == "capture_observation":
         tab_id = str(state.get("tab_id") or "").strip()
         if not tab_id:
@@ -277,6 +439,25 @@ def run_step(*, step: str, base_url: str, state_file: Path, artifacts_dir: Path,
         _save_json(artifacts_dir / "workflow_summary.json", summary)
         artifact_rows.append({"type": "json", "path": str(artifacts_dir / "workflow_summary.json")})
         tool_call = {"op": "persist_summary"}
+        tool_response = {"ok": True}
+        outputs = summary
+
+    elif step == "persist_aggregate_summary":
+        items = state.get("items") if isinstance(state.get("items"), list) else []
+        summary = {
+            "scope": "salesnav.aggregate",
+            "tab_id": state.get("tab_id"),
+            "company_items_count": len(items),
+            "company_items_sample_names": [
+                str((row.get("name") or row.get("company_name") or "")).strip()
+                for row in items[:5]
+                if isinstance(row, dict)
+            ],
+            "observation_screenshot": state.get("observation_screenshot"),
+        }
+        _save_json(artifacts_dir / "workflow_summary.json", summary)
+        artifact_rows.append({"type": "json", "path": str(artifacts_dir / "workflow_summary.json")})
+        tool_call = {"op": "persist_aggregate_summary"}
         tool_response = {"ok": True}
         outputs = summary
 

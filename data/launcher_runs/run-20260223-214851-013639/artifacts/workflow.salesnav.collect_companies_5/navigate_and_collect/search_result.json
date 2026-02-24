@@ -1,0 +1,17 @@
+{
+  "result": {
+    "ok": false,
+    "error": {
+      "code": "salesnav_decomposition_unavailable",
+      "message": "SalesNav query decomposition is unavailable and no structured filters were provided."
+    },
+    "tab_id": "tab-0",
+    "skill_id": "linkedin-salesnav-accounts",
+    "skill_match_score": 105,
+    "url": "",
+    "parser_available": false,
+    "task_id": "0545e49b-f751-4e40-9d89-9921957f09ac",
+    "task_status": "finished"
+  },
+  "items": []
+}

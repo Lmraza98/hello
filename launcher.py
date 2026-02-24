@@ -365,6 +365,7 @@ def _load_catalog_state() -> None:
 
     case_steps: dict[str, StepNode] = {}
     workflow_steps_by_parent: dict[str, list[dict[str, Any]]] = {}
+    workflow_step_order_by_parent: dict[str, int] = {}
     for case in python_cases:
         nodeid = str(case.get("nodeid") or "")
         case_id = str(case.get("id") or f"python-tests-all::{nodeid}")
@@ -419,6 +420,21 @@ def _load_catalog_state() -> None:
                 )
 
                 parent_id = str(row.get("parent_test_id") or step_id.split("::", 1)[0]).strip()
+                next_order = workflow_step_order_by_parent.get(parent_id, 0)
+                workflow_step_order_by_parent[parent_id] = next_order + 1
+                raw_group = str(row.get("child_group") or "").strip()
+                child_group = raw_group or "Workflow"
+                raw_lane = row.get("child_lane")
+                try:
+                    child_lane = int(raw_lane) if raw_lane is not None else 0
+                except Exception:
+                    child_lane = 0
+                raw_order = row.get("child_order")
+                try:
+                    child_order = int(raw_order) if raw_order is not None else next_order
+                except Exception:
+                    child_order = next_order
+
                 workflow_steps_by_parent.setdefault(parent_id, []).append(
                     {
                         "id": step_id,
@@ -427,6 +443,9 @@ def _load_catalog_state() -> None:
                         "file": str(row.get("file") or "workflow"),
                         "depends_on": deps,
                         "kind": str(row.get("kind") or "action"),
+                        "child_group": child_group,
+                        "child_lane": child_lane,
+                        "child_order": child_order,
                     }
                 )
         except Exception as exc:
@@ -434,7 +453,7 @@ def _load_catalog_state() -> None:
     runtime["case_steps"] = case_steps
     runtime["workflow_steps_by_parent"] = workflow_steps_by_parent
 
-    def infer_children_for_catalog_test(test: Any) -> list[dict[str, str]]:
+    def infer_children_for_catalog_test(test: Any) -> list[dict[str, Any]]:
         # Keep full catalog row for "all tests", and attach targeted subsets
         # for pytest file/node scoped catalog entries.
         if str(getattr(test, "id", "")) == "python-tests-all":
@@ -464,15 +483,51 @@ def _load_catalog_state() -> None:
                 # discovered cases under that subtree.
                 selected_prefixes.add(normalized.rstrip("/"))
 
-        picked: list[dict[str, str]] = []
+        def _child_case_view(
+            row: dict[str, Any],
+            *,
+            default_group: str,
+            default_lane: int,
+            default_order: int,
+        ) -> dict[str, Any]:
+            out = dict(row)
+            group = str(out.get("child_group") or "").strip() or default_group
+            out["child_group"] = group
+            lane_raw = out.get("child_lane")
+            order_raw = out.get("child_order")
+            try:
+                out["child_lane"] = int(lane_raw) if lane_raw is not None else int(default_lane)
+            except Exception:
+                out["child_lane"] = int(default_lane)
+            try:
+                out["child_order"] = int(order_raw) if order_raw is not None else int(default_order)
+            except Exception:
+                out["child_order"] = int(default_order)
+            return out
+
+        picked: list[dict[str, Any]] = []
         for nodeid in sorted(selected_nodeids):
             case = cases_by_nodeid.get(nodeid)
             if case:
-                picked.append(case)
+                picked.append(
+                    _child_case_view(
+                        case,
+                        default_group="Component Tests",
+                        default_lane=1,
+                        default_order=len(picked),
+                    )
+                )
         for file_path in sorted(selected_files):
             for case in cases_by_file.get(file_path, []):
-                if case not in picked:
-                    picked.append(case)
+                if not any(str(x.get("id") or "") == str(case.get("id") or "") for x in picked):
+                    picked.append(
+                        _child_case_view(
+                            case,
+                            default_group="Component Tests",
+                            default_lane=1,
+                            default_order=len(picked),
+                        )
+                    )
         if selected_prefixes:
             for file_path, cases in cases_by_file.items():
                 normalized_file = str(file_path or "").replace("\\", "/")
@@ -480,16 +535,57 @@ def _load_catalog_state() -> None:
                     continue
                 if any(normalized_file == pref or normalized_file.startswith(f"{pref}/") for pref in selected_prefixes):
                     for case in cases:
-                        if case not in picked:
-                            picked.append(case)
+                        if not any(str(x.get("id") or "") == str(case.get("id") or "") for x in picked):
+                            picked.append(
+                                _child_case_view(
+                                    case,
+                                    default_group="Component Tests",
+                                    default_lane=1,
+                                    default_order=len(picked),
+                                )
+                            )
         workflow_children = workflow_steps_by_parent.get(str(getattr(test, "id", "")), [])
+        workflow_picked: list[dict[str, Any]] = []
         if workflow_children:
             seen_ids = {str(row.get("id") or "") for row in picked if isinstance(row, dict)}
             for row in workflow_children:
-                if str(row.get("id") or "") in seen_ids:
+                rid = str(row.get("id") or "")
+                if rid in seen_ids:
                     continue
-                picked.append(row)
-        return picked
+                workflow_picked.append(
+                    _child_case_view(
+                        row,
+                        default_group="Workflow",
+                        default_lane=0,
+                        default_order=len(workflow_picked),
+                    )
+                )
+
+        # Keep SalesNav workflow lane primary in aggregate child views.
+        test_id = str(getattr(test, "id", "") or "")
+        if workflow_picked and test_id == "python-salesnav-core":
+            combined = [*workflow_picked, *picked]
+        else:
+            combined = [*picked, *workflow_picked]
+
+        # For SalesNav aggregate graph UX, keep component pytest children visible
+        # but non-sequential so they don't appear as part of the primary workflow lane.
+        if test_id == "python-salesnav-core":
+            for row in combined:
+                group = str(row.get("child_group") or "").strip().lower()
+                if "workflow" in group:
+                    continue
+                row["depends_on"] = []
+
+        # Stable, deterministic ordering by lane -> explicit order -> name.
+        combined.sort(
+            key=lambda row: (
+                int(row.get("child_lane") if row.get("child_lane") is not None else 1),
+                int(row.get("child_order") if row.get("child_order") is not None else 999999),
+                str(row.get("name") or row.get("id") or ""),
+            )
+        )
+        return combined
     try:
         catalog = load_catalog(CATALOG_PATH)
         runtime["catalog"] = catalog
@@ -1951,6 +2047,20 @@ def main() -> None:
     def open_app() -> None:
         webbrowser.open(f"http://127.0.0.1:{SERVER_PORT}/")
 
+    def reload_catalog_state() -> dict[str, Any]:
+        try:
+            _ensure_case_deps_generated()
+            _load_catalog_state()
+            return {
+                "ok": True,
+                "tests": len(runtime.get("tests") or []),
+                "case_steps": len(runtime.get("case_steps") or {}),
+                "workflow_parents": len(runtime.get("workflow_steps_by_parent") or {}),
+            }
+        except Exception as exc:
+            _log_queue.put(f"[launcher] reload catalog state failed: {exc}\n")
+            return {"ok": False, "error": str(exc)}
+
     def clear_step_cache() -> dict[str, Any]:
         cache: dict[str, dict[str, Any]] = runtime.get("step_cache") or {}
         cleared = len(cache)
@@ -2027,6 +2137,7 @@ def main() -> None:
         trace_add_verification,
         open_run_dir,
         get_diagnostics_summary,
+        reload_catalog_state,
         clear_step_cache,
         resolve_artifact_image,
         open_app,

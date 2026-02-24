@@ -552,7 +552,10 @@ CRITICAL RULES for decomposition:
 - "industry" is the TARGET MARKET the companies SERVE (e.g., "for healthcare" => industry = "Healthcare").
 - "keywords" describe WHAT the companies DO or their technology (e.g., "AI-powered cybersecurity SaaS" => keywords).
 - NEVER put the target market in keywords. Put it in industry.
+- Never use instruction/meta words as keywords (examples: "identify", "find", "search", "show", "that", "who", "companies").
 - When the query says "X for the Y industry", Y is the industry and X is keywords.
+- If the request already contains multiple strong structured constraints (industry + geography + revenue/headcount/tenure),
+  default keywords to an empty list unless there is a specific product/technology descriptor that materially narrows results.
 - Example: "SaaS companies specializing in AI-powered cybersecurity for the healthcare industry"
   => industry: ["Healthcare"], keywords: ["AI cybersecurity SaaS"]
 - Example: "Construction companies in New England"

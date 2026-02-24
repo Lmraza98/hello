@@ -1,0 +1,18 @@
+{
+  "label": "query_builder_people_search_rejects_unmapped_values",
+  "nodeids": [
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values"
+  ],
+  "returncode": 0,
+  "duration_sec": 1.1227962970733643,
+  "command": [
+    "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values",
+    "--junitxml=C:/Users/lmraz/Hello/data/launcher_runs/run-20260224-001151-532363/artifacts/workflow.salesnav.query_builder/people_search_rejects_unmapped_values/junit.xml"
+  ],
+  "output_path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-001151-532363\\artifacts\\workflow.salesnav.query_builder\\people_search_rejects_unmapped_values\\pytest_output.txt",
+  "junit_path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-001151-532363\\artifacts\\workflow.salesnav.query_builder\\people_search_rejects_unmapped_values\\junit.xml"
+}

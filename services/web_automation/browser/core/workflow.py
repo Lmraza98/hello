@@ -457,6 +457,51 @@ class BrowserWorkflow:
         """
         closed: list[dict[str, Any]] = []
         for _ in range(max(1, max_passes)):
+            # SalesNav notifications side-sheet can open spontaneously and block
+            # list content/interactions; close it explicitly if present.
+            try:
+                page = await self._raw_page()
+            except Exception:
+                page = None
+            if page is not None:
+                try:
+                    dismissed_notifications = bool(
+                        await page.evaluate(
+                            """
+(() => {
+  const panel =
+    document.querySelector('[data-sn-view-name="subpage-notifications-panel"][role="dialog"]') ||
+    document.querySelector('#notifications-sidesheet-header[role="dialog"]');
+  if (!panel) return false;
+  const controls = Array.from(panel.querySelectorAll('button, [role="button"], a'));
+  const closer = controls.find((el) => {
+    const label = `${el.getAttribute('aria-label') || ''} ${el.textContent || ''}`
+      .toLowerCase()
+      .replace(/\\s+/g, ' ')
+      .trim();
+    const elId = (el.getAttribute('id') || '').toLowerCase();
+    return (
+      label === 'x' ||
+      label.includes('close') ||
+      label.includes('dismiss') ||
+      label.includes('hide') ||
+      elId.includes('close') ||
+      elId.includes('dismiss')
+    );
+  });
+  if (!closer) return false;
+  closer.click();
+  return true;
+})()
+                            """.strip()
+                        )
+                    )
+                    if dismissed_notifications:
+                        closed.append({"source": "salesnav_notifications_panel", "label": "close"})
+                        await self.wait(250)
+                except Exception:
+                    pass
+
             # Many UIs close dialogs on ESC.
             try:
                 await browser_act(
@@ -998,7 +1043,17 @@ class BrowserWorkflow:
     @staticmethod
     def _is_salesnav_company_url(url: str | None) -> bool:
         lower = _clean_text(url).lower()
-        return "linkedin.com/sales/search/company" in lower
+        return "linkedin.com/sales/search/company" in lower or "linkedin.com/sales/company/" in lower
+
+    @staticmethod
+    def _is_salesnav_company_profile_url(url: str | None) -> bool:
+        lower = _clean_text(url).lower()
+        return "linkedin.com/sales/company/" in lower
+
+    @staticmethod
+    def _is_salesnav_lead_url(url: str | None) -> bool:
+        lower = _clean_text(url).lower()
+        return "linkedin.com/sales/search/people" in lower or "linkedin.com/sales/lead/" in lower
 
     async def _should_use_salesnav_company_dom_extract(self, kind: str) -> bool:
         if (kind or "").strip().lower() != "company":
@@ -1008,8 +1063,169 @@ class BrowserWorkflow:
             return True
         return self._is_salesnav_company_url(await self.current_url())
 
+    async def _should_use_salesnav_lead_dom_extract(self, kind: str) -> bool:
+        if (kind or "").strip().lower() not in {"lead", "person"}:
+            return False
+        sid = _clean_text(self.skill_id).lower()
+        if "salesnav" in sid:
+            return True
+        return self._is_salesnav_lead_url(await self.current_url())
+
     @staticmethod
     def _clean_company_card_text(value: Any) -> str:
+        return _clean_text(value)
+
+    async def _extract_salesnav_company_profile_dom(self) -> list[dict[str, Any]]:
+        page = await self._raw_page()
+        if page is None:
+            return []
+
+        script = """
+(() => {
+  const toText = (v) => (v || "").toString().replace(/\\s+/g, " ").trim();
+  const abs = (href) => {
+    const raw = toText(href);
+    if (!raw) return "";
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+    if (raw.startsWith("/")) return `https://www.linkedin.com${raw}`;
+    return raw;
+  };
+  const currentUrl = abs(window.location.href || "");
+
+  const pick = (selectors) => {
+    for (const sel of selectors) {
+      const node = document.querySelector(sel);
+      const text = toText(node?.textContent || "");
+      if (text) return text;
+    }
+    return "";
+  };
+
+  const pickHref = (selectors) => {
+    for (const sel of selectors) {
+      const node = document.querySelector(sel);
+      const href = abs(node?.getAttribute?.("href") || "");
+      if (href) return href;
+    }
+    return "";
+  };
+
+  const textByLabel = (labels) => {
+    const wanted = labels.map((x) => toText(x).toLowerCase()).filter(Boolean);
+    if (!wanted.length) return "";
+    const rows = Array.from(document.querySelectorAll("dl dt, section dt, div dt"));
+    for (const dt of rows) {
+      const key = toText(dt.textContent).toLowerCase();
+      if (!key) continue;
+      if (!wanted.some((w) => key.includes(w))) continue;
+      const dd = dt.nextElementSibling;
+      const value = toText(dd?.textContent || "");
+      if (value) return value;
+    }
+    return "";
+  };
+
+  const companyName = pick([
+    '[data-anonymize="company-name"]',
+    'h1',
+    '[data-test-company-name]',
+    '.org-top-card-summary__title',
+  ]);
+
+  const salesNavUrl = pickHref([
+    'a[href*="/sales/company/"]',
+  ]) || currentUrl;
+
+  const industry = pick([
+    '[data-anonymize="industry"]',
+    '[data-test-company-industry]',
+  ]) || textByLabel(["industry"]);
+
+  const website = pickHref([
+    'a[data-anonymize="company-website"]',
+    'a[href^="http"]:not([href*="linkedin.com/sales/"]):not([href*="linkedin.com/company/"])',
+  ]);
+
+  const headquarters = pick([
+    '[data-anonymize="location"]',
+    '[data-test-company-location]',
+  ]) || textByLabel(["headquarters", "location"]);
+
+  const employeeCount = pick([
+    '[data-anonymize="company-size"]',
+    '[data-test-company-size]',
+    'a[aria-label*="employees"]',
+  ]) || textByLabel(["company size", "employees"]);
+
+  const followerCount = pick([
+    '[data-anonymize="followers"]',
+  ]) || textByLabel(["followers"]);
+
+  const about = pick([
+    '[data-anonymize="person-blurb"]',
+    '[data-test-about-section]',
+    'section[id*="about"] p',
+  ]);
+
+  const specialties = Array.from(
+    document.querySelectorAll(
+      '[data-anonymize="specialties"] li, [data-anonymize="specialties"] span, [data-test-specialties] li, [data-test-specialties] span'
+    )
+  )
+    .map((el) => toText(el.textContent))
+    .filter(Boolean);
+
+  const employeesSearchLink = pickHref([
+    'a[href*="/sales/search/people"]',
+  ]);
+
+  return {
+    company_name: companyName,
+    name: companyName,
+    sales_nav_url: salesNavUrl,
+    linkedin_url: salesNavUrl,
+    website,
+    industry,
+    location: headquarters,
+    headquarters,
+    employee_count: employeeCount,
+    company_size: employeeCount,
+    followers: followerCount,
+    about,
+    strategic_priorities: [],
+    specialties,
+    interaction_map: {
+      employees_search_click: !!employeesSearchLink,
+      website_click: !!website,
+      company_profile_open: !!companyName,
+    },
+  };
+})()
+        """.strip()
+
+        try:
+            row_raw = await page.evaluate(script)
+        except Exception:
+            return []
+        row = row_raw if isinstance(row_raw, dict) else {}
+        name = self._clean_company_card_text(row.get("company_name") or row.get("name"))
+        if not name:
+            return []
+        sales_nav_url = self._clean_company_card_text(row.get("sales_nav_url")) or _clean_text(await self.current_url())
+        if sales_nav_url.startswith("/"):
+            sales_nav_url = f"https://www.linkedin.com{sales_nav_url}"
+        row["company_name"] = name
+        row["name"] = name
+        row["sales_nav_url"] = sales_nav_url
+        row["linkedin_url"] = sales_nav_url
+        row["source_url"] = sales_nav_url.split("?", 1)[0] if sales_nav_url else ""
+        row["extracted_at"] = dt.datetime.now(tz=dt.timezone.utc).isoformat()
+        row["skill_id"] = self.skill_id or ""
+        row["match_score"] = self.skill_meta.get("match_score") if isinstance(self.skill_meta, dict) else None
+        return [row]
+
+    @staticmethod
+    def _clean_lead_card_text(value: Any) -> str:
         return _clean_text(value)
 
     async def _extract_salesnav_company_cards_dom(self, limit: int) -> list[dict[str, Any]]:
@@ -1210,12 +1426,169 @@ class BrowserWorkflow:
             await self._capture_salesnav_ai_summaries(all_rows, max_cards=min(8, len(all_rows)))
         return all_rows[:limit]
 
+    async def _extract_salesnav_lead_cards_dom(self, limit: int) -> list[dict[str, Any]]:
+        page = await self._raw_page()
+        if page is None:
+            return []
+
+        script = """
+(() => {
+  const toText = (v) => (v || "").toString().replace(/\\s+/g, " ").trim();
+  const abs = (href) => {
+    const raw = toText(href);
+    if (!raw) return "";
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+    if (raw.startsWith("/")) return `https://www.linkedin.com${raw}`;
+    return raw;
+  };
+  const cards = Array.from(document.querySelectorAll('li.artdeco-list__item'))
+    .filter((li) => li.querySelector('[data-x-search-result="LEAD"], [data-x-search-result="PERSON"]'));
+  return cards.map((card) => {
+    const leadLink =
+      card.querySelector('a[data-anonymize="person-name"]') ||
+      card.querySelector('.artdeco-entity-lockup__title a[href*="/sales/lead/"]') ||
+      card.querySelector('a[href*="/sales/lead/"]');
+    const profileLink = card.querySelector('a[href*="linkedin.com/in/"], a[href*="/in/"]');
+    const companyLink =
+      card.querySelector('a[data-anonymize="company-name"]') ||
+      card.querySelector('a[href*="/sales/company/"]');
+    const titleNode = card.querySelector('[data-anonymize="title"], .artdeco-entity-lockup__subtitle, .t-14');
+    const locationNode = card.querySelector('[data-anonymize="location"], [aria-label*="Location"]');
+    const tenureNode = card.querySelector('[data-anonymize="tenure"]');
+    const controls = Array.from(card.querySelectorAll('[data-control-name]'))
+      .map((el) => toText(el.getAttribute('data-control-name')))
+      .filter(Boolean);
+    const saveBtn = card.querySelector('button[aria-label*="Save"]');
+    const messageBtn =
+      card.querySelector('button[aria-label*="Message"]') ||
+      card.querySelector('button[data-control-name*="message"]');
+    const openInSalesNav = card.querySelector('a[href*="/sales/lead/"]');
+    const viewProfileBtn =
+      card.querySelector('[data-control-name="view_profile"]') ||
+      card.querySelector('button[aria-label*="View profile"], a[aria-label*="View profile"]');
+    const overflowBtn =
+      card.querySelector('button[aria-label*="Open dropdown menu"]') ||
+      card.querySelector('button[aria-label*="More actions"]') ||
+      card.querySelector('button[data-control-name*="overflow"]');
+    const summaryNode = card.querySelector('[data-anonymize="person-blurb"]');
+    return {
+      name: toText(leadLink?.textContent),
+      sales_nav_url: abs(leadLink?.getAttribute('href') || openInSalesNav?.getAttribute('href') || ""),
+      public_url: abs(profileLink?.getAttribute('href') || ""),
+      title: toText(titleNode?.textContent),
+      company_name: toText(companyLink?.textContent),
+      company_sales_nav_url: abs(companyLink?.getAttribute('href') || ""),
+      location: toText(locationNode?.textContent),
+      tenure: toText(tenureNode?.textContent),
+      about: toText(summaryNode?.getAttribute('title') || summaryNode?.textContent || ""),
+      interaction_map: {
+        lead_name_click: !!leadLink,
+        company_name_click: !!companyLink,
+        open_sales_nav_profile_click: !!openInSalesNav,
+        view_profile_click: !!viewProfileBtn || !!profileLink,
+        message_click: !!messageBtn,
+        save_click: !!saveBtn,
+        overflow_menu_click: !!overflowBtn,
+      },
+      control_names: controls,
+      has_public_url: !!profileLink,
+    };
+  });
+})()
+        """.strip()
+        try:
+            rows = await page.evaluate(script)
+        except Exception:
+            return []
+
+        parsed: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for row in _as_list_of_dicts(rows):
+            name = self._clean_lead_card_text(row.get("name"))
+            sales_nav_url = self._clean_lead_card_text(row.get("sales_nav_url"))
+            public_url = self._clean_lead_card_text(row.get("public_url"))
+            if sales_nav_url.startswith("/"):
+                sales_nav_url = f"https://www.linkedin.com{sales_nav_url}"
+            if public_url.startswith("/"):
+                public_url = f"https://www.linkedin.com{public_url}"
+            if not name:
+                continue
+            key = f"{name.lower()}|{sales_nav_url.split('?', 1)[0]}|{public_url.split('?', 1)[0]}"
+            if key in seen:
+                continue
+            seen.add(key)
+            row["name"] = name
+            row["sales_nav_url"] = sales_nav_url
+            row["linkedin_url"] = public_url or sales_nav_url
+            row["public_url"] = public_url or None
+            row["has_public_url"] = bool(public_url)
+            row["source_url"] = (sales_nav_url or public_url).split("?", 1)[0] if (sales_nav_url or public_url) else ""
+            row["extracted_at"] = dt.datetime.now(tz=dt.timezone.utc).isoformat()
+            row["skill_id"] = self.skill_id or ""
+            row["match_score"] = self.skill_meta.get("match_score") if isinstance(self.skill_meta, dict) else None
+            parsed.append(row)
+            if len(parsed) >= limit:
+                break
+        return parsed
+
+    async def _extract_salesnav_leads_with_scroll(self, limit: int, *, max_scroll_passes: int = 10) -> list[dict[str, Any]]:
+        all_rows: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        stagnant = 0
+        passes = max(1, min(int(max_scroll_passes), 20))
+        for _ in range(passes):
+            visible_rows = await self._extract_salesnav_lead_cards_dom(limit)
+            added = 0
+            for row in visible_rows:
+                name = _clean_text(row.get("name"))
+                sales_nav_url = _clean_text(row.get("sales_nav_url"))
+                public_url = _clean_text(row.get("public_url"))
+                if not name:
+                    continue
+                key = f"{name.lower()}|{sales_nav_url.split('?', 1)[0]}|{public_url.split('?', 1)[0]}"
+                if key in seen:
+                    continue
+                seen.add(key)
+                all_rows.append(row)
+                added += 1
+                if len(all_rows) >= limit:
+                    break
+            if len(all_rows) >= limit:
+                break
+            if added == 0:
+                stagnant += 1
+            else:
+                stagnant = 0
+            if stagnant >= 2:
+                break
+            distance = random.randint(520, 980)
+            try:
+                await self.scroll(direction="down", distance=distance)
+            except Exception:
+                await self.wait_jitter(base_ms=700, variance_ratio=0.35, min_ms=300, max_ms=2200)
+            await self.wait_jitter(base_ms=850, variance_ratio=0.4, min_ms=350, max_ms=2400)
+        return all_rows[:limit]
+
     async def extract(self, kind: str, limit: int, *, retries: int = 3, retry_wait_ms: int = 900) -> list[dict[str, Any]]:
         rules = self._extract_rules(kind)
         if not (rules["href_contains"] or rules.get("text_regex")):
             return []
+        current_url: str | None = None
+        if (kind or "").strip().lower() == "company":
+            try:
+                current_url = await self.current_url()
+            except Exception:
+                current_url = None
+        if (kind or "").strip().lower() == "company" and self._is_salesnav_company_profile_url(current_url):
+            profile_rows = await self._extract_salesnav_company_profile_dom()
+            if profile_rows:
+                return profile_rows[: max(1, min(int(limit), 200))]
         if await self._should_use_salesnav_company_dom_extract(kind):
             dom_rows = await self._extract_salesnav_companies_with_scroll(max(1, min(int(limit), 200)))
+            if dom_rows:
+                return dom_rows
+        if await self._should_use_salesnav_lead_dom_extract(kind):
+            dom_rows = await self._extract_salesnav_leads_with_scroll(max(1, min(int(limit), 200)))
             if dom_rows:
                 return dom_rows
         for _ in range(max(1, retries)):

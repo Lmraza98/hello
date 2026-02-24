@@ -192,6 +192,26 @@ Company extraction now prefers a SalesNav card-aware DOM pass (when local Playwr
 - `interaction_map` (detected clickable controls like save, overflow, employees, spotlight chip)
 - optional `ai_summary` when a spotlight chip opens a panel containing `Summarized by AI`
 
+When the current page is a SalesNav account profile (`/sales/company/{id}`), extraction now uses a dedicated company-profile DOM pass and returns a normalized single account row with profile metadata such as:
+
+- `website`
+- `industry`
+- `headquarters`
+- `employee_count`
+- `followers`
+- `about`
+- `specialties`
+- `interaction_map`
+
+Lead extraction now also uses a SalesNav card-aware DOM pass for people/lead pages (`/sales/search/people`, `/sales/lead/...`) with richer fields:
+
+- `name`, `title`
+- `sales_nav_url`
+- `public_url` (when visible) and `has_public_url`
+- `company_name`, `company_sales_nav_url`
+- `location`, `tenure`, `about`
+- `interaction_map` (detected controls like lead-name click, company click, open profile, message, save, overflow menu)
+
 If DOM extraction is unavailable (e.g. proxy/LeadPilot mode), workflows fall back to the existing href/text skill extraction rules.
 
 ## Filter Support
@@ -240,6 +260,7 @@ Collected companies are saved to the `targets` table with:
 
 - The browser automation uses Playwright and requires a valid LinkedIn Sales Navigator session
 - The scraper now prefers explicit wait conditions over `networkidle` for SalesNav readiness checks
+- The workflow overlay guard now explicitly closes the SalesNav notifications side-sheet (`data-sn-view-name="subpage-notifications-panel"`) when it appears, because it can block result interactions.
 - Debug snapshots are sampled/conditional via config (`DEBUG_SNAPSHOTS`, `DEBUG_SNAPSHOT_RATE`)
 - The system respects LinkedIn's rate limits with delays between actions
 - Companies are deduplicated by domain/name before saving

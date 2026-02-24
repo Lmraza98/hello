@@ -237,10 +237,20 @@
       ]
     },
     {
+      "id": "tests/browser/test_browser_workflow_overlays.py::test_dismiss_common_overlays_closes_salesnav_notifications_panel",
+      "deps": []
+    },
+    {
+      "id": "tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_company_profile_dom_on_company_profile_url",
+      "deps": []
+    },
+    {
       "id": "tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches",
-      "deps": [
-        "tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints"
-      ]
+      "deps": []
+    },
+    {
+      "id": "tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_lead_cards_when_skill_matches",
+      "deps": []
     },
     {
       "id": "tests/browser/test_challenge_guard.py::test_guard_challenges_reports_human_fallback_disabled",
@@ -251,7 +261,7 @@
     {
       "id": "tests/browser/test_challenge_guard.py::test_guard_challenges_reports_solver_disabled",
       "deps": [
-        "tests/browser/test_browser_workflow_salesnav_extract.py::test_extract_uses_salesnav_dom_cards_when_skill_matches"
+        "tests/browser/test_browser_workflow_builder.py::test_validate_extraction_candidate_applies_label_and_role_constraints"
       ]
     },
     {
@@ -385,6 +395,42 @@
       ]
     },
     {
+      "id": "tests/launcher/test_salesnav_graph_contract.py::test_salesnav_component_case_deps_are_not_chained",
+      "deps": [
+        "tests/launcher/test_salesnav_graph_contract.py::test_salesnav_component_children_are_non_sequential_in_launcher_state"
+      ]
+    },
+    {
+      "id": "tests/launcher/test_salesnav_graph_contract.py::test_salesnav_component_children_are_non_sequential_in_launcher_state",
+      "deps": [
+        "tests/launcher/test_salesnav_graph_contract.py::test_selecting_salesnav_workflow_step_only_pulls_workflow_prerequisites"
+      ]
+    },
+    {
+      "id": "tests/launcher/test_salesnav_graph_contract.py::test_salesnav_workflow_step_dependencies_do_not_include_component_pytests",
+      "deps": [
+        "tests/launcher/test_salesnav_graph_contract.py::test_salesnav_workflow_steps_form_a_rooted_branching_dag"
+      ]
+    },
+    {
+      "id": "tests/launcher/test_salesnav_graph_contract.py::test_salesnav_workflow_steps_form_a_rooted_branching_dag",
+      "deps": [
+        "tests/launcher/test_live_readiness_gates.py::test_gate_bridge_ready"
+      ]
+    },
+    {
+      "id": "tests/launcher/test_salesnav_graph_contract.py::test_selecting_salesnav_workflow_step_only_pulls_workflow_prerequisites",
+      "deps": [
+        "tests/launcher/test_salesnav_graph_contract.py::test_salesnav_workflow_step_dependencies_do_not_include_component_pytests"
+      ]
+    },
+    {
+      "id": "tests/launcher/test_salesnav_workflow_step_helpers.py::test_extract_employee_entrypoints_from_observation_prefers_people_links_and_dedupes",
+      "deps": [
+        "tests/launcher/test_salesnav_graph_contract.py::test_salesnav_component_case_deps_are_not_chained"
+      ]
+    },
+    {
       "id": "tests/platform/test_service_boundaries.py::test_service_boundaries",
       "deps": [
         "tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
@@ -410,231 +456,155 @@
     },
     {
       "id": "tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_passes_parser_output_to_execution_payload",
-      "deps": [
-        "tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception",
-      "deps": [
-        "tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_passes_parser_output_to_execution_payload"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_success_without_save",
-      "deps": [
-        "tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_raises_primary_error_when_no_fallback",
-      "deps": [
-        "tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_with_fallback_retries_after_primary_error",
-      "deps": [
-        "tests/salesnav/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_hq_filter_value_prefers_first_non_empty_item",
-      "deps": [
-        "tests/launcher/test_live_readiness_gates.py::test_gate_backend_api_ready"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_maps_shape_and_limits_rows",
-      "deps": [
-        "tests/salesnav/test_salesnav_company_collection_flow.py::test_extract_hq_filter_value_prefers_first_non_empty_item"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_preserves_enriched_salesnav_fields",
-      "deps": [
-        "tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_maps_shape_and_limits_rows"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_company_collection_flow.py::test_run_account_search_passes_full_filters_and_clamps_limit",
-      "deps": [
-        "tests/salesnav/test_salesnav_company_collection_flow.py::test_normalize_companies_preserves_enriched_salesnav_fields"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_company_collection_flow.py::test_save_companies_to_db_insert_and_update_with_vertical",
-      "deps": [
-        "tests/salesnav/test_salesnav_company_collection_flow.py::test_collect_companies_returns_error_status_on_exception"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_core_contracts.py::test_filters_normalization_and_similarity_contract",
-      "deps": [
-        "tests/salesnav/test_salesnav_core_contracts.py::test_session_manager_delegates_auth_check"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_core_contracts.py::test_navigator_go_to_account_search_happy_path_clicks_tab",
-      "deps": [
-        "tests/salesnav/test_salesnav_core_contracts.py::test_waits_url_contains_contract"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_core_contracts.py::test_operation_retryable_error_markers",
-      "deps": [
-        "tests/salesnav/test_salesnav_core_contracts.py::test_parsing_contract_for_headcount_and_employee_text"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_core_contracts.py::test_parsing_contract_for_headcount_and_employee_text",
-      "deps": [
-        "tests/salesnav/test_salesnav_core_contracts.py::test_filters_normalization_and_similarity_contract"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_captures_debug_on_terminal_failure",
-      "deps": [
-        "tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_recovers_retryable_error"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_recovers_retryable_error",
-      "deps": [
-        "tests/salesnav/test_salesnav_core_contracts.py::test_operation_retryable_error_markers"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_core_contracts.py::test_session_host_and_auth_url_contract",
-      "deps": [
-        "tests/salesnav/test_salesnav_company_collection_flow.py::test_save_companies_to_db_insert_and_update_with_vertical"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_core_contracts.py::test_session_manager_delegates_auth_check",
-      "deps": [
-        "tests/salesnav/test_salesnav_core_contracts.py::test_session_host_and_auth_url_contract"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_core_contracts.py::test_waits_url_contains_contract",
-      "deps": [
-        "tests/salesnav/test_salesnav_core_contracts.py::test_run_operation_with_retries_captures_debug_on_terminal_failure"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_filters.py::test_people_search_falls_back_when_exact_company_returns_empty",
-      "deps": [
-        "tests/salesnav/test_salesnav_filters.py::test_people_search_retries_without_keyword_in_compound_mode"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_filters.py::test_people_search_retries_without_keyword_in_compound_mode",
-      "deps": [
-        "tests/salesnav/test_salesnav_filters.py::test_people_search_uses_url_builder_without_typing"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_filters.py::test_people_search_uses_url_builder_without_typing",
-      "deps": [
-        "tests/salesnav/test_salesnav_filters.py::test_search_and_extract_returns_unmapped_error_when_builder_fails"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_filters.py::test_search_and_extract_applies_all_parsed_salesnav_filters",
-      "deps": [
-        "tests/salesnav/test_salesnav_core_contracts.py::test_navigator_go_to_account_search_happy_path_clicks_tab"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_filters.py::test_search_and_extract_returns_unmapped_error_when_builder_fails",
-      "deps": [
-        "tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_single_keyword_for_salesnav"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_single_keyword_for_salesnav",
-      "deps": [
-        "tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_url_builder_without_typing"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_filters.py::test_search_and_extract_uses_url_builder_without_typing",
-      "deps": [
-        "tests/salesnav/test_salesnav_filters.py::test_search_and_extract_applies_all_parsed_salesnav_filters"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges",
-      "deps": [
-        "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values",
-      "deps": [
-        "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file",
-      "deps": [
-        "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges",
-      "deps": [
-        "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges",
-      "deps": [
-        "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters",
-      "deps": [
-        "tests/salesnav/test_salesnav_filters.py::test_people_search_falls_back_when_exact_company_returns_empty"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values",
-      "deps": [
-        "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn",
-      "deps": [
-        "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id",
-      "deps": [
-        "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_targets_schema_compat.py::test_collector_save_companies_without_vertical_column",
-      "deps": [
-        "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_rejects_unmapped_values"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_targets_schema_compat.py::test_filter_parser_lookup_company_profile_without_vertical_column",
-      "deps": [
-        "tests/salesnav/test_targets_schema_compat.py::test_collector_save_companies_without_vertical_column"
-      ]
+      "deps": []
     },
     {
       "id": "tests/salesnav/test_targets_schema_compat.py::test_filter_parser_target_market_heuristic_overrides_industry",
-      "deps": [
-        "tests/salesnav/test_targets_schema_compat.py::test_filter_parser_lookup_company_profile_without_vertical_column"
-      ]
+      "deps": []
     },
     {
       "id": "tests/workflow_core/test_compound_workflow.py::test_compound_workflow_checkpoint_continue",

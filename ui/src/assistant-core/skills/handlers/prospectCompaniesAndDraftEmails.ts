@@ -90,17 +90,6 @@ function parseMinYearsInBusiness(userMessage: string): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function canonicalIndustryForSalesNav(industry: string): string | null {
-  const lower = industry.trim().toLowerCase();
-  if (!lower) return null;
-  // Keep this strictly limited to values currently URL-mapped in query_builder.
-  if (lower.includes('health')) return 'Hospitals and Health Care';
-  if (lower.includes('construction')) return 'Construction';
-  if (lower.includes('optometr')) return 'Optometrists';
-  if (lower.includes('chiropract')) return 'Chiropractors';
-  return null;
-}
-
 function buildAccountLocationFilter(location: string): string | null {
   const text = location.trim();
   if (!text) return null;
@@ -136,7 +125,7 @@ export const prospectCompaniesAndDraftEmailsHandler: SkillHandler = ({ extracted
   const peopleQuery = `${decisionMakerTitle} ${industry} ${location} revenue over ${minRevenueMillions}m`;
   const salesNavCompanyQuery = userMessage;
   const salesNavPeopleQuery = userMessage;
-  const salesNavIndustry = canonicalIndustryForSalesNav(industry);
+  const salesNavIndustry = industry.trim() || null;
   const salesNavLocation = buildAccountLocationFilter(location);
   const salesNavRevenue = `${minRevenueMillions}+`;
   const campaignName = `${industry} ${location} ${fundingStage} Intro Outreach`;
@@ -224,6 +213,7 @@ export const prospectCompaniesAndDraftEmailsHandler: SkillHandler = ({ extracted
                       ? {
                           filter_values: {
                             industry: [salesNavIndustry],
+                            ...(salesNavLocation ? { headquarters_location: salesNavLocation } : {}),
                             annual_revenue: salesNavRevenue,
                           },
                         }

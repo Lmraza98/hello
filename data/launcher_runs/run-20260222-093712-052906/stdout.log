@@ -1,2 +1,0 @@
-[frontend-gate-node-ready] v22.19.0
-[python-builder-routes::tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success] [child-note] started tests/api_routes/test_browser_workflow_builder_api_routes.py::test_observation_pack_success

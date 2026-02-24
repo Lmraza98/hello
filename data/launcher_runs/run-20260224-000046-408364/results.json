@@ -1,0 +1,123 @@
+{
+  "run_id": "run-20260224-000046-408364",
+  "status": "failed",
+  "duration_sec": 0.20526766777038574,
+  "tests": [
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "status": "passed",
+      "duration_sec": 0.0,
+      "message": "passed (cache satisfied)",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "cached": true,
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 0
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+      "status": "failed",
+      "duration_sec": 0.20082426071166992,
+      "message": "exit code 1",
+      "label": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+      "cache_key": "c95b1bd216a234be7040b23d503e2e922ca15ec0f4744275e0435b2db7d429cf",
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 4
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts",
+      "status": "passed",
+      "duration_sec": 0.0,
+      "message": "passed (cache satisfied)",
+      "label": "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts",
+      "cached": true,
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 0
+      }
+    }
+  ],
+  "dependency_analysis": {
+    "version": "1",
+    "run_id": "run-20260224-000046-408364",
+    "planned_edges": [
+      {
+        "from": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "to": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+      },
+      {
+        "from": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+        "to": "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts"
+      }
+    ],
+    "observed_edges": [
+      {
+        "from": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "to": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      }
+    ],
+    "drift": {
+      "missing_planned_edges": [],
+      "unexpected_observed_edges": [],
+      "nodes_started_before_planned_ready": []
+    },
+    "nodes": [
+      {
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "status": "passed",
+        "attempts": 0,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": 1771891246.507286
+      },
+      {
+        "id": "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts",
+        "status": "passed",
+        "attempts": 0,
+        "planned_deps": [
+          "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": 1771891246.712523
+      },
+      {
+        "id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+        "status": "failed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771891246.507525,
+        "last_finished_at": 1771891246.712478
+      }
+    ]
+  },
+  "exports": {
+    "json": true,
+    "junit": true
+  }
+}

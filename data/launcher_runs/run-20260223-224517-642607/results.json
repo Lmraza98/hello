@@ -1,0 +1,207 @@
+{
+  "run_id": "run-20260223-224517-642607",
+  "status": "failed",
+  "duration_sec": 0.820451021194458,
+  "tests": [
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "status": "passed",
+      "duration_sec": 0.0,
+      "message": "passed (cache satisfied)",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "cached": true,
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 0
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+      "status": "failed",
+      "duration_sec": 0.20074820518493652,
+      "message": "exit code 1",
+      "label": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+      "cache_key": "c95b1bd216a234be7040b23d503e2e922ca15ec0f4744275e0435b2db7d429cf",
+      "evidence": {
+        "expected": "mocked_or_unit",
+        "observed": "mocked_or_unit",
+        "browser_evidence": false,
+        "flagged": false,
+        "line_count": 4
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.account_profile_e2e.navigate_account_profile",
+      "status": "failed",
+      "duration_sec": 0.20053815841674805,
+      "message": "exit code 1; missing live browser evidence",
+      "label": "python-salesnav-core::workflow.salesnav.account_profile_e2e.navigate_account_profile",
+      "cache_key": "4e901c7ae91ff5339f7b6fd08e0e08bc85189a03943e2e900caecc1c25e5574b",
+      "evidence": {
+        "expected": "live_browser",
+        "observed": "none",
+        "browser_evidence": false,
+        "flagged": true,
+        "line_count": 4
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.account_profile_e2e.extract_account_profile",
+      "status": "failed",
+      "duration_sec": 0.20066499710083008,
+      "message": "exit code 1; missing live browser evidence",
+      "label": "python-salesnav-core::workflow.salesnav.account_profile_e2e.extract_account_profile",
+      "cache_key": "2f4c8965fd03091cd2bff93035d3be3d266be1658b100ae424f47837c906d52d",
+      "evidence": {
+        "expected": "live_browser",
+        "observed": "none",
+        "browser_evidence": false,
+        "flagged": true,
+        "line_count": 4
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.account_profile_e2e.capture_employee_entrypoints",
+      "status": "failed",
+      "duration_sec": 0.20074105262756348,
+      "message": "exit code 1; missing live browser evidence",
+      "label": "python-salesnav-core::workflow.salesnav.account_profile_e2e.capture_employee_entrypoints",
+      "cache_key": "ad6466cfae598b1845190ae8f12b280bf17c9962ba68b5de62cae38dd019c88a",
+      "evidence": {
+        "expected": "live_browser",
+        "observed": "none",
+        "browser_evidence": false,
+        "flagged": true,
+        "line_count": 4
+      }
+    }
+  ],
+  "dependency_analysis": {
+    "version": "1",
+    "run_id": "run-20260223-224517-642607",
+    "planned_edges": [
+      {
+        "from": "python-salesnav-core::workflow.salesnav.account_profile_e2e.extract_account_profile",
+        "to": "python-salesnav-core::workflow.salesnav.account_profile_e2e.capture_employee_entrypoints"
+      },
+      {
+        "from": "python-salesnav-core::workflow.salesnav.account_profile_e2e.navigate_account_profile",
+        "to": "python-salesnav-core::workflow.salesnav.account_profile_e2e.extract_account_profile"
+      },
+      {
+        "from": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "to": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+      },
+      {
+        "from": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+        "to": "python-salesnav-core::workflow.salesnav.account_profile_e2e.navigate_account_profile"
+      }
+    ],
+    "observed_edges": [
+      {
+        "from": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "to": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      },
+      {
+        "from": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+        "to": "python-salesnav-core::workflow.salesnav.account_profile_e2e.navigate_account_profile",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      },
+      {
+        "from": "python-salesnav-core::workflow.salesnav.account_profile_e2e.navigate_account_profile",
+        "to": "python-salesnav-core::workflow.salesnav.account_profile_e2e.extract_account_profile",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      },
+      {
+        "from": "python-salesnav-core::workflow.salesnav.account_profile_e2e.extract_account_profile",
+        "to": "python-salesnav-core::workflow.salesnav.account_profile_e2e.capture_employee_entrypoints",
+        "kind": "stream_predecessor",
+        "stream": "__root__"
+      }
+    ],
+    "drift": {
+      "missing_planned_edges": [],
+      "unexpected_observed_edges": [],
+      "nodes_started_before_planned_ready": []
+    },
+    "nodes": [
+      {
+        "id": "python-salesnav-core::workflow.salesnav.account_profile_e2e.capture_employee_entrypoints",
+        "status": "failed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-salesnav-core::workflow.salesnav.account_profile_e2e.extract_account_profile"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::workflow.salesnav.account_profile_e2e.extract_account_profile"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771886718.356911,
+        "last_finished_at": 1771886718.561758
+      },
+      {
+        "id": "python-salesnav-core::workflow.salesnav.account_profile_e2e.extract_account_profile",
+        "status": "failed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-salesnav-core::workflow.salesnav.account_profile_e2e.navigate_account_profile"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::workflow.salesnav.account_profile_e2e.navigate_account_profile"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771886718.15157,
+        "last_finished_at": 1771886718.356668
+      },
+      {
+        "id": "python-salesnav-core::workflow.salesnav.account_profile_e2e.navigate_account_profile",
+        "status": "failed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771886717.946596,
+        "last_finished_at": 1771886718.151322
+      },
+      {
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "status": "passed",
+        "attempts": 0,
+        "planned_deps": [],
+        "satisfied_planned_deps_at_start": [],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": null,
+        "last_finished_at": 1771886717.741361
+      },
+      {
+        "id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+        "status": "failed",
+        "attempts": 1,
+        "planned_deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "satisfied_planned_deps_at_start": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "unsatisfied_planned_deps_at_start": [],
+        "first_started_at": 1771886717.74161,
+        "last_finished_at": 1771886717.946273
+      }
+    ]
+  },
+  "exports": {
+    "json": true,
+    "junit": true
+  }
+}

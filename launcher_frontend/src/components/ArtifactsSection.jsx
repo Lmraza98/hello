@@ -27,7 +27,7 @@ export default function ArtifactsSection({
   }
 
   return (
-    <section className="relative flex h-full flex-col min-h-0 bg-slate-950 pt-2" style={{ zIndex: Z_PANE }}>
+    <section className="relative flex h-full flex-col min-h-0 bg-slate-950" style={{ zIndex: Z_PANE }}>
       <div className="mb-3 flex items-center justify-between border-b border-slate-800/80 pb-3">
         <div className="text-[13px] font-semibold tracking-wide text-slate-200 uppercase">Run History</div>
         <div className="flex items-center gap-1.5 bg-slate-900/50 p-1 rounded-full ring-1 ring-slate-800/60">

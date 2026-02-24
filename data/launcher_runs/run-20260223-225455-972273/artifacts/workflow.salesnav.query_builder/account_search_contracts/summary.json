@@ -1,0 +1,28 @@
+{
+  "label": "query_builder_account_search_contracts",
+  "nodeids": [
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges"
+  ],
+  "returncode": 0,
+  "duration_sec": 1.1492552757263184,
+  "command": [
+    "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_with_keyword_and_filters",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_raises_on_unmapped_filter_values",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_resolves_industry_from_ids_file",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_decimal_annual_revenue_ranges",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_supports_open_ended_annual_revenue_ranges",
+    "--junitxml=C:/Users/lmraz/Hello/data/launcher_runs/run-20260223-225455-972273/artifacts/workflow.salesnav.query_builder/account_search_contracts/junit.xml"
+  ],
+  "output_path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-225455-972273\\artifacts\\workflow.salesnav.query_builder\\account_search_contracts\\pytest_output.txt",
+  "junit_path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260223-225455-972273\\artifacts\\workflow.salesnav.query_builder\\account_search_contracts\\junit.xml"
+}

@@ -38,15 +38,21 @@ This topic was split into focused guides to keep maintenance and scanning fast.
 - Run artifacts now include a dependency analysis block (`results.json.dependency_analysis`) that compares planned DAG edges to observed execution ordering from `events.ndjson`, including drift flags (`missing_planned_edges`, `unexpected_observed_edges`, and nodes started before planned deps were ready).
 - Details pane Summary now surfaces dependency drift directly for both aggregate and node contexts (counts plus node-level unsatisfied planned deps at start when present).
 - SalesNav workflow DAG steps can now be loaded from `config/launcher_workflow_steps.v1.json` and executed via `Run Selected` as dependency-closed step plans.
+- `Python: salesnav core` now uses a rooted SalesNav DAG under one aggregate: `Open/Re-use Browser Tab` immediately branches into URL-build nodes (`Build SalesNav Account Search URL`, `Build SalesNav People Search URL`), then flows continue through guardrails/account-profile/account-search branches before converging into one terminal `Persist Workflow Summary Artifact` sink node.
 - Workflow step nodes now emit structured node artifacts (`inputs`, `tool_call`, `tool_response`, `outputs`, `normalized_output_hash`, `artifacts`) that are persisted into run results and shown in node details.
 - SalesNav `capture_observation` step now attempts a direct `/api/browser/screenshot` fallback when observation-pack does not return screenshot bytes, and persists the image path in node outputs/artifacts when available.
 - SalesNav workflow browser-interaction steps now capture an incremental screenshot per step (for example `open_or_reuse_tab`, `navigate_and_collect`) and persist it in step outputs/artifacts for node details playback.
+- `Python: salesnav core` now includes SalesNav-specific browser tests (`tests/browser/test_browser_workflow_salesnav_extract.py`, `tests/browser/test_browser_workflow_overlays.py`) in addition to `tests/salesnav/**`, so aggregate child DAG and run scope stay aligned.
 - Node details status now prefers run artifact status over stale graph-node status, so replayed attempts do not show `not_run` when the selected attempt actually passed/failed.
 - Node details screenshot preview now falls back to related workflow-step artifacts in the same run when the selected step has no direct screenshot payload.
 - Node Artifacts panel now renders from fallback workflow-step rows as well (not only direct node-row matches), so screenshots/output still appear when node ID matching is partial during replay.
 - Screenshot rendering in pywebview now resolves local artifact image paths through the launcher bridge (`resolve_artifact_image`) into data URLs, avoiding `file:///` image loading issues in embedded Chromium.
 - Wave-1 SalesNav gold flow is represented as workflow child nodes under `Python: salesnav core`; selecting a downstream workflow child and clicking `Run Selected` executes its prerequisites sequentially.
+- Aggregate child expansion no longer drops pytest children when workflow children exist; `Python: salesnav core` now shows both workflow steps and scoped pytest children together.
+- Auto-generated case-deps no longer chain SalesNav component pytest cases, so component tests remain visible but do not render as a pseudo workflow path.
 - Top action bar includes `Clear Cache`, which clears launcher step cache (`data/launcher_runs/step_cache.json`) so subsequent runs do not short-circuit as cache-satisfied.
+- Top action bar `Refresh` now performs a catalog/dependency reload in launcher runtime before UI fetch, so newly added tests/workflow steps appear without restarting `python launcher.py`.
+- Fixed recurring graph inspector regression where child-click briefly opened child details then snapped back to aggregate details. Root cause was child-id resolution drift across suite/aggregate/child scopes; launcher now preserves explicit child selection IDs and resolves child metadata from aggregate children when scoped DAG nodes are transient.
 
 ## Full Change History
 

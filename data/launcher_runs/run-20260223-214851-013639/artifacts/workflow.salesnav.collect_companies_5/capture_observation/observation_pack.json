@@ -1,0 +1,545 @@
+{
+  "ok": true,
+  "tab_id": "tab-0",
+  "observation": {
+    "tab_id": "tab-0",
+    "url": "https://www.linkedin.com/sales/search/company",
+    "domain": "www.linkedin.com",
+    "page_mode": "list_page",
+    "data_source_preference": [
+      "dom",
+      "structured_markup"
+    ],
+    "policy_summary": {
+      "read_only_default": true,
+      "unsafe_actions_blocked_by_default": true
+    },
+    "stabilization": {
+      "method": "snapshot_role_plus_ai",
+      "network_idle_confirmed": false,
+      "layout_stable_confirmed": false
+    },
+    "dom": {
+      "role_snapshot_text": "[ref=e1] a -> /sales/index\n[ref=e2] a \"Home\" -> /sales/home\n[ref=e3] a \"Accounts\" -> /sales/accounts/dashboard\n[ref=e4] a \"Leads\" -> /sales/lists/people\n[ref=e5] a \"Messaging\" -> /sales/inbox?trk=d_sales2_app_header_inbox\n[ref=e6] a \"Referrals\" -> /sales/referrals\n[ref=e7] button \"Open help center\"\n[ref=e8] div\n[ref=e9] button \"Notifications: You have 0 unseen notifications\"\n[ref=e10] button \"Lucas Raza\"\n[ref=e11] a \"Lead tabitem 1 of 2\" -> /sales/search/people\n[ref=e12] a \"Account tabitem 2 of 2 selected\" -> /sales/search/company\n[ref=e13] button \"Expand filter panel\"\n[ref=e14] button \"Expand Annual revenue filter\"\n[ref=e15] button \"Expand Company headcount filter\"\n[ref=e16] button \"Expand Company headcount growth filter\"\n[ref=e17] button \"Expand Fortune filter\"\n[ref=e18] button \"Expand Headquarters location filter\"\n[ref=e19] button \"Expand Industry filter\"\n[ref=e20] button \"Expand Number of followers filter\"\n[ref=e21] button \"Expand Job opportunities filter\"\n[ref=e22] button \"Expand Recent activities filter\"\n[ref=e23] button \"Expand Connection filter\"\n[ref=e24] button \"Expand Companies in CRM filter\"\n[ref=e25] button \"Expand Saved accounts filter\"\n[ref=e26] button \"Expand Account lists filter\"\n[ref=e27] button \"Expand panel to see all filters\"\n[ref=e28] button \"Share search\"\n[ref=e29] button \"Edit pinned filters\"\n[ref=e30] button \"Clear all filter values\"\n[ref=e31] combobox \"Search keywords\"\n[ref=e32] button \"Saved searches\"\n[ref=e33] input\n[ref=e34] button \"Save as an account. Save to list.\"\n[ref=e35] button \"Unsave all selected accounts.\"\n[ref=e36] button \"View current employees at\"",
+      "role_refs": [
+        {
+          "ref": "e1",
+          "index": 13,
+          "role": "a",
+          "label": "",
+          "href": "/sales/index"
+        },
+        {
+          "ref": "e2",
+          "index": 14,
+          "role": "a",
+          "label": "Home",
+          "href": "/sales/home"
+        },
+        {
+          "ref": "e3",
+          "index": 15,
+          "role": "a",
+          "label": "Accounts",
+          "href": "/sales/accounts/dashboard"
+        },
+        {
+          "ref": "e4",
+          "index": 16,
+          "role": "a",
+          "label": "Leads",
+          "href": "/sales/lists/people"
+        },
+        {
+          "ref": "e5",
+          "index": 17,
+          "role": "a",
+          "label": "Messaging",
+          "href": "/sales/inbox?trk=d_sales2_app_header_inbox"
+        },
+        {
+          "ref": "e6",
+          "index": 18,
+          "role": "a",
+          "label": "Referrals",
+          "href": "/sales/referrals"
+        },
+        {
+          "ref": "e7",
+          "index": 19,
+          "role": "button",
+          "label": "Open help center",
+          "href": ""
+        },
+        {
+          "ref": "e8",
+          "index": 20,
+          "role": "div",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e9",
+          "index": 21,
+          "role": "button",
+          "label": "Notifications: You have 0 unseen notifications",
+          "href": ""
+        },
+        {
+          "ref": "e10",
+          "index": 22,
+          "role": "button",
+          "label": "Lucas Raza",
+          "href": ""
+        },
+        {
+          "ref": "e11",
+          "index": 23,
+          "role": "a",
+          "label": "Lead tabitem 1 of 2",
+          "href": "/sales/search/people"
+        },
+        {
+          "ref": "e12",
+          "index": 24,
+          "role": "a",
+          "label": "Account tabitem 2 of 2 selected",
+          "href": "/sales/search/company"
+        },
+        {
+          "ref": "e13",
+          "index": 25,
+          "role": "button",
+          "label": "Expand filter panel",
+          "href": ""
+        },
+        {
+          "ref": "e14",
+          "index": 29,
+          "role": "button",
+          "label": "Expand Annual revenue filter",
+          "href": ""
+        },
+        {
+          "ref": "e15",
+          "index": 30,
+          "role": "button",
+          "label": "Expand Company headcount filter",
+          "href": ""
+        },
+        {
+          "ref": "e16",
+          "index": 31,
+          "role": "button",
+          "label": "Expand Company headcount growth filter",
+          "href": ""
+        },
+        {
+          "ref": "e17",
+          "index": 32,
+          "role": "button",
+          "label": "Expand Fortune filter",
+          "href": ""
+        },
+        {
+          "ref": "e18",
+          "index": 33,
+          "role": "button",
+          "label": "Expand Headquarters location filter",
+          "href": ""
+        },
+        {
+          "ref": "e19",
+          "index": 34,
+          "role": "button",
+          "label": "Expand Industry filter",
+          "href": ""
+        },
+        {
+          "ref": "e20",
+          "index": 35,
+          "role": "button",
+          "label": "Expand Number of followers filter",
+          "href": ""
+        },
+        {
+          "ref": "e21",
+          "index": 36,
+          "role": "button",
+          "label": "Expand Job opportunities filter",
+          "href": ""
+        },
+        {
+          "ref": "e22",
+          "index": 37,
+          "role": "button",
+          "label": "Expand Recent activities filter",
+          "href": ""
+        },
+        {
+          "ref": "e23",
+          "index": 38,
+          "role": "button",
+          "label": "Expand Connection filter",
+          "href": ""
+        },
+        {
+          "ref": "e24",
+          "index": 39,
+          "role": "button",
+          "label": "Expand Companies in CRM filter",
+          "href": ""
+        },
+        {
+          "ref": "e25",
+          "index": 40,
+          "role": "button",
+          "label": "Expand Saved accounts filter",
+          "href": ""
+        },
+        {
+          "ref": "e26",
+          "index": 41,
+          "role": "button",
+          "label": "Expand Account lists filter",
+          "href": ""
+        },
+        {
+          "ref": "e27",
+          "index": 42,
+          "role": "button",
+          "label": "Expand panel to see all filters",
+          "href": ""
+        },
+        {
+          "ref": "e28",
+          "index": 43,
+          "role": "button",
+          "label": "Share search",
+          "href": ""
+        },
+        {
+          "ref": "e29",
+          "index": 44,
+          "role": "button",
+          "label": "Edit pinned filters",
+          "href": ""
+        },
+        {
+          "ref": "e30",
+          "index": 45,
+          "role": "button",
+          "label": "Clear all filter values",
+          "href": ""
+        },
+        {
+          "ref": "e31",
+          "index": 46,
+          "role": "combobox",
+          "label": "Search keywords",
+          "href": ""
+        },
+        {
+          "ref": "e32",
+          "index": 48,
+          "role": "button",
+          "label": "Saved searches",
+          "href": ""
+        },
+        {
+          "ref": "e33",
+          "index": 49,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "e34",
+          "index": 50,
+          "role": "button",
+          "label": "Save as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "e35",
+          "index": 51,
+          "role": "button",
+          "label": "Unsave all selected accounts.",
+          "href": ""
+        },
+        {
+          "ref": "e36",
+          "index": 52,
+          "role": "button",
+          "label": "View current employees at",
+          "href": ""
+        }
+      ],
+      "ai_refs": [
+        {
+          "ref": "37",
+          "index": 13,
+          "role": "a",
+          "label": "",
+          "href": "/sales/index"
+        },
+        {
+          "ref": "38",
+          "index": 14,
+          "role": "a",
+          "label": "Home",
+          "href": "/sales/home"
+        },
+        {
+          "ref": "39",
+          "index": 15,
+          "role": "a",
+          "label": "Accounts",
+          "href": "/sales/accounts/dashboard"
+        },
+        {
+          "ref": "40",
+          "index": 16,
+          "role": "a",
+          "label": "Leads",
+          "href": "/sales/lists/people"
+        },
+        {
+          "ref": "41",
+          "index": 17,
+          "role": "a",
+          "label": "Messaging",
+          "href": "/sales/inbox?trk=d_sales2_app_header_inbox"
+        },
+        {
+          "ref": "42",
+          "index": 18,
+          "role": "a",
+          "label": "Referrals",
+          "href": "/sales/referrals"
+        },
+        {
+          "ref": "43",
+          "index": 19,
+          "role": "button",
+          "label": "Open help center",
+          "href": ""
+        },
+        {
+          "ref": "44",
+          "index": 20,
+          "role": "div",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "45",
+          "index": 21,
+          "role": "button",
+          "label": "Notifications: You have 0 unseen notifications",
+          "href": ""
+        },
+        {
+          "ref": "46",
+          "index": 22,
+          "role": "button",
+          "label": "Lucas Raza",
+          "href": ""
+        },
+        {
+          "ref": "47",
+          "index": 23,
+          "role": "a",
+          "label": "Lead tabitem 1 of 2",
+          "href": "/sales/search/people"
+        },
+        {
+          "ref": "48",
+          "index": 24,
+          "role": "a",
+          "label": "Account tabitem 2 of 2 selected",
+          "href": "/sales/search/company"
+        },
+        {
+          "ref": "49",
+          "index": 25,
+          "role": "button",
+          "label": "Expand filter panel",
+          "href": ""
+        },
+        {
+          "ref": "50",
+          "index": 29,
+          "role": "button",
+          "label": "Expand Annual revenue filter",
+          "href": ""
+        },
+        {
+          "ref": "51",
+          "index": 30,
+          "role": "button",
+          "label": "Expand Company headcount filter",
+          "href": ""
+        },
+        {
+          "ref": "52",
+          "index": 31,
+          "role": "button",
+          "label": "Expand Company headcount growth filter",
+          "href": ""
+        },
+        {
+          "ref": "53",
+          "index": 32,
+          "role": "button",
+          "label": "Expand Fortune filter",
+          "href": ""
+        },
+        {
+          "ref": "54",
+          "index": 33,
+          "role": "button",
+          "label": "Expand Headquarters location filter",
+          "href": ""
+        },
+        {
+          "ref": "55",
+          "index": 34,
+          "role": "button",
+          "label": "Expand Industry filter",
+          "href": ""
+        },
+        {
+          "ref": "56",
+          "index": 35,
+          "role": "button",
+          "label": "Expand Number of followers filter",
+          "href": ""
+        },
+        {
+          "ref": "57",
+          "index": 36,
+          "role": "button",
+          "label": "Expand Job opportunities filter",
+          "href": ""
+        },
+        {
+          "ref": "58",
+          "index": 37,
+          "role": "button",
+          "label": "Expand Recent activities filter",
+          "href": ""
+        },
+        {
+          "ref": "59",
+          "index": 38,
+          "role": "button",
+          "label": "Expand Connection filter",
+          "href": ""
+        },
+        {
+          "ref": "60",
+          "index": 39,
+          "role": "button",
+          "label": "Expand Companies in CRM filter",
+          "href": ""
+        },
+        {
+          "ref": "61",
+          "index": 40,
+          "role": "button",
+          "label": "Expand Saved accounts filter",
+          "href": ""
+        },
+        {
+          "ref": "62",
+          "index": 41,
+          "role": "button",
+          "label": "Expand Account lists filter",
+          "href": ""
+        },
+        {
+          "ref": "63",
+          "index": 42,
+          "role": "button",
+          "label": "Expand panel to see all filters",
+          "href": ""
+        },
+        {
+          "ref": "64",
+          "index": 43,
+          "role": "button",
+          "label": "Share search",
+          "href": ""
+        },
+        {
+          "ref": "65",
+          "index": 44,
+          "role": "button",
+          "label": "Edit pinned filters",
+          "href": ""
+        },
+        {
+          "ref": "66",
+          "index": 45,
+          "role": "button",
+          "label": "Clear all filter values",
+          "href": ""
+        },
+        {
+          "ref": "67",
+          "index": 46,
+          "role": "combobox",
+          "label": "Search keywords",
+          "href": ""
+        },
+        {
+          "ref": "68",
+          "index": 48,
+          "role": "button",
+          "label": "Saved searches",
+          "href": ""
+        },
+        {
+          "ref": "69",
+          "index": 49,
+          "role": "input",
+          "label": "",
+          "href": ""
+        },
+        {
+          "ref": "70",
+          "index": 50,
+          "role": "button",
+          "label": "Save as an account. Save to list.",
+          "href": ""
+        },
+        {
+          "ref": "71",
+          "index": 51,
+          "role": "button",
+          "label": "Unsave all selected accounts.",
+          "href": ""
+        },
+        {
+          "ref": "72",
+          "index": 52,
+          "role": "button",
+          "label": "View current employees at",
+          "href": ""
+        }
+      ],
+      "semantic_nodes": []
+    },
+    "visual": {
+      "screenshot_base64": null,
+      "has_screenshot": false
+    },
+    "network": {
+      "available": false,
+      "note": "Network capture is backend-dependent and not yet exposed in browser_nav.",
+      "request_index": [],
+      "json_samples": []
+    }
+  }
+}

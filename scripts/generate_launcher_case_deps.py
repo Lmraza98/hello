@@ -74,6 +74,15 @@ def domain_key(file_path: str) -> str:
     return "other"
 
 
+def is_salesnav_component_file(file_path: str) -> bool:
+    if file_path.startswith("tests/salesnav/"):
+        return True
+    return file_path in {
+        "tests/browser/test_browser_workflow_salesnav_extract.py",
+        "tests/browser/test_browser_workflow_overlays.py",
+    }
+
+
 def base_deps(nodeid: str, file_path: str) -> list[str]:
     if nodeid == BACKEND_GATE:
         return []
@@ -106,6 +115,9 @@ def build_deps(rows: list[CaseRow]) -> dict[str, list[str]]:
     for file_path, file_rows in by_file.items():
         if file_path == LIVE_FILE:
             continue
+        if is_salesnav_component_file(file_path):
+            # SalesNav component contracts should not render as a pseudo workflow.
+            continue
         for idx, row in enumerate(file_rows):
             if row.nodeid in FIXED_DEPS:
                 continue
@@ -122,6 +134,8 @@ def build_deps(rows: list[CaseRow]) -> dict[str, list[str]]:
         prev_last: str | None = None
         for file_path in files:
             if file_path == LIVE_FILE:
+                continue
+            if is_salesnav_component_file(file_path):
                 continue
             file_rows = by_file[file_path]
             if not file_rows:

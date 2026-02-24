@@ -1,0 +1,454 @@
+{
+  "schema_version": "run_trace.v1",
+  "run": {
+    "id": "run-20260224-000046-408364",
+    "timestamp": "2026-02-24T00:00:46Z",
+    "env": {
+      "profile": "local",
+      "server_port": 8000,
+      "bridge_port": 9223,
+      "python": "3.13.7"
+    },
+    "git": {
+      "commit": "8812a213593c64e16c33659f85b5ca966d620ac7",
+      "branch": "main",
+      "dirty": true
+    },
+    "config_snapshot": {
+      "selected_ids": [
+        "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+        "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts"
+      ],
+      "selected_tags": [],
+      "mode": "steps"
+    },
+    "status": "failed",
+    "finished_at_ts": 1771891246.796071,
+    "duration_sec": 0.20526766777038574,
+    "tests_count": 3
+  },
+  "plan": {
+    "mode": "steps",
+    "ordered_steps": [
+      {
+        "order": 1,
+        "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+        "label": "Open or Reuse Browser Tab",
+        "kind": "action",
+        "deps": [],
+        "dependency_reasons": [],
+        "skip": true,
+        "cache_key": "75b3f7e4baa5c206193ce8dadc568182c0ba45661217a134720fc01a0d10ae1d"
+      },
+      {
+        "order": 2,
+        "id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+        "label": "Guardrail: Dismiss Notifications Overlay",
+        "kind": "action",
+        "deps": [
+          "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "dependency_reasons": [
+          "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+        ],
+        "skip": false,
+        "cache_key": "c95b1bd216a234be7040b23d503e2e922ca15ec0f4744275e0435b2db7d429cf"
+      },
+      {
+        "order": 3,
+        "id": "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts",
+        "label": "Build SalesNav Account Search URL",
+        "kind": "assertion",
+        "deps": [
+          "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+        ],
+        "dependency_reasons": [
+          "depends on python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+        ],
+        "skip": true,
+        "cache_key": "a3684b812e2a0cb4517e718bbaf3f72ccdfb99e97215bcdba6e494eab2a4429c"
+      }
+    ],
+    "plan_text": "{\"mode\": \"steps\", \"ordered_steps\": [{\"order\": 1, \"id\": \"python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab\", \"label\": \"Open or Reuse Browser Tab\", \"kind\": \"action\", \"deps\": [], \"dependency_reasons\": [], \"skip\": true, \"cache_key\": \"75b3f7e4baa5c206193ce8dadc568182c0ba45661217a134720fc01a0d10ae1d\"}, {\"order\": 2, \"id\": \"python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay\", \"label\": \"Guardrail: Dismiss Notifications Overlay\", \"kind\": \"action\", \"deps\": [\"python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab\"], \"dependency_reasons\": [\"depends on python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab\"], \"skip\": false, \"cache_key\": \"c95b1bd216a234be7040b23d503e2e922ca15ec0f4744275e0435b2db7d429cf\"}, {\"order\": 3, \"id\": \"python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts\", \"label\": \"Build SalesNav Account Search URL\", \"kind\": \"assertion\", \"deps\": [\"python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay\"], \"dependency_reasons\": [\"depends on python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay\"], \"skip\": true, \"cache_key\": \"a3684b812e2a0cb4517e718bbaf3f72ccdfb99e97215bcdba6e494eab2a4429c\"}]}",
+    "plan_json": {
+      "mode": "steps",
+      "ordered_steps": [
+        {
+          "order": 1,
+          "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+          "label": "Open or Reuse Browser Tab",
+          "kind": "action",
+          "deps": [],
+          "dependency_reasons": [],
+          "skip": true,
+          "cache_key": "75b3f7e4baa5c206193ce8dadc568182c0ba45661217a134720fc01a0d10ae1d"
+        },
+        {
+          "order": 2,
+          "id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+          "label": "Guardrail: Dismiss Notifications Overlay",
+          "kind": "action",
+          "deps": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+          ],
+          "dependency_reasons": [
+            "depends on python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+          ],
+          "skip": false,
+          "cache_key": "c95b1bd216a234be7040b23d503e2e922ca15ec0f4744275e0435b2db7d429cf"
+        },
+        {
+          "order": 3,
+          "id": "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts",
+          "label": "Build SalesNav Account Search URL",
+          "kind": "assertion",
+          "deps": [
+            "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+          ],
+          "dependency_reasons": [
+            "depends on python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+          ],
+          "skip": true,
+          "cache_key": "a3684b812e2a0cb4517e718bbaf3f72ccdfb99e97215bcdba6e494eab2a4429c"
+        }
+      ]
+    }
+  },
+  "steps": [
+    {
+      "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "status": "passed",
+      "started_at_ts": 1771891246.5668411,
+      "started_at": "2026-02-24T00:00:46Z",
+      "inputs": {
+        "status": "queued"
+      },
+      "finished_at_ts": 1771891246.5731301,
+      "finished_at": "2026-02-24T00:00:46Z",
+      "duration_sec": 0.0,
+      "outputs": {
+        "attempt": 0,
+        "message": "passed (cache satisfied)",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts",
+      "label": "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts",
+      "status": "passed",
+      "started_at_ts": 1771891246.5685847,
+      "started_at": "2026-02-24T00:00:46Z",
+      "inputs": {
+        "status": "queued"
+      },
+      "finished_at_ts": 1771891246.781653,
+      "finished_at": "2026-02-24T00:00:46Z",
+      "duration_sec": 0.0,
+      "outputs": {
+        "attempt": 0,
+        "message": "passed (cache satisfied)",
+        "cache_key": null
+      }
+    },
+    {
+      "id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+      "label": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+      "status": "failed",
+      "started_at_ts": 1771891246.5748665,
+      "started_at": "2026-02-24T00:00:46Z",
+      "inputs": {
+        "attempt": 1,
+        "status": "running"
+      },
+      "finished_at_ts": 1771891246.7807982,
+      "finished_at": "2026-02-24T00:00:46Z",
+      "duration_sec": 0.20082426071166992,
+      "outputs": {
+        "attempt": 1,
+        "message": "exit code 1",
+        "cache_key": "c95b1bd216a234be7040b23d503e2e922ca15ec0f4744275e0435b2db7d429cf"
+      },
+      "error": "exit code 1"
+    }
+  ],
+  "timeline": [
+    {
+      "ts": 1771891246.5033774,
+      "type": "run_started",
+      "run_id": "run-20260224-000046-408364"
+    },
+    {
+      "ts": 1771891246.5042434,
+      "type": "plan_updated"
+    },
+    {
+      "ts": 1771891246.5668578,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab"
+    },
+    {
+      "ts": 1771891246.5678477,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+      "label": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+    },
+    {
+      "ts": 1771891246.5685942,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts",
+      "label": "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts"
+    },
+    {
+      "ts": 1771891246.569471,
+      "type": "log",
+      "level": "info",
+      "step_id": null
+    },
+    {
+      "ts": 1771891246.5731413,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+      "status": "passed",
+      "duration_sec": 0.0
+    },
+    {
+      "ts": 1771891246.5742218,
+      "type": "command",
+      "step_id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+    },
+    {
+      "ts": 1771891246.574877,
+      "type": "step_started",
+      "step_id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+      "label": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+    },
+    {
+      "ts": 1771891246.7767863,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+    },
+    {
+      "ts": 1771891246.7778997,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+    },
+    {
+      "ts": 1771891246.7789476,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+    },
+    {
+      "ts": 1771891246.7798564,
+      "type": "log",
+      "level": "info",
+      "step_id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+    },
+    {
+      "ts": 1771891246.7808142,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+      "status": "failed",
+      "duration_sec": 0.20082426071166992
+    },
+    {
+      "ts": 1771891246.7816617,
+      "type": "step_finished",
+      "step_id": "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts",
+      "status": "passed",
+      "duration_sec": 0.0
+    },
+    {
+      "ts": 1771891246.791442,
+      "type": "verification"
+    },
+    {
+      "ts": 1771891246.7923622,
+      "type": "verification"
+    },
+    {
+      "ts": 1771891246.793068,
+      "type": "artifact",
+      "artifact_type": "events",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-000046-408364\\events.ndjson"
+    },
+    {
+      "ts": 1771891246.7938826,
+      "type": "artifact",
+      "artifact_type": "stdout",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-000046-408364\\stdout.log"
+    },
+    {
+      "ts": 1771891246.7946932,
+      "type": "artifact",
+      "artifact_type": "json",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-000046-408364\\results.json"
+    },
+    {
+      "ts": 1771891246.7953997,
+      "type": "artifact",
+      "artifact_type": "junit",
+      "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-000046-408364\\results.junit.xml"
+    },
+    {
+      "ts": 1771891246.796073,
+      "type": "run_finished",
+      "status": "failed",
+      "duration_sec": 0.20526766777038574
+    }
+  ],
+  "evidence": {
+    "logs": [
+      {
+        "ts": 1771891246.5694685,
+        "level": "info",
+        "message": "run started",
+        "data": {
+          "run_id": "run-20260224-000046-408364",
+          "test_ids": [
+            "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+            "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+            "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts"
+          ]
+        }
+      },
+      {
+        "ts": 1771891246.7767825,
+        "level": "info",
+        "message": "Traceback (most recent call last):",
+        "step_id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+      },
+      {
+        "ts": 1771891246.7778983,
+        "level": "info",
+        "message": "  File \"C:\\Users\\lmraz\\Hello\\scripts\\salesnav_workflow_step.py\", line 17, in <module>",
+        "step_id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+      },
+      {
+        "ts": 1771891246.7789457,
+        "level": "info",
+        "message": "    from services.web_automation.browser.core.workflow import BrowserWorkflow",
+        "step_id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+      },
+      {
+        "ts": 1771891246.7798548,
+        "level": "info",
+        "message": "ModuleNotFoundError: No module named 'services'",
+        "step_id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+      }
+    ],
+    "commands": [
+      {
+        "ts": 1771891246.5742197,
+        "command": [
+          "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+          "scripts/salesnav_workflow_step.py",
+          "--step",
+          "dismiss_notifications_overlay",
+          "--state-file",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-000046-408364/artifacts/workflow.salesnav.collect_companies_5/state.json",
+          "--artifacts-dir",
+          "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-000046-408364/artifacts/workflow.salesnav.shared/dismiss_notifications_overlay"
+        ],
+        "cwd": "C:\\Users\\lmraz\\Hello",
+        "step_id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay"
+      }
+    ],
+    "network_calls": [],
+    "artifacts": [
+      {
+        "ts": 1771891246.7930653,
+        "type": "events",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-000046-408364\\events.ndjson",
+        "meta": {}
+      },
+      {
+        "ts": 1771891246.7938802,
+        "type": "stdout",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-000046-408364\\stdout.log",
+        "meta": {}
+      },
+      {
+        "ts": 1771891246.7946913,
+        "type": "json",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-000046-408364\\results.json",
+        "meta": {}
+      },
+      {
+        "ts": 1771891246.795398,
+        "type": "junit",
+        "path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-000046-408364\\results.junit.xml",
+        "meta": {}
+      }
+    ],
+    "verification": [
+      {
+        "ts": 1771891246.7914407,
+        "source": "worker.run_finished",
+        "status": "failed",
+        "tests": [
+          {
+            "id": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+            "status": "passed",
+            "duration_sec": 0.0,
+            "message": "passed (cache satisfied)",
+            "label": "python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab",
+            "cached": true,
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "mocked_or_unit",
+              "browser_evidence": false,
+              "flagged": false,
+              "line_count": 0
+            }
+          },
+          {
+            "id": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+            "status": "failed",
+            "duration_sec": 0.20082426071166992,
+            "message": "exit code 1",
+            "label": "python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay",
+            "cache_key": "c95b1bd216a234be7040b23d503e2e922ca15ec0f4744275e0435b2db7d429cf",
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "mocked_or_unit",
+              "browser_evidence": false,
+              "flagged": false,
+              "line_count": 4
+            }
+          },
+          {
+            "id": "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts",
+            "status": "passed",
+            "duration_sec": 0.0,
+            "message": "passed (cache satisfied)",
+            "label": "python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts",
+            "cached": true,
+            "evidence": {
+              "expected": "mocked_or_unit",
+              "observed": "mocked_or_unit",
+              "browser_evidence": false,
+              "flagged": false,
+              "line_count": 0
+            }
+          }
+        ],
+        "duration_sec": 0.20526766777038574
+      },
+      {
+        "ts": 1771891246.7923608,
+        "source": "launcher.dependency_analysis",
+        "planned_edges": 2,
+        "observed_edges": 1,
+        "missing_planned_edges": 0,
+        "unexpected_observed_edges": 0
+      }
+    ]
+  },
+  "changes": []
+}

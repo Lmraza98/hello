@@ -54,8 +54,15 @@ export function useGraphModels({
       const aid = String(aggregateId || "").trim();
       if (!aid) return null;
       const aggregateNode = nodeById.get(aid);
-      const children = Array.isArray(aggregateNode?.aggregateChildren) ? aggregateNode.aggregateChildren : [];
-      if (!children.length) return null;
+      const allChildren = Array.isArray(aggregateNode?.aggregateChildren) ? aggregateNode.aggregateChildren : [];
+      if (!allChildren.length) return null;
+      const workflowChildren = allChildren.filter((child: any) => {
+        const childGroup = String(child?.childGroup || child?.child_group || "").toLowerCase();
+        const rawId = String(child?.id || child?.rawChildKey || "").toLowerCase();
+        return childGroup.includes("workflow") || rawId.includes("::workflow.");
+      });
+      // Prefer workflow lane when available so aggregate graph reflects actionable E2E flow.
+      const children = workflowChildren.length > 0 ? workflowChildren : allChildren;
       const canonicalByRaw = new Map<string, string>();
       const toCanonical = (raw: string) => canonicalChildId(aid, String(raw || ""));
       const nodesOut = children
@@ -64,6 +71,15 @@ export function useGraphModels({
           const canonicalId = toCanonical(rawId);
           if (rawId) canonicalByRaw.set(rawId, canonicalId);
           canonicalByRaw.set(canonicalId, canonicalId);
+          const childGroup = String(child?.childGroup || child?.child_group || "").trim() || "Component Tests";
+          const childLane =
+            typeof child?.childLane === "number"
+              ? Number(child.childLane)
+              : (typeof child?.child_lane === "number" ? Number(child.child_lane) : (childGroup.toLowerCase().includes("workflow") ? 0 : 1));
+          const childOrder =
+            typeof child?.childOrder === "number"
+              ? Number(child.childOrder)
+              : (typeof child?.child_order === "number" ? Number(child.child_order) : 999999);
           return {
             id: canonicalId,
             rawChildKey: rawId,
@@ -73,9 +89,19 @@ export function useGraphModels({
             durationMs: child?.durationMs,
             suiteId: String(aggregateNode?.suiteId || "aggregate"),
             tags: ["child"],
+            childGroup,
+            childLane,
+            childOrder,
           };
         })
         .filter((n: any) => String(n?.id || "").length > 0);
+      nodesOut.sort((a: any, b: any) => {
+        const laneDelta = Number(a?.childLane || 1) - Number(b?.childLane || 1);
+        if (laneDelta !== 0) return laneDelta;
+        const orderDelta = Number(a?.childOrder || 999999) - Number(b?.childOrder || 999999);
+        if (orderDelta !== 0) return orderDelta;
+        return String(a?.name || "").localeCompare(String(b?.name || ""));
+      });
       const ids = new Set(nodesOut.map((n) => n.id));
       const explicitEdges: GraphEdgeLike[] = [];
       children.forEach((child: any) => {
@@ -104,8 +130,8 @@ export function useGraphModels({
         const summaryChild = String(aggregateNode?.aggregateSummary?.activeChildId || "").trim();
         if (summaryChild) return canonicalChildId(aid, summaryChild);
         const pickByStatus = (status: string) => {
-          for (let idx = children.length - 1; idx >= 0; idx -= 1) {
-            const row = children[idx];
+          for (let idx = allChildren.length - 1; idx >= 0; idx -= 1) {
+            const row = allChildren[idx];
             if (String(row?.status || "").toLowerCase() !== status) continue;
             const childId = String(row?.id || row?.rawChildKey || "");
             if (childId) return canonicalChildId(aid, childId);
@@ -148,14 +174,19 @@ export function useGraphModels({
     if (!aggregateNode?.aggregateSummary) return null;
     const built = buildAggregateChildrenModel(aggregateId);
     if (!built) return null;
-    const suiteNodes = Array.isArray(nodes) ? nodes : [];
-    const combinedNodes = [...suiteNodes, ...built.nodes];
+    // Keep inline aggregate view focused on one aggregate tree:
+    // parent aggregate node + child DAG, without suite-wide node fan-out.
+    const aggregateRootNode = {
+      ...aggregateNode,
+      status: String(aggregateNode?.status || "not_run"),
+    };
+    const combinedNodes = [aggregateRootNode, ...built.nodes];
     const combinedEdges = [
-      ...(Array.isArray(edges) ? edges : []).map((e: any) => ({ ...e, semantic: e?.semantic !== false })),
+      ...built.connectorEdges,
       ...built.childEdges,
     ];
     return { aggregateId, nodes: combinedNodes, edges: combinedEdges, activeChildId: built.activeChildId };
-  }, [graphScope, selectedNodeId, nodeById, buildAggregateChildrenModel, nodes, edges]);
+  }, [graphScope, selectedNodeId, nodeById, buildAggregateChildrenModel]);
 
   const childDagSourceNodes = useMemo(() => {
     if (inlineAggregateGraph?.nodes?.length) return inlineAggregateGraph.nodes;

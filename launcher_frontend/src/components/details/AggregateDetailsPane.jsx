@@ -163,6 +163,9 @@ export default function AggregateDetailsPane({
                     >
                       <div className="min-w-0">
                         <div className="truncate text-[11px] text-slate-200">{child.name}</div>
+                        <div className="truncate text-[10px] text-slate-500">
+                          {String(child.childGroup || child.child_group || "Component Tests")}
+                        </div>
                         <div className="truncate text-[10px] text-slate-500">{child.filePath}</div>
                       </div>
                       <div className="flex shrink-0 items-center gap-1">

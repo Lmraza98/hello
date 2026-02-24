@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="launcher-run" tests="3" failures="1" skipped="0" time="0.205">
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab" time="0.000">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay" time="0.201">
+    <failure message="exit code 1"/>
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.query_builder.account_search_contracts" time="0.000">
+  </testcase>
+</testsuite>

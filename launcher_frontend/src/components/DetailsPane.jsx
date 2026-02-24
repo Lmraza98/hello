@@ -223,15 +223,30 @@ export default function DetailsPane({
     let rows = aggregateChildren;
     const q = childSearch.trim().toLowerCase();
     if (q) {
-      rows = rows.filter((row) => `${row.name || ""} ${row.filePath || ""} ${row.id || ""}`.toLowerCase().includes(q));
+      rows = rows.filter((row) =>
+        `${row.name || ""} ${row.filePath || ""} ${row.id || ""} ${row.childGroup || row.child_group || ""}`.toLowerCase().includes(q)
+      );
     }
     if (childFilter !== "all") rows = rows.filter((row) => String(row.status || "not_run") === childFilter);
     const statusRank = { failed: 0, running: 1, not_run: 2, blocked: 2, passed: 3, skipped: 4 };
+    const groupRank = (row) => {
+      const group = String(row?.childGroup || row?.child_group || "").toLowerCase();
+      return group.includes("workflow") ? 0 : 1;
+    };
     const sorted = [...rows];
-    if (childSort === "name") sorted.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+    if (childSort === "name") {
+      sorted.sort((a, b) => {
+        const g = groupRank(a) - groupRank(b);
+        if (g !== 0) return g;
+        return String(a.name || "").localeCompare(String(b.name || ""));
+      });
+    }
     else if (childSort === "duration_desc") sorted.sort((a, b) => Number(b.durationMs || 0) - Number(a.durationMs || 0));
     else {
       sorted.sort((a, b) => {
+        const ga = groupRank(a);
+        const gb = groupRank(b);
+        if (ga !== gb) return ga - gb;
         const ra = statusRank[String(a.status || "not_run")] ?? 99;
         const rb = statusRank[String(b.status || "not_run")] ?? 99;
         if (ra !== rb) return ra - rb;

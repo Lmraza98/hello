@@ -1,0 +1,20 @@
+{
+  "label": "query_builder_people_search_uses_sales_company_url_for_org_id",
+  "nodeids": [
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn"
+  ],
+  "returncode": 0,
+  "duration_sec": 1.1011645793914795,
+  "command": [
+    "C:\\Users\\lmraz\\Hello\\venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_uses_sales_company_url_for_org_id",
+    "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_people_search_url_supports_current_company_urn",
+    "--junitxml=C:/Users/lmraz/Hello/data/launcher_runs/run-20260224-001151-532363/artifacts/workflow.salesnav.query_builder/people_search_uses_sales_company_url_for_org_id/junit.xml"
+  ],
+  "output_path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-001151-532363\\artifacts\\workflow.salesnav.query_builder\\people_search_uses_sales_company_url_for_org_id\\pytest_output.txt",
+  "junit_path": "C:\\Users\\lmraz\\Hello\\data\\launcher_runs\\run-20260224-001151-532363\\artifacts\\workflow.salesnav.query_builder\\people_search_uses_sales_company_url_for_org_id\\junit.xml"
+}

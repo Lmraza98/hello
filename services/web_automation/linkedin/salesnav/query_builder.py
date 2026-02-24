@@ -383,6 +383,60 @@ def _as_string_list(value: Any) -> list[str]:
     return [text] if text else []
 
 
+def infer_industry_from_query_text(query: Any) -> str | None:
+    """
+    Deterministically infer account industry text from a free-form query, using
+    canonical SalesNav catalogs/IDs as the grounding source.
+    """
+    text = _clean(query)
+    if not text:
+        return None
+    low = _norm(text)
+
+    # Prefer explicit "X industry/sector/market" phrasing.
+    m = re.search(r"\b(?:in|for)\s+the\s+([a-z0-9&,\-/ ]+?)\s+(?:industry|sector|market)\b", low)
+    candidate = _clean(m.group(1)) if m else ""
+
+    synonym_to_canonical = {
+        "tech": "Technology, Information and Internet",
+        "technology": "Technology, Information and Internet",
+        "software": "Technology, Information and Internet",
+        "healthcare": "Hospitals and Health Care",
+        "health care": "Hospitals and Health Care",
+        "hospital": "Hospitals and Health Care",
+        "construction": "Construction",
+        "finance": "Financial Services",
+        "financial services": "Financial Services",
+        "fintech": "Financial Services",
+        "banking": "Financial Services",
+        "bank": "Financial Services",
+    }
+
+    def _resolve(raw: str) -> str | None:
+        value = _clean(raw)
+        if not value:
+            return None
+        norm = _norm(value)
+        if norm in synonym_to_canonical:
+            return synonym_to_canonical[norm]
+        catalog = _load_salesnav_filter_catalog_options().get("industry", set())
+        if norm in catalog and _lookup_filter_id("INDUSTRY", value, _INDUSTRY_ID_BY_NAME):
+            return value
+        return None
+
+    resolved = _resolve(candidate)
+    if resolved:
+        return resolved
+
+    # Fallback token scan for common industry anchors in full query text.
+    for token, canonical in synonym_to_canonical.items():
+        if re.search(rf"(^|[^a-z0-9]){re.escape(token)}([^a-z0-9]|$)", low):
+            if _lookup_filter_id("INDUSTRY", canonical, _INDUSTRY_ID_BY_NAME):
+                return canonical
+
+    return None
+
+
 def _encode_text(text: str) -> str:
     return quote(text, safe="")
 
@@ -433,21 +487,68 @@ def _parse_annual_revenue_range(value: str) -> tuple[float, float] | None:
 
 
 def _build_industry_clause(raw: Any) -> tuple[str | None, dict[str, Any] | None, dict[str, str] | None]:
+    def _canonicalize_industry_value(value: str) -> str:
+        text = _clean(value)
+        low = _norm(text)
+        if not low:
+            return text
+
+        # Strip common noisy wrappers produced by NL decomposition.
+        low = re.sub(r"\b(companies?|businesses|organizations?|orgs)\b", " ", low)
+        low = re.sub(r"\b(in|within|for|the|industry|sector|market)\b", " ", low)
+        low = re.sub(r"\s+", " ", low).strip(" ,.;")
+
+        synonym_map = {
+            "tech": "Technology, Information and Internet",
+            "technology": "Technology, Information and Internet",
+            "software": "Technology, Information and Internet",
+            "healthcare": "Hospitals and Health Care",
+            "health care": "Hospitals and Health Care",
+            "hospital": "Hospitals and Health Care",
+            "construction": "Construction",
+            "finance": "Financial Services",
+            "financial services": "Financial Services",
+            "fintech": "Financial Services",
+            "banking": "Financial Services",
+            "bank": "Financial Services",
+        }
+        if low in synonym_map:
+            return synonym_map[low]
+
+        # Token-level fallback for phrases like "companies in the tech".
+        if "tech" in low or "technology" in low or "software" in low:
+            return "Technology, Information and Internet"
+        if "health" in low or "hospital" in low:
+            return "Hospitals and Health Care"
+        if "construction" in low:
+            return "Construction"
+        if "finance" in low or "fintech" in low or "bank" in low:
+            return "Financial Services"
+
+        # If exact catalog text exists, preserve original casing from input.
+        catalog = _load_salesnav_filter_catalog_options().get("industry", set())
+        if low in catalog:
+            return text
+        return text
+
     values = _as_string_list(raw)
     if not values:
         return None, None, None
     parts: list[str] = []
     resolved: list[dict[str, str]] = []
-    for value in values:
+    normalized_values: list[str] = []
+    for raw_value in values:
+        value = _canonicalize_industry_value(raw_value)
         industry_id = _lookup_filter_id("INDUSTRY", value, _INDUSTRY_ID_BY_NAME)
         if not industry_id:
             known_catalog = _norm(value) in _load_salesnav_filter_catalog_options().get("industry", set())
             reason = "known_industry_missing_id_mapping" if known_catalog else "unmapped_industry_id"
-            return None, None, {"filter": "industry", "value": value, "reason": reason}
+            return None, None, {"filter": "industry", "value": raw_value, "reason": reason}
         parts.append(f"(id:{industry_id},text:{_encode_text(value)},selectionType:INCLUDED)")
         resolved.append({"id": industry_id, "text": value})
+        normalized_values.append(value)
     clause = f"(type:INDUSTRY,values:List({','.join(parts)}))"
-    return clause, {"value": values, "applied": True, "resolved": resolved, "source": "url_query"}, None
+    return clause, {"value": normalized_values, "applied": True, "resolved": resolved, "source": "url_query"}, None
 
 
 def _build_headcount_clause(raw: Any) -> tuple[str | None, dict[str, Any] | None, dict[str, str] | None]:

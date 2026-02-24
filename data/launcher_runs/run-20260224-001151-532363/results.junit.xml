@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="launcher-run" tests="4" failures="1" skipped="0" time="2.623">
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.collect_companies_5.open_or_reuse_tab" time="0.000">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.shared.dismiss_notifications_overlay" time="0.200">
+    <failure message="exit code 1"/>
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.query_builder.people_search_rejects_unmapped_values" time="1.204">
+  </testcase>
+  <testcase classname="launcher" name="python-salesnav-core::workflow.salesnav.query_builder.people_search_uses_sales_company_url_for_org_id" time="1.204">
+  </testcase>
+</testsuite>

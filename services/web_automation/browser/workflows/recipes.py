@@ -138,37 +138,6 @@ async def _emit_progress(progress_cb: ProgressCallback, pct: int, stage: str, di
 
 # ── NL query detection and decomposition ─────────────────────────────
 
-_NL_PHRASES = re.compile(
-    r"\b(specializing in|focused on|that (?:provide|offer|build|do)|"
-    r"for the|in the|with expertise|powered by|based in|"
-    r"looking for|targeting|companies that)\b",
-    re.IGNORECASE,
-)
-_TARGET_MARKET_RE = re.compile(
-    r"\bfor\s+(?:the\s+)?([a-z0-9&,\-/ ]+?)\s+(?:industry|sector|market)\b",
-    re.IGNORECASE,
-)
-_TARGET_MARKET_RE_STRICT = re.compile(
-    r"\bfor\s+the\s+([a-z0-9&,\-/ ]+?)\s+(?:industry|sector|market)\b",
-    re.IGNORECASE,
-)
-_INDUSTRY_MAP = {
-    "healthcare": "Hospitals and Health Care",
-    "health care": "Hospitals and Health Care",
-    "hospital": "Hospitals and Health Care",
-    "hospitals": "Hospitals and Health Care",
-    "technology": "Technology, Information and Internet",
-    "tech": "Technology, Information and Internet",
-    "software": "Technology, Information and Internet",
-    "construction": "Construction",
-    "finance": "Financial Services",
-    "financial services": "Financial Services",
-    "fintech": "Financial Services",
-    "banking": "Financial Services",
-    "manufacturing": "Manufacturing",
-    "real estate": "Real Estate",
-}
-
 
 async def _diagnose_empty_extraction(
     wf: BrowserWorkflow,
@@ -247,19 +216,6 @@ async def _diagnose_empty_extraction(
     return diagnosis
 
 
-def _is_natural_language(query: str) -> bool:
-    """Return True if the query looks like a natural language sentence rather than keywords."""
-    q = (query or "").strip()
-    if not q:
-        return False
-    word_count = len(q.split())
-    if word_count >= 6:
-        return True
-    if _NL_PHRASES.search(q):
-        return True
-    return False
-
-
 def _decompose_salesnav_query(query: str) -> dict[str, Any] | None:
     """Use GPT-4 to decompose a NL query into SalesNav keywords + filters."""
     try:
@@ -267,45 +223,7 @@ def _decompose_salesnav_query(query: str) -> dict[str, Any] | None:
         return parse_salesnav_query(query)
     except Exception as exc:
         logger.warning("[NL decomposition] GPT-4 parse failed: %s", exc)
-        # Deterministic fallback: preserve target market extraction for
-        # "X for the Y industry/sector/market" phrasing.
-        text = _clean_text(query)
-        if not text:
-            return None
-
-        industry_values: list[str] = []
-        keywords_text = text
-        matches = list(_TARGET_MARKET_RE_STRICT.finditer(text)) or list(_TARGET_MARKET_RE.finditer(text))
-        market = matches[-1] if matches else None
-        if market:
-            market_text = _clean_text(market.group(1)).strip(" ,.;")
-            raw_market = market_text.lower()
-            canonical = _INDUSTRY_MAP.get(raw_market, market_text)
-            if canonical:
-                industry_values = [canonical]
-            start, end = market.span()
-            keywords_text = f"{keywords_text[:start]} {keywords_text[end:]}"
-
-        keywords_text = re.sub(
-            r"^\s*search for (?:these )?companies(?: on sales navigator)?\s*",
-            "",
-            keywords_text,
-            flags=re.IGNORECASE,
-        )
-        keywords_text = re.sub(r"\bcompanies?\b", " ", keywords_text, flags=re.IGNORECASE)
-        keywords_text = re.sub(r"\bspecializing in\b", " ", keywords_text, flags=re.IGNORECASE)
-        keywords_text = _clean_text(keywords_text).strip(" ,.;")
-        keywords = [keywords_text] if keywords_text else []
-
-        return {
-            "industry": industry_values,
-            "headquarters_location": [],
-            "company_headcount": None,
-            "annual_revenue": None,
-            "company_headcount_growth": None,
-            "number_of_followers": None,
-            "keywords": keywords,
-        }
+        return None
 
 
 def _clean_text(value: Any) -> str:
@@ -338,18 +256,6 @@ def _as_bool(value: Any, default: bool = False) -> bool:
     return default
 
 
-def _single_salesnav_keyword(value: str) -> str:
-    """Reduce a free-form query to a single keyword token for SalesNav search input."""
-    text = _clean_text(value)
-    if not text:
-        return ""
-    for token in re.split(r"\s+", text):
-        cleaned = token.strip(" ,.;:!?'\"()[]{}")
-        if cleaned:
-            return cleaned
-    return text
-
-
 def _extract_org_id_from_company_url(value: Any) -> str | None:
     text = _clean_text(value)
     if not text:
@@ -374,17 +280,6 @@ def _normalize_company_urn(value: Any) -> str | None:
     if re.fullmatch(r"\d+", raw):
         return f"urn:li:organization:{raw}"
     return None
-
-
-def _derive_people_filters_from_query(query: str) -> dict[str, str]:
-    lowered = _clean_text(query).lower()
-    out: dict[str, str] = {}
-    if "vp of operations" in lowered or "vice president of operations" in lowered:
-        out["function"] = "Operations"
-        out["seniority_level"] = "Vice President"
-    if any(tok in lowered for tok in ["united states", "u.s.", "usa", "us-based"]):
-        out["headquarters_location"] = "United States"
-    return out
 
 
 def _extract_field_names(wf: BrowserWorkflow, kind: str) -> tuple[str, str]:
@@ -1042,14 +937,17 @@ async def search_and_extract(
     decomposition_used = False
     original_query = query
 
-    if task in salesnav_url_tasks and _is_natural_language(query):
+    if task in salesnav_url_tasks:
         try:
             parsed = _decompose_salesnav_query(query)
             if parsed:
                 decomposition_used = True
-                # Use extracted keywords for the search box (or short original if no keywords)
-                kw = parsed.get("keywords") or []
-                effective_query = " ".join(kw) if kw else query.split()[0] if query.strip() else query
+                # Use parser-provided keywords directly (LLM-owned behavior).
+                kw_raw = parsed.get("keywords") or []
+                if not isinstance(kw_raw, list):
+                    kw_raw = [kw_raw] if kw_raw else []
+                kw_tokens = [str(raw).strip() for raw in kw_raw if str(raw).strip()]
+                effective_query = " ".join(kw_tokens)
 
                 # Merge parsed filters into filter_values.
                 # Keep explicit caller-provided filters as the highest priority.
@@ -1096,10 +994,6 @@ async def search_and_extract(
                     resolved = _first_scalar(parsed.get(key))
                     if resolved:
                         effective_filters[key] = resolved
-                if task in salesnav_people_tasks:
-                    for key, value in _derive_people_filters_from_query(query).items():
-                        if key not in effective_filters:
-                            effective_filters[key] = value
 
                 logger.info(
                     "[NL decomposition] query=%r -> keywords=%r, filters=%r",
@@ -1107,13 +1001,18 @@ async def search_and_extract(
                 )
         except Exception as exc:
             logger.warning("[NL decomposition] Failed, using raw query: %s", exc)
-    if task in salesnav_account_tasks:
-        # Keep SalesNav keyword searches human-like and stable:
-        # exactly one keyword token per search.
-        effective_query = _single_salesnav_keyword(effective_query)
-    elif task in salesnav_people_tasks and compound_lead_mode:
-        # Compound lead phases should avoid verbose people keywords.
-        effective_query = _single_salesnav_keyword(effective_query)
+    if task in salesnav_url_tasks and not decomposition_used:
+        # Do not inject the entire natural-language prompt into SalesNav keywords
+        # when the parser is unavailable (for example model/API connectivity issues).
+        # If we already have structured filters, run filter-only search; otherwise fail fast.
+        effective_query = ""
+        if not effective_filters:
+            return error_result(
+                wf,
+                "salesnav_decomposition_unavailable",
+                "SalesNav query decomposition is unavailable and no structured filters were provided.",
+                parser_available=False,
+            )
 
     applied_filters: dict[str, Any] = {}
     people_search_meta: dict[str, Any] = {}
