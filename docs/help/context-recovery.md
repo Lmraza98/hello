@@ -43,6 +43,7 @@ python scripts/docs_link_audit.py
 - Browser + SalesNav automation:
   - [Browser automation](/concepts/browser-automation)
   - [Sales Navigator automation](/SALESNAV_AUTOMATION)
+  - [Launcher frontend architecture](/help/launcher-frontend-architecture)
 - Chat + planning:
   - [Chat model routing](/concepts/chat-model-routing)
   - [Tool planner tiering](/concepts/tool-planner-tiering)

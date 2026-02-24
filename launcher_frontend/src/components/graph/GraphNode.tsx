@@ -114,8 +114,8 @@ function GraphNode({
 }
 
 function areEqual(prev: GraphNodeProps, next: GraphNodeProps) {
-  const pn = prev.node || {};
-  const nn = next.node || {};
+  const pn = prev.node;
+  const nn = next.node;
   return (
     pn.id === nn.id &&
     pn.x === nn.x &&

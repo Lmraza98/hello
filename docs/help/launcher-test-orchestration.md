@@ -17,6 +17,8 @@ This topic was split into focused guides to keep maintenance and scanning fast.
   - Running tests, follow/playback behavior, filters, run history, troubleshooting, validation checks.
 - Developer Contract: `docs/help/launcher-test-developer-contract.md`
   - Architecture, manifest/protocol contracts, runtime guarantees, API table, and integration invariants.
+- Frontend Architecture: `docs/help/launcher-frontend-architecture.md`
+  - `launcher_frontend/src/app` module ownership, root composition flow, reducer domains, selectors/ctx packagers, and extension rules.
 
 ## Quick Summary
 

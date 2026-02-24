@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import type { RunEvent } from "../../lib/graph/types";
 
 function relTime(ts: number, start: number) {
   if (!Number.isFinite(ts) || !Number.isFinite(start)) return "+0.0s";
@@ -20,7 +21,7 @@ export default function ChildRunFallbackView({
   childName: string;
   status: string;
   elapsedMs?: number;
-  events: any[];
+  events: RunEvent[];
   logs: string[];
   runId?: string;
   attemptId?: string | number;
@@ -68,7 +69,7 @@ export default function ChildRunFallbackView({
             </div>
           ) : (
             <div>
-              {events.map((ev: any, idx: number) => (
+              {events.map((ev, idx: number) => (
                 <div key={ev.id || `${idx}-${ev.ts}`} className="border-b border-slate-800/60 px-2 py-1.5 text-xs">
                   <div className="text-[10px] text-slate-500">{relTime(Number(ev.ts || 0), baseTs)}</div>
                   <div className="truncate text-slate-200">{ev.message || ev.type}</div>
@@ -94,4 +95,3 @@ export default function ChildRunFallbackView({
     </div>
   );
 }
-

@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node src/app/App/utils/utils.test.js"
+    "test": "node src/app/utils/utils.test.ts",
+    "typecheck": "node ../ui/node_modules/typescript/lib/tsc.js -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "lucide-react": "^0.562.0",

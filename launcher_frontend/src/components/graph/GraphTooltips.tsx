@@ -1,6 +1,23 @@
 import React, { useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Z_GRAPH_TOOLTIPS, TOPBAR_HEIGHT } from "../../lib/zIndex";
+import type { GraphNodeLike } from "./graphTypes";
+
+type NodePos = { x: number; y: number; width: number; height: number };
+
+type GraphTooltipsProps = {
+  hoveredNode: GraphNodeLike | null;
+  hoveredNodePos: NodePos | null;
+  zoom: number;
+  overlayTick: number;
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+  inspectorNode: GraphNodeLike | null;
+  inspectorNodePos: NodePos | null;
+  inspectorRef: React.RefObject<HTMLDivElement | null>;
+  inspectorPinned: boolean;
+  setInspectorPinned: (value: boolean | ((prev: boolean) => boolean)) => void;
+  setOpenInspectorNodeId: (value: string) => void;
+};
 
 export function GraphTooltips({
   hoveredNode,
@@ -14,10 +31,10 @@ export function GraphTooltips({
   inspectorPinned,
   setInspectorPinned,
   setOpenInspectorNodeId,
-}: any) {
+}: GraphTooltipsProps) {
   return null;
 
-  function computePopupPosition(pos: any, width = 260, height = 110) {
+  function computePopupPosition(pos: NodePos, width = 260, height = 110) {
     const container = scrollRef?.current;
     if (!container || !pos) return null;
     const rect = container.getBoundingClientRect();

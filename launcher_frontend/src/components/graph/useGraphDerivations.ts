@@ -2,6 +2,10 @@ import React, { useMemo } from "react";
 import { buildAdjacency, buildExecutionPath, buildRuntimeNodeMap, collectBlockedChain, computeStatusCounts } from "./graphUtils";
 import { collectReachable } from "./graphViewUtils";
 import type { GraphEdgeLike, GraphNodeLike, GraphScope } from "./graphTypes";
+import type { RunEvent } from "../../lib/graph/types";
+import type { PlaybackEntry } from "./usePlaybackEntries";
+
+type RuntimeEventLike = RunEvent | PlaybackEntry;
 
 export function useGraphDerivations({
   nodes,
@@ -43,9 +47,9 @@ export function useGraphDerivations({
   scopedFilteredNodes: GraphNodeLike[];
   scopedFilteredEdges: GraphEdgeLike[];
   childMetaById: Map<string, GraphNodeLike>;
-  events: any[];
-  childScopeEvents: any[];
-  currentEvent: any;
+  events: RuntimeEventLike[];
+  childScopeEvents: RuntimeEventLike[];
+  currentEvent: RuntimeEventLike | null;
   currentNodeId: string;
   highlightMode: "upstream" | "downstream" | "both" | "none";
   query: string;
@@ -64,8 +68,8 @@ export function useGraphDerivations({
 
     const aggregateIds = new Set(
       (nodes || [])
-        .filter((n: any) => Boolean(n?.aggregateSummary))
-        .map((n: any) => String(n?.id || ""))
+        .filter((n) => Boolean(n?.aggregateSummary))
+        .map((n) => String(n?.id || ""))
         .filter(Boolean)
     );
     const selectedRoot = rawSelected.includes("::") ? String(rawSelected.split("::")[0] || "") : rawSelected;
@@ -82,7 +86,7 @@ export function useGraphDerivations({
   }, [selectedNodeId, graphScope?.level, nodes, aggregateFilterEnabled, aggregateFilterApplies, aggregateFilterIds]);
 
   const semanticAdjacencyBaseEdges = useMemo(
-    () => (baseScopeEdges || []).filter((e: any) => e?.semantic !== false),
+    () => (baseScopeEdges || []).filter((e) => e?.semantic !== false),
     [baseScopeEdges]
   );
   const adjacency = useMemo(() => buildAdjacency(semanticAdjacencyBaseEdges), [semanticAdjacencyBaseEdges]);
@@ -107,7 +111,7 @@ export function useGraphDerivations({
     const q = query.trim().toLowerCase();
     if (!q) return new Set<string>();
     const set = new Set<string>();
-    searchableNodes.forEach((n: any) => {
+    searchableNodes.forEach((n) => {
       const hay = `${n.name || ""} ${n.filePath || ""} ${n.id || ""}`.toLowerCase();
       if (hay.includes(q)) set.add(n.id);
     });
@@ -123,7 +127,7 @@ export function useGraphDerivations({
     }
     const selected = new Set(aggregateFilterIds || []);
     const keep = new Set<string>();
-    (scopedFilteredNodes || []).forEach((n: any) => {
+    (scopedFilteredNodes || []).forEach((n) => {
       const id = String(n?.id || "");
       if (!id) return;
       for (const aid of selected) {
@@ -135,8 +139,8 @@ export function useGraphDerivations({
       if (Array.isArray(n?.tags) && n.tags.includes("entry")) keep.add(id);
     });
     return {
-      nodes: (scopedFilteredNodes || []).filter((n: any) => keep.has(String(n?.id || ""))),
-      edges: (scopedFilteredEdges || []).filter((e: any) => keep.has(String(e?.from || "")) && keep.has(String(e?.to || ""))),
+      nodes: (scopedFilteredNodes || []).filter((n) => keep.has(String(n?.id || ""))),
+      edges: (scopedFilteredEdges || []).filter((e) => keep.has(String(e?.from || "")) && keep.has(String(e?.to || ""))),
     };
   }, [aggregateFilterEnabled, aggregateFilterApplies, aggregateFilterIds, scopedFilteredNodes, scopedFilteredEdges]);
   const filteredNodes = filteredByAggregate.nodes;
@@ -147,7 +151,7 @@ export function useGraphDerivations({
     const selectedRoot = String(effectiveSelectedNodeId || "").split("::")[0] || "";
     if (selectedRoot && aggregateFilterIds.includes(selectedRoot)) return;
     const fallback = aggregateFilterIds.find((id) =>
-      (scopedFilteredNodes || []).some((n: any) => String(n?.id || "") === String(id || ""))
+      (scopedFilteredNodes || []).some((n) => String(n?.id || "") === String(id || ""))
     );
     if (fallback && String(fallback) !== String(selectedNodeId || "")) {
       onSelectNode(String(fallback));
@@ -156,8 +160,8 @@ export function useGraphDerivations({
 
   const statusById = useMemo(() => {
     const out = new Map<string, string>();
-    const ingest = (list: any[]) => {
-      (list || []).forEach((n: any) => {
+    const ingest = (list: GraphNodeLike[]) => {
+      (list || []).forEach((n) => {
         const id = String(n?.id || "");
         if (!id) return;
         out.set(id, String(n?.status || "not_run"));
@@ -174,7 +178,7 @@ export function useGraphDerivations({
   const unmetDepsByNode = useMemo(() => {
     const out: Record<string, string[]> = {};
     const base = scopedNodes.length ? scopedNodes : nodes;
-    base.forEach((n: any) => {
+    base.forEach((n) => {
       const nodeId = String(n?.id || "");
       const deps = adjacency.prev.get(nodeId) || [];
       out[nodeId] = deps.filter((d) => (statusById.get(String(d)) || "not_run") !== "passed");
@@ -183,10 +187,10 @@ export function useGraphDerivations({
   }, [scopedNodes, nodes, adjacency, statusById]);
 
   React.useEffect(() => {
-    const semanticScopedEdges = (filteredEdges || []).filter((e: any) => e.semantic !== false);
-    const nextScopedNodes = (filteredNodes || []).filter((n: any) => !(Array.isArray(n?.tags) && n.tags.includes("entry")));
-    const nodeSig = nextScopedNodes.map((n: any) => String(n?.id || "")).join("|");
-    const edgeSig = semanticScopedEdges.map((e: any) => `${String(e?.from || "")}->${String(e?.to || "")}`).join("|");
+    const semanticScopedEdges = (filteredEdges || []).filter((e) => e.semantic !== false);
+    const nextScopedNodes = (filteredNodes || []).filter((n) => !(Array.isArray(n?.tags) && n.tags.includes("entry")));
+    const nodeSig = nextScopedNodes.map((n) => String(n?.id || "")).join("|");
+    const edgeSig = semanticScopedEdges.map((e) => `${String(e?.from || "")}->${String(e?.to || "")}`).join("|");
     const sig = `${String(graphScope?.level || "suite")}::${nextScopedNodes.length}::${semanticScopedEdges.length}::${nodeSig}::${edgeSig}`;
     if (scopedGraphSigRef.current === sig) return;
     scopedGraphSigRef.current = sig;
@@ -198,9 +202,9 @@ export function useGraphDerivations({
   }, [onScopedGraphChange, filteredNodes, filteredEdges, graphScope?.level]);
 
   const cycleInfo = useMemo(() => {
-    const nodeIds = new Set((filteredNodes || []).map((n: any) => String(n?.id || "")));
+    const nodeIds = new Set<string>((filteredNodes || []).map((n) => String(n?.id || "")));
     const adj = new Map<string, string[]>();
-    (filteredEdges || []).forEach((e: any) => {
+    (filteredEdges || []).forEach((e) => {
       const from = String(e?.from || "");
       const to = String(e?.to || "");
       if (!nodeIds.has(from) || !nodeIds.has(to)) return;
@@ -224,7 +228,7 @@ export function useGraphDerivations({
       visiting.delete(id);
       visited.add(id);
     };
-    nodeIds.forEach((id) => {
+    nodeIds.forEach((id: string) => {
       if (!visited.has(id)) dfs(id);
     });
     return { hasCycle: cycleEdges.size > 0, cycleEdges };

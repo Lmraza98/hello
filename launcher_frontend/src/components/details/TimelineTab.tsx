@@ -1,5 +1,10 @@
 import React, { useMemo, useRef, useState } from "react";
 import { AlertCircle, Camera, CheckCircle2, Flag, PlayCircle, StickyNote } from "lucide-react";
+import type { RunEvent } from "../../lib/graph/types";
+
+type ScreenshotLike = {
+  url?: string;
+};
 
 function iconFor(type: string) {
   if (type === "started") return <PlayCircle className="h-3.5 w-3.5 text-sky-300" />;
@@ -21,10 +26,10 @@ export default function TimelineTab({
   selectedEventId,
   onSelectEvent,
 }: {
-  events: any[];
-  screenshotsById: Record<string, any>;
+  events: RunEvent[];
+  screenshotsById: Record<string, ScreenshotLike>;
   selectedEventId?: string;
-  onSelectEvent: (event: any, index: number) => void;
+  onSelectEvent: (event: RunEvent, index: number) => void;
 }) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const [scrollTop, setScrollTop] = useState(0);
@@ -58,7 +63,7 @@ export default function TimelineTab({
         style={{ height: viewportHeight }}
       >
         <div style={{ paddingTop: padTop, paddingBottom: padBottom }}>
-          {rows.map((ev: any, idx: number) => {
+          {rows.map((ev, idx: number) => {
             const absolute = start + idx;
             const selected = selectedEventId === ev.id;
             const shot = ev.screenshotId ? screenshotsById[ev.screenshotId] : null;

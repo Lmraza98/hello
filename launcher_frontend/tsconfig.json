@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": false,
+    "noImplicitAny": false,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "isolatedModules": true,
+    "useDefineForClassFields": true,
+    "skipLibCheck": true,
+    "types": ["vite/client", "node"],
+    "typeRoots": ["./node_modules/@types", "../ui/node_modules/@types"],
+    "baseUrl": "."
+  },
+  "include": ["src/**/*", "vite.config.js"],
+  "exclude": ["dist", "node_modules"]
+}

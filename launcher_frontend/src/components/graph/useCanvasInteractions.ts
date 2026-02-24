@@ -18,7 +18,7 @@ export function useCanvasInteractions({
   scrollRef: React.RefObject<HTMLDivElement | null>;
   zoom: number;
   setZoom: React.Dispatch<React.SetStateAction<number>>;
-  layout: { width: number; height: number; byId: Record<string, any> };
+  layout: { width: number; height: number; byId: Record<string, { x: number; y: number; width: number; height: number }> };
   filteredNodesLength: number;
   currentNodeId: string;
   followNodeId: string;

@@ -1,4 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
+import type { GraphEdgeLike, GraphNodeLike } from "./graphTypes";
+
+type NodePos = { x: number; y: number; width: number; height: number };
 
 export function useGraphViewport({
   scrollRef,
@@ -10,10 +13,10 @@ export function useGraphViewport({
   openInspectorNodeId,
 }: {
   scrollRef: React.RefObject<HTMLDivElement | null>;
-  layoutById: Record<string, any>;
+  layoutById: Record<string, NodePos>;
   zoom: number;
-  filteredNodes: any[];
-  filteredEdges: any[];
+  filteredNodes: GraphNodeLike[];
+  filteredEdges: GraphEdgeLike[];
   hoveredNodeId: string;
   openInspectorNodeId: string;
 }) {
@@ -83,7 +86,7 @@ export function useGraphViewport({
 
   const visibleNodeIds = useMemo(() => {
     if (!viewport.width || !viewport.height || !zoom) {
-      return new Set((filteredNodes || []).map((n: any) => String(n?.id || "")));
+      return new Set((filteredNodes || []).map((n) => String(n?.id || "")));
     }
     // Behavior lock: keep this exact culling margin formula.
     const margin = 220 / Math.max(zoom, 0.2);
@@ -92,7 +95,7 @@ export function useGraphViewport({
     const right = (viewport.left + viewport.width) / zoom + margin;
     const bottom = (viewport.top + viewport.height) / zoom + margin;
     const out = new Set<string>();
-    (filteredNodes || []).forEach((n: any) => {
+    (filteredNodes || []).forEach((n) => {
       const pos = layoutById[String(n?.id || "")];
       if (!pos) return;
       const nx1 = pos.x;
@@ -106,11 +109,11 @@ export function useGraphViewport({
   }, [filteredNodes, layoutById, viewport, zoom]);
 
   const renderedNodes = useMemo(
-    () => (filteredNodes || []).filter((n: any) => visibleNodeIds.has(String(n?.id || ""))),
+    () => (filteredNodes || []).filter((n) => visibleNodeIds.has(String(n?.id || ""))),
     [filteredNodes, visibleNodeIds]
   );
   const renderedEdges = useMemo(
-    () => (filteredEdges || []).filter((e: any) => visibleNodeIds.has(String(e?.from || "")) && visibleNodeIds.has(String(e?.to || ""))),
+    () => (filteredEdges || []).filter((e) => visibleNodeIds.has(String(e?.from || "")) && visibleNodeIds.has(String(e?.to || ""))),
     [filteredEdges, visibleNodeIds]
   );
 

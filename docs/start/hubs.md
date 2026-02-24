@@ -36,5 +36,6 @@ title: "Docs Hubs"
 - [FunctionGemma fine-tune workflow](/FUNCTIONGEMMA_FINETUNE)
 - [Documentation workflow](/help/documentation-workflow)
 - [Workflow Builder E2E testing](/help/workflow-builder-e2e-testing)
+- [Launcher frontend architecture](/help/launcher-frontend-architecture)
 - [Context recovery](/help/context-recovery)
 - [Repository map](/reference/repository-map)

@@ -1,4 +1,6 @@
 import type { NodeStatus, RunEvent, TestNode } from "../../lib/graph/types";
+import type { PathStep } from "../../lib/graph/playback/GraphPlaybackEngine";
+import type { NodeTransition } from "../../lib/graph/playback/transitions";
 
 export type GraphScope = {
   level: "suite" | "aggregate" | "child";
@@ -25,10 +27,13 @@ export type GraphNodeLike = TestNode & {
 
 export type GraphPlaybackMode = "timeline" | "path";
 
+export type GraphTransition = NodeTransition;
+export type GraphPathStep = PathStep;
+
 export type GraphPlaybackState = {
   mode?: GraphPlaybackMode;
-  transitions?: any[];
-  pathSteps?: any[];
+  transitions?: NodeTransition[];
+  pathSteps?: PathStep[];
   cursor?: number;
   isPlaying?: boolean;
   speed?: number;

@@ -1,5 +1,16 @@
 import { deriveChildDagModel, matchesChildNodeId } from "../../lib/graph/deriveChildDagModel";
 import type { GraphEdgeLike, GraphScope } from "./graphTypes";
+import type { GraphNodeLike } from "./graphTypes";
+import type { ChildProgressRow } from "../../app/types/contracts";
+import type { RunEvent, RunEventType } from "../../lib/graph/types";
+
+type EventLike = {
+  id?: string;
+  ts?: number;
+  type?: string;
+  nodeId?: string;
+  message?: string;
+};
 
 export function canonicalChildId(parentId: string, rawChildId: string) {
   const raw = String(rawChildId || "").trim();
@@ -23,9 +34,9 @@ export function buildAdjacency(edges: GraphEdgeLike[]) {
   return { next, prev };
 }
 
-export function buildRuntimeNodeMap(events: any[]) {
+export function buildRuntimeNodeMap(events: EventLike[]) {
   const out = new Map<string, { startedAt?: number; finishedAt?: number; terminalStatus?: string }>();
-  (Array.isArray(events) ? events : []).forEach((ev: any) => {
+  (Array.isArray(events) ? events : []).forEach((ev) => {
     const nodeId = String(ev?.nodeId || "");
     if (!nodeId) return;
     const ts = Number(ev?.ts || 0);
@@ -46,7 +57,7 @@ export function buildRuntimeNodeMap(events: any[]) {
   return out;
 }
 
-export function pathForEdge(from: any, to: any) {
+export function pathForEdge(from: { x: number; y: number; width: number; height: number }, to: { x: number; y: number; width: number; height: number }) {
   const x1 = from.x + from.width;
   const y1 = from.y + from.height / 2;
   const x2 = to.x;
@@ -56,7 +67,7 @@ export function pathForEdge(from: any, to: any) {
   return `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
 }
 
-export function nodeSequence(events: any[]) {
+export function nodeSequence(events: Array<{ focusNodeId?: string; nodeId?: string }>) {
   const seen = new Set<string>();
   const ids: string[] = [];
   events.forEach((ev) => {
@@ -92,15 +103,15 @@ export function buildExecutionPath({
   graphLevel,
   selectedNodeId,
 }: {
-  events: any[];
-  childScopeEvents: any[];
+  events: EventLike[];
+  childScopeEvents: EventLike[];
   graphLevel?: string;
   selectedNodeId: string;
 }) {
   const sourceEvents = graphLevel === "child" && Array.isArray(childScopeEvents) && childScopeEvents.length > 0 ? childScopeEvents : events;
   const ordered = (Array.isArray(sourceEvents) ? sourceEvents : [])
     .slice()
-    .sort((a: any, b: any) => {
+    .sort((a, b) => {
       const ta = Number(a?.ts || 0);
       const tb = Number(b?.ts || 0);
       if (ta !== tb) return ta - tb;
@@ -108,7 +119,7 @@ export function buildExecutionPath({
     });
   const compressed: string[] = [];
   let prev = "";
-  ordered.forEach((ev: any) => {
+  ordered.forEach((ev) => {
     const nodeId = String(ev?.nodeId || "");
     if (!nodeId || nodeId === prev) return;
     compressed.push(nodeId);
@@ -156,9 +167,9 @@ export function buildBaseContextSet({
   return keep;
 }
 
-export function computeStatusCounts(nodes: any[]) {
+export function computeStatusCounts(nodes: Array<{ status?: string }>) {
   const counts: Record<string, number> = { running: 0, passed: 0, failed: 0, blocked: 0, not_run: 0 };
-  (Array.isArray(nodes) ? nodes : []).forEach((n: any) => {
+  (Array.isArray(nodes) ? nodes : []).forEach((n) => {
     const status = n?.status || "not_run";
     if (counts[status] == null) counts.not_run += 1;
     else counts[status] += 1;
@@ -183,13 +194,13 @@ export function buildChildDagGraphModel({
   childAttemptById: Record<string, string | number>;
   selectedRunId: string;
   activeRunId: string;
-  bundledNodes: any[];
-  bundledEdges: any[];
-  childScopeEvents: any[];
-  childScopeProgress: any[];
-  nodeById: Map<string, any>;
+  bundledNodes: GraphNodeLike[];
+  bundledEdges: GraphEdgeLike[];
+  childScopeEvents: EventLike[];
+  childScopeProgress: ChildProgressRow[];
+  nodeById: Map<string, GraphNodeLike>;
   waitingFirstEvent: boolean;
-  events: any[];
+  events: EventLike[];
 }) {
   if (graphScope?.level !== "child") return null;
   const aggregateId = String(graphScope?.aggregateId || "");
@@ -199,16 +210,30 @@ export function buildChildDagGraphModel({
   const currentRunId = String(selectedRunId || activeRunId || "");
   const rawChildId = childId.startsWith(`${aggregateId}::`) ? childId.slice(`${aggregateId}::`.length) : childId;
   const realNodes = (bundledNodes || []).filter(
-    (n: any) =>
+    (n) =>
       n.id === childId || String(n.id).startsWith(`${childId}::`) || n.id === rawChildId || String(n.id).startsWith(`${rawChildId}::`)
   );
   const allEvents = Array.isArray(childScopeEvents) && childScopeEvents.length > 0 ? childScopeEvents : events;
-  const childEvents = (Array.isArray(allEvents) ? allEvents : []).filter((ev: any) => {
+  const childEvents = (Array.isArray(allEvents) ? allEvents : []).filter((ev) => {
     const nodeId = String(ev?.nodeId || "");
     return matchesChildNodeId(nodeId, childId) || matchesChildNodeId(nodeId, rawChildId);
   });
+  const normalizedChildEvents: RunEvent[] = childEvents.map((ev, idx) => {
+    const rawType = String(ev?.type || "note").toLowerCase();
+    const type: RunEventType =
+      rawType === "started" || rawType === "finished" || rawType === "assertion" || rawType === "screenshot" || rawType === "error"
+        ? (rawType as RunEventType)
+        : "note";
+    return {
+      id: String(ev?.id || `${childId}-ev-${idx}`),
+      ts: Number(ev?.ts || Date.now()),
+      type,
+      nodeId: String(ev?.nodeId || ""),
+      message: String(ev?.message || ""),
+    };
+  });
   const derived = deriveChildDagModel({
-    events: childEvents || [],
+    events: normalizedChildEvents || [],
     childId,
     childName: nodeById.get(childId)?.name || childId,
     suiteId: String(nodeById.get(childId)?.suiteId || "child"),
@@ -221,7 +246,7 @@ export function buildChildDagGraphModel({
       attemptId,
       source: "real" as const,
       nodes: realNodes,
-      edges: (bundledEdges || []).filter((e: any) => realNodes.some((n: any) => n.id === e.from) && realNodes.some((n: any) => n.id === e.to)),
+      edges: (bundledEdges || []).filter((e) => realNodes.some((n) => n.id === e.from) && realNodes.some((n) => n.id === e.to)),
       eventsMatchedCount: childEvents.length,
     };
   }
@@ -237,7 +262,7 @@ export function buildChildDagGraphModel({
       eventsMatchedCount: childEvents.length,
     };
   }
-  const progressRow = (Array.isArray(childScopeProgress) ? childScopeProgress : []).find((row: any) => String(row?.childId || "") === childId) || null;
+  const progressRow = (Array.isArray(childScopeProgress) ? childScopeProgress : []).find((row) => String(row?.childId || "") === childId) || null;
   const statusVal = String(progressRow?.status || nodeById.get(childId)?.status || "not_run").toLowerCase();
   const startedStatus = statusVal === "not_run" ? "not_run" : "passed";
   const runningStatus = statusVal === "failed" ? "failed" : statusVal === "passed" ? "passed" : "running";

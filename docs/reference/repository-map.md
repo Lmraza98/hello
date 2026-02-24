@@ -44,6 +44,16 @@ title: "Repository Map"
 - `ui/src/chat/*`: chat engine and tool orchestration.
 - `ui/src/services/workflows/*`: frontend workflow steps (UI interaction gates; data ops delegate to backend).
 
+## Launcher Frontend (`launcher_frontend/`)
+
+- `launcher_frontend/src/app/`: modular launcher UI architecture.
+  - `hooks/`: orchestration and domain hooks.
+  - `views/`: render-focused shell/tests/graph views.
+  - `state/`: reducer domains, selectors, and context builders.
+  - `utils/`: pure helper logic.
+  - `constants/`: layout/runtime constants.
+- Detailed module contract: `docs/help/launcher-frontend-architecture.md`.
+
 ## Documentation (`docs/`)
 
 - `docs/docs.json`: docs navigation + redirects.

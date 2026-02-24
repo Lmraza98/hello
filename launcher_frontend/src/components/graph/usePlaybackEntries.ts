@@ -1,5 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import type { GraphStateLike } from "./graphTypes";
+import type { RunEvent } from "../../lib/graph/types";
+import type { GraphPathStep, GraphTransition } from "./graphTypes";
 
 export type PlaybackEntry = {
   id: string;
@@ -19,20 +21,20 @@ export function usePlaybackEntries({
   childScopeEvents,
 }: {
   graphState: GraphStateLike;
-  events: any[];
-  childScopeEvents: any[];
+  events: RunEvent[];
+  childScopeEvents: RunEvent[];
 }) {
   const [transition, setTransition] = useState<{ from: string; to: string; until: number } | null>(null);
   const [eventBadgeByNode, setEventBadgeByNode] = useState<Record<string, string>>({});
   const prevCursorRef = useRef(0);
 
   const playbackMode = graphState.playback?.mode || "timeline";
-  const pathTransitions = graphState.playback?.transitions || [];
-  const pathSteps = graphState.playback?.pathSteps || [];
+  const pathTransitions: GraphTransition[] = graphState.playback?.transitions || [];
+  const pathSteps: GraphPathStep[] = graphState.playback?.pathSteps || [];
 
   const pathEventStream = useMemo(
     (): PlaybackEntry[] =>
-      (pathSteps || []).map((step: any, idx: number) => {
+      (pathSteps || []).map((step, idx: number) => {
         const tr = pathTransitions[Number(step?.transitionCursor ?? -1)] || null;
         return {
           id: String(step?.transitionId || tr?.id || `path-${idx}`),
@@ -50,8 +52,8 @@ export function usePlaybackEntries({
 
   const timelineEventStream = useMemo(
     (): PlaybackEntry[] => {
-      const allEvents = [...(events || []), ...(childScopeEvents || [])].sort((a: any, b: any) => Number(a?.ts || 0) - Number(b?.ts || 0));
-      return allEvents.map((ev: any) => ({
+      const allEvents = [...(events || []), ...(childScopeEvents || [])].sort((a, b) => Number(a?.ts || 0) - Number(b?.ts || 0));
+      return allEvents.map((ev) => ({
         id: String(ev?.id || ""),
         nodeId: String(ev?.nodeId || ""),
         type: String(ev?.type || "note"),

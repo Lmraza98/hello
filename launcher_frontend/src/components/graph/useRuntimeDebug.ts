@@ -1,11 +1,20 @@
 import React from "react";
+import type { GraphEdgeLike, GraphNodeLike, GraphScope, ChildDagGraphModel } from "./graphTypes";
+import type { RunEvent } from "../../lib/graph/types";
+import type { PlaybackEntry } from "./usePlaybackEntries";
+
+type AggregateGraphLike = {
+  aggregateId: string;
+  nodes: GraphNodeLike[];
+  edges: GraphEdgeLike[];
+};
 
 export function useRuntimeDebugFlag() {
   return React.useMemo(() => {
     if (typeof window === "undefined") return false;
     try {
       const fromQuery = new URLSearchParams(window.location.search).get("debug") === "1";
-      const fromGlobal = Boolean((window as any).__LP_DEBUG__);
+      const fromGlobal = Boolean(window.__LP_DEBUG__);
       const fromStorage = window.localStorage?.getItem("LP_DEBUG") === "1";
       return fromQuery || fromGlobal || fromStorage;
     } catch {
@@ -31,16 +40,16 @@ export function useRuntimeDebug({
   activeRunId,
 }: {
   runtimeDebug: boolean;
-  graphScope: any;
-  nodes: any[];
-  edges: any[];
-  playbackEntries: any[];
-  aggregateChildrenGraph: any;
-  inlineAggregateGraph: any;
-  childDagModel: any;
-  childScopeEvents: any[];
-  events: any[];
-  nodeById: Map<string, any>;
+  graphScope: GraphScope;
+  nodes: GraphNodeLike[];
+  edges: GraphEdgeLike[];
+  playbackEntries: PlaybackEntry[];
+  aggregateChildrenGraph: AggregateGraphLike | null;
+  inlineAggregateGraph: AggregateGraphLike | null;
+  childDagModel: ChildDagGraphModel | null;
+  childScopeEvents: RunEvent[];
+  events: RunEvent[];
+  nodeById: Map<string, GraphNodeLike>;
   childAttemptById: Record<string, string | number>;
   selectedRunId?: string;
   activeRunId?: string;
@@ -55,7 +64,7 @@ export function useRuntimeDebug({
     const nodeCount = Array.isArray(nodes) ? nodes.length : 0;
     const edgeCount = Array.isArray(edges) ? edges.length : 0;
     const eventCount = Array.isArray(playbackEntries) ? playbackEntries.length : 0;
-    const sample = (Array.isArray(nodes) ? nodes : []).slice(0, 4).map((n: any) => String(n?.name || n?.id || ""));
+    const sample = (Array.isArray(nodes) ? nodes : []).slice(0, 4).map((n) => String(n?.name || n?.id || ""));
     const sig = `${runtimeDebug}|${scope}|${aggregateId}|${childId}|${nodeCount}|${edgeCount}|${eventCount}|${sample.join("|")}`;
     if (heartbeatSigRef.current === sig) return;
     heartbeatSigRef.current = sig;
@@ -77,10 +86,10 @@ export function useRuntimeDebug({
     if (!model?.aggregateId) return;
     const childCount = Array.isArray(model.nodes) ? model.nodes.length : 0;
     const edgeCountWithinChildren = Array.isArray(model.edges)
-      ? model.edges.filter((e: any) => !String(e?.from || "").startsWith(String(model.aggregateId)) || e?.semantic === true).length
+      ? model.edges.filter((e) => !String(e?.from || "").startsWith(String(model.aggregateId)) || e?.semantic === true).length
       : 0;
     const connectorCount = Array.isArray(model.edges)
-      ? model.edges.filter((e: any) => String(e?.from || "") === String(model.aggregateId)).length
+      ? model.edges.filter((e) => String(e?.from || "") === String(model.aggregateId)).length
       : 0;
     const sig = `${model.aggregateId}|${childCount}|${edgeCountWithinChildren}|${connectorCount}`;
     if (aggregateStatsSigRef.current === sig) return;
@@ -111,7 +120,7 @@ export function useRuntimeDebug({
     if (status !== "running") return;
     const attemptId = childAttemptById?.[childDagModel.childId] ?? "latest";
     const currentRunId = String(selectedRunId || activeRunId || "");
-    const sampleNodeIds = (Array.isArray(events) ? events : []).map((ev: any) => String(ev?.nodeId || "")).filter(Boolean).slice(0, 20);
+    const sampleNodeIds = (Array.isArray(events) ? events : []).map((ev) => String(ev?.nodeId || "")).filter(Boolean).slice(0, 20);
     console.warn("[graph] child running but DAG lookup missing", {
       key: `${currentRunId}::${String(attemptId)}::${childDagModel.childId}`,
       childId: childDagModel.childId,

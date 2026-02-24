@@ -15,6 +15,8 @@ import { useGraphDerivations } from "./useGraphDerivations";
 import { useGraphViewport } from "./useGraphViewport";
 import { useCanvasInteractions } from "./useCanvasInteractions";
 import { useRuntimeDebug, useRuntimeDebugFlag } from "./useRuntimeDebug";
+import type { RunEvent } from "../../lib/graph/types";
+import type { ChildProgressRow } from "../../app/types/contracts";
 
 type TestDependencyGraphProps = {
   graphState: GraphStateLike;
@@ -27,11 +29,12 @@ type TestDependencyGraphProps = {
   onSetBottomTab?: (tab: "timeline" | "artifacts") => void;
   onScopedGraphChange?: (graph: { nodes: GraphNodeLike[]; edges: GraphEdgeLike[]; scope: string }) => void;
   bottomTab?: "timeline" | "artifacts";
+  rightPanelOpen?: boolean;
   activeRunId?: string;
   selectedRunId?: string;
   childAttemptById?: Record<string, string | number>;
-  childScopeEvents?: any[];
-  childScopeProgress?: any[];
+  childScopeEvents?: RunEvent[];
+  childScopeProgress?: ChildProgressRow[];
   waitingFirstEvent?: boolean;
   artifactReplayMode?: boolean;
   graphScope?: GraphScope;
@@ -43,6 +46,7 @@ type TestDependencyGraphProps = {
   onAggregateFilterChange?: (value: string[]) => void;
   aggregateFilterOptions?: Array<{ id: string; name: string; total?: number }>;
   bubbleAggregateId?: string;
+  onBackScope?: () => void;
 };
 
 function useLatestRef<T>(value: T) {
@@ -54,7 +58,7 @@ function useLatestRef<T>(value: T) {
 }
 
 const EMPTY_OBJ = {};
-const EMPTY_ARR: any[] = [];
+const EMPTY_ARR: never[] = [];
 const DEFAULT_GRAPH_SCOPE: GraphScope = { level: "suite", aggregateId: "", childId: "" };
 
 export default function TestDependencyGraph({
@@ -68,6 +72,7 @@ export default function TestDependencyGraph({
   onSetBottomTab,
   onScopedGraphChange,
   bottomTab = "timeline",
+  rightPanelOpen: _rightPanelOpen = false,
   activeRunId = "",
   selectedRunId = "",
   childAttemptById = EMPTY_OBJ as Record<string, string | number>,
@@ -84,6 +89,7 @@ export default function TestDependencyGraph({
   onAggregateFilterChange,
   aggregateFilterOptions = EMPTY_ARR,
   bubbleAggregateId = "",
+  onBackScope: _onBackScope,
 }: TestDependencyGraphProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const inspectorRef = useRef<HTMLDivElement | null>(null);
@@ -111,8 +117,8 @@ export default function TestDependencyGraph({
     if (String(graphScope?.level || "") !== "suite") return rawSelected;
     const aggregateIds = new Set(
       (nodes || [])
-        .filter((n: any) => Boolean(n?.aggregateSummary))
-        .map((n: any) => String(n?.id || ""))
+        .filter((n) => Boolean(n?.aggregateSummary))
+        .map((n) => String(n?.id || ""))
         .filter(Boolean)
     );
     const selectedRoot = rawSelected.includes("::") ? String(rawSelected.split("::")[0] || "") : rawSelected;
@@ -157,6 +163,7 @@ export default function TestDependencyGraph({
     edges,
     graphScope,
     selectedNodeId: selectedNodeIdForModels,
+    aggregateFilterIds,
     childAttemptById,
     selectedRunId,
     activeRunId,
@@ -167,14 +174,14 @@ export default function TestDependencyGraph({
   });
 
   const liveRunningNodeId = useMemo(
-    () => String(nodes.find((n: any) => String(n?.status || "").toLowerCase() === "running")?.id || ""),
+    () => String(nodes.find((n) => String(n?.status || "").toLowerCase() === "running")?.id || ""),
     [nodes]
   );
 
   const aggregateRunningNodeId = useMemo(() => {
     const aggregateId = activeAggregateIdForView;
     if (!aggregateId) return "";
-    const aggregateNode = nodes.find((n: any) => String(n?.id || "") === aggregateId) || null;
+    const aggregateNode = nodes.find((n) => String(n?.id || "") === aggregateId) || null;
     if (!aggregateNode?.aggregateSummary?.activeChildId) return "";
     return canonicalChildId(aggregateId, String(aggregateNode.aggregateSummary.activeChildId));
   }, [activeAggregateIdForView, nodes]);
@@ -277,7 +284,7 @@ export default function TestDependencyGraph({
 
   const labelById = useMemo(() => {
     const out: Record<string, string> = {};
-    (filteredNodes || []).forEach((n: any) => {
+    (filteredNodes || []).forEach((n) => {
       out[String(n?.id || "")] = String(n?.name || n?.id || "");
     });
     return out;
@@ -287,11 +294,11 @@ export default function TestDependencyGraph({
     () => {
       const replayTopOffset = artifactReplayMode ? 100 : 0;
       return layoutDagre(
-        filteredNodes.map((n: any) => ({ id: n.id })),
+        filteredNodes.map((n) => ({ id: n.id })),
         filteredEdges,
         {
           nodeWidth: inlineAggregateGraph ? aggregateLayoutTuning.nodeWidth : graphScope?.level === "suite" ? 236 : graphScope?.level === "aggregate" ? aggregateLayoutTuning.nodeWidth : 232,
-          nodeHeight: graphScope?.level === "suite" ? (filteredNodes.some((n: any) => n.aggregateSummary) ? 64 : 56) : 56,
+          nodeHeight: graphScope?.level === "suite" ? (filteredNodes.some((n) => n.aggregateSummary) ? 64 : 56) : 56,
           rankGap: inlineAggregateGraph ? aggregateLayoutTuning.rankGap : graphScope?.level === "suite" ? 70 : graphScope?.level === "aggregate" ? aggregateLayoutTuning.rankGap : 70,
           rowGap: inlineAggregateGraph ? aggregateLayoutTuning.rowGap : graphScope?.level === "suite" ? 14 : graphScope?.level === "aggregate" ? aggregateLayoutTuning.rowGap : 12,
           padding: graphScope?.level === "suite" ? 110 : 24,
@@ -323,21 +330,21 @@ export default function TestDependencyGraph({
 
   const entryNodeId = useMemo(() => {
     const incoming = new Map<string, number>();
-    filteredNodes.forEach((n: any) => incoming.set(String(n?.id || ""), 0));
-    filteredEdges.forEach((e: any) => {
+    filteredNodes.forEach((n) => incoming.set(String(n?.id || ""), 0));
+    filteredEdges.forEach((e) => {
       const to = String(e?.to || "");
       if (!incoming.has(to)) return;
       incoming.set(to, (incoming.get(to) || 0) + 1);
     });
     const roots = filteredNodes
-      .filter((n: any) => (incoming.get(String(n?.id || "")) || 0) === 0)
-      .sort((a: any, b: any) => {
+      .filter((n) => (incoming.get(String(n?.id || "")) || 0) === 0)
+      .sort((a, b) => {
         const ax = layout.byId[a.id]?.x ?? Number.POSITIVE_INFINITY;
         const bx = layout.byId[b.id]?.x ?? Number.POSITIVE_INFINITY;
         if (ax !== bx) return ax - bx;
         return String(a?.name || a?.id || "").localeCompare(String(b?.name || b?.id || ""));
       });
-    const preferred = roots.find((n: any) => /gate|start|ready/i.test(String(n?.name || ""))) || roots[0] || null;
+    const preferred = roots.find((n) => /gate|start|ready/i.test(String(n?.name || ""))) || roots[0] || null;
     return String(preferred?.id || "");
   }, [filteredNodes, filteredEdges, layout.byId]);
   const entryNodePos = entryNodeId ? layout.byId[entryNodeId] : null;
@@ -391,9 +398,9 @@ export default function TestDependencyGraph({
     requestViewportRefresh: scheduleViewportUpdate,
   });
 
-  const hoveredNode = hoveredNodeId ? filteredNodes.find((n: any) => n.id === hoveredNodeId) || null : null;
+  const hoveredNode = hoveredNodeId ? filteredNodes.find((n) => n.id === hoveredNodeId) || null : null;
   const hoveredNodePos = hoveredNodeId ? layout.byId[hoveredNodeId] : null;
-  const inspectorNode = openInspectorNodeId ? filteredNodes.find((n: any) => n.id === openInspectorNodeId) || null : null;
+  const inspectorNode = openInspectorNodeId ? filteredNodes.find((n) => n.id === openInspectorNodeId) || null : null;
   const inspectorNodePos = openInspectorNodeId ? layout.byId[openInspectorNodeId] : null;
 
   function toggleStatusDim(status: string) {

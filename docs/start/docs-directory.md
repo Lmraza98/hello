@@ -32,6 +32,7 @@ title: "Docs Directory"
 - [Documentation workflow](/help/documentation-workflow)
 - [Workflow Builder E2E testing](/help/workflow-builder-e2e-testing)
 - [Launcher test orchestration (hub)](/help/launcher-test-orchestration)
+- [Launcher frontend architecture](/help/launcher-frontend-architecture)
 - [Launcher test operator guide](/help/launcher-test-operator-guide)
 - [Launcher test developer contract](/help/launcher-test-developer-contract)
 - [Dashboard email performance](/help/dashboard-email-performance)
