@@ -1,62 +1,78 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { usePageContext } from '../contexts/PageContextProvider';
 import { normalizeQueryFilterParam } from '../utils/filterNormalization';
 import {
   useReactTable,
   getCoreRowModel,
-  getFilteredRowModel,
-  getExpandedRowModel,
   getSortedRowModel,
   flexRender,
-  type ColumnFiltersState,
   type SortingState,
-  type ExpandedState,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { api } from '../api';
+import type { Contact } from '../api';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useContactDetailsRouteState } from '../hooks/useContactDetailsRouteState';
 import { useNotificationContext } from '../contexts/NotificationContext';
 import { useContacts } from '../hooks/useContacts';
-import { AddContactModal } from '../components/contacts/AddContactModal';
-import { ContactDetail } from '../components/contacts/ContactDetail';
-import { FilterPanel } from '../components/contacts/FilterPanel';
+import { AddContactPanelContent } from '../components/contacts/AddContactPanelContent';
 import { ContactCard } from '../components/contacts/ContactCard';
-import { BulkActionsBar } from '../components/contacts/BulkActionsBar';
-import { SearchToolbar } from '../components/shared/SearchToolbar';
-import { PageHeader } from '../components/shared/PageHeader';
+import { ContactDetailsContent } from '../components/contacts/ContactDetailsContent';
+import { SidePanelContainer } from '../components/contacts/SidePanelContainer';
+import { BottomDrawerContainer } from '../components/contacts/BottomDrawerContainer';
+import { HeaderActionButton } from '../components/shared/HeaderActionButton';
+import { PageSearchInput } from '../components/shared/PageSearchInput';
 import { EmptyState } from '../components/shared/EmptyState';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { ConfirmDialog } from '../components/shared/ConfirmDialog';
 import { CampaignEnrollmentModal } from '../components/contacts/CampaignEnrollmentModal';
 import { createContactColumns } from '../components/contacts/tableColumns';
-import { Users, Download, Plus, X, Mail, FileUp, Sparkles, Search } from 'lucide-react';
+import { EmailTabs } from '../components/email/EmailTabs';
+import { WorkspacePageShell } from '../components/shared/WorkspacePageShell';
+import { getContactSourceLabel } from '../components/contacts/sourceLabel';
+import { Users, Download, Loader2, Phone, Plus, RotateCcw, Send, SlidersHorizontal, Target, Trash2, Upload, UserPlus } from 'lucide-react';
 import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
 import { getPageCapability } from '../capabilities/catalog';
-import { AssistantPanel } from '../components/assistant/AssistantPanel';
-import type { AssistantSuggestedAction } from '../components/assistant/AssistantPanel';
-import type { AssistantActivityItem } from '../components/assistant/AssistantActivityList';
 
 /* ── Constants ─────────────────────────── */
 
-const ROW_HEIGHT = 44;
-const EXPANDED_HEIGHT = 170;
+const ROW_HEIGHT = 42;
 const MOBILE_ROW_HEIGHT = 72;
-const MOBILE_EXPANDED_HEIGHT = 320;
+type ContactsView = 'all' | 'sources' | 'pipeline';
+
+function parseContactsView(value: string | null): ContactsView {
+  if (value === 'sources' || value === 'pipeline' || value === 'all') return value;
+  return 'all';
+}
+
+function sortContactsByRecency(data: Contact[]) {
+  return [...data].sort((a, b) => {
+    const ta = a.scraped_at ? Date.parse(a.scraped_at) : Number.NaN;
+    const tb = b.scraped_at ? Date.parse(b.scraped_at) : Number.NaN;
+    if (Number.isFinite(ta) && Number.isFinite(tb)) return tb - ta;
+    if (Number.isFinite(tb)) return 1;
+    if (Number.isFinite(ta)) return -1;
+    return b.id - a.id;
+  });
+}
 
 /* ── Main Component ────────────────────────────────────── */
 
 export default function Contacts({ openAddModal, onModalOpened }: { openAddModal?: boolean; onModalOpened?: () => void }) {
-  const isMobile = useIsMobile();
-  const location = useLocation();
+  const router = useRouter();
+  const isCompact = useIsMobile();
+  const isPhone = useIsMobile(640);
+  const searchParams = useSearchParams();
   const { setPageContext } = usePageContext();
   const { addNotification, updateNotification } = useNotificationContext();
   const {
     contacts,
     contactsLoading: isLoading,
+    contactsError,
+    refetchContacts,
     campaigns,
     companies,
-    getCampaignContacts,
     addContact,
     deleteContact,
     bulkDeleteContacts,
@@ -64,155 +80,262 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     enrollInCampaign,
   } = useContacts();
 
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showAddPanel, setShowAddPanel] = useState(false);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [confirmDeleteSingle, setConfirmDeleteSingle] = useState<{ id: number; name: string } | null>(null);
   const [globalFilter, setGlobalFilter] = useState('');
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'company_name', desc: false }]);
-  const [expanded, setExpanded] = useState<ExpandedState>({});
+  const [sourceFilter, setSourceFilter] = useState('');
+  const [companyFilter, setCompanyFilter] = useState('');
+  const [emailFilter, setEmailFilter] = useState('');
+  const [engagementFilter, setEngagementFilter] = useState('');
+  const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
-  const [campaignFilterId, setCampaignFilterId] = useState('');
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showFiltersMenu, setShowFiltersMenu] = useState(false);
+  const { contactId: selectedContactId, openContact, closeContact, setContactId } = useContactDetailsRouteState();
+  const view = useMemo(() => parseContactsView(searchParams?.get('view') ?? null), [searchParams]);
   useRegisterCapabilities(getPageCapability('contacts'));
-  const filterRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const filtersMenuRef = useRef<HTMLDivElement>(null);
+  const lastFocusedRowRef = useRef<HTMLElement | null>(null);
+  const newContactButtonRef = useRef<HTMLButtonElement>(null);
+  const detailsPanelRef = useRef<HTMLDivElement>(null);
 
-  const { data: campaignContacts = [] } = getCampaignContacts(campaignFilterId);
+  const closeAddPanel = useCallback((options?: { restoreFocus?: boolean }) => {
+    setShowAddPanel(false);
+    if (options?.restoreFocus === false) return;
+    const id = window.requestAnimationFrame(() => newContactButtonRef.current?.focus());
+    return () => window.cancelAnimationFrame(id);
+  }, []);
 
-  const campaignContactIds = useMemo(() => {
-    if (!campaignFilterId || !campaignContacts.length) return new Set<number>();
-    return new Set(campaignContacts.map((cc: any) => cc.contact_id));
-  }, [campaignFilterId, campaignContacts]);
+  const openAddPanel = useCallback(() => {
+    setShowAddPanel(true);
+    closeContact();
+  }, [closeContact]);
+
+  const handleOpenContact = useCallback(
+    (contactId: number) => {
+      setShowAddPanel(false);
+      openContact(contactId);
+    },
+    [openContact]
+  );
+
+  const filterSearchKey = useMemo(() => {
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
+    params.delete('contactId');
+    params.delete('view');
+    return params.toString();
+  }, [searchParams]);
 
   const companyNames = useMemo(() => Array.from(new Set(companies.map(c => c.company_name))).sort(), [companies]);
+  const sourceOptions = useMemo(
+    () => Array.from(new Set(contacts.map((contact) => getContactSourceLabel(contact)))).sort((a, b) => a.localeCompare(b)),
+    [contacts]
+  );
 
   useEffect(() => {
     if (openAddModal) {
-      setShowAddModal(true);
-      onModalOpened?.();
+      const id = window.requestAnimationFrame(() => {
+        openAddPanel();
+        onModalOpened?.();
+      });
+      return () => window.cancelAnimationFrame(id);
     }
-  }, [openAddModal, onModalOpened]);
+  }, [openAddModal, onModalOpened, openAddPanel]);
+
+  const updateContactsRoute = useCallback(
+    (mutate: (params: URLSearchParams) => void, options?: { replace?: boolean }) => {
+      const params = new URLSearchParams(searchParams?.toString() ?? '');
+      mutate(params);
+      const search = params.toString();
+      const nextUrl = `/contacts${search ? `?${search}` : ''}`;
+      if (options?.replace ?? false) {
+        router.replace(nextUrl, { scroll: false });
+      } else {
+        router.push(nextUrl, { scroll: false });
+      }
+    },
+    [router, searchParams]
+  );
+
+  const setContactsView = useCallback(
+    (nextView: ContactsView) => {
+      updateContactsRoute((params) => {
+        params.set('view', nextView);
+        params.delete('contactId');
+      });
+    },
+    [updateContactsRoute]
+  );
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
+    function handleClickOutside(event: MouseEvent) {
+      if (filtersMenuRef.current && !filtersMenuRef.current.contains(event.target as Node)) {
+        setShowFiltersMenu(false);
+      }
+    }
+    if (!showFiltersMenu) return;
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showFiltersMenu]);
+
+  useEffect(() => {
+    if (isPhone) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (showAddPanel) {
+        closeAddPanel();
+        return;
+      }
+      closeContact();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [closeAddPanel, closeContact, isPhone, showAddPanel]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(filterSearchKey);
     setGlobalFilter(normalizeQueryFilterParam('q', params.get('q')) || '');
-    setCampaignFilterId(params.get('campaignId') || '');
-
-    const nextFilters: ColumnFiltersState = [];
     const company = normalizeQueryFilterParam('company', params.get('company'));
-    const vertical = normalizeQueryFilterParam('vertical', params.get('vertical'));
     const hasEmail = normalizeQueryFilterParam('hasEmail', params.get('hasEmail'));
-    if (company) nextFilters.push({ id: 'company_name', value: company });
-    if (vertical) nextFilters.push({ id: 'vertical', value: vertical });
-    if (hasEmail === 'true') nextFilters.push({ id: 'hasEmail', value: 'yes' });
-    if (hasEmail === 'false') nextFilters.push({ id: 'hasEmail', value: 'no' });
-    setColumnFilters(nextFilters);
-  }, [location.search]);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) setShowFilters(false);
-    }
-    if (showFilters && !isMobile) document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [showFilters, isMobile]);
+    const status = normalizeQueryFilterParam('status', params.get('status'));
+    const source = normalizeQueryFilterParam('source', params.get('source'));
+    setCompanyFilter(company || '');
+    setEmailFilter(hasEmail === 'true' ? 'yes' : hasEmail === 'false' ? 'no' : '');
+    setEngagementFilter(status || '');
+    setSourceFilter(source || '');
+  }, [filterSearchKey]);
 
   /* ── Table configuration ── */
 
   const columns = useMemo(
-    () => createContactColumns((id, name) => {
-      setConfirmDeleteSingle({ id, name });
-    }),
+    () =>
+      createContactColumns(
+        (id, name) => {
+          setConfirmDeleteSingle({ id, name });
+        },
+        { compact: true }
+      ),
     []
   );
 
-  /* ── Pre-filter data for virtual filters ── */
+  const displayContacts = useMemo(() => {
+    let data = contacts;
+    if (view === 'sources' && sourceFilter) {
+      const target = sourceFilter.trim().toLowerCase();
+      data = data.filter((contact) => getContactSourceLabel(contact).toLowerCase() === target);
+    }
+    return sortContactsByRecency(data);
+  }, [contacts, sourceFilter, view]);
 
   const tableData = useMemo(() => {
-    let data = contacts;
-    if (campaignFilterId && campaignContactIds.size > 0) {
-      data = data.filter(c => campaignContactIds.has(c.id));
+    let data = displayContacts;
+    const search = globalFilter.trim().toLowerCase();
+    if (search) {
+      data = data.filter((c) => {
+        return (
+          c.name.toLowerCase().includes(search) ||
+          c.company_name.toLowerCase().includes(search) ||
+          (c.title?.toLowerCase().includes(search) ?? false) ||
+          (c.email?.toLowerCase().includes(search) ?? false)
+        );
+      });
     }
-    const hasEmailFilter = columnFilters.find(f => f.id === 'hasEmail')?.value as string | undefined;
-    if (hasEmailFilter === 'yes') data = data.filter(c => !!c.email);
-    else if (hasEmailFilter === 'no') data = data.filter(c => !c.email);
-    const verticalFilter = columnFilters.find(f => f.id === 'vertical')?.value as string | undefined;
-    if (verticalFilter) {
-      const selected = verticalFilter
-        .trim()
-        .toLowerCase()
-        .split(',')
-        .map((x) => x.trim())
-        .filter(Boolean);
-      if (selected.length > 0) {
-        data = data.filter(c => selected.includes((c.vertical || '').toLowerCase().trim()));
-      }
-    }
-    return data;
-  }, [contacts, campaignFilterId, campaignContactIds, columnFilters]);
 
-  const realColumnFilters = useMemo(
-    () => columnFilters.filter(f => !['hasEmail', 'vertical'].includes(f.id)), [columnFilters]);
+    const companyValue = companyFilter.trim().toLowerCase();
+    if (companyValue) data = data.filter((c) => c.company_name.toLowerCase().includes(companyValue));
+    if (emailFilter === 'yes' || emailFilter === 'has') data = data.filter((c) => !!c.email);
+    if (emailFilter === 'no') data = data.filter((c) => !c.email);
+    if (view !== 'sources' && engagementFilter) {
+      const target = engagementFilter.trim().toLowerCase();
+      data = data.filter((c) => (c.engagement_status || 'needs_sync').toLowerCase() === target);
+    }
+    return sortContactsByRecency(data);
+  }, [
+    displayContacts,
+    globalFilter,
+    companyFilter,
+    emailFilter,
+    engagementFilter,
+    view,
+  ]);
+
+  const selectedContact = useMemo(
+    () => (selectedContactId ? tableData.find((c) => c.id === selectedContactId) ?? null : null),
+    [selectedContactId, tableData]
+  );
+
+  useEffect(() => {
+    if (!selectedContactId) return;
+    if (isLoading) return;
+    if (!selectedContact) setContactId(null, { replace: true });
+  }, [isLoading, selectedContact, selectedContactId, setContactId]);
+
+  useEffect(() => {
+    if ((!selectedContact && !showAddPanel) || isPhone) return;
+    const id = window.requestAnimationFrame(() => {
+      detailsPanelRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [selectedContact, showAddPanel, isPhone]);
+
+  useEffect(() => {
+    if (selectedContactId) return;
+    if (isPhone) return;
+    lastFocusedRowRef.current?.focus();
+  }, [selectedContactId, isPhone]);
 
   /* ── Table ── */
 
   const table = useReactTable({
     data: tableData,
     columns,
-    state: { globalFilter, columnFilters: realColumnFilters, sorting, expanded, rowSelection },
-    onGlobalFilterChange: setGlobalFilter,
-    onColumnFiltersChange: (updater) => {
-      const virtualFilters = columnFilters.filter(f => ['hasEmail', 'vertical'].includes(f.id));
-      const next = typeof updater === 'function' ? updater(realColumnFilters) : updater;
-      setColumnFilters([...virtualFilters, ...next]);
-    },
+    state: { sorting, rowSelection, columnVisibility },
     onSortingChange: setSorting,
-    onExpandedChange: setExpanded,
     onRowSelectionChange: setRowSelection,
+    onColumnVisibilityChange: setColumnVisibility,
     getRowId: (row) => String(row.id),
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
-    globalFilterFn: (row, _id, filterValue) => {
-      const term = filterValue.toLowerCase();
-      const c = row.original;
-      return c.name.toLowerCase().includes(term) ||
-        c.company_name.toLowerCase().includes(term) ||
-        (c.title?.toLowerCase().includes(term) ?? false) ||
-        (c.email?.toLowerCase().includes(term) ?? false);
-    },
+    autoResetAll: false,
   });
 
   const { rows } = table.getRowModel();
-  const filteredCount = table.getFilteredRowModel().rows.length;
+  const filteredCount = rows.length;
   const selectedIds = Object.keys(rowSelection).map(Number);
   const selectedCount = selectedIds.length;
-  const activeFilterCount = columnFilters.length + (campaignFilterId ? 1 : 0);
   const emailCount = contacts.filter(c => c.email).length;
+  const columnLabelMap: Record<string, string> = {
+    name: 'Name',
+    title: 'Title',
+    company_name: 'Company',
+    email: 'Email',
+    lead_source: 'Source',
+    engagement_status: 'Status',
+  };
+  const toggleableColumns = table
+    .getAllLeafColumns()
+    .filter((column) => column.id !== 'select' && column.id !== 'actions' && column.id !== 'name');
+
+  const isInteractiveTarget = useCallback((target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) return false;
+    return !!target.closest(
+      'input, button, a, select, textarea, [role="button"], [role="menu"], [role="menuitem"], [data-row-control]'
+    );
+  }, []);
 
   /* ── Virtualizer ── */
 
-  const baseHeight = isMobile ? MOBILE_ROW_HEIGHT : ROW_HEIGHT;
-  const expandedExtra = isMobile ? MOBILE_EXPANDED_HEIGHT : EXPANDED_HEIGHT;
-
+  const baseHeight = isCompact ? MOBILE_ROW_HEIGHT : ROW_HEIGHT;
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollContainerRef.current,
-    estimateSize: useCallback(
-      (index: number) => rows[index]?.getIsExpanded() ? baseHeight + expandedExtra : baseHeight,
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [rows, expanded, baseHeight, expandedExtra],
-    ),
+    estimateSize: useCallback(() => baseHeight, [baseHeight]),
     overscan: 20,
   });
-
-  useEffect(() => {
-    rowVirtualizer.measure();
-  }, [expanded, rowVirtualizer, isMobile]);
 
 
   /* ── Bulk Action Handlers ── */
@@ -302,49 +425,22 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     });
   };
 
-  /* ── Assistant Panel (placeholder) ── */
-
-  const assistantActivity: AssistantActivityItem[] = [
-    { id: 'import', label: 'Imported 143 contacts', time: '0 min ago', icon: <FileUp className="h-4 w-4" /> },
-    { id: 'emails', label: 'Found 62 email addresses', time: '2m ago', icon: <Search className="h-4 w-4" /> },
-    { id: 'campaign', label: 'Created Campaign: "Sales Outreach #7"', time: '5m ago', icon: <Mail className="h-4 w-4" /> },
-  ];
-
-  const assistantActions: AssistantSuggestedAction[] = [
-    { id: 'import_csv', label: 'Import CSV', icon: <FileUp className="h-3.5 w-3.5" /> },
-    { id: 'find_emails', label: 'Find Emails', icon: <Search className="h-3.5 w-3.5" /> },
-    { id: 'create_campaign', label: 'Create Campaign', icon: <Mail className="h-3.5 w-3.5" /> },
-    { id: 'enrich_titles', label: 'Enrich Titles', icon: <Sparkles className="h-3.5 w-3.5" /> },
-  ];
-
-  /* ── Filter pills ── */
-
-  const allFilterPills = useMemo(() => {
-    const pills: { id: string; label: string }[] = [];
-    columnFilters.forEach((f) => {
-      const labels: Record<string, string> = { hasEmail: 'email', salesforce_status: 'salesforce', company_name: 'company' };
-      pills.push({ id: f.id, label: `${labels[f.id] || f.id}: ${f.value}` });
-    });
-    if (campaignFilterId) {
-      const camp = campaigns.find(c => String(c.id) === campaignFilterId);
-      pills.push({ id: 'campaign', label: `campaign: ${camp?.name || campaignFilterId}` });
-    }
-    return pills;
-  }, [columnFilters, campaignFilterId, campaigns]);
+  const handleAddContactToCampaign = useCallback((contact: Contact) => {
+    setRowSelection({ [String(contact.id)]: true });
+    setShowCampaignModal(true);
+  }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const selectedContactId = Number(params.get('selectedContactId'));
     setPageContext({
       listContext: 'contacts',
-      selected: Number.isFinite(selectedContactId) ? { contactId: selectedContactId } : {},
-      loadedIds: { contactIds: contacts.slice(0, 200).map((c) => c.id) },
+      selected: selectedContactId ? { contactId: selectedContactId } : {},
+      loadedIds: { contactIds: tableData.slice(0, 200).map((c) => c.id) },
     });
-  }, [contacts, location.search, setPageContext]);
+  }, [selectedContactId, setPageContext, tableData]);
 
   /* ── Synced column widths (desktop) ── */
 
-  const colGroup = !isMobile ? (
+  const colGroup = !isCompact ? (
     <colgroup>
       {table.getHeaderGroups()[0]?.headers.map((h) => (
         <col key={h.id} style={{ width: `${h.getSize()}px` }} />
@@ -354,252 +450,360 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
 
   /* ── Render ── */
 
+  const tabs = useMemo(
+    () => [
+      { id: 'all', label: 'All Contacts' },
+      { id: 'sources', label: 'Sources' },
+      { id: 'pipeline', label: 'Pipeline / Status' },
+    ],
+    []
+  );
+
+  const inlineControls = (
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div className="min-w-[220px] flex-1">
+        <PageSearchInput value={globalFilter} onChange={setGlobalFilter} placeholder="Search contacts..." />
+      </div>
+      {view === 'sources' ? (
+        <select
+          value={sourceFilter}
+          onChange={(e) => setSourceFilter(e.target.value)}
+          className="h-8 rounded-md border border-border bg-surface px-2.5 text-[12px] text-text focus:border-accent focus:outline-none"
+          aria-label="Filter contacts by source"
+        >
+          <option value="">All sources</option>
+          {sourceOptions.map((source) => (
+            <option key={source} value={source}>
+              {source}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <select
+          value={engagementFilter}
+          onChange={(e) => setEngagementFilter(e.target.value)}
+          className="h-8 rounded-md border border-border bg-surface px-2.5 text-[12px] text-text focus:border-accent focus:outline-none"
+          aria-label="Filter contacts by status"
+        >
+          <option value="">All statuses</option>
+          <option value="replied">Replied</option>
+          <option value="failed">Failed</option>
+          <option value="completed">Completed</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="in_sequence">In Sequence</option>
+          <option value="enrolled">Enrolled</option>
+          <option value="synced">Synced to Salesforce</option>
+          <option value="needs_sync">Needs Sync</option>
+        </select>
+      )}
+      <div className="relative shrink-0" ref={filtersMenuRef}>
+        <button
+          type="button"
+          onClick={() => setShowFiltersMenu((v) => !v)}
+          className="h-8 w-8 inline-flex items-center justify-center border border-border rounded-md text-text-muted hover:bg-surface-hover"
+          title="Columns"
+          aria-label="Open column visibility menu"
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+        </button>
+        {showFiltersMenu ? (
+          <div className="absolute right-0 top-10 z-20 w-[260px] rounded-md border border-border bg-surface p-3 shadow-lg">
+            <div className="space-y-2">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Visible Columns</p>
+              {toggleableColumns.map((column) => (
+                <label key={column.id} className="flex items-center gap-2 text-[12px] text-text">
+                  <input
+                    type="checkbox"
+                    checked={column.getIsVisible()}
+                    onChange={column.getToggleVisibilityHandler()}
+                    className="w-3.5 h-3.5 rounded border-gray-300 text-accent focus:ring-accent"
+                  />
+                  <span>{columnLabelMap[column.id] ?? column.id}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+      {selectedCount > 0 ? (
+        <>
+          <span className="inline-flex h-8 items-center rounded-md border border-indigo-200 bg-indigo-50 px-2.5 text-xs font-medium text-indigo-900">
+            {selectedCount} selected
+          </span>
+          <HeaderActionButton
+            compact
+            onClick={handleBulkSalesforceUpload}
+            disabled={actionLoading !== null}
+            variant="primary"
+            icon={actionLoading === 'salesforce' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+          >
+            SF
+          </HeaderActionButton>
+          <HeaderActionButton
+            compact
+            onClick={() => handleBulkAction('linkedin-request', 'linkedin', 'Sending LinkedIn requests')}
+            disabled={actionLoading !== null}
+            variant="primary"
+            icon={actionLoading === 'linkedin' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <UserPlus className="w-3.5 h-3.5" />}
+          >
+            LI
+          </HeaderActionButton>
+          <HeaderActionButton
+            compact
+            onClick={() => handleBulkAction('send-email', 'email', 'Sending emails')}
+            disabled={actionLoading !== null}
+            variant="primary"
+            icon={actionLoading === 'email' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+          >
+            Email
+          </HeaderActionButton>
+          <HeaderActionButton
+            compact
+            onClick={() => handleBulkAction('collect-phone', 'phone', 'Collecting phone data')}
+            disabled={actionLoading !== null}
+            variant="primary"
+            icon={actionLoading === 'phone' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Phone className="w-3.5 h-3.5" />}
+          >
+            Phone
+          </HeaderActionButton>
+          <HeaderActionButton
+            compact
+            onClick={() => setShowCampaignModal(true)}
+            disabled={actionLoading !== null}
+            variant="secondary"
+            icon={<Target className="w-3.5 h-3.5" />}
+          >
+            Campaign
+          </HeaderActionButton>
+          <HeaderActionButton
+            compact
+            onClick={handleBulkDelete}
+            disabled={actionLoading !== null}
+            variant="danger"
+            icon={actionLoading === 'delete' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+          >
+            Delete
+          </HeaderActionButton>
+        </>
+      ) : null}
+      <HeaderActionButton
+        data-assistant-id="export-contacts-button"
+        onClick={() => api.exportContacts(false)}
+        variant="secondary"
+        icon={<Download className="w-3.5 h-3.5" />}
+      >
+        Export CSV
+      </HeaderActionButton>
+      <HeaderActionButton
+        data-assistant-id="new-contact-button"
+        ref={newContactButtonRef}
+        onClick={openAddPanel}
+        variant="primary"
+        icon={<Plus className="w-3.5 h-3.5" />}
+      >
+        New Contact
+      </HeaderActionButton>
+    </div>
+  );
+
   return (
     <>
-      <div className="h-full grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-3">
-      <div className="min-h-0 flex flex-col">
-        {/* Sticky Header */}
-        <div className="sticky top-0 z-10 pb-2 md:pb-4">
-          <div className="pt-3 px-3 md:pt-4 md:px-6">
-            <PageHeader
-              title="Contacts"
-              subtitle={`${contacts.length} contacts · ${emailCount} with emails${filteredCount !== contacts.length ? ` · ${filteredCount} shown` : ''}`}
-              desktopActions={
-                <>
-                  <button
-                    onClick={() => api.exportContacts(false)}
-                    className="inline-flex h-8 items-center gap-1.5 px-3 border border-border text-text-muted rounded-md text-xs font-medium hover:bg-surface-hover transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" /> Export CSV
-                  </button>
-                  <button
-                    onClick={() => setShowAddModal(true)}
-                    className="inline-flex h-8 items-center gap-1.5 px-3 bg-accent text-white rounded-md text-xs font-medium hover:bg-accent-hover transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Add Contact
-                  </button>
-                </>
-              }
-              mobileActions={
-                <>
-                  <button
-                    onClick={() => api.exportContacts(false)}
-                    className="p-1.5 border border-border text-text-muted rounded-md hover:bg-surface-hover transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setShowAddModal(true)}
-                    className="p-1.5 bg-accent text-white rounded-md hover:bg-accent-hover transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </>
-              }
-            />
-
-            {/* Bulk Actions */}
-            <BulkActionsBar
-              selectedCount={selectedCount}
-              onSalesforceUpload={handleBulkSalesforceUpload}
-              onLinkedInRequest={() => handleBulkAction('linkedin-request', 'linkedin', 'Sending LinkedIn requests')}
-              onSendEmail={() => handleBulkAction('send-email', 'email', 'Sending emails')}
-              onCollectPhone={() => handleBulkAction('collect-phone', 'phone', 'Collecting phone data')}
-              onEnrollInCampaign={() => setShowCampaignModal(true)}
-              onDelete={handleBulkDelete}
-              actionLoading={actionLoading}
-            />
-
-            {/* Toolbar */}
-            <SearchToolbar
-              allSelected={table.getIsAllRowsSelected()}
-              onToggleSelectAll={table.getToggleAllRowsSelectedHandler()}
-              indeterminate={table.getIsSomeRowsSelected()}
-              displayCount={selectedCount > 0 ? selectedCount : filteredCount}
-              globalFilter={globalFilter}
-              onGlobalFilterChange={setGlobalFilter}
-              activeFilterCount={activeFilterCount}
-              showFilters={showFilters && !isMobile}
-              onToggleFilters={() => setShowFilters((v) => !v)}
-              filterPanelContent={
-                <FilterPanel
-                  columnFilters={columnFilters}
-                  setColumnFilters={setColumnFilters}
-                  contacts={contacts}
-                  campaigns={campaigns}
-                  onCampaignChange={setCampaignFilterId}
-                  activeCampaignId={campaignFilterId}
-                  onClose={() => setShowFilters(false)}
-                  isMobile={false}
-                />
-              }
-            />
-
-            {/* Filter pills — scrollable on mobile */}
-            {allFilterPills.length > 0 && (
-                <div className="flex items-center gap-1 mt-1.5 overflow-x-auto no-scrollbar">
-                  {allFilterPills.map((pill) => (
-                    <span
-                      key={pill.id}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent rounded-full text-[10px] font-medium whitespace-nowrap shrink-0"
-                    >
-                    {pill.label}
-                    <button
-                      onClick={() => {
-                        if (pill.id === 'campaign') setCampaignFilterId('');
-                        else setColumnFilters((prev) => prev.filter((f) => f.id !== pill.id));
-                      }}
-                      className="hover:text-accent/70"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Mobile filter bottom sheet */}
-        {showFilters && isMobile && (
-          <FilterPanel
-            columnFilters={columnFilters}
-            setColumnFilters={setColumnFilters}
-            contacts={contacts}
-            campaigns={campaigns}
-            onCampaignChange={setCampaignFilterId}
-            activeCampaignId={campaignFilterId}
-            onClose={() => setShowFilters(false)}
-            isMobile
+      <WorkspacePageShell
+        title="Contacts"
+        subtitle={`${contacts.length} contacts · ${emailCount} with emails${filteredCount !== contacts.length ? ` · ${filteredCount} shown` : ''}`}
+        contentClassName="overflow-hidden"
+        hideHeader
+        preHeader={
+          <EmailTabs
+            tabs={tabs}
+            activeTab={view}
+            onSelectTab={(tabId) => {
+              if (tabId === 'all' || tabId === 'sources' || tabId === 'pipeline') setContactsView(tabId);
+            }}
           />
-        )}
-
-        {/* Virtualized Table / List */}
-        <div className="flex-1 min-h-0 px-3 md:px-6 pb-3 md:pb-6">
+        }
+        preHeaderAffectsLayout
+        preHeaderClassName="-mt-3 md:-mt-4 h-14 flex items-end"
+        toolbar={inlineControls}
+      >
+        <div className="min-h-0 flex-1 overflow-hidden pt-2">
           {isLoading ? (
             <LoadingSpinner />
           ) : (
-            <div className="bg-surface border border-border rounded-lg overflow-hidden flex flex-col h-full">
-              {/* Desktop: fixed thead — ONLY on desktop */}
-              {!isMobile && (
-                <div className="shrink-0">
-                  <table className="w-full min-w-[860px]" style={{ tableLayout: 'fixed' }}>
-                    {colGroup}
-                    <thead>
-                      {table.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id} className="h-9 border-b border-border-subtle bg-surface-hover/30">
-                          {headerGroup.headers.map((header) => (
-                            <th
-                              key={header.id}
-                              className="text-left px-3 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide"
-                            >
-                              {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                            </th>
-                          ))}
-                        </tr>
-                      ))}
-                    </thead>
-                  </table>
-                </div>
-              )}
-
-              {/* Scrollable virtualized body */}
-              <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
-                {rows.length === 0 ? (
-                  <EmptyState
-                    icon={Users}
-                    title="No contacts found"
-                    description="Try adjusting your filters or add a new contact"
-                    action={{ label: 'Add Contact', icon: Plus, onClick: () => setShowAddModal(true) }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      height: `${rowVirtualizer.getTotalSize()}px`,
-                      position: 'relative',
-                      minWidth: isMobile ? undefined : '900px',
-                    }}
-                  >
-                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                      const row = rows[virtualRow.index];
-                      const isExpanded = row.getIsExpanded();
-                      const contact = row.original;
-
-                      return (
-                        <div
-                          key={row.id}
-                          data-index={virtualRow.index}
-                          ref={rowVirtualizer.measureElement}
-                          style={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            width: '100%',
-                            transform: `translateY(${virtualRow.start}px)`,
-                          }}
-                        >
-                          {isMobile ? (
-                            /* ── Mobile: Card layout ── */
-                            <ContactCard
-                              contact={contact}
-                              isSelected={row.getIsSelected()}
-                              isExpanded={isExpanded}
-                              onToggleSelect={() => row.toggleSelected()}
-                              onToggleExpand={() => row.toggleExpanded()}
-                            />
-                          ) : (
-                            /* ── Desktop: Table row ── */
-                            <table className="w-full" style={{ tableLayout: 'fixed' }}>
-                              {colGroup}
-                              <tbody>
-                                <tr
-                                  className="group hover:bg-surface-hover/60 transition-colors cursor-pointer border-b border-border-subtle"
-                                  onClick={(e) => {
-                                    if ((e.target as HTMLElement).closest('input[type="checkbox"], a, button')) return;
-                                    row.toggleExpanded();
-                                  }}
-                                >
-                                  {row.getVisibleCells().map((cell) => (
-                                    <td key={cell.id} className="px-3 py-2 leading-tight">
-                                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                    </td>
-                                  ))}
-                                </tr>
-                                {isExpanded && (
-                                  <tr className="bg-surface-hover/30 border-b border-border-subtle">
-                                    <td colSpan={row.getVisibleCells().length} className="p-0">
-                                      <div className="px-4 py-3 overflow-x-auto">
-                                        <ContactDetail contact={contact} />
-                                      </div>
-                                    </td>
-                                  </tr>
-                                )}
-                              </tbody>
-                            </table>
-                          )}
-                        </div>
-                      );
-                    })}
+            <div className="bg-surface overflow-hidden flex h-full min-h-0">
+              {/* min-w-0 prevents table pane overflow from forcing horizontal overflow in split mode. */}
+              {/* min-h-0 allows inner scroll areas to size and scroll correctly inside nested flex containers. */}
+              <div className="flex min-w-0 min-h-0 flex-1 flex-col">
+                {!isCompact && (
+                  <div className="shrink-0">
+                    <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+                      {colGroup}
+                      <thead>
+                        {table.getHeaderGroups().map((headerGroup) => (
+                          <tr key={headerGroup.id} className="h-9 border-b border-border-subtle bg-surface-hover/30">
+                            {headerGroup.headers.map((header) => (
+                              <th
+                                key={header.id}
+                                className="text-left px-3 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide"
+                              >
+                                {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                              </th>
+                            ))}
+                          </tr>
+                        ))}
+                      </thead>
+                    </table>
                   </div>
                 )}
+
+                <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-auto">
+                  {contactsError ? (
+                    <EmptyState
+                      icon={Users}
+                      title="Could not load contacts"
+                      description={contactsError.message || 'Please retry.'}
+                      action={{ label: 'Retry', icon: RotateCcw, onClick: () => void refetchContacts() }}
+                    />
+                  ) : rows.length === 0 ? (
+                    <EmptyState
+                      icon={Users}
+                      title="No contacts found"
+                      description="Try adjusting your filters or add a new contact"
+                      action={{ label: 'New Contact', icon: Plus, onClick: openAddPanel }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        height: `${rowVirtualizer.getTotalSize()}px`,
+                        position: 'relative',
+                        minWidth: undefined,
+                      }}
+                    >
+                      {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+                        const row = rows[virtualRow.index];
+                        const contact = row.original;
+                        const isActive = selectedContactId === contact.id;
+                        const isSelected = row.getIsSelected();
+
+                        return (
+                          <div
+                            key={row.id}
+                            data-index={virtualRow.index}
+                            ref={rowVirtualizer.measureElement}
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              transform: `translateY(${virtualRow.start}px)`,
+                            }}
+                          >
+                            {isCompact ? (
+                              <ContactCard
+                                contact={contact}
+                                isSelected={row.getIsSelected()}
+                                isExpanded={false}
+                                onToggleSelect={() => row.toggleSelected()}
+                                onToggleExpand={() => handleOpenContact(contact.id)}
+                              />
+                            ) : (
+                              <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+                                {colGroup}
+                                <tbody>
+                                  <tr
+                                    className={`group h-[42px] cursor-pointer border-b border-border-subtle transition-colors ${
+                                      isActive ? 'bg-accent/12' : isSelected ? 'bg-accent/8' : 'hover:bg-surface-hover/60'
+                                    }`}
+                                    onClick={(e) => {
+                                      if (isInteractiveTarget(e.target)) return;
+                                      lastFocusedRowRef.current = e.currentTarget;
+                                      handleOpenContact(contact.id);
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key !== 'Enter' && e.key !== ' ') return;
+                                      if (isInteractiveTarget(e.target)) return;
+                                      e.preventDefault();
+                                      lastFocusedRowRef.current = e.currentTarget;
+                                      handleOpenContact(contact.id);
+                                    }}
+                                    tabIndex={0}
+                                    aria-expanded={isActive}
+                                    aria-controls={isActive ? 'contact-details-panel' : undefined}
+                                    aria-label={`Open details for ${contact.name}`}
+                                  >
+                                    {row.getVisibleCells().map((cell) => (
+                                      <td key={cell.id} className="h-[42px] px-3 py-0 align-middle leading-tight">
+                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                </tbody>
+                              </table>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
+              {!isPhone && (showAddPanel || selectedContact) ? (
+                <SidePanelContainer ref={detailsPanelRef}>
+                  {showAddPanel ? (
+                    <div id="contact-details-panel" tabIndex={-1} className="flex h-full min-h-0 flex-col outline-none">
+                      <AddContactPanelContent
+                        companies={companyNames}
+                        isSubmitting={addContact.isPending}
+                        onAdd={(data) => {
+                          addContact.mutate(data, {
+                            onSuccess: () => {
+                              setShowAddPanel(false);
+                            },
+                          });
+                        }}
+                        onClose={() => closeAddPanel()}
+                      />
+                    </div>
+                  ) : selectedContact ? (
+                    <div id="contact-details-panel" tabIndex={-1} className="flex h-full min-h-0 flex-col outline-none">
+                      <ContactDetailsContent
+                        contact={selectedContact}
+                        onClose={closeContact}
+                        onAddToCampaign={handleAddContactToCampaign}
+                      />
+                    </div>
+                  ) : null}
+                </SidePanelContainer>
+              ) : null}
             </div>
           )}
         </div>
-      </div>
-
-      <div className="hidden lg:block pr-4 md:pr-8 w-[380px] max-w-[420px]">
-        <div className="sticky top-4 h-[calc(100vh-2rem)]">
-          <AssistantPanel
-            activityItems={assistantActivity}
-            suggestedActions={assistantActions}
-            onActionClick={(actionId) => {
-              console.log('[assistant-action]', actionId);
+      </WorkspacePageShell>
+      {isPhone && showAddPanel ? (
+        <BottomDrawerContainer onClose={() => closeAddPanel()}>
+          <AddContactPanelContent
+            companies={companyNames}
+            isSubmitting={addContact.isPending}
+            onAdd={(data) => {
+              addContact.mutate(data, {
+                onSuccess: () => {
+                  setShowAddPanel(false);
+                },
+              });
             }}
+            onClose={() => closeAddPanel()}
           />
-        </div>
-      </div>
-      </div>
+        </BottomDrawerContainer>
+      ) : null}
+      {isPhone && !showAddPanel && selectedContact ? (
+        <BottomDrawerContainer onClose={closeContact}>
+          <ContactDetailsContent
+            contact={selectedContact}
+            onClose={closeContact}
+            onAddToCampaign={handleAddContactToCampaign}
+          />
+        </BottomDrawerContainer>
+      ) : null}
       {/* Campaign Enrollment Modal */}
       {showCampaignModal && (
         <CampaignEnrollmentModal
@@ -608,18 +812,6 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
           onEnroll={handleEnrollInCampaign}
           onClose={() => setShowCampaignModal(false)}
           isEnrolling={enrollInCampaign.isPending}
-        />
-      )}
-
-      {/* Add Contact Modal */}
-      {showAddModal && (
-        <AddContactModal
-          companies={companyNames}
-          onAdd={(data) => {
-            addContact.mutate(data);
-            setShowAddModal(false);
-          }}
-          onClose={() => setShowAddModal(false)}
         />
       )}
 
@@ -650,3 +842,6 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     </>
   );
 }
+
+
+

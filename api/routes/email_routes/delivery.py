@@ -262,17 +262,27 @@ async def send_email_now(email_id: int):
     response_model=ProcessScheduledResponse,
     responses=COMMON_ERROR_RESPONSES,
 )
-async def process_scheduled():
-    """Process scheduled emails that are due for sending."""
+async def process_scheduled(review_mode: bool = False):
+    """Process scheduled emails that are due for sending.
+
+    In review mode, opens one tab per email with composer ready, and does not click Send.
+    """
     try:
         emails = db.get_scheduled_emails(limit=10)
         if not emails:
             return {"success": True, "message": "No emails due for sending", "processed": 0}
 
-        launch_sender(["process-scheduled", "--limit", str(len(emails))])
+        args = ["process-scheduled", "--limit", str(len(emails))]
+        if review_mode:
+            args += ["--review", "--no-headless"]
+        launch_sender(args)
         return {
             "success": True,
-            "message": f"Launched sender for {len(emails)} scheduled emails",
+            "message": (
+                f"Launched manual review tabs for {len(emails)} scheduled emails"
+                if review_mode
+                else f"Launched sender for {len(emails)} scheduled emails"
+            ),
             "count": len(emails),
         }
     except Exception as e:

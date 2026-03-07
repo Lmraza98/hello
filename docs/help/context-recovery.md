@@ -51,3 +51,9 @@ python scripts/docs_link_audit.py
   - [Hybrid search](/hybrid_search)
 
 This gives enough context to continue implementation without re-reading the entire codebase.
+
+## 5) UI Pattern Corpus
+
+For Contacts UI consistency patterns and interaction rules:
+
+- Source files live in `ui/patterns/`

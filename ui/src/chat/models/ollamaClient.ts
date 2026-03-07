@@ -1,5 +1,5 @@
-const OLLAMA_BASE = import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434';
-const LOCAL_LLM_API = (import.meta.env.VITE_LOCAL_LLM_API || 'ollama').toLowerCase();
+﻿const OLLAMA_BASE = process.env.NEXT_PUBLIC_OLLAMA_URL || 'http://localhost:11434';
+const LOCAL_LLM_API = (process.env.NEXT_PUBLIC_LOCAL_LLM_API || 'ollama').toLowerCase();
 
 export type LocalToolCall = {
   id?: string;
@@ -290,3 +290,4 @@ export async function isOllamaAvailable(model: string): Promise<boolean> {
   const models = await listOllamaModels();
   return models.some((name) => name.startsWith(model));
 }
+

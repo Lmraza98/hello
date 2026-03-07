@@ -17,7 +17,9 @@ type ScheduledViewProps = {
   onReschedule: (email: ScheduledEmail) => void;
   onReorder: (emailIds: number[], startTime?: string) => void;
   onSendAll: () => void;
+  onReviewInTabs: () => void;
   isSending: boolean;
+  isReviewLaunching: boolean;
 };
 
 type DateGroup = {
@@ -176,7 +178,9 @@ export function ScheduledView({
   onReschedule,
   onReorder,
   onSendAll,
-  isSending
+  onReviewInTabs,
+  isSending,
+  isReviewLaunching
 }: ScheduledViewProps) {
   const [campaignFilter, setCampaignFilter] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -249,6 +253,14 @@ export function ScheduledView({
                 ))}
               </select>
             </div>
+            <button
+              onClick={onReviewInTabs}
+              disabled={allScheduled.length === 0 || isReviewLaunching}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 border border-border bg-bg text-text rounded-lg text-xs md:text-sm font-medium hover:bg-surface-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            >
+              {isReviewLaunching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Eye className="w-3.5 h-3.5" />}
+              Review in Tabs
+            </button>
             <button
               onClick={onSendAll}
               disabled={allScheduled.length === 0 || isSending}

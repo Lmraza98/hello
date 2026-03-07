@@ -1,0 +1,33 @@
+# Overlay and Focus Patterns
+
+This note defines interaction rules for popovers, dialogs, menus, and drawers.
+
+## Open and Close Behavior
+
+- Escape closes the topmost open surface first.
+- Click outside closes transient overlays unless the interaction starts from a blocked element.
+- Nested overlays must close in reverse open order.
+
+## Focus Management
+
+- On open, focus moves to the first meaningful control or heading anchor.
+- On close, focus returns to the element that opened the surface.
+- Keep a fallback target when opener element unmounts.
+
+## Click Handling
+
+- Controls inside rows must stop propagation when they launch overlays.
+- Do not treat scrollbar drags or text selection as outside clicks.
+- Pointer down and click handlers must agree on whether dismissal occurs.
+
+## Dialog and Drawer Rules
+
+- Modal surfaces trap focus while open.
+- Non-modal popovers do not trap focus but should maintain logical tab order.
+- Body scroll lock applies only to modal dialog and mobile drawer states.
+
+## Accessibility
+
+- Every dismiss control needs an `aria-label` when icon-only.
+- Use `aria-expanded`, `aria-controls`, and `aria-haspopup` where relevant.
+- Provide descriptive titles for dialogs and drawers so context is clear.

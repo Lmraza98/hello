@@ -6,6 +6,8 @@ import asyncio
 import re
 from typing import Any, Optional
 
+from ..core.interaction import click_locator, scroll_into_view, wait_with_jitter
+
 
 class SalesNavPublicUrlFlow:
     def __init__(self, scraper: Any):
@@ -54,9 +56,43 @@ class SalesNavPublicUrlFlow:
                 return url
         return None
 
-    async def _open_card_overflow(self, card, name: str | None) -> bool:
-        import random
+    def _normalize_public_profile_url(self, url: Optional[str]) -> Optional[str]:
+        value = self._abs_salesnav_url(url)
+        if not value:
+            return None
+        if "linkedin.com/in/" not in value:
+            return None
+        return value.split("?", 1)[0].strip()
 
+    async def _read_public_url_from_clipboard(self, page) -> Optional[str]:
+        try:
+            await self.context.grant_permissions(["clipboard-read", "clipboard-write"])
+        except Exception:
+            pass
+
+        for _ in range(4):
+            try:
+                copied = await page.evaluate("navigator.clipboard.readText()")
+            except Exception:
+                copied = None
+            normalized = self._normalize_public_profile_url(copied)
+            if normalized:
+                return normalized
+            await asyncio.sleep(0.25)
+        return None
+
+    async def _click_when_ready(self, page, locator, *, settle_s: float = 0.35) -> bool:
+        try:
+            await locator.first.wait_for(state="visible", timeout=8000)
+            await scroll_into_view(page, locator)
+            await wait_with_jitter(settle_s, 0.08)
+            await click_locator(page, locator)
+            await wait_with_jitter(0.45, 0.12)
+            return True
+        except Exception:
+            return False
+
+    async def _open_card_overflow(self, card, name: str | None) -> bool:
         overflow_btn = card.locator('button[aria-label*="See more actions"]').or_(
             card.locator('button[aria-label*="More actions"]')
         ).or_(card.locator('button[data-search-overflow-trigger]')).or_(
@@ -67,9 +103,7 @@ class SalesNavPublicUrlFlow:
         if await overflow_btn.count() == 0:
             print(f"[LinkedIn] No overflow menu found for {name or 'lead'}")
             return False
-        await overflow_btn.click()
-        await asyncio.sleep(random.uniform(0.5, 1.0))
-        return True
+        return await self._click_when_ready(self.page, overflow_btn, settle_s=0.45)
 
     async def _find_view_profile_action(self):
         menu = self.page.locator('div[id^="hue-menu-"]').last
@@ -82,7 +116,22 @@ class SalesNavPublicUrlFlow:
         ).or_(self.page.locator('[data-control-name="view_profile"]')).first
 
     async def _extract_from_profile_page(self, profile_page, name: str | None) -> Optional[str]:
-        import random
+        current_url = self._normalize_public_profile_url(getattr(profile_page, "url", None))
+        if current_url:
+            return current_url
+
+        try:
+            try:
+                await profile_page.bring_to_front()
+            except Exception:
+                pass
+            html = await profile_page.content()
+            embedded_url = self._extract_public_url_from_html(html)
+            normalized_embedded = self._normalize_public_profile_url(embedded_url)
+            if normalized_embedded:
+                return normalized_embedded
+        except Exception:
+            pass
 
         profile_overflow = profile_page.locator('button[data-x--lead-actions-bar-overflow-menu]').or_(
             profile_page.locator("button._overflow-menu--trigger_1xow7n")
@@ -92,8 +141,9 @@ class SalesNavPublicUrlFlow:
         if await profile_overflow.count() == 0:
             print(f"[LinkedIn] No overflow menu on profile page for {name or 'lead'}")
             return None
-        await profile_overflow.click()
-        await asyncio.sleep(random.uniform(0.5, 1.0))
+        if not await self._click_when_ready(profile_page, profile_overflow, settle_s=0.5):
+            print(f"[LinkedIn] Profile overflow click failed for {name or 'lead'}")
+            return None
 
         profile_menu = profile_page.locator('div[id^="hue-menu-"]').last
         copy_url_btn = profile_menu.locator('button:has-text("Copy LinkedIn.com URL")').or_(
@@ -108,41 +158,44 @@ class SalesNavPublicUrlFlow:
                 public_link = profile_page.locator('a[href*="linkedin.com/in/"]').first
                 if await public_link.count() > 0:
                     href = await public_link.get_attribute("href")
-                    if href and "linkedin.com/in/" in href:
-                        return href.strip()
+                    normalized_href = self._normalize_public_profile_url(href)
+                    if normalized_href:
+                        return normalized_href
             except Exception:
                 pass
             return None
 
-        await self.context.grant_permissions(["clipboard-read", "clipboard-write"])
+        if not await self._click_when_ready(profile_page, copy_url_btn, settle_s=0.4):
+            return None
+        normalized_clipboard = await self._read_public_url_from_clipboard(profile_page)
+        if normalized_clipboard:
+            return normalized_clipboard
         try:
-            await copy_url_btn.click()
+            html = await profile_page.content()
+            embedded_url = self._extract_public_url_from_html(html)
+            normalized_embedded = self._normalize_public_profile_url(embedded_url)
+            if normalized_embedded:
+                return normalized_embedded
         except Exception:
-            await copy_url_btn.evaluate("(el) => el.click()")
-        await asyncio.sleep(random.uniform(0.3, 0.6))
-        linkedin_url = await profile_page.evaluate("navigator.clipboard.readText()")
-        if linkedin_url and "linkedin.com/in/" in linkedin_url:
-            return linkedin_url.strip()
+            pass
         return None
 
     async def _copy_public_url_from_lead_page(self, sales_nav_url: Optional[str], name: str | None = None) -> Optional[str]:
-        import random
-
         abs_url = self._abs_salesnav_url(sales_nav_url)
         if not abs_url:
             print(f"[LinkedIn] No sales lead URL available for {name or 'lead'}")
             return None
 
-        original_url = None
+        lead_page = None
         try:
-            original_url = self.page.url
-            print(f"[LinkedIn] Opening lead page in same tab for {name or 'lead'}")
-            await self.page.goto(abs_url, timeout=30000)
-            await self.page.wait_for_load_state("domcontentloaded", timeout=15000)
-            await asyncio.sleep(random.uniform(1.0, 2.0))
+            lead_page = await self.context.new_page()
+            print(f"[LinkedIn] Opening lead page in new tab for {name or 'lead'}")
+            await lead_page.goto(abs_url, timeout=30000)
+            await lead_page.wait_for_load_state("domcontentloaded", timeout=15000)
+            await wait_with_jitter(1.4, 0.25)
 
             try:
-                html = await self.page.content()
+                html = await lead_page.content()
                 embedded_url = self._extract_public_url_from_html(html)
                 if embedded_url:
                     print(f"[LinkedIn] Found embedded public URL for {name or 'lead'}")
@@ -150,11 +203,11 @@ class SalesNavPublicUrlFlow:
             except Exception:
                 pass
 
-            overflow = self.page.locator(
+            overflow = lead_page.locator(
                 'button[data-x--lead-actions-bar-overflow-menu][aria-label="Open actions overflow menu"]._overflow-menu--trigger_1xow7n'
-            ).or_(self.page.locator('button[id^="hue-menu-trigger-"][aria-label="Open actions overflow menu"][aria-haspopup="true"]')).or_(
-                self.page.locator('button[data-x--lead-actions-bar-overflow-menu][aria-label="Open actions overflow menu"]')
-            ).or_(self.page.locator('button._overflow-menu--trigger_1xow7n[aria-label="Open actions overflow menu"]'))
+            ).or_(lead_page.locator('button[id^="hue-menu-trigger-"][aria-label="Open actions overflow menu"][aria-haspopup="true"]')).or_(
+                lead_page.locator('button[data-x--lead-actions-bar-overflow-menu][aria-label="Open actions overflow menu"]')
+            ).or_(lead_page.locator('button._overflow-menu--trigger_1xow7n[aria-label="Open actions overflow menu"]'))
 
             menu_opened = False
             overflow_count = await overflow.count()
@@ -163,9 +216,9 @@ class SalesNavPublicUrlFlow:
                 try:
                     if not await btn.is_visible():
                         continue
-                    await btn.scroll_into_view_if_needed()
-                    await btn.click(force=True, timeout=2000)
-                    await self.page.wait_for_selector('div[id^="hue-menu-"], div._container_x5gf48', timeout=1200)
+                    if not await self._click_when_ready(lead_page, btn, settle_s=0.45):
+                        continue
+                    await lead_page.wait_for_selector('div[id^="hue-menu-"], div._container_x5gf48', timeout=1200)
                     menu_opened = True
                     break
                 except Exception:
@@ -174,7 +227,7 @@ class SalesNavPublicUrlFlow:
                 print(f"[LinkedIn] Ellipsis menu did not open on lead page for {name or 'lead'}")
                 return None
 
-            menu = self.page.locator('div[id^="hue-menu-"]').or_(self.page.locator("div._container_x5gf48")).last
+            menu = lead_page.locator('div[id^="hue-menu-"]').or_(lead_page.locator("div._container_x5gf48")).last
             copy_btn = menu.locator('button:has-text("Copy LinkedIn.com URL")').or_(
                 menu.locator('button:has-text("Copy LinkedIn URL")')
             ).or_(menu.locator('[data-control-name="copy_linkedin_url"]')).or_(
@@ -185,33 +238,34 @@ class SalesNavPublicUrlFlow:
             if await copy_btn.count() == 0:
                 return None
 
-            await self.context.grant_permissions(["clipboard-read", "clipboard-write"])
+            if not await self._click_when_ready(lead_page, copy_btn, settle_s=0.4):
+                return None
+            normalized_copied = await self._read_public_url_from_clipboard(lead_page)
+            if normalized_copied:
+                return normalized_copied
             try:
-                await copy_btn.click()
+                html = await lead_page.content()
+                embedded_url = self._extract_public_url_from_html(html)
+                normalized_embedded = self._normalize_public_profile_url(embedded_url)
+                if normalized_embedded:
+                    return normalized_embedded
             except Exception:
-                await copy_btn.evaluate("(el) => el.click()")
-            await asyncio.sleep(random.uniform(0.3, 0.6))
-            copied = await self.page.evaluate("navigator.clipboard.readText()")
-            if copied and "linkedin.com/in/" in copied:
-                return copied.strip()
-            public_link = self.page.locator('a[href*="linkedin.com/in/"]').first
+                pass
+            public_link = lead_page.locator('a[href*="linkedin.com/in/"]').first
             if await public_link.count() > 0:
                 href = await public_link.get_attribute("href")
-                if href and "linkedin.com/in/" in href:
-                    return href.strip()
+                normalized_href = self._normalize_public_profile_url(href)
+                if normalized_href:
+                    return normalized_href
             return None
         finally:
             try:
-                if original_url and self.page.url != original_url:
-                    await self.page.goto(original_url, timeout=30000)
-                    await self.page.wait_for_load_state("domcontentloaded", timeout=15000)
-                    await asyncio.sleep(0.5)
+                if lead_page and lead_page != self.page:
+                    await lead_page.close()
             except Exception:
                 pass
 
     async def extract_public_linkedin_url(self, card, name: str | None = None) -> Optional[str]:
-        import random
-
         profile_page = None
         try:
             if not await self._open_card_overflow(card, name):
@@ -224,21 +278,24 @@ class SalesNavPublicUrlFlow:
                 return await self._copy_public_url_from_lead_page(sales_nav_url=sales_nav_url, name=name)
 
             pages_before = len(self.context.pages)
+            await scroll_into_view(self.page, view_profile_btn)
+            await wait_with_jitter(0.5, 0.08)
             await view_profile_btn.click(modifiers=["Control"])
-            await asyncio.sleep(random.uniform(1.5, 2.5))
+            await wait_with_jitter(1.8, 0.35)
             for _ in range(10):
                 if len(self.context.pages) > pages_before:
                     break
                 await asyncio.sleep(0.3)
             if len(self.context.pages) <= pages_before:
-                await view_profile_btn.click()
-                await asyncio.sleep(2.0)
+                if not await self._click_when_ready(self.page, view_profile_btn, settle_s=0.5):
+                    return None
+                await wait_with_jitter(2.0, 0.35)
                 if len(self.context.pages) > pages_before:
                     profile_page = self.context.pages[-1]
                 else:
                     try:
                         await self.page.go_back()
-                        await asyncio.sleep(1.0)
+                        await wait_with_jitter(1.0, 0.15)
                     except Exception:
                         pass
                     return None
@@ -246,7 +303,10 @@ class SalesNavPublicUrlFlow:
                 profile_page = self.context.pages[-1]
 
             await profile_page.wait_for_load_state("domcontentloaded", timeout=15000)
-            await asyncio.sleep(random.uniform(1, 2))
+            await wait_with_jitter(1.2, 0.25)
+            direct_url = self._normalize_public_profile_url(getattr(profile_page, "url", None))
+            if direct_url:
+                return direct_url
             return await self._extract_from_profile_page(profile_page, name)
         except Exception as exc:
             print(f"[LinkedIn] Error extracting public URL for {name or 'lead'}: {exc}")
@@ -261,4 +321,3 @@ class SalesNavPublicUrlFlow:
                 await self.page.keyboard.press("Escape")
             except Exception:
                 pass
-

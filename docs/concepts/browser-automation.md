@@ -112,6 +112,7 @@ Google workflow note:
 - If Google returns an anti-bot interstitial (`/sorry/index`, unusual-traffic page, reCAPTCHA), the endpoint fails with
   `429` + `code=human_verification_required` so callers can pause and request manual verification.
 - Planner/runtime guardrail: explicit user intent like `google ...` is normalized to `google_search_browser` (not `hybrid_search`), and tool execution includes a fallback path to `google_search_browser` when `hybrid_search` fails with a network fetch error on explicit Google intent.
+- Generic retrieval bootstrap guardrail: explicit browser automation requests (`go to`, `open`, URLs, `LinkedIn`, `Sales Navigator`, etc.) skip the `hybrid_search` bootstrap fallback so planner failures do not silently reroute live-site work into CRM retrieval.
 
 ### Generic Workflow Endpoints (Preferred for Structured Tasks)
 

@@ -41,6 +41,7 @@ Legacy (SalesNav-specific wrappers; maintained for compatibility):
 - `POST /api/salesnav/browser/list-employees`
   - From a company page, open the "employees" view and extract `/sales/lead/...` rows.
   - Note: SalesNav sometimes opens employees in a new tab. The workflow will switch to the newly opened people-search tab when that happens.
+  - The workflow now fails fast when it cannot positively open the requested company first, or when the entrypoint does not land on a Sales Navigator people-results page (for example if the tab falls back to `/sales/home`).
 - `POST /api/salesnav/browser/extract-leads`
   - Extract lead/profile rows from the currently open SalesNav people/results page.
 

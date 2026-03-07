@@ -19,13 +19,38 @@ for /f "tokens=5" %%p in ('netstat -ano ^| findstr /c:":9223" ^| findstr /c:"LIS
   set "BRIDGE_PID=%%p"
 )
 
-REM Start LeadPilot browser bridge only if NOT already running (9223)
-if "%BRIDGE_PID%"=="" (
-  echo Starting LeadPilot Browser Bridge...
-  start /min "LeadPilot Browser Bridge" cmd /c ^
-    "cd /d C:\Users\lmraz\Hello && node --import tsx scripts\leadpilot_browser_bridge.ts"
+set "BROWSER_GATEWAY_MODE_EFFECTIVE="
+if exist ".env" (
+  for /f "tokens=1,* delims==" %%A in ('findstr /b /i "BROWSER_GATEWAY_MODE=" ".env"') do (
+    set "BROWSER_GATEWAY_MODE_EFFECTIVE=%%B"
+  )
+)
+if "%BROWSER_GATEWAY_MODE_EFFECTIVE%"=="" (
+  set "BROWSER_GATEWAY_MODE_EFFECTIVE=%BROWSER_GATEWAY_MODE%"
+)
+if /I "%BROWSER_GATEWAY_MODE_EFFECTIVE%"=="" (
+  set "BROWSER_GATEWAY_MODE_EFFECTIVE=leadpilot"
+)
+
+REM Start LeadPilot browser bridge only when gateway mode needs it and it's not already running (9223)
+if /I "%BROWSER_GATEWAY_MODE_EFFECTIVE%"=="leadpilot" (
+  if "%BRIDGE_PID%"=="" (
+    echo Starting LeadPilot Browser Bridge...
+    start /min "LeadPilot Browser Bridge" cmd /c ^
+      "cd /d C:\Users\lmraz\Hello && node --import tsx scripts\leadpilot_browser_bridge.ts"
+  ) else (
+    echo LeadPilot bridge already running on port 9223. PID=%BRIDGE_PID%
+  )
+) else if /I "%BROWSER_GATEWAY_MODE_EFFECTIVE%"=="openclaw" (
+  if "%BRIDGE_PID%"=="" (
+    echo Starting LeadPilot Browser Bridge...
+    start /min "LeadPilot Browser Bridge" cmd /c ^
+      "cd /d C:\Users\lmraz\Hello && node --import tsx scripts\leadpilot_browser_bridge.ts"
+  ) else (
+    echo LeadPilot bridge already running on port 9223. PID=%BRIDGE_PID%
+  )
 ) else (
-  echo LeadPilot bridge already running on port 9223. PID=%BRIDGE_PID%
+  echo Bridge skipped because BROWSER_GATEWAY_MODE=%BROWSER_GATEWAY_MODE_EFFECTIVE%
 )
 
 REM If backend is already running, do not restart it.

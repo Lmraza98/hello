@@ -32,6 +32,11 @@
   body {
     @apply bg-bg text-text antialiased;
   }
+
+  button {
+    font: inherit;
+    color: inherit;
+  }
   
   ::-webkit-scrollbar {
     width: 6px;

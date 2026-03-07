@@ -306,6 +306,47 @@ function formatSearchContacts(dispatched: DispatchResult): ChatMessage[] | null 
   return [textMsg(header), ...cards];
 }
 
+function formatBrowserContacts(dispatched: DispatchResult): ChatMessage[] | null {
+  const browserCall = [...dispatched.executed]
+    .reverse()
+    .find((item) =>
+      item.ok &&
+      (item.name === 'browser_search_and_extract' || item.name === 'browser_list_sub_items')
+    );
+  if (!browserCall) return null;
+
+  const contacts = extractContactsFromResult(browserCall.result);
+  if (contacts.length === 0) return null;
+
+  const contactCards = contacts.slice(0, 5).map((contact, idx) => ({
+    id: `browser-contact-card-${Date.now()}-${idx}`,
+    type: 'contact_card' as const,
+    sender: 'bot' as const,
+    timestamp: new Date(),
+    contact: {
+      name: contact.name || 'Unknown',
+      title: contact.title || undefined,
+      company: contact.company_name || 'Unknown company',
+      email: contact.email || undefined,
+      phone: contact.phone || undefined,
+      linkedin_url: contact.linkedin_url || undefined,
+      salesforce_url: contact.salesforce_url || undefined,
+      source: browserCall.name === 'browser_list_sub_items' ? 'Sales Navigator employee search' : 'Browser search',
+    },
+  }));
+
+  const detailsFound = contacts.some((contact) => Boolean(contact.title || contact.email || contact.phone || contact.linkedin_url));
+  const intro =
+    contacts.length === 1
+      ? 'I found 1 person from Sales Navigator.'
+      : `I found ${contacts.length} people from Sales Navigator${contacts.length > 5 ? ' (showing first 5)' : ''}.`;
+  const followUp = detailsFound
+    ? 'Do you want me to create these as contacts?'
+    : 'I can create these as contacts if you want, but the current extraction mostly has names only.';
+
+  return [textMsg(`${intro}\n\n${followUp}`), ...contactCards];
+}
+
 function formatCompoundWorkflowStatus(dispatched: DispatchResult): ChatMessage[] | null {
   const statusCall = [...dispatched.executed].reverse().find((item) => item.name === 'compound_workflow_status' && item.ok);
   if (!statusCall || !statusCall.result || typeof statusCall.result !== 'object') return null;
@@ -411,6 +452,7 @@ export function formatDispatchMessages(dispatched: DispatchResult): ChatMessage[
     formatCollectedCompanies,
     formatSearchCompanies,
     formatSearchContacts,
+    formatBrowserContacts,
   ] as const;
 
   for (const formatter of formatters) {

@@ -1,20 +1,27 @@
 import type { TaskStep } from "../../chatEngineTypes";
 import type { ParsedToolCall } from "../../toolExecutor";
-import type { UIAction } from "../../../capabilities/generated/schema";
+import type { ChatAction } from "../../actions";
 import registry from "../../../capabilities/generated/registry.json";
 
 type CapabilityActionRecord = { id?: string; aliases?: string[] };
 type CapabilityPageRecord = { actions?: CapabilityActionRecord[] };
 
 const KNOWN_UI_ACTIONS = new Set(
-  (Array.isArray(registry) ? registry : [])
-    .flatMap((page) => ((page as CapabilityPageRecord).actions || []))
-    .flatMap((action) => [String(action.id || '').trim(), ...((action.aliases || []).map((x) => String(x).trim()))])
-    .filter(Boolean)
+  [
+    ...(Array.isArray(registry) ? registry : [])
+      .flatMap((page) => ((page as CapabilityPageRecord).actions || []))
+      .flatMap((action) => [String(action.id || '').trim(), ...((action.aliases || []).map((x) => String(x).trim()))])
+      .filter(Boolean),
+    'assistant_guide',
+    'assistant_guide_clear',
+    'assistant_ui_start_flow',
+    'assistant_ui_set_target',
+    'assistant_ui_clear',
+  ]
 );
 
 export interface ParsedPlannerPlan {
-  uiActions: UIAction[];
+  uiActions: ChatAction[];
   toolCalls: ParsedToolCall[];
 }
 
@@ -128,7 +135,7 @@ export function normalizeParsedCalls(raw: unknown): ParsedToolCall[] {
   return one ? [one] : [];
 }
 
-function normalizeParsedUiActions(raw: unknown): UIAction[] {
+function normalizeParsedUiActions(raw: unknown): ChatAction[] {
   const extractContainer = (value: unknown): unknown => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
     const obj = value as Record<string, unknown>;
@@ -140,17 +147,17 @@ function normalizeParsedUiActions(raw: unknown): UIAction[] {
   const normalized = extractContainer(raw);
   if (!Array.isArray(normalized)) return [];
 
-  const out: UIAction[] = [];
+  const out: ChatAction[] = [];
   const seen = new Set<string>();
   for (const item of normalized) {
     if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
     const record = item as Record<string, unknown>;
-    const actionId = String(record.action || '').trim();
+    const actionId = String(record.action || record.type || '').trim();
     if (!actionId || !KNOWN_UI_ACTIONS.has(actionId)) continue;
     const key = JSON.stringify(record);
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push(record as unknown as UIAction);
+    out.push(record as unknown as ChatAction);
   }
   return out;
 }

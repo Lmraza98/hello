@@ -1,4 +1,4 @@
-import { ollamaChat, type LocalChatMessage } from './ollamaClient';
+﻿import { ollamaChat, type LocalChatMessage } from './ollamaClient';
 import { runFunctionGemma } from './functionGemmaProvider';
 import {
   OPENROUTER_TOOL_BRAIN_MODEL,
@@ -35,18 +35,18 @@ const NEVER_ABORT_SIGNAL: AbortSignal = new AbortController().signal;
 
 const BACKEND_DEFAULTS: Record<PlannerBackend, Required<PlannerSampling>> = {
   qwen3: {
-    temperature: Number.parseFloat(import.meta.env.VITE_QWEN3_TEMPERATURE || '0.4'),
-    topP: Number.parseFloat(import.meta.env.VITE_QWEN3_TOP_P || '0.95'),
-    topK: Number.parseInt(import.meta.env.VITE_QWEN3_TOP_K || '40', 10),
-    numPredict: Number.parseInt(import.meta.env.VITE_QWEN3_NUM_PREDICT || '384', 10),
+    temperature: Number.parseFloat(process.env.NEXT_PUBLIC_QWEN3_TEMPERATURE || '0.4'),
+    topP: Number.parseFloat(process.env.NEXT_PUBLIC_QWEN3_TOP_P || '0.95'),
+    topK: Number.parseInt(process.env.NEXT_PUBLIC_QWEN3_TOP_K || '40', 10),
+    numPredict: Number.parseInt(process.env.NEXT_PUBLIC_QWEN3_NUM_PREDICT || '384', 10),
     signal: NEVER_ABORT_SIGNAL,
     onToken: () => {},
   },
   devstral: {
-    temperature: Number.parseFloat(import.meta.env.VITE_DEVSTRAL_TEMPERATURE || '0.3'),
-    topP: Number.parseFloat(import.meta.env.VITE_DEVSTRAL_TOP_P || '0.9'),
-    topK: Number.parseInt(import.meta.env.VITE_DEVSTRAL_TOP_K || '20', 10),
-    numPredict: Number.parseInt(import.meta.env.VITE_DEVSTRAL_NUM_PREDICT || '384', 10),
+    temperature: Number.parseFloat(process.env.NEXT_PUBLIC_DEVSTRAL_TEMPERATURE || '0.3'),
+    topP: Number.parseFloat(process.env.NEXT_PUBLIC_DEVSTRAL_TOP_P || '0.9'),
+    topK: Number.parseInt(process.env.NEXT_PUBLIC_DEVSTRAL_TOP_K || '20', 10),
+    numPredict: Number.parseInt(process.env.NEXT_PUBLIC_DEVSTRAL_NUM_PREDICT || '384', 10),
     signal: NEVER_ABORT_SIGNAL,
     onToken: () => {},
   },
@@ -64,13 +64,13 @@ export function createPlannerAskFn(route: PlannerRoute = {}): PlannerAskFn {
   const backend = route.backend || PLANNER_BACKEND;
   const provider = (
     route.provider ||
-    import.meta.env.VITE_PLANNER_PROVIDER ||
-    import.meta.env.VITE_QWEN3_PROVIDER ||
+    process.env.NEXT_PUBLIC_PLANNER_PROVIDER ||
+    process.env.NEXT_PUBLIC_QWEN3_PROVIDER ||
     'ollama'
   ).toLowerCase() as PlannerProvider;
   const defaults = BACKEND_DEFAULTS[backend];
-  const openaiPlannerModel = import.meta.env.VITE_OPENAI_PLANNER_MODEL || import.meta.env.VITE_OPENAI_CHAT_MODEL || 'gpt-4o-mini';
-  const openrouterPlannerModel = import.meta.env.VITE_OPENROUTER_PLANNER_MODEL || OPENROUTER_TOOL_BRAIN_MODEL;
+  const openaiPlannerModel = process.env.NEXT_PUBLIC_OPENAI_PLANNER_MODEL || process.env.NEXT_PUBLIC_OPENAI_CHAT_MODEL || 'gpt-4o-mini';
+  const openrouterPlannerModel = process.env.NEXT_PUBLIC_OPENROUTER_PLANNER_MODEL || OPENROUTER_TOOL_BRAIN_MODEL;
   const defaultModelForProvider =
     provider === 'openai'
       ? openaiPlannerModel
@@ -178,3 +178,4 @@ export function createPlannerAskFn(route: PlannerRoute = {}): PlannerAskFn {
     return { content: local.message.content };
   };
 }
+

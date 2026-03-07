@@ -1,6 +1,6 @@
-# UI Architecture
+﻿# UI Architecture
 
-> React + TypeScript desktop/mobile app built with Vite, Tailwind CSS v4, TanStack Query, TanStack Table, and TanStack Virtual.
+> React + TypeScript desktop/mobile app built with Next.js, Tailwind CSS v4, TanStack Query, TanStack Table, and TanStack Virtual.
 
 ---
 
@@ -8,83 +8,83 @@
 
 ```
 ui/src/
-├── api.ts                    # Centralized API client & shared TS types
-├── App.tsx                   # Root layout — sidebar, mobile tab bar, routing
-├── index.css                 # Tailwind v4 theme tokens (@theme block)
-│
-├── pages/                    # Top-level route components
-│   ├── Dashboard.tsx         # Stats, charts, live contacts, logs
-│   ├── Companies.tsx         # CRUD table with filters, virtual scroll
-│   ├── Contacts.tsx          # CRUD table with filters, bulk actions, virtual scroll
-│   └── Email.tsx             # Campaign management, review queue, send queue
-│
-├── hooks/                    # Custom React hooks
-│   ├── useCompanies.ts       # React Query mutations for companies
-│   ├── useContacts.ts        # React Query queries + mutations for contacts
-│   ├── useDashboard.ts       # Aggregates stats, pipeline, email stats, today's contacts
-│   ├── useEmailCampaigns.ts  # React Query queries + mutations for email campaigns
-│   ├── useIsMobile.tsx       # Media query hook (< 768px)
-│   └── useNotifications.ts   # Toast notification state management
-│
-├── types/
-│   └── email.ts              # Email-specific types (campaigns, queue items, templates)
-│
-├── contexts/
-│   └── NotificationContext.tsx # App-wide notification provider
-│
-├── components/
-│   ├── shared/               # ⭐ Reusable, domain-agnostic base components
-│   │   ├── BaseModal.tsx
-│   │   ├── SearchToolbar.tsx
-│   │   ├── FilterPanelWrapper.tsx
-│   │   ├── Badge.tsx
-│   │   ├── PageHeader.tsx
-│   │   ├── MobileCard.tsx
-│   │   ├── EmptyState.tsx
-│   │   ├── LoadingSpinner.tsx
-│   │   └── ConfirmDialog.tsx
-│   │
-│   ├── companies/            # Company-specific components
-│   │   ├── AddCompanyModal.tsx
-│   │   ├── CompaniesFilterPanel.tsx
-│   │   ├── CompanyCard.tsx       # Mobile card (wraps MobileCard)
-│   │   ├── CompanyDetail.tsx     # Expanded row / detail view
-│   │   ├── StatusBadge.tsx       # Wraps Badge
-│   │   ├── TierBadge.tsx         # Wraps Badge
-│   │   └── tableColumns.tsx      # TanStack Table column definitions
-│   │
-│   ├── contacts/             # Contact-specific components
-│   │   ├── AddContactModal.tsx
-│   │   ├── BulkActionsBar.tsx
-│   │   ├── CampaignEnrollmentModal.tsx
-│   │   ├── ContactCard.tsx       # Mobile card (wraps MobileCard)
-│   │   ├── ContactDetail.tsx
-│   │   ├── FilterPanel.tsx
-│   │   ├── SalesforceStatusBadge.tsx  # Wraps Badge
-│   │   └── tableColumns.tsx
-│   │
-│   ├── email/                # Email campaign components
-│   │   ├── CampaignCard.tsx
-│   │   ├── CampaignModal.tsx     # Create/edit campaign (wraps BaseModal)
-│   │   ├── CampaignsView.tsx
-│   │   ├── QueueView.tsx
-│   │   ├── ReviewQueueView.tsx
-│   │   ├── SentEmailsList.tsx
-│   │   ├── SettingsPanel.tsx
-│   │   └── TemplateEditorModal.tsx  # Wraps BaseModal
-│   │
-│   ├── dashboard/            # Dashboard widgets
-│   │   ├── ConnectionStatus.tsx
-│   │   ├── LiveContacts.tsx
-│   │   ├── MiniLineChart.tsx
-│   │   ├── MiniMetric.tsx
-│   │   ├── RecentActivity.tsx
-│   │   ├── StatCard.tsx
-│   │   └── TerminalOutput.tsx
-│   │
-│   ├── DataTable.tsx         # Generic table (used by non-virtual simple tables)
-│   ├── Notification.tsx      # Single toast notification
-│   └── NotificationContainer.tsx
+â”œâ”€â”€ api.ts                    # Centralized API client & shared TS types
+â”œâ”€â”€ App.tsx                   # Root layout â€” sidebar, mobile tab bar, routing
+â”œâ”€â”€ index.css                 # Tailwind v4 theme tokens (@theme block)
+â”‚
+â”œâ”€â”€ pages/                    # Top-level route components
+â”‚   â”œâ”€â”€ Dashboard.tsx         # Stats, charts, live contacts, logs
+â”‚   â”œâ”€â”€ Companies.tsx         # CRUD table with filters, virtual scroll
+â”‚   â”œâ”€â”€ Contacts.tsx          # CRUD table with filters, bulk actions, virtual scroll
+â”‚   â””â”€â”€ Email.tsx             # Campaign management, review queue, send queue
+â”‚
+â”œâ”€â”€ hooks/                    # Custom React hooks
+â”‚   â”œâ”€â”€ useCompanies.ts       # React Query mutations for companies
+â”‚   â”œâ”€â”€ useContacts.ts        # React Query queries + mutations for contacts
+â”‚   â”œâ”€â”€ useDashboard.ts       # Aggregates stats, pipeline, email stats, today's contacts
+â”‚   â”œâ”€â”€ useEmailCampaigns.ts  # React Query queries + mutations for email campaigns
+â”‚   â”œâ”€â”€ useIsMobile.tsx       # Media query hook (< 768px)
+â”‚   â””â”€â”€ useNotifications.ts   # Toast notification state management
+â”‚
+â”œâ”€â”€ types/
+â”‚   â””â”€â”€ email.ts              # Email-specific types (campaigns, queue items, templates)
+â”‚
+â”œâ”€â”€ contexts/
+â”‚   â””â”€â”€ NotificationContext.tsx # App-wide notification provider
+â”‚
+â”œâ”€â”€ components/
+â”‚   â”œâ”€â”€ shared/               # â­ Reusable, domain-agnostic base components
+â”‚   â”‚   â”œâ”€â”€ BaseModal.tsx
+â”‚   â”‚   â”œâ”€â”€ SearchToolbar.tsx
+â”‚   â”‚   â”œâ”€â”€ FilterPanelWrapper.tsx
+â”‚   â”‚   â”œâ”€â”€ Badge.tsx
+â”‚   â”‚   â”œâ”€â”€ PageHeader.tsx
+â”‚   â”‚   â”œâ”€â”€ MobileCard.tsx
+â”‚   â”‚   â”œâ”€â”€ EmptyState.tsx
+â”‚   â”‚   â”œâ”€â”€ LoadingSpinner.tsx
+â”‚   â”‚   â””â”€â”€ ConfirmDialog.tsx
+â”‚   â”‚
+â”‚   â”œâ”€â”€ companies/            # Company-specific components
+â”‚   â”‚   â”œâ”€â”€ AddCompanyModal.tsx
+â”‚   â”‚   â”œâ”€â”€ CompaniesFilterPanel.tsx
+â”‚   â”‚   â”œâ”€â”€ CompanyCard.tsx       # Mobile card (wraps MobileCard)
+â”‚   â”‚   â”œâ”€â”€ CompanyDetail.tsx     # Expanded row / detail view
+â”‚   â”‚   â”œâ”€â”€ StatusBadge.tsx       # Wraps Badge
+â”‚   â”‚   â”œâ”€â”€ TierBadge.tsx         # Wraps Badge
+â”‚   â”‚   â””â”€â”€ tableColumns.tsx      # TanStack Table column definitions
+â”‚   â”‚
+â”‚   â”œâ”€â”€ contacts/             # Contact-specific components
+â”‚   â”‚   â”œâ”€â”€ AddContactPanelContent.tsx
+â”‚   â”‚   â”œâ”€â”€ BulkActionsBar.tsx
+â”‚   â”‚   â”œâ”€â”€ CampaignEnrollmentModal.tsx
+â”‚   â”‚   â”œâ”€â”€ ContactCard.tsx       # Mobile card (wraps MobileCard)
+â”‚   â”‚   â”œâ”€â”€ ContactDetail.tsx
+â”‚   â”‚   â”œâ”€â”€ FilterPanel.tsx
+â”‚   â”‚   â”œâ”€â”€ SalesforceStatusBadge.tsx  # Wraps Badge
+â”‚   â”‚   â””â”€â”€ tableColumns.tsx
+â”‚   â”‚
+â”‚   â”œâ”€â”€ email/                # Email campaign components
+â”‚   â”‚   â”œâ”€â”€ CampaignCard.tsx
+â”‚   â”‚   â”œâ”€â”€ CampaignModal.tsx     # Create/edit campaign (wraps BaseModal)
+â”‚   â”‚   â”œâ”€â”€ CampaignsView.tsx
+â”‚   â”‚   â”œâ”€â”€ QueueView.tsx
+â”‚   â”‚   â”œâ”€â”€ ReviewQueueView.tsx
+â”‚   â”‚   â”œâ”€â”€ SentEmailsList.tsx
+â”‚   â”‚   â”œâ”€â”€ SettingsPanel.tsx
+â”‚   â”‚   â””â”€â”€ TemplateEditorModal.tsx  # Wraps BaseModal
+â”‚   â”‚
+â”‚   â”œâ”€â”€ dashboard/            # Dashboard widgets
+â”‚   â”‚   â”œâ”€â”€ ConnectionStatus.tsx
+â”‚   â”‚   â”œâ”€â”€ LiveContacts.tsx
+â”‚   â”‚   â”œâ”€â”€ MiniLineChart.tsx
+â”‚   â”‚   â”œâ”€â”€ MiniMetric.tsx
+â”‚   â”‚   â”œâ”€â”€ RecentActivity.tsx
+â”‚   â”‚   â”œâ”€â”€ StatCard.tsx
+â”‚   â”‚   â””â”€â”€ TerminalOutput.tsx
+â”‚   â”‚
+â”‚   â”œâ”€â”€ DataTable.tsx         # Generic table (used by non-virtual simple tables)
+â”‚   â”œâ”€â”€ Notification.tsx      # Single toast notification
+â”‚   â””â”€â”€ NotificationContainer.tsx
 ```
 
 ---
@@ -93,26 +93,26 @@ ui/src/
 
 ### 1. Shared Components (Composition, Not Inheritance)
 
-All shared components live in `components/shared/` and are **"dumb"** — they know nothing about companies, contacts, or emails. They only know about UI patterns.
+All shared components live in `components/shared/` and are **"dumb"** â€” they know nothing about companies, contacts, or emails. They only know about UI patterns.
 
 Domain-specific components **wrap** shared components:
 
 ```
-AddCompanyModal  →  BaseModal        (provides overlay, header, body, footer)
-TierBadge        →  Badge            (provides pill styling + color map)
-CompanyCard      →  MobileCard       (provides checkbox, expand/collapse, chevron)
-FilterPanel      →  FilterPanelWrapper (provides mobile bottom sheet / desktop dropdown)
+AddCompanyModal  â†’  BaseModal        (provides overlay, header, body, footer)
+TierBadge        â†’  Badge            (provides pill styling + color map)
+CompanyCard      â†’  MobileCard       (provides checkbox, expand/collapse, chevron)
+FilterPanel      â†’  FilterPanelWrapper (provides mobile bottom sheet / desktop dropdown)
 ```
 
-This wrapper pattern avoids prop explosion. If a shared component starts needing `renderCustomHeader` with 5 boolean flags, it's gone too far — split into a new wrapper instead.
+This wrapper pattern avoids prop explosion. If a shared component starts needing `renderCustomHeader` with 5 boolean flags, it's gone too far â€” split into a new wrapper instead.
 
 ### 2. Data Fetching
 
 All server communication goes through `api.ts`, which wraps `fetch` with typed helpers.
 
 **React Query** (TanStack Query) manages caching and refetching:
-- **Queries** (`useQuery`) — `getCompanies`, `getContacts`, `getStats`, etc.
-- **Mutations** (`useMutation`) — `addCompany`, `deleteCompany`, etc.
+- **Queries** (`useQuery`) â€” `getCompanies`, `getContacts`, `getStats`, etc.
+- **Mutations** (`useMutation`) â€” `addCompany`, `deleteCompany`, etc.
 - Query invalidation happens inside mutation `onSuccess` handlers.
 
 Custom hooks (`useCompanies`, `useContacts`, `useDashboard`, `useEmailCampaigns`) encapsulate all query/mutation logic for each domain.
@@ -176,8 +176,8 @@ Destructive actions use `ConfirmDialog` (in `shared/`) instead of `window.confir
 3. **Hook**: Create `hooks/useDeals.ts` with React Query queries + mutations
 4. **Table Columns**: Create `components/deals/tableColumns.tsx`
 5. **Components**: Create domain-specific components in `components/deals/`, wrapping shared components as needed
-6. **Page**: Create `pages/Deals.tsx` — compose the page from your new components
-7. **Route**: Add to `App.tsx` navItems + page render
+6. **Page**: Create `pages/Deals.tsx` â€” compose the page from your new components
+7. **Route**: Add a Next.js route under `app/(workspace)/` and wire any shell nav item updates in `components/shell/ChatFirstShell.tsx`
 
 ### New Shared Component
 
@@ -194,9 +194,10 @@ Destructive actions use `ConfirmDialog` (in `shared/`) instead of `window.confir
 |---------|---------|---------|
 | React | 19.x | UI framework |
 | TypeScript | 5.9.x | Type safety |
-| Vite | 7.x | Build tool + dev server |
+| Next.js | 15.x | Build tool + dev server |
 | Tailwind CSS | 4.x | Utility-first styling |
 | TanStack Query | 5.x | Server state management |
 | TanStack Table | 8.x | Headless table logic |
 | TanStack Virtual | 3.x | Virtualized lists/tables |
 | lucide-react | 0.562+ | Icons |
+

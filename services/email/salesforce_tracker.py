@@ -6,11 +6,270 @@ activity history for sent emails and update tracking data.
 """
 import asyncio
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict
 
 import config
 import database as db
+
+
+def _looks_like_non_email_task(text: str, subject: str) -> bool:
+    lowered = (text or "").strip().lower()
+    subj = (subject or "").strip().lower()
+    task_markers = (
+        "details for task",
+        "follow up",
+        "upcoming task",
+        "task due",
+        "call due",
+        "log a call",
+    )
+    return any(marker in lowered or marker in subj for marker in task_markers)
+
+
+async def _extract_timeline_email_summary(page) -> Dict:
+    """
+    Parse current Salesforce record timeline and detect sent-email activity.
+    Returns coarse summary suitable for campaign seeding.
+    """
+    sent_count = 0
+    latest_subject = None
+    latest_when = None
+
+    # Prefer concrete email-row selectors seen on Lightning timeline.
+    items = page.locator(
+        "li.row.Email, li.slds-timeline__item_email, .slds-timeline__item_email"
+    )
+    count = await items.count()
+    for idx in range(min(count, 25)):
+        item = items.nth(idx)
+        try:
+            text = (await item.inner_text(timeout=1000) or "").strip()
+        except Exception:
+            text = ""
+        if not text:
+            continue
+        lowered = text.lower()
+        if "you sent an email to" not in lowered and "last opened" not in lowered:
+            continue
+        try:
+            subject_text = await item.locator(".subjectLink, .subjectText").first.inner_text(timeout=1000)
+        except Exception:
+            subject_text = ""
+        candidate_subject = (subject_text or "").strip()
+        if _looks_like_non_email_task(text, candidate_subject):
+            continue
+
+        sent_count += 1
+        if latest_subject is None:
+            latest_subject = candidate_subject or None
+        if latest_when is None:
+            try:
+                when_text = await item.locator(".dueDate").first.inner_text(timeout=1000)
+            except Exception:
+                when_text = ""
+            latest_when = (when_text or "").strip() or None
+
+    return {
+        "sent_count": int(sent_count),
+        "latest_subject": latest_subject,
+        "latest_when": latest_when,
+    }
+
+
+async def sync_campaign_salesforce_history(campaign_id: int, limit: int = 500) -> Dict:
+    """
+    Backfill campaign state from existing Salesforce timeline history.
+    Seeds sent status for enrolled contacts that already show sent email activity.
+    """
+    campaign = db.get_email_campaign(campaign_id)
+    if not campaign:
+        return {
+            "success": False,
+            "campaign_id": int(campaign_id),
+            "checked": 0,
+            "seeded": 0,
+            "detected_salesforce_activity": 0,
+            "skipped_existing_sent": 0,
+            "skipped_no_salesforce_url": 0,
+            "error": "Campaign not found",
+        }
+
+    bounded_limit = max(1, min(int(limit or 500), 2000))
+    contacts = db.get_campaign_contacts(campaign_id, status="active")[:bounded_limit]
+
+    with db.get_db() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT DISTINCT contact_id
+            FROM sent_emails
+            WHERE campaign_id = ?
+              AND lower(COALESCE(review_status, '')) = 'sent'
+            """,
+            (campaign_id,),
+        )
+        existing_sent_contact_ids = {int(r["contact_id"]) for r in cur.fetchall()}
+
+    skipped_existing_sent = 0
+    skipped_no_salesforce_url = 0
+    candidates = []
+    for row in contacts:
+        contact_id = int(row["contact_id"])
+        if contact_id in existing_sent_contact_ids:
+            skipped_existing_sent += 1
+            continue
+        if not (row.get("salesforce_url") or "").strip():
+            skipped_no_salesforce_url += 1
+            continue
+        candidates.append(row)
+
+    checked = 0
+    detected_salesforce_activity = 0
+    seeded = 0
+
+    if not candidates:
+        return {
+            "success": True,
+            "campaign_id": int(campaign_id),
+            "checked": 0,
+            "seeded": 0,
+            "detected_salesforce_activity": 0,
+            "skipped_existing_sent": int(skipped_existing_sent),
+            "skipped_no_salesforce_url": int(skipped_no_salesforce_url),
+            "message": "No eligible campaign contacts required Salesforce history sync.",
+        }
+
+    try:
+        from services.web_automation.salesforce.auth_manager import (
+            _is_bot_alive,
+            get_shared_bot,
+            trigger_reauth,
+        )
+
+        bot = await get_shared_bot()
+        if bot is None or not _is_bot_alive(bot):
+            return {
+                "success": False,
+                "campaign_id": int(campaign_id),
+                "checked": 0,
+                "seeded": 0,
+                "detected_salesforce_activity": 0,
+                "skipped_existing_sent": int(skipped_existing_sent),
+                "skipped_no_salesforce_url": int(skipped_no_salesforce_url),
+                "error": "Salesforce browser bot unavailable",
+            }
+        if not bot.is_authenticated:
+            ok = await trigger_reauth()
+            if not ok:
+                return {
+                    "success": False,
+                    "campaign_id": int(campaign_id),
+                    "checked": 0,
+                    "seeded": 0,
+                    "detected_salesforce_activity": 0,
+                    "skipped_existing_sent": int(skipped_existing_sent),
+                    "skipped_no_salesforce_url": int(skipped_no_salesforce_url),
+                    "error": "Salesforce authentication required",
+                }
+            bot = await get_shared_bot()
+            if bot is None or not _is_bot_alive(bot) or not bot.is_authenticated:
+                return {
+                    "success": False,
+                    "campaign_id": int(campaign_id),
+                    "checked": 0,
+                    "seeded": 0,
+                    "detected_salesforce_activity": 0,
+                    "skipped_existing_sent": int(skipped_existing_sent),
+                    "skipped_no_salesforce_url": int(skipped_no_salesforce_url),
+                    "error": "Salesforce authentication failed",
+                }
+
+        page = bot.page
+        for row in candidates:
+            checked += 1
+            sf_url = (row.get("salesforce_url") or "").strip()
+            if not sf_url:
+                continue
+            try:
+                await page.goto(sf_url, wait_until="domcontentloaded", timeout=30_000)
+                try:
+                    await page.wait_for_load_state("networkidle", timeout=10_000)
+                except Exception:
+                    pass
+                await asyncio.sleep(1.2)
+                summary = await _extract_timeline_email_summary(page)
+            except Exception as exc:
+                print(f"[SFTracker] History sync navigation failed contact_id={row.get('contact_id')}: {exc}")
+                continue
+
+            sent_count = int(summary.get("sent_count") or 0)
+            if sent_count <= 0:
+                continue
+
+            detected_salesforce_activity += 1
+            step_seed = max(1, int(row.get("current_step") or 0))
+            max_steps = int(row.get("num_emails") or campaign.get("num_emails") or 1)
+            step_seed = min(step_seed, max_steps)
+
+            subject = (summary.get("latest_subject") or "").strip() or "Imported Salesforce email activity"
+            when_text = (summary.get("latest_when") or "").strip()
+            body = (
+                "Imported from Salesforce activity timeline.\n"
+                f"Detected sent-email events: {sent_count}\n"
+                f"Latest timeline label: {when_text or 'unknown'}"
+            )
+
+            db.log_sent_email(
+                campaign_id=campaign_id,
+                campaign_contact_id=int(row["id"]),
+                contact_id=int(row["contact_id"]),
+                step_number=step_seed,
+                subject=subject,
+                body=body,
+                sf_lead_url=sf_url,
+                status="sent",
+            )
+
+            days = int(row.get("days_between_emails") or campaign.get("days_between_emails") or 3)
+            next_dt = datetime.utcnow() + timedelta(days=days)
+            is_complete = step_seed >= max_steps
+            db.update_campaign_contact(
+                int(row["id"]),
+                current_step=step_seed,
+                status="completed" if is_complete else "active",
+                sf_lead_url=sf_url,
+                next_email_at=None if is_complete else next_dt.isoformat(),
+            )
+            seeded += 1
+
+    except Exception as exc:
+        print(f"[SFTracker] History sync fatal error: {exc}")
+        traceback.print_exc()
+        return {
+            "success": False,
+            "campaign_id": int(campaign_id),
+            "checked": int(checked),
+            "seeded": int(seeded),
+            "detected_salesforce_activity": int(detected_salesforce_activity),
+            "skipped_existing_sent": int(skipped_existing_sent),
+            "skipped_no_salesforce_url": int(skipped_no_salesforce_url),
+            "error": str(exc),
+        }
+
+    return {
+        "success": True,
+        "campaign_id": int(campaign_id),
+        "checked": int(checked),
+        "seeded": int(seeded),
+        "detected_salesforce_activity": int(detected_salesforce_activity),
+        "skipped_existing_sent": int(skipped_existing_sent),
+        "skipped_no_salesforce_url": int(skipped_no_salesforce_url),
+        "message": (
+            f"Checked {checked} contacts, detected existing Salesforce email activity on "
+            f"{detected_salesforce_activity}, seeded {seeded} campaign contacts."
+        ),
+    }
 
 
 async def poll_salesforce_tracking() -> Dict:

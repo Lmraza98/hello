@@ -14,6 +14,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function readStoredWidth(storageKey: string): number | null {
+  if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(storageKey);
     if (!raw) return null;
@@ -35,12 +36,14 @@ export function SplitPaneLayout({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const handleRef = useRef<HTMLButtonElement | null>(null);
   const pointerIdRef = useRef<number | null>(null);
-  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia('(min-width: 768px)').matches);
-  const [leftWidth, setLeftWidth] = useState(() => {
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [leftWidth, setLeftWidth] = useState(() => clamp(defaultLeftWidth, minLeftWidth, maxLeftWidth));
+
+  useEffect(() => {
     const stored = readStoredWidth(storageKey);
-    if (stored == null) return defaultLeftWidth;
-    return clamp(stored, minLeftWidth, maxLeftWidth);
-  });
+    if (stored == null) return;
+    setLeftWidth(clamp(stored, minLeftWidth, maxLeftWidth));
+  }, [defaultLeftWidth, minLeftWidth, maxLeftWidth, storageKey]);
 
   useEffect(() => {
     const media = window.matchMedia('(min-width: 768px)');

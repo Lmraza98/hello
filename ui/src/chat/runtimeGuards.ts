@@ -1,17 +1,17 @@
-import type { LocalChatMessage } from './models/ollamaClient';
+﻿import type { LocalChatMessage } from './models/ollamaClient';
 
-export const CHAT_PLANNER_MAX_USER_TURNS = Number.parseInt(import.meta.env.VITE_CHAT_MAX_USER_TURNS || '4', 10);
-export const DEBUG_RESULT_CHAR_CAP = Number.parseInt(import.meta.env.VITE_CHAT_DEBUG_RESULT_CHAR_CAP || '1200', 10);
+export const CHAT_PLANNER_MAX_USER_TURNS = Number.parseInt(process.env.NEXT_PUBLIC_CHAT_MAX_USER_TURNS || '4', 10);
+export const DEBUG_RESULT_CHAR_CAP = Number.parseInt(process.env.NEXT_PUBLIC_CHAT_DEBUG_RESULT_CHAR_CAP || '1200', 10);
 
 function safeDebugSerialize(value: unknown, maxChars: number): string {
   try {
     const text = typeof value === 'string' ? value : JSON.stringify(value);
     if (text.length <= maxChars) return text;
-    return `${text.slice(0, Math.max(0, maxChars - 16))}…(truncated)…`;
+    return `${text.slice(0, Math.max(0, maxChars - 16))}â€¦(truncated)â€¦`;
   } catch {
     const text = String(value);
     if (text.length <= maxChars) return text;
-    return `${text.slice(0, Math.max(0, maxChars - 16))}…(truncated)…`;
+    return `${text.slice(0, Math.max(0, maxChars - 16))}â€¦(truncated)â€¦`;
   }
 }
 
@@ -63,3 +63,4 @@ export function compactPlannerHistoryByTurns(
   const withoutTool = sliced.filter((m) => m.role !== 'tool');
   return withoutTool.length > 0 ? withoutTool : sliced;
 }
+

@@ -1,4 +1,4 @@
----
+﻿---
 summary: "Multi-step orchestration in the chat engine without adding latency to single-step traffic."
 read_when:
   - You are changing how the chat engine handles multi-step requests
@@ -79,7 +79,8 @@ Use decomposition for conversational multi-step actions in chat. Use compound wo
 
 ## Config
 
-- `VITE_TASK_DECOMPOSITION_TIMEOUT_MS` (default `4500`)
+- `NEXT_PUBLIC_TASK_DECOMPOSITION_TIMEOUT_MS` (default `4500`)
   - Hard timeout for the decomposer planner call.
-- `VITE_DECOMPOSE_CLASSIFIER_MODEL`
-  - Model used for the cheap intent classifier. Defaults to `VITE_OLLAMA_FUNCTIONGEMMA_MODEL`, then `TOOL_BRAIN_MODEL`.
+- `NEXT_PUBLIC_DECOMPOSE_CLASSIFIER_MODEL`
+  - Model used for the cheap intent classifier. Defaults to `NEXT_PUBLIC_OLLAMA_FUNCTIONGEMMA_MODEL`, then `TOOL_BRAIN_MODEL`.
+

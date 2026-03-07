@@ -14,6 +14,7 @@ from api.routes.contact_routes.models import (
     BulkCollectPhoneResponse,
     BulkDeleteResponse,
     BulkLinkedInRequestResponse,
+    BulkMarkReviewedResponse,
     BulkSalesforceUploadResponse,
     BulkSendEmailResponse,
 )
@@ -477,3 +478,37 @@ async def bulk_collect_phone(request: BulkActionRequest):
         error_msg = str(e)
         print(f"Error in bulk_collect_phone: {error_msg}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=error_msg)
+
+
+@router.post("/bulk-actions/mark-reviewed", response_model=BulkMarkReviewedResponse, responses=COMMON_ERROR_RESPONSES)
+async def bulk_mark_reviewed(request: BulkActionRequest):
+    """Mark selected contacts as reviewed."""
+    contact_ids = request.contact_ids
+    try:
+        if not contact_ids:
+            raise HTTPException(status_code=400, detail="No contact IDs provided")
+
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        placeholders = ",".join(["?"] * len(contact_ids))
+        cursor.execute(
+            f"""
+            UPDATE linkedin_contacts
+            SET salesforce_status = 'reviewed'
+            WHERE id IN ({placeholders})
+            """,
+            contact_ids,
+        )
+        updated = cursor.rowcount
+        conn.commit()
+        conn.close()
+        return BulkMarkReviewedResponse(
+            success=True,
+            updated=updated,
+            total=len(contact_ids),
+            message=f"Marked {updated} of {len(contact_ids)} contacts as reviewed",
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

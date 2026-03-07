@@ -28,6 +28,7 @@ title: "Docs Directory"
 
 - [Refactoring notes](/REFACTORING_NOTES)
 - [UI compatibility](/UI_COMPATIBILITY)
+- [UI pattern corpus (repo local)](/help/context-recovery#ui-pattern-corpus)
 - [FunctionGemma fine-tune workflow](/FUNCTIONGEMMA_FINETUNE)
 - [Documentation workflow](/help/documentation-workflow)
 - [Workflow Builder E2E testing](/help/workflow-builder-e2e-testing)

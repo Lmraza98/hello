@@ -31,8 +31,10 @@ def generate_email_with_gpt4o(campaign: Dict, contact: Dict) -> Tuple[str, str]:
     client = OpenAI(api_key=config.OPENAI_API_KEY)
     
     # Build context for personalization
-    contact_name = contact.get('name', 'there')
-    first_name = contact_name.split()[0] if contact_name else 'there'
+    contact_name = contact.get('name') or contact.get('contact_name') or 'there'
+    name_parts = [p for p in str(contact_name).split() if p]
+    first_name = name_parts[0] if name_parts else 'there'
+    last_name = " ".join(name_parts[1:]) if len(name_parts) > 1 else ''
     contact_title = contact.get('title', '')
     company_name = contact.get('company_name', '')
     domain = contact.get('domain', '')
@@ -43,7 +45,8 @@ def generate_email_with_gpt4o(campaign: Dict, contact: Dict) -> Tuple[str, str]:
     
     # Check if the template even has placeholders that need LLM help.
     # If it only has simple variables like {name}, {company}, skip the LLM entirely.
-    simple_vars = {'{name}', '{Name}', '{FirstName}', '{company}', '{Company}',
+    simple_vars = {'{name}', '{Name}', '{FirstName}', '{firstName}', '{first_name}',
+                   '{LastName}', '{lastName}', '{last_name}', '{company}', '{Company}',
                    '{title}', '{domain}', '{sender_name}', '{value_prop}', '{opt_out_line}'}
     
     # Find all {placeholder} patterns in the template
@@ -126,11 +129,14 @@ Return JSON:
         subject = result.get('subject')
         body = result.get('body')
         
-        if not subject:
-            subject = subject_template.replace('{company}', company_name).replace('{Company}', company_name)
-        if not body:
-            body = body_template.replace('{company}', company_name).replace('{Company}', company_name)
-            body = body.replace('{name}', contact_name).replace('{Name}', contact_name)
+        if not subject or not body:
+            fallback_subject, fallback_body = _generate_from_template(
+                subject_template, body_template, contact, company_name
+            )
+            if not subject:
+                subject = fallback_subject
+            if not body:
+                body = fallback_body
         
         # Log LLM usage
         usage = response.usage
@@ -164,7 +170,10 @@ Return JSON:
 
 def _generate_from_template(subject_template: str, body_template: str, contact: Dict, company_name: str) -> Tuple[str, str]:
     """Fallback template-based generation if GPT-4o fails."""
-    contact_name = contact.get('name', 'there')
+    contact_name = contact.get('name') or contact.get('contact_name') or 'there'
+    parts = [p for p in str(contact_name).split() if p]
+    first_name = parts[0] if parts else ''
+    last_name = " ".join(parts[1:]) if len(parts) > 1 else ''
     
     # Build replacements dict with both cases for common variables
     replacements = {
@@ -172,6 +181,12 @@ def _generate_from_template(subject_template: str, body_template: str, contact: 
         'Company': company_name,
         'name': contact_name,
         'Name': contact_name,
+        'FirstName': first_name,
+        'firstName': first_name,
+        'first_name': first_name,
+        'LastName': last_name,
+        'lastName': last_name,
+        'last_name': last_name,
         'personalization': f"Hi {contact_name},",
         'value_prop': config.VALUE_PROP,
         'sender_name': config.SENDER_NAME,
@@ -183,14 +198,26 @@ def _generate_from_template(subject_template: str, body_template: str, contact: 
         subject = subject_template.format(**replacements)
     except KeyError as e:
         print(f"[EmailGenerator] Subject template has unknown variable: {e}")
-        subject = subject_template.replace('{company}', company_name).replace('{Company}', company_name)
+        subject = subject_template
+        for old, new in [
+            ('{company}', company_name), ('{Company}', company_name),
+            ('{name}', contact_name), ('{Name}', contact_name),
+            ('{FirstName}', first_name), ('{firstName}', first_name), ('{first_name}', first_name),
+            ('{LastName}', last_name), ('{lastName}', last_name), ('{last_name}', last_name),
+        ]:
+            subject = subject.replace(old, new)
     
     try:
         body = body_template.format(**replacements)
     except KeyError as e:
         print(f"[EmailGenerator] Body template has unknown variable: {e}")
-        body = body_template.replace('{company}', company_name).replace('{Company}', company_name)
-        body = body.replace('{name}', contact_name).replace('{Name}', contact_name)
+        body = body_template
+        for old, new in [
+            ('{company}', company_name), ('{Company}', company_name),
+            ('{name}', contact_name), ('{Name}', contact_name),
+            ('{FirstName}', first_name), ('{firstName}', first_name), ('{first_name}', first_name),
+            ('{LastName}', last_name), ('{lastName}', last_name), ('{last_name}', last_name),
+        ]:
+            body = body.replace(old, new)
     
     return subject, body
-

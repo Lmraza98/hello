@@ -157,7 +157,7 @@ export default function Workflows() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="pt-5 px-4 md:pt-8 md:px-8 pb-4 md:pb-8">
+      <div className="pt-3 px-3 pb-3 md:pt-4 md:px-4 md:pb-4">
       <PageHeader
         title="Workflows & Campaigns"
         subtitle="Create automated workflows for lead management and outreach"
@@ -596,19 +596,19 @@ function CampaignsManager({ campaigns, queryClient }: { campaigns: any[]; queryC
                 onChange={(e) => setSubjectTemplate(e.target.value)}
                 className="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder:text-text-dim focus:outline-none focus:border-accent"
               />
-              <p className="text-xs text-text-dim mt-1">Use {'{company}'} for dynamic values</p>
+              <p className="text-xs text-text-dim mt-1">Use {'{company}'}, {'{name}'}, {'{firstName}'}, {'{lastName}'} for dynamic values</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-text mb-2">Body Template</label>
               <textarea
-                placeholder="Hi {name},&#10;&#10;I help companies like {company} {value_prop}.&#10;&#10;Would it make sense to have a brief call this week?&#10;&#10;Best,&#10;{sender_name}"
+                placeholder="Hi {firstName},&#10;&#10;I help companies like {company} {value_prop}.&#10;&#10;Would it make sense to have a brief call this week?&#10;&#10;Best,&#10;{sender_name}"
                 value={bodyTemplate}
                 onChange={(e) => setBodyTemplate(e.target.value)}
                 rows={10}
                 className="w-full px-4 py-2 bg-bg border border-border rounded-lg text-text placeholder:text-text-dim focus:outline-none focus:border-accent resize-none font-mono text-sm"
               />
               <p className="text-xs text-text-dim mt-1">
-                Available variables: {'{name}'}, {'{company}'}, {'{title}'}, {'{value_prop}'}, {'{sender_name}'}
+                Available variables: {'{name}'}, {'{firstName}'}, {'{lastName}'}, {'{company}'}, {'{title}'}, {'{value_prop}'}, {'{sender_name}'}
               </p>
             </div>
             <div className="flex items-center justify-end gap-2">

@@ -94,7 +94,7 @@ export function WorkflowDrawer({ open, onOpenChange, runningLabel, onAction, bot
     <div ref={hostRef} className="pointer-events-none absolute inset-0 z-20" style={{ bottom: `${bottomInsetPx}px` }}>
       <div className="pointer-events-auto absolute inset-0 h-full flex items-end">
         {!open ? (
-          <div className="mx-3 mb-3 overflow-x-hidden rounded-lg border border-border bg-surface p-2 shadow-lg">
+          <div className="mb-3 overflow-x-hidden rounded-lg border border-border bg-surface p-2 shadow-lg">
             <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="inline-flex min-w-0 items-center gap-1.5 text-xs text-text-dim">
                 <Play className="h-3.5 w-3.5 text-accent" />
@@ -117,7 +117,7 @@ export function WorkflowDrawer({ open, onOpenChange, runningLabel, onAction, bot
             </div>
           </div>
         ) : (
-          <div className="mx-3 mb-3 flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-xl touch-pan-y" style={{ height: `${heightPct}%` }}>
+          <div className="mb-3 flex min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-surface shadow-xl touch-pan-y" style={{ height: `${heightPct}%` }}>
             <div className="border-b border-border px-2 py-1.5">
               <div
                 role="separator"

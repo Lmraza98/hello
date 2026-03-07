@@ -38,6 +38,7 @@ async def add_contact(contact: ContactCreateRequest):
     new_id = db.add_linkedin_contact(
         company_name=company_name,
         domain=domain,
+        location=(contact.location or "").strip() or None,
         name=name,
         title=(contact.title or "").strip() or None,
         email_generated=(contact.email or "").strip() or None,
@@ -45,12 +46,15 @@ async def add_contact(contact: ContactCreateRequest):
         phone=(contact.phone or "").strip() or None,
         salesforce_url=salesforce_url,
         salesforce_status=salesforce_status,
+        lead_source=(contact.lead_source or "").strip() or "import",
+        ingest_batch_id=(contact.ingest_batch_id or "").strip() or None,
     )
     with db.get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
             """
             SELECT name, title, email_generated, linkedin_url, salesforce_url, salesforce_status
+                 , lead_source, ingest_batch_id
             FROM linkedin_contacts
             WHERE id = ?
             """,
@@ -64,12 +68,15 @@ async def add_contact(contact: ContactCreateRequest):
         "id": new_id,
         "company_name": company_name,
         "domain": domain,
+        "location": (contact.location or "").strip() or None,
         "name": saved["name"] if saved else name,
         "title": saved["title"] if saved else contact.title,
         "email": saved["email_generated"] if saved else contact.email,
         "linkedin_url": saved["linkedin_url"] if saved else contact.linkedin_url,
         "salesforce_url": saved["salesforce_url"] if saved else salesforce_url,
         "salesforce_status": saved["salesforce_status"] if saved else salesforce_status,
+        "lead_source": saved["lead_source"] if saved else ((contact.lead_source or "").strip() or "import"),
+        "ingest_batch_id": saved["ingest_batch_id"] if saved else ((contact.ingest_batch_id or "").strip() or None),
     }
 
 

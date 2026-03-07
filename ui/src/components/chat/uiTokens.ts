@@ -33,6 +33,6 @@ export const uiTokens = {
     md: '0.75rem',
     lg: '1rem',
     sameSpeakerGap: 'mt-2',
-    speakerSwitchGap: 'mt-5',
+    speakerSwitchGap: 'mt-3',
   },
 };

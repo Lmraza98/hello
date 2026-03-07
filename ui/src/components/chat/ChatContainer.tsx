@@ -28,6 +28,15 @@ interface ChatContainerProps {
   dashboardData?: DashboardDataBridge;
   sectionBar?: ReactNode;
   showComposer?: boolean;
+  chatModelOptions?: Array<{ value: string; label: string }>;
+  plannerModelOptions?: Array<{ value: string; label: string }>;
+  chatModel?: string;
+  plannerModel?: string;
+  onChatModelChange?: (model: string) => void;
+  onPlannerModelChange?: (model: string) => void;
+  localRuntimeAvailable?: boolean;
+  localRuntimeLabel?: string;
+  avoidanceZone?: { top: number; height: number; width: number } | null;
 }
 
 type VisibleMessageItem = {
@@ -99,6 +108,15 @@ export function ChatContainer({
   dashboardData,
   sectionBar,
   showComposer = true,
+  chatModelOptions,
+  plannerModelOptions,
+  chatModel,
+  plannerModel,
+  onChatModelChange,
+  onPlannerModelChange,
+  localRuntimeAvailable,
+  localRuntimeLabel,
+  avoidanceZone,
 }: ChatContainerProps) {
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -252,86 +270,87 @@ export function ChatContainer({
       body={
         <>
           <MessageList
-        containerRef={listRef}
-        onScroll={(e) => {
-          if (programmaticScrollRef.current) return;
-          const node = e.currentTarget;
-          const nearBottom = isNearBottom(node, 120);
-          if (!nearBottom) {
-            setUserScrolled(true);
-            setShowJumpToLatest(true);
-            return;
-          }
-          setUserScrolled(false);
-          setShowJumpToLatest(false);
-        }}
-      >
-        {groupedRows.map((group, groupIdx) => (
-          <MessageRow
-            key={`group-${groupIdx}-${group.items[0]?.message.id || groupIdx}`}
-            gapClass={groupIdx === 0 ? 'mt-0' : uiTokens.spacing.speakerSwitchGap}
-          >
-            <MessageGroup role={group.sender === 'bot' ? 'assistant' : 'user'}>
-              {group.items.map(({ message, repeatCount }) => (
-                <div key={message.id}>
-                  <ChatMessage
-                    message={message}
-                    onAction={onAction}
-                    onSalesforceSaveUrl={onSalesforceSaveUrl}
-                    onSalesforceSearch={onSalesforceSearch}
-                    onSalesforceSkip={onSalesforceSkip}
-                    dashboardData={dashboardData}
-                  />
-                  {repeatCount > 1 ? (
-                    <div className={`mt-1 text-[10px] text-text-dim ${message.sender === 'user' ? 'text-right' : 'text-left'}`}>
-                      Repeated {repeatCount}x
-                    </div>
-                  ) : null}
-                </div>
-              ))}
-            </MessageGroup>
-          </MessageRow>
-        ))}
-        {showThoughtLayer ? <ThinkingMicroBubble state={thoughtState} /> : null}
-        {showThoughtLayer ? <ThinkingMetaCard state={thoughtState} /> : null}
-        {isTyping ? (
-          <TypingIndicator text={typingText || ''} caretRef={caretRef} bubbleRef={streamStartRef} />
-        ) : null}
-        <div style={{ height: `${tailSpacerHeight}px` }} />
-        <div ref={bottomRef} />
-      </MessageList>
-      {showJumpToLatest ? (
-        <div className="pointer-events-none absolute bottom-24 right-4 z-20">
-          <button
-            type="button"
-            onClick={() => {
-              const container = listRef.current;
-              if (container) {
-                programmaticScrollRef.current = true;
-                scrollToBottom(container);
-                requestAnimationFrame(() => {
-                  requestAnimationFrame(() => {
-                    programmaticScrollRef.current = false;
-                  });
-                });
+            containerRef={listRef}
+            avoidanceZone={avoidanceZone}
+            onScroll={(e) => {
+              if (programmaticScrollRef.current) return;
+              const node = e.currentTarget;
+              const nearBottom = isNearBottom(node, 120);
+              if (!nearBottom) {
+                setUserScrolled(true);
+                setShowJumpToLatest(true);
+                return;
               }
-              lockPostStreamRef.current = false;
-              postStreamHoldUntilRef.current = 0;
-              setTailSpacerHeight(0);
               setUserScrolled(false);
               setShowJumpToLatest(false);
             }}
-            className="pointer-events-auto inline-flex items-center gap-1 rounded-full border border-border/70 bg-surface/90 px-2.5 py-0.5 text-[10px] text-text-muted shadow-sm hover:bg-surface"
           >
-            Jump to latest
-            <ChevronDown className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      ) : null}
+            {groupedRows.map((group, groupIdx) => (
+              <MessageRow
+                key={`group-${groupIdx}-${group.items[0]?.message.id || groupIdx}`}
+                gapClass={groupIdx === 0 ? 'mt-0' : uiTokens.spacing.speakerSwitchGap}
+              >
+                <MessageGroup role={group.sender === 'bot' ? 'assistant' : 'user'}>
+                  {group.items.map(({ message, repeatCount }) => (
+                    <div key={message.id}>
+                      <ChatMessage
+                        message={message}
+                        onAction={onAction}
+                        onSalesforceSaveUrl={onSalesforceSaveUrl}
+                        onSalesforceSearch={onSalesforceSearch}
+                        onSalesforceSkip={onSalesforceSkip}
+                        dashboardData={dashboardData}
+                      />
+                      {repeatCount > 1 ? (
+                        <div className={`mt-1 text-[10px] text-text-dim ${message.sender === 'user' ? 'text-right' : 'text-left'}`}>
+                          Repeated {repeatCount}x
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </MessageGroup>
+              </MessageRow>
+            ))}
+            {showThoughtLayer ? <ThinkingMicroBubble state={thoughtState} /> : null}
+            {showThoughtLayer ? <ThinkingMetaCard state={thoughtState} /> : null}
+            {isTyping ? (
+              <TypingIndicator text={typingText || ''} caretRef={caretRef} bubbleRef={streamStartRef} />
+            ) : null}
+            <div style={{ height: `${tailSpacerHeight}px` }} />
+            <div ref={bottomRef} />
+          </MessageList>
+          {showJumpToLatest ? (
+            <div className="pointer-events-none absolute bottom-24 right-4 z-20">
+              <button
+                type="button"
+                onClick={() => {
+                  const container = listRef.current;
+                  if (container) {
+                    programmaticScrollRef.current = true;
+                    scrollToBottom(container);
+                    requestAnimationFrame(() => {
+                      requestAnimationFrame(() => {
+                        programmaticScrollRef.current = false;
+                      });
+                    });
+                  }
+                  lockPostStreamRef.current = false;
+                  postStreamHoldUntilRef.current = 0;
+                  setTailSpacerHeight(0);
+                  setUserScrolled(false);
+                  setShowJumpToLatest(false);
+                }}
+                className="pointer-events-auto inline-flex items-center gap-1 rounded-full border border-border/70 bg-surface/90 px-2.5 py-0.5 text-[10px] text-text-muted shadow-sm hover:bg-surface"
+              >
+                Jump to latest
+                <ChevronDown className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : null}
 
-      {sectionBar}
-      </>
-    }
+          {sectionBar}
+        </>
+      }
       composer={
         showComposer ? (
           <Composer
@@ -340,6 +359,14 @@ export function ChatContainer({
             disabled={isTyping}
             isStreaming={isTyping}
             onStop={onStopStreaming}
+            chatModelOptions={chatModelOptions}
+            plannerModelOptions={plannerModelOptions}
+            chatModel={chatModel}
+            plannerModel={plannerModel}
+            onChatModelChange={onChatModelChange}
+            onPlannerModelChange={onPlannerModelChange}
+            localRuntimeAvailable={localRuntimeAvailable}
+            localRuntimeLabel={localRuntimeLabel}
           />
         ) : null
       }

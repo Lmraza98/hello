@@ -1,4 +1,4 @@
----
+﻿---
 summary: "Tiered prompt and tool preselection system for the chat tool planner, reducing latency from ~12s to ~2-4s for simple queries."
 read_when:
   - You are debugging why tool planning is slow or fast for a given query
@@ -33,7 +33,7 @@ The planner now classifies each user message into a tier and builds a proportion
 | Tier | Triggers | Prompt Size |
 |------|----------|-------------|
 | `minimal` | Simple lookups ("find Lucas Raza"), short queries (<=4 words) | ~100-200 tokens |
-| `standard` | Multi-constraint filters, campaign ops, chained reads — anything without browser/URL intent | ~400-600 tokens |
+| `standard` | Multi-constraint filters, campaign ops, chained reads â€” anything without browser/URL intent | ~400-600 tokens |
 | `full` | Browser automation, SalesNav, URLs, comparative queries ("find companies like X"), `task=` workflows | Original size (~3000+ tokens) |
 
 Classification logic in `classifyQueryTier()`:
@@ -48,10 +48,10 @@ SalesNav mentions are split by intent:
 
 | Pattern | Tier | Why |
 |---------|------|-----|
-| "find construction companies on Sales Navigator" | `standard` | Collection — maps to `collect_companies_from_salesnav`, a single API call |
-| "search SalesNav for tech companies in Boston" | `standard` | Collection — same tool |
-| "go to Sales Navigator and click on accounts" | `full` | Interactive browser — needs `browser_*` tools and the full prompt |
-| "open linkedin.com/sales/search/company" | `full` | URL present — interactive browsing |
+| "find construction companies on Sales Navigator" | `standard` | Collection â€” maps to `collect_companies_from_salesnav`, a single API call |
+| "search SalesNav for tech companies in Boston" | `standard` | Collection â€” same tool |
+| "go to Sales Navigator and click on accounts" | `full` | Interactive browser â€” needs `browser_*` tools and the full prompt |
+| "open linkedin.com/sales/search/company" | `full` | URL present â€” interactive browsing |
 | "find Lucas Raza on SalesNav" (with "click"/"navigate") | `full` | Interactive browser words detected |
 
 ### Quick Mode Interaction
@@ -99,7 +99,7 @@ Before tiering, the planner exposed 21+ tools in every schema block. The model h
 Now, for `minimal` and `standard` tiers, `preselectToolNames()` narrows the tool set to ~2-12 candidates using lightweight keyword matching:
 
 Implementation note:
-- Tool tiering + preselection are computed from the user’s *intent text* only. Injected context blocks like `[SESSION_ENTITIES]...` and `[BROWSER_SESSION]...` are stripped before running heuristics, but still included in the message sent to the model. This prevents “context contamination” (e.g., stale entity names pushing the planner toward campaign/CRM tools when the user asked for SalesNav browsing).
+- Tool tiering + preselection are computed from the userâ€™s *intent text* only. Injected context blocks like `[SESSION_ENTITIES]...` and `[BROWSER_SESSION]...` are stripped before running heuristics, but still included in the message sent to the model. This prevents â€œcontext contaminationâ€ (e.g., stale entity names pushing the planner toward campaign/CRM tools when the user asked for SalesNav browsing).
 
 | User says | Tools selected |
 |-----------|---------------|
@@ -138,12 +138,12 @@ Note: quick mode does **not** change tier selection. A "find companies on Sales 
 
 ## Non-Blocking Filter Context
 
-Previously, `buildFilterContextBlock()` made three API calls (`/api/companies`, `/api/contacts`, `/api/emails/campaigns`) on every plan — blocking the planning path even with a 60s cache.
+Previously, `buildFilterContextBlock()` made three API calls (`/api/companies`, `/api/contacts`, `/api/emails/campaigns`) on every plan â€” blocking the planning path even with a 60s cache.
 
 Now:
 
 - `refreshFilterContextCache()` is the async fetch + cache update.
-- `getFilterContextBlock()` is a synchronous cache read — never blocks.
+- `getFilterContextBlock()` is a synchronous cache read â€” never blocks.
 - `startFilterContextPrefetch()` runs a background timer every 45 seconds to keep the cache warm.
 - `prewarmToolPlannerContext()` (called from `ChatProvider` on mount) triggers the first fetch and starts the timer.
 - `stopFilterContextPrefetch()` is called on `ChatProvider` unmount for cleanup.
@@ -158,9 +158,9 @@ The optional `ENABLE_PLAN_COVERAGE_AUDIT` feature (an extra LLM call to check pl
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `VITE_TOOL_PLANNER_TIMEOUT_MS` | `15000` | Per-attempt timeout for planner LLM calls |
-| `VITE_PLAN_COVERAGE_AUDIT` | `false` | Enable coverage audit (full tier only) |
-| `VITE_ENABLE_AUX_PLANNER_FALLBACK` | `true` | Enable aux planner fallback (standard/full tiers) |
+| `NEXT_PUBLIC_TOOL_PLANNER_TIMEOUT_MS` | `15000` | Per-attempt timeout for planner LLM calls |
+| `NEXT_PUBLIC_PLAN_COVERAGE_AUDIT` | `false` | Enable coverage audit (full tier only) |
+| `NEXT_PUBLIC_ENABLE_AUX_PLANNER_FALLBACK` | `true` | Enable aux planner fallback (standard/full tiers) |
 
 ## Complexity-Based Model Routing
 
@@ -182,11 +182,11 @@ Routing is controlled by `ui/src/config/plannerConfig.ts`:
 
 - `DEFAULT_MODEL_CONFIG` uses `gemma` for simple and `gpt-4o-mini` for complex/decomposition.
 - `PREMIUM_MODEL_CONFIG` uses `gpt-4o` for complex/decomposition.
-- `VITE_PLANNER_MODEL_PROFILE=default|premium` selects the profile.
+- `NEXT_PUBLIC_PLANNER_MODEL_PROFILE=default|premium` selects the profile.
 - Optional overrides:
-  - `VITE_PLANNER_SIMPLE_MODEL_PROFILE`
-  - `VITE_PLANNER_COMPLEX_MODEL_PROFILE`
-  - `VITE_PLANNER_DECOMPOSITION_MODEL_PROFILE`
+  - `NEXT_PUBLIC_PLANNER_SIMPLE_MODEL_PROFILE`
+  - `NEXT_PUBLIC_PLANNER_COMPLEX_MODEL_PROFILE`
+  - `NEXT_PUBLIC_PLANNER_DECOMPOSITION_MODEL_PROFILE`
 
 ## Where It Lives
 
@@ -215,3 +215,4 @@ Planner confirmation is now gated by destructive intent, not by plan existence:
   - tool call in the destructive tool allowlist (for example delete/send/reset operations)
 
 This applies to both fast-path planning and ReAct pending-confirmation flows.
+

@@ -84,6 +84,7 @@ export function SearchToolbar({
 
       <div className="relative shrink-0">
         <button
+          type="button"
           onClick={onToggleFilters}
           className={`inline-flex h-9 items-center gap-1 px-2.5 md:px-3 border rounded-md text-xs font-medium transition-colors ${
             activeFilterCount > 0

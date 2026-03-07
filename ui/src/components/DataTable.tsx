@@ -39,11 +39,11 @@ export function DataTable<T extends { id?: number | string }>({
       <div className="flex-1 overflow-auto">
         <table className="w-full" style={{ minWidth }}>
           <thead className="sticky top-0 z-10 bg-surface">
-            <tr className="border-b border-border bg-surface-hover/50">
+            <tr className="h-9 border-b border-border-subtle bg-surface-hover/30">
               {columns.map((column) => (
                 <th 
                   key={column.key}
-                  className={`text-left px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider ${column.className || ''}`}
+                  className={`h-9 text-left px-4 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide ${column.className || ''}`}
                 >
                   {column.label}
                 </th>

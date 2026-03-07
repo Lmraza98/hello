@@ -95,17 +95,23 @@ class SalesNavPublicUrlBatch:
         await asyncio.sleep(1)
         for emp in employees:
             try:
-                card_index = emp.get("card_index", 0)
-                cards = self.page.locator('[data-x-search-result="LEAD"]')
-                if await cards.count() <= card_index:
-                    continue
-                card = cards.nth(card_index)
-                await card.scroll_into_view_if_needed()
-                await asyncio.sleep(random.uniform(0.5, 1.0))
-                public_url = await self.flow.extract_public_linkedin_url(card, emp["name"])
+                public_url = None
+                sales_nav_url = str(emp.get("sales_nav_url") or "").strip()
+                if sales_nav_url:
+                    public_url = await self.flow._copy_public_url_from_lead_page(sales_nav_url=sales_nav_url, name=emp["name"])
+                if not public_url:
+                    card_index = emp.get("card_index", 0)
+                    cards = self.page.locator('[data-x-search-result="LEAD"]')
+                    if await cards.count() > card_index:
+                        card = cards.nth(card_index)
+                        await card.scroll_into_view_if_needed()
+                        await asyncio.sleep(random.uniform(0.5, 1.0))
+                        public_url = await self.flow.extract_public_linkedin_url(card, emp["name"])
                 if public_url:
                     emp["public_url"] = public_url
                     emp["has_public_url"] = True
+                    emp["linkedin_url"] = public_url
+                    emp["source_url"] = public_url
                     print(f"  [ok] {emp['name']}: {public_url}")
                 await asyncio.sleep(random.uniform(1, 2))
             except Exception as exc:

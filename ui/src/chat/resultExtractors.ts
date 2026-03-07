@@ -57,13 +57,46 @@ function extractFromArray<T>(
 }
 
 export function extractContactsFromResult(result: unknown): ContactLike[] {
+  const normalizeContact = (row: Record<string, unknown>): ContactLike => ({
+    ...row,
+    name:
+      (typeof row.name === 'string' && row.name) ||
+      (typeof row.contact_name === 'string' ? row.contact_name : undefined),
+    title:
+      (typeof row.title === 'string' ? row.title : null) ||
+      (typeof row.contact_title === 'string' ? row.contact_title : null) ||
+      (typeof row.headline === 'string' ? row.headline : null),
+    company_name:
+      (typeof row.company_name === 'string' ? row.company_name : null) ||
+      (typeof row.company === 'string' ? row.company : null),
+    email:
+      (typeof row.email === 'string' ? row.email : null) ||
+      (typeof row.contact_email === 'string' ? row.contact_email : null),
+    phone:
+      (typeof row.phone === 'string' ? row.phone : null) ||
+      (typeof row.phone_number === 'string' ? row.phone_number : null),
+    linkedin_url:
+      (typeof row.linkedin_url === 'string' ? row.linkedin_url : null) ||
+      (typeof row.public_url === 'string' ? row.public_url : null) ||
+      (typeof row.sales_nav_url === 'string' ? row.sales_nav_url : null),
+    salesforce_url: typeof row.salesforce_url === 'string' ? row.salesforce_url : null,
+  });
+
   if (Array.isArray(result)) {
-    return extractFromArray<ContactLike>(result, (row) => typeof row.name === 'string');
+    return extractFromArray<ContactLike>(
+      result,
+      (row) => typeof row.name === 'string' || typeof row.contact_name === 'string',
+      normalizeContact
+    );
   }
   const obj = asObject(result);
   if (!obj) return [];
   if (Array.isArray(obj.items)) {
-    return extractFromArray<ContactLike>(obj.items, (row) => typeof row.name === 'string');
+    return extractFromArray<ContactLike>(
+      obj.items,
+      (row) => typeof row.name === 'string' || typeof row.contact_name === 'string',
+      normalizeContact
+    );
   }
   return [];
 }

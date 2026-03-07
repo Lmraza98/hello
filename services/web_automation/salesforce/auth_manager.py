@@ -164,10 +164,9 @@ def _check_storage_state_health() -> SalesforceAuthStatus:
     Inspect the Playwright storage-state JSON file to guess whether the
     session is likely still valid.
 
-    Heuristic: if the file exists, is non-empty, and was modified within the
-    last 24 hours we assume the session is probably good.  If the file is
-    older than 24 h we assume it has likely expired.  If no file exists we
-    report NOT_CONFIGURED.
+    Heuristic: if the file exists and is non-empty we assume the session is
+    likely reusable. Optional age cutoff can be configured via
+    SALESFORCE_SESSION_MAX_AGE_HOURS (>0). If <=0, age-based expiry is disabled.
     """
     storage_path: Path = config.SALESFORCE_STORAGE_STATE
     if not storage_path.exists():
@@ -182,11 +181,12 @@ def _check_storage_state_health() -> SalesforceAuthStatus:
     except Exception:
         return SalesforceAuthStatus.UNKNOWN
 
-    # Check file age as rough expiry heuristic.
+    # Optional age-based expiry heuristic (disabled when <=0).
     try:
         mtime = datetime.fromtimestamp(storage_path.stat().st_mtime)
         age_hours = (datetime.now() - mtime).total_seconds() / 3600
-        if age_hours > 24:
+        max_age = float(getattr(config, "SALESFORCE_SESSION_MAX_AGE_HOURS", 0) or 0)
+        if max_age > 0 and age_hours > max_age:
             return SalesforceAuthStatus.EXPIRED
     except Exception:
         pass
@@ -442,6 +442,13 @@ async def _wait_for_auth_completion(bot: SalesforceBot, timeout_minutes: int = 5
 
             # MFA page
             if any(kw in url for kw in mfa_keywords):
+                try:
+                    changed_method = await _handle_salesforce_verification_method_screen(bot)
+                    if changed_method:
+                        # Let the page transition after method selection before next checks.
+                        await asyncio.sleep(1.5)
+                except Exception as method_exc:
+                    print(f"[SF Auth] Verification method handler error: {method_exc}")
                 if not mfa_notified:
                     await broadcast_event("salesforce_mfa_required", {
                         "message": "Complete MFA verification in the browser viewer",
@@ -482,6 +489,69 @@ async def _wait_for_auth_completion(bot: SalesforceBot, timeout_minutes: int = 5
 
     print(f"[SF Auth] Timeout after {timeout_minutes}min")
     return False
+
+
+async def _handle_salesforce_verification_method_screen(bot: SalesforceBot) -> bool:
+    """
+    Handle Salesforce MFA screen variant:
+    1) Click "Use a Different Verification Method"
+    2) Select "Approve using Salesforce Authenticator"
+    """
+    page = bot.page
+    acted = False
+
+    # Step 1: expose alternate verification options.
+    alt_method_link = page.locator(
+        "a[href*='/_ui/identity/verification/policy/VerificationStartUi/'], "
+        "a:has-text('Use a Different Verification Method')"
+    ).first
+    try:
+        if await alt_method_link.count() > 0 and await alt_method_link.is_visible():
+            await alt_method_link.click()
+            acted = True
+            print("[SF Auth] Clicked 'Use a Different Verification Method'")
+            await asyncio.sleep(0.8)
+    except Exception as exc:
+        print(f"[SF Auth] Could not click alternate method link: {exc}")
+
+    # Step 2: choose Salesforce Authenticator method.
+    radio_candidates = [
+        "input#sem3",
+        "input[name='sem'][value='3']",
+        "label:has-text('Approve using Salesforce Authenticator')",
+        "text=Approve using Salesforce Authenticator",
+    ]
+    for sel in radio_candidates:
+        try:
+            target = page.locator(sel).first
+            if await target.count() > 0 and await target.is_visible():
+                await target.click()
+                acted = True
+                print(f"[SF Auth] Selected Salesforce Authenticator method ({sel})")
+                break
+        except Exception:
+            continue
+
+    # Step 3: continue to the selected verification method flow.
+    if acted:
+        continue_selectors = [
+            "input#save",
+            "input[name='save'][type='submit']",
+            "input[type='submit'][value='Continue']",
+            "button:has-text('Continue')",
+        ]
+        for sel in continue_selectors:
+            try:
+                btn = page.locator(sel).first
+                if await btn.count() > 0 and await btn.is_visible():
+                    await btn.click()
+                    print(f"[SF Auth] Clicked verification continue button ({sel})")
+                    await asyncio.sleep(0.8)
+                    break
+            except Exception:
+                continue
+
+    return acted
 
 
 # ── Session health worker (lightweight, no browser) ──────────────────

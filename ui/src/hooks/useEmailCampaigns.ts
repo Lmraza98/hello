@@ -110,8 +110,8 @@ export function useEmailCampaigns() {
   });
 
   const sendEmails = useMutation({
-    mutationFn: async (campaignId?: number) => {
-      return emailApi.sendEmails(campaignId);
+    mutationFn: async (payload?: { campaignId?: number; limit?: number; reviewMode?: boolean }) => {
+      return emailApi.sendEmails(payload?.campaignId, payload?.limit, payload?.reviewMode ?? true);
     },
     onSuccess: (data) => {
       if (data.success) {
@@ -129,6 +129,8 @@ export function useEmailCampaigns() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviewQueue'] });
       queryClient.invalidateQueries({ queryKey: ['scheduledEmails'] });
+      queryClient.invalidateQueries({ queryKey: ['allScheduledEmails'] });
+      queryClient.invalidateQueries({ queryKey: ['campaignScheduleSummary'] });
       addNotification({ type: 'success', title: 'Email approved' });
     }
   });
@@ -137,6 +139,7 @@ export function useEmailCampaigns() {
     mutationFn: (emailId: number) => emailApi.rejectEmail(emailId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviewQueue'] });
+      queryClient.invalidateQueries({ queryKey: ['campaignScheduleSummary'] });
       addNotification({ type: 'info', title: 'Email rejected' });
     }
   });
@@ -146,6 +149,8 @@ export function useEmailCampaigns() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviewQueue'] });
       queryClient.invalidateQueries({ queryKey: ['scheduledEmails'] });
+      queryClient.invalidateQueries({ queryKey: ['allScheduledEmails'] });
+      queryClient.invalidateQueries({ queryKey: ['campaignScheduleSummary'] });
       addNotification({ type: 'success', title: 'All emails approved' });
     }
   });
@@ -196,6 +201,7 @@ export function useEmailCampaigns() {
       queryClient.invalidateQueries({ queryKey: ['allScheduledEmails'] });
       queryClient.invalidateQueries({ queryKey: ['scheduledEmails'] });
       queryClient.invalidateQueries({ queryKey: ['campaignScheduleSummary'] });
+      queryClient.invalidateQueries({ queryKey: ['sentEmails'] });
       if (data.success) {
         addNotification({
           type: 'success',
@@ -232,6 +238,25 @@ export function useEmailCampaigns() {
     }
   });
 
+  const processScheduled = useMutation({
+    mutationFn: (reviewMode: boolean = false) => emailApi.processScheduled(reviewMode),
+    onSuccess: (data, reviewMode) => {
+      queryClient.invalidateQueries({ queryKey: ['allScheduledEmails'] });
+      queryClient.invalidateQueries({ queryKey: ['scheduledEmails'] });
+      queryClient.invalidateQueries({ queryKey: ['sentEmails'] });
+      queryClient.invalidateQueries({ queryKey: ['campaignScheduleSummary'] });
+      if (data.success) {
+        addNotification({
+          type: 'success',
+          title: reviewMode ? 'Manual review launched' : 'Scheduled sender launched',
+          message: data.message || (reviewMode ? 'Review tabs opened in Salesforce.' : 'Scheduled send started.'),
+        });
+      } else {
+        addNotification({ type: 'error', title: 'Failed to start', message: data.error || 'Request failed' });
+      }
+    },
+  });
+
   return {
     // Query data
     campaigns: campaigns.data || [],
@@ -262,6 +287,7 @@ export function useEmailCampaigns() {
     uploadToSalesforce,
     sendEmailNow,
     rescheduleEmail,
-    reorderEmails
+    reorderEmails,
+    processScheduled,
   };
 }

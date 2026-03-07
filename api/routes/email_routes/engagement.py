@@ -4,6 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 
+import config
 import database as db
 from api.routes._helpers import COMMON_ERROR_RESPONSES
 from api.routes.email_routes.models import (
@@ -18,14 +19,21 @@ from api.routes.email_routes.models import (
     EmailApproveRequest,
     EmailCampaignStatsResponse,
     EmailReplyRecord,
+    InboundLeadAlertsResponse,
+    InboundLeadBackfillResponse,
+    InboundLeadEventRecord,
+    InboundLeadMarkSeenResponse,
+    InboundLeadQueueSalesforceResponse,
     OutlookAuthStartResponse,
     OutlookAuthStatusResponse,
     OutlookPollRepliesResponse,
+    OutlookPollStatusResponse,
     ReviewQueueItem,
     SuccessResponse,
     TrackingPollResponse,
     TrackingStatusResponse,
 )
+from services.web_automation.salesforce.lookup_queue import enqueue_pending_inbound_salesforce_creates
 
 router = APIRouter()
 
@@ -209,6 +217,93 @@ async def poll_outlook_replies_endpoint(minutes_back: int = 15):
         import traceback
 
         return {"success": False, "error": str(e), "traceback": traceback.format_exc()}
+
+
+@router.get(
+    "/outlook/poll-status",
+    response_model=OutlookPollStatusResponse,
+    responses=COMMON_ERROR_RESPONSES,
+)
+def get_outlook_poll_status():
+    """Get latest persisted Outlook poll summary (last run time, counts, status)."""
+    return db.get_outlook_poll_status()
+
+
+@router.get(
+    "/outlook/inbound-leads/alerts",
+    response_model=InboundLeadAlertsResponse,
+    responses=COMMON_ERROR_RESPONSES,
+)
+def get_inbound_lead_alerts():
+    """Get unseen inbound lead notification count for nav alerting."""
+    return {"unseen_count": db.get_unseen_inbound_lead_count()}
+
+
+@router.post(
+    "/outlook/inbound-leads/mark-seen",
+    response_model=InboundLeadMarkSeenResponse,
+    responses=COMMON_ERROR_RESPONSES,
+)
+def mark_inbound_leads_seen():
+    """Mark inbound lead notifications as seen."""
+    return {"success": True, "marked_seen": db.mark_inbound_leads_seen()}
+
+
+@router.post(
+    "/outlook/inbound-leads/queue-salesforce",
+    response_model=InboundLeadQueueSalesforceResponse,
+    responses=COMMON_ERROR_RESPONSES,
+)
+def queue_inbound_leads_for_salesforce(limit: int = 500):
+    """
+    Queue existing inbound contacts for single-contact Salesforce create jobs.
+    Useful for backfilling leads that were ingested before queueing was enabled.
+    """
+    if not config.LEADFORGE_SALESFORCE_ENABLED:
+        return {
+            "success": False,
+            "queued": 0,
+            "message": "Salesforce sync is disabled (LEADFORGE_SALESFORCE_ENABLED=0).",
+        }
+    queued = enqueue_pending_inbound_salesforce_creates(limit=limit)
+    return {
+        "success": True,
+        "queued": int(queued),
+        "message": f"Queued {int(queued)} inbound contacts for Salesforce sync.",
+    }
+
+
+@router.post(
+    "/outlook/inbound-leads/backfill-details",
+    response_model=InboundLeadBackfillResponse,
+    responses=COMMON_ERROR_RESPONSES,
+)
+async def backfill_inbound_lead_details_endpoint(limit: int = 500, only_missing: bool = True):
+    """Backfill missing inbound lead details by re-parsing historical Outlook lead emails."""
+    try:
+        from services.email.outlook_monitor import backfill_inbound_lead_details
+
+        return await backfill_inbound_lead_details(limit=limit, only_missing=only_missing)
+    except Exception as e:
+        return {
+            "success": False,
+            "scanned": 0,
+            "updated": 0,
+            "skipped": 0,
+            "errors": 1,
+            "error": str(e),
+            "message": "Inbound lead details backfill failed.",
+        }
+
+
+@router.get(
+    "/outlook/inbound-leads/recent",
+    response_model=list[InboundLeadEventRecord],
+    responses=COMMON_ERROR_RESPONSES,
+)
+def get_recent_inbound_leads(limit: int = 20):
+    """List recent inbound lead ingestion events."""
+    return db.get_recent_inbound_leads(limit=limit)
 
 
 @router.get("/replies", response_model=list[EmailReplyRecord], responses=COMMON_ERROR_RESPONSES)

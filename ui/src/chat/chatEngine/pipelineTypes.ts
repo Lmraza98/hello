@@ -20,6 +20,7 @@ import type { ReActConfig, ReActStep } from '../reactLoop';
 import type { compactPlannerHistoryByTurns } from '../runtimeGuards';
 import type { ChatSessionState } from '../sessionState';
 import type { ChatAction } from '../actions';
+import type { PlannerRoute } from '../models/plannerBackends';
 
 export interface ChatEngineOptions {
   conversationHistory?: ChatCompletionMessageParam[];
@@ -28,6 +29,10 @@ export interface ChatEngineOptions {
   onAssistantToken?: (token: string) => void;
   onModelSwitch?: (from: ModelRoute, to: ModelRoute, reason: string) => void;
   forceModel?: ModelRoute;
+  chatModelOverride?: string;
+  chatModelProviderOverride?: 'ollama' | 'openai' | 'openrouter';
+  plannerModelOverride?: string;
+  plannerRouteOverride?: PlannerRoute;
   phase?: ChatPhase;
   requireToolConfirmation?: boolean;
   confirmedToolCalls?: PlannedToolCall[];
@@ -76,6 +81,7 @@ export interface ChatEngineResult {
     traceSnapshot?: ReActStep[];
     pendingTaskPlan?: PendingTaskPlan;
   };
+  clarificationQuestion?: string;
   debugTrace?: {
     route: ModelRoute;
     routeReason: string;

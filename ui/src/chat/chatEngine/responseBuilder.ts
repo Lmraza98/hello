@@ -38,6 +38,57 @@ type DebugExecutedCall = Array<{
   durationMs?: number;
 }>;
 
+function summarizeUiActions(uiActions: ChatAction[]): string {
+  const startFlowAction = uiActions.find(
+    (action) => action && typeof action === 'object' && 'type' in action && action.type === 'assistant_ui_start_flow'
+  ) as Extract<ChatAction, { type: 'assistant_ui_start_flow' }> | undefined;
+  if (startFlowAction) {
+    if (startFlowAction.flowId === 'create_contact') {
+      return "Let's create a contact.\n\nClick New Contact";
+    }
+    return "Let's do this.";
+  }
+  const uiTargetAction = uiActions.find(
+    (action) => action && typeof action === 'object' && 'type' in action && action.type === 'assistant_ui_set_target'
+  ) as Extract<ChatAction, { type: 'assistant_ui_set_target' }> | undefined;
+  if (uiTargetAction) {
+    const step = String(uiTargetAction.instruction || '').trim();
+    if (step) {
+      return `Let's do this.\n\n${step}`;
+    }
+    const target = String(uiTargetAction.targetId || '').trim();
+    return target ? `Let's do this.\n\nFollow the highlighted element: ${target}.` : 'Follow the highlighted step in the interface.';
+  }
+  const guideAction = uiActions.find(
+    (action) => action && typeof action === 'object' && 'type' in action && action.type === 'assistant_guide'
+  ) as Extract<ChatAction, { type: 'assistant_guide' }> | undefined;
+  if (guideAction) {
+    const step = String(guideAction.activeStep || '').trim();
+    if (step) {
+      return `Let's do this.\n\n${step}`;
+    }
+    const target = String(guideAction.highlightedElementId || '').trim();
+    return target ? `Let's do this.\n\nFollow the highlighted element: ${target}.` : 'Follow the highlighted step in the interface.';
+  }
+  const clearAction = uiActions.find(
+    (action) => action && typeof action === 'object' && 'type' in action && action.type === 'assistant_ui_clear'
+  );
+  if (clearAction) return 'Guidance cleared.';
+  const legacyClearAction = uiActions.find(
+    (action) => action && typeof action === 'object' && 'type' in action && action.type === 'assistant_guide_clear'
+  );
+  if (legacyClearAction) return 'Guidance cleared.';
+  const labels = uiActions
+    .map((action) => {
+      if (!action || typeof action !== 'object') return '';
+      if ('action' in action && typeof action.action === 'string') return action.action;
+      if ('type' in action && typeof action.type === 'string') return action.type;
+      return '';
+    })
+    .filter(Boolean);
+  return labels.length > 0 ? `Planned UI actions:\n${labels.map((label, idx) => `${idx + 1}. ${label}`).join('\n')}` : 'Planned UI actions.';
+}
+
 export function dedupeConsecutiveTextMessages(messages: ChatMessage[]): ChatMessage[] {
   const out: ChatMessage[] = [];
   for (const message of messages) {
@@ -421,13 +472,14 @@ export async function buildDispatchBackedResult(params: {
 
   if (hasUiActions && !hasToolCalls) {
     const summary = buildMixedPlanSummary(uiActions, calls);
+    const assistantText = summarizeUiActions(uiActions);
     const result: ChatEngineResult = {
-      response: 'Planned UI actions.',
+      response: assistantText,
       updatedHistory: [
         ...updatedHistoryPrefix,
-        { role: 'assistant', content: 'Planned UI actions.' },
+        { role: 'assistant', content: assistantText },
       ],
-      messages: [textMsg('Planned UI actions.')],
+      messages: [textMsg(assistantText)],
       modelUsed: 'qwen3',
       toolsUsed: [],
       fallbackUsed: false,

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Mail, Phone, ExternalLink, Globe, Calendar, Target, Copy, Check, Cloud } from 'lucide-react';
 import type { Contact } from '../../api';
-import { SalesforceStatusBadge } from './SalesforceStatusBadge';
+import { EngagementStatusBadge } from './SalesforceStatusBadge';
 
 type ContactDetailProps = {
   contact: Contact;
@@ -130,7 +130,7 @@ export function ContactDetail({ contact }: ContactDetailProps) {
             <span className="truncate">{new Date(contact.scraped_at).toLocaleDateString()}</span>
           </div>
         )}
-        <SalesforceStatusBadge status={contact.salesforce_status} />
+        <EngagementStatusBadge status={contact.engagement_status} />
       </div>
     </div>
   );

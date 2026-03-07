@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Chat engine environment flags and constants.
  *
  * Keep parsing semantics identical to historical `chatEngine.ts`:
@@ -6,62 +6,67 @@
  * - ints parse via `Number.parseInt(..., 10)`
  */
 
+function getEnvRecord(): Record<string, unknown> {
+  if (typeof process === 'undefined' || !process.env) return {};
+  return process.env as Record<string, unknown>;
+}
+
 export function getEnvBool(name: string, defaultValue: boolean): boolean {
-  const raw = (import.meta.env as Record<string, unknown>)[name];
+  const raw = getEnvRecord()[name];
   const value = (typeof raw === 'string' && raw.length > 0 ? raw : String(defaultValue)).toLowerCase();
   return value === 'true';
 }
 
 export function getEnvInt(name: string, defaultValue: number): number {
-  const raw = (import.meta.env as Record<string, unknown>)[name];
+  const raw = getEnvRecord()[name];
   const text = typeof raw === 'string' && raw.length > 0 ? raw : String(defaultValue);
   return Number.parseInt(text, 10);
 }
 
 export const ENABLE_SKILL_ROUTER =
-  (import.meta.env.VITE_ENABLE_SKILL_ROUTER || 'true').toLowerCase() === 'true';
+  (process.env.NEXT_PUBLIC_ENABLE_SKILL_ROUTER || 'true').toLowerCase() === 'true';
 
 export const ENABLE_CHAT_ENGINE_DEBUG_TRACE = (
-  import.meta.env.VITE_CHAT_DEBUG ||
-  import.meta.env.VITE_DEBUG_CHAT_ENGINE ||
+  process.env.NEXT_PUBLIC_CHAT_DEBUG ||
+  process.env.NEXT_PUBLIC_DEBUG_CHAT_ENGINE ||
   'false'
 ).toLowerCase() === 'true';
 
 export const ENABLE_CHAT_ENGINE_HEAVY_DEBUG_TRACE =
-  (import.meta.env.VITE_CHAT_DEBUG_HEAVY || 'false').toLowerCase() === 'true';
+  (process.env.NEXT_PUBLIC_CHAT_DEBUG_HEAVY || 'false').toLowerCase() === 'true';
 
 export const ENABLE_CHAT_MODEL_FAST_PATH =
-  (import.meta.env.VITE_CHAT_MODEL_FAST_PATH || 'true').toLowerCase() === 'true';
+  (process.env.NEXT_PUBLIC_CHAT_MODEL_FAST_PATH || 'true').toLowerCase() === 'true';
 
 export const AVOID_DUPLICATE_PLANNER_PASSES =
-  (import.meta.env.VITE_CHAT_AVOID_DUPLICATE_PLANNER_PASSES || 'true').toLowerCase() === 'true';
+  (process.env.NEXT_PUBLIC_CHAT_AVOID_DUPLICATE_PLANNER_PASSES || 'true').toLowerCase() === 'true';
 
 export const ENABLE_GENERIC_RETRIEVAL_BOOTSTRAP =
-  (import.meta.env.VITE_CHAT_GENERIC_RETRIEVAL_BOOTSTRAP || 'true').toLowerCase() === 'true';
+  (process.env.NEXT_PUBLIC_CHAT_GENERIC_RETRIEVAL_BOOTSTRAP || 'true').toLowerCase() === 'true';
 
 export const ENABLE_OPENAI_FALLBACK =
-  (import.meta.env.VITE_CHAT_ALLOW_OPENAI_FALLBACK || 'false').toLowerCase() === 'true';
+  (process.env.NEXT_PUBLIC_CHAT_ALLOW_OPENAI_FALLBACK || 'false').toLowerCase() === 'true';
 
-export const CONVERSATION_MODEL = import.meta.env.VITE_OLLAMA_GEMMA_MODEL || 'gemma3:12b';
+export const CONVERSATION_MODEL = process.env.NEXT_PUBLIC_OLLAMA_GEMMA_MODEL || 'gemma3:12b';
 export const ENABLE_CHAT_BENCHMARK_MODE =
-  (import.meta.env.VITE_CHAT_BENCHMARK_MODE || 'false').toLowerCase() === 'true';
+  (process.env.NEXT_PUBLIC_CHAT_BENCHMARK_MODE || 'false').toLowerCase() === 'true';
 export const CHAT_BENCHMARK_MODEL =
-  import.meta.env.VITE_CHAT_BENCHMARK_MODEL ||
-  import.meta.env.VITE_OLLAMA_QWEN3_MODEL ||
+  process.env.NEXT_PUBLIC_CHAT_BENCHMARK_MODEL ||
+  process.env.NEXT_PUBLIC_OLLAMA_QWEN3_MODEL ||
   CONVERSATION_MODEL;
 export const CHAT_BENCHMARK_NUM_PREDICT = Number.parseInt(
-  import.meta.env.VITE_CHAT_BENCHMARK_NUM_PREDICT || '256',
+  process.env.NEXT_PUBLIC_CHAT_BENCHMARK_NUM_PREDICT || '256',
   10
 );
 
 // Intent classifier model. Historically this was functiongemma, but it frequently returns invalid output.
 // Default to conversation model which is fast and reliably produces single-word classifications.
 export const DECOMPOSE_CLASSIFIER_MODEL =
-  import.meta.env.VITE_DECOMPOSE_CLASSIFIER_MODEL ||
+  process.env.NEXT_PUBLIC_DECOMPOSE_CLASSIFIER_MODEL ||
   CONVERSATION_MODEL;
 
 export const SESSION_ENTITY_MAX_AGE_MS = Number.parseInt(
-  import.meta.env.VITE_CHAT_SESSION_ENTITY_MAX_AGE_MS || String(30 * 60 * 1000),
+  process.env.NEXT_PUBLIC_CHAT_SESSION_ENTITY_MAX_AGE_MS || String(30 * 60 * 1000),
   10
 );
 
@@ -98,3 +103,5 @@ export const MODEL_FAST_PATH_ALLOWED_TOOLS = [
   'compound_workflow_continue',
   'compound_workflow_cancel',
 ] as const;
+
+

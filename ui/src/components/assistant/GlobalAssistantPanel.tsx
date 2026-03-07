@@ -7,6 +7,7 @@ type DockConfig = {
   embedded?: boolean;
   collapseSignal?: number;
   onExpandedChange?: (expanded: boolean) => void;
+  onRequestMinimize?: () => void;
 };
 
 type GlobalAssistantPanelProps = {

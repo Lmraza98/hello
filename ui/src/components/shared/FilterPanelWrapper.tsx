@@ -44,11 +44,11 @@ export function FilterPanelWrapper({
       <span className="text-sm font-medium text-text">Filters</span>
       <div className="flex items-center gap-2">
         {filterCount > 0 && (
-          <button onClick={onClearAll} className="text-xs text-accent hover:underline">
+          <button type="button" onClick={onClearAll} className="text-xs text-accent hover:underline">
             Clear all
           </button>
         )}
-        <button onClick={onClose} className="p-0.5 hover:bg-surface-hover rounded">
+        <button type="button" onClick={onClose} className="p-0.5 hover:bg-surface-hover rounded">
           <X className="w-4 h-4 text-text-muted" />
         </button>
       </div>

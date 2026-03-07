@@ -105,10 +105,13 @@ async def prepare_daily_batch() -> Dict:
                     # Fallback to basic template replacement
                     subject = template['subject_template']
                     body = template['body_template']
+                    first_name = contact_name.split()[0] if contact_name else ''
+                    last_name = " ".join(contact_name.split()[1:]) if contact_name and len(contact_name.split()) > 1 else ''
                     for old, new in [
                         ('{company}', company_name), ('{Company}', company_name),
                         ('{name}', contact_name), ('{Name}', contact_name),
-                        ('{FirstName}', contact_name.split()[0] if contact_name else ''),
+                        ('{FirstName}', first_name), ('{firstName}', first_name), ('{first_name}', first_name),
+                        ('{LastName}', last_name), ('{lastName}', last_name), ('{last_name}', last_name),
                         ('{title}', contact.get('title', '')),
                     ]:
                         subject = subject.replace(old, new)

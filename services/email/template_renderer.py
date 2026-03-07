@@ -9,6 +9,8 @@ _ALLOWED_TOKENS = {
     "email",
     "company",
     "title",
+    "industry",
+    "location",
     "unsubscribeUrl",
     "viewInBrowserUrl",
     "trackingPixel",

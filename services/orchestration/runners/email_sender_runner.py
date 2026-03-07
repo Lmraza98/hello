@@ -15,8 +15,10 @@ import sys
 import traceback
 from pathlib import Path
 
-# Ensure project root is on sys.path
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+# Ensure project root is on sys.path.
+# NOTE: parents[2] is ".../services", which shadows stdlib "email"
+# via local "services/email". Use repository root (parents[3]) instead.
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from services.email.salesforce_sender import (  # noqa: E402
     process_approved_emails,
@@ -42,6 +44,8 @@ def main():
     # process-scheduled
     p_sched = sub.add_parser("process-scheduled")
     p_sched.add_argument("--limit", type=int, default=10)
+    p_sched.add_argument("--review", action="store_true")
+    p_sched.add_argument("--no-headless", action="store_true")
 
     args = parser.parse_args()
 
@@ -69,8 +73,15 @@ def main():
             result = asyncio.run(process_approved_emails(limit=args.limit))
         elif args.command == "process-scheduled":
             print(f"Processing up to {args.limit} scheduled email(s)")
+            print(f"Review Mode: {args.review}")
             print("=" * 60)
-            result = asyncio.run(process_approved_emails(limit=args.limit))
+            result = asyncio.run(
+                process_approved_emails(
+                    limit=args.limit,
+                    headless=not args.no_headless,
+                    review_mode=args.review,
+                )
+            )
         else:
             print(f"Unknown command: {args.command}")
             sys.exit(1)

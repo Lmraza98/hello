@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+import { usePathname } from 'next/navigation';
 
 export type WorkspaceMode = 'drawer' | 'fullscreen';
 export type WorkspaceSource = 'sidebar' | 'chat' | 'system';
@@ -80,6 +80,16 @@ const STORAGE_OPEN_KEY = 'hello_workspace_open_v1';
 const STORAGE_WIDTH_KEY = 'hello_workspace_width_v1';
 const STORAGE_ROUTE_MODE_KEY = 'hello_workspace_route_modes_v1';
 
+function readStorage(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(key);
+}
+
+function writeStorage(key: string, value: string): void {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(key, value);
+}
+
 function clampWidth(width: number): number {
   return Math.max(MIN_DRAWER_WIDTH, Math.min(MAX_DRAWER_WIDTH, Math.round(width)));
 }
@@ -125,29 +135,33 @@ export function routeClassForPath(route: string): string {
 const WorkspaceLayoutContext = createContext<WorkspaceLayoutApi | undefined>(undefined);
 
 export function WorkspaceLayoutProvider({ children }: { children: ReactNode }) {
-  const location = useLocation();
-  const [open, setOpen] = useState(() => parseBooleanStorage(localStorage.getItem(STORAGE_OPEN_KEY), false));
+  const pathname = usePathname() ?? '/';
+  const [open, setOpen] = useState(false);
   const [source, setSource] = useState<WorkspaceSource>('system');
-  const [drawerWidth, setDrawerWidthState] = useState(() => parseNumberStorage(localStorage.getItem(STORAGE_WIDTH_KEY), DEFAULT_DRAWER_WIDTH));
-  const [routeModes, setRouteModes] = useState<Record<string, WorkspaceMode>>(() =>
-    parseRouteModeMap(localStorage.getItem(STORAGE_ROUTE_MODE_KEY))
-  );
+  const [drawerWidth, setDrawerWidthState] = useState(DEFAULT_DRAWER_WIDTH);
+  const [routeModes, setRouteModes] = useState<Record<string, WorkspaceMode>>({});
   const [interaction, setInteraction] = useState<WorkspaceInteractionState | null>(null);
 
-  const activeRoute = location.pathname;
+  useEffect(() => {
+    setOpen(parseBooleanStorage(readStorage(STORAGE_OPEN_KEY), false));
+    setDrawerWidthState(parseNumberStorage(readStorage(STORAGE_WIDTH_KEY), DEFAULT_DRAWER_WIDTH));
+    setRouteModes(parseRouteModeMap(readStorage(STORAGE_ROUTE_MODE_KEY)));
+  }, []);
+
+  const activeRoute = pathname;
   const routeKey = routeClassKey(activeRoute);
   const mode = routeModes[routeKey] || 'drawer';
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_OPEN_KEY, open ? '1' : '0');
+    writeStorage(STORAGE_OPEN_KEY, open ? '1' : '0');
   }, [open]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_WIDTH_KEY, String(drawerWidth));
+    writeStorage(STORAGE_WIDTH_KEY, String(drawerWidth));
   }, [drawerWidth]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_ROUTE_MODE_KEY, JSON.stringify(routeModes));
+    writeStorage(STORAGE_ROUTE_MODE_KEY, JSON.stringify(routeModes));
   }, [routeModes]);
 
   useEffect(() => {

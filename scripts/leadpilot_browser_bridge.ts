@@ -1,5 +1,3 @@
-import { startBrowserBridgeServer } from "../openclaw/src/browser/bridge-server.ts";
-
 // Minimal standalone LeadPilot browser bridge server.
 //
 // This exposes the LeadPilot browser HTTP contract (tabs/navigate/snapshot/act)
@@ -23,6 +21,34 @@ import { startBrowserBridgeServer } from "../openclaw/src/browser/bridge-server.
 // - OPENCLAW_BROWSER_AUTH_TOKEN, OPENCLAW_BROWSER_PASSWORD, OPENCLAW_EXECUTABLE_PATH
 
 async function main() {
+  const gatewayMode = String(process.env.BROWSER_GATEWAY_MODE ?? "").trim().toLowerCase();
+  if (gatewayMode && gatewayMode !== "leadpilot" && gatewayMode !== "openclaw") {
+    process.stdout.write(
+      `[leadpilot-bridge] skipped (BROWSER_GATEWAY_MODE=${gatewayMode}; bridge only used for leadpilot/openclaw)\n`,
+    );
+    setInterval(() => {}, 1 << 30);
+    return;
+  }
+
+  let startBrowserBridgeServer: ((opts: unknown) => Promise<{ baseUrl: string }>) | null = null;
+  try {
+    const mod = await import("../openclaw/src/browser/bridge-server.ts");
+    startBrowserBridgeServer = (mod as { startBrowserBridgeServer?: (opts: unknown) => Promise<{ baseUrl: string }> })
+      .startBrowserBridgeServer || null;
+  } catch (err) {
+    process.stdout.write(
+      `[leadpilot-bridge] openclaw bridge module not found; bridge disabled (${String((err as Error)?.message || err)})\n`,
+    );
+    // Keep this process alive so launcher scripts that expect a bridge process do not crash-loop.
+    setInterval(() => {}, 1 << 30);
+    return;
+  }
+  if (!startBrowserBridgeServer) {
+    process.stdout.write("[leadpilot-bridge] bridge module loaded but startBrowserBridgeServer is missing; bridge disabled\n");
+    setInterval(() => {}, 1 << 30);
+    return;
+  }
+
   const port = Number(process.env.LEADPILOT_BRIDGE_PORT ?? process.env.OPENCLAW_BRIDGE_PORT ?? "9223");
   const cdpPort = Number(process.env.LEADPILOT_CDP_PORT ?? process.env.OPENCLAW_CDP_PORT ?? "9224");
   const headless = String(process.env.LEADPILOT_HEADLESS ?? process.env.OPENCLAW_HEADLESS ?? "0") === "1";

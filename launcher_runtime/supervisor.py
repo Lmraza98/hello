@@ -51,6 +51,15 @@ class ProcessSupervisor:
             str(self.app_dir / "scripts" / "leadpilot_browser_bridge.ts"),
         ]
 
+    @staticmethod
+    def browser_gateway_mode() -> str:
+        return (os.getenv("BROWSER_GATEWAY_MODE", "") or "").strip().lower()
+
+    def bridge_required(self) -> bool:
+        # Camoufox/local backends run in-process and do not require the node bridge.
+        # Only the LeadPilot gateway mode needs scripts/leadpilot_browser_bridge.ts.
+        return self.browser_gateway_mode() in {"leadpilot", "openclaw"}
+
     def backend_command(self) -> list[str]:
         return [
             sys.executable,
@@ -66,14 +75,18 @@ class ProcessSupervisor:
     def preflight(self, run_store_root: Path) -> dict[str, Any]:
         checks: dict[str, Any] = {"ok": True, "issues": []}
         bridge_script = self.app_dir / "scripts" / "leadpilot_browser_bridge.ts"
+        bridge_required = self.bridge_required()
         allow_attach_backend = os.getenv("LAUNCHER_ATTACH_EXISTING_BACKEND", "").strip().lower() in {"1", "true", "yes"}
         allow_attach_bridge = os.getenv("LAUNCHER_ATTACH_EXISTING_BRIDGE", "").strip().lower() in {"1", "true", "yes"}
         checks["attach_existing_backend"] = False
         checks["attach_existing_bridge"] = False
+        checks["bridge_required"] = bridge_required
 
         # Port conflicts must win over dependency checks so startup diagnostics
         # and tests consistently classify bind failures as port_conflict.
         for port, name in ((self.server_port, "backend"), (self.bridge_port, "bridge")):
+            if name == "bridge" and not bridge_required:
+                continue
             if self._port_in_use(port):
                 if name == "backend" and allow_attach_backend and self._backend_is_healthy():
                     checks["attach_existing_backend"] = True
@@ -87,7 +100,7 @@ class ProcessSupervisor:
                     f"Stop existing process on {port} or change env port for {name}.",
                 )
 
-        if not bridge_script.exists():
+        if bridge_required and not bridge_script.exists():
             raise LauncherStartupError(
                 "missing_dependency",
                 f"missing bridge script: {bridge_script}",
@@ -113,20 +126,21 @@ class ProcessSupervisor:
             )
 
         # Ensure the tsx loader used by bridge_command is resolvable by node.
-        try:
-            subprocess.run(
-                [self.node_path(), "--import", "tsx", "-e", "console.log('tsx-ok')"],
-                cwd=self.app_dir,
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-            )
-        except Exception as exc:
-            raise LauncherStartupError(
-                "missing_dependency",
-                "tsx loader not available for node bridge startup",
-                "Run `npm install` in repo root (where package.json defines tsx), then retry `python launcher.py`.",
-            ) from exc
+        if bridge_required:
+            try:
+                subprocess.run(
+                    [self.node_path(), "--import", "tsx", "-e", "console.log('tsx-ok')"],
+                    cwd=self.app_dir,
+                    check=True,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+            except Exception as exc:
+                raise LauncherStartupError(
+                    "missing_dependency",
+                    "tsx loader not available for node bridge startup",
+                    "Run `npm install` in repo root (where package.json defines tsx), then retry `python launcher.py`.",
+                ) from exc
 
         run_store_root.mkdir(parents=True, exist_ok=True)
         probe = run_store_root / ".probe"

@@ -39,8 +39,8 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   {
     command: '/leads',
     label: 'Lead Generation',
-    description: 'Run lead generation flow. Example: /leads construction in new england',
-    intentMessage: 'find leads',
+    description: 'Run LeadForge lead research. Example: /leads HVAC companies in Austin TX',
+    intentMessage: 'lead research',
   },
   {
     command: '/research',
@@ -82,7 +82,7 @@ export function parseSlashCommand(input: string): string | null {
     case '/outreach':
       return `email ${args}`;
     case '/leads':
-      return `find leads ${args}`;
+      return args ? `lead research ${args}` : null;
     case '/research':
       return `research ${args}`;
     default:

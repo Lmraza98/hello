@@ -16,6 +16,8 @@ from api.routes._helpers import COMMON_ERROR_RESPONSES, require_campaign
 from api.routes.email_routes.models import (
     CampaignContactRecord,
     CampaignContactRemovedResponse,
+    CampaignProgressReconcileResponse,
+    CampaignSalesforceHistorySyncResponse,
     CampaignDeleteResponse,
     CampaignSalesforceUploadResponse,
     CampaignStatusResponse,
@@ -219,6 +221,12 @@ def get_campaign_contacts(campaign_id: int, status: Optional[str] = None):
     return db.get_campaign_contacts(campaign_id, status=status)
 
 
+@router.get("/contacts/{contact_id}/campaign-enrollments", responses=COMMON_ERROR_RESPONSES)
+def get_contact_campaign_enrollments(contact_id: int):
+    """Get all campaign enrollment records for a contact."""
+    return db.get_contact_campaign_enrollments(contact_id)
+
+
 @router.post(
     "/campaigns/{campaign_id}/enroll",
     response_model=EnrollContactsResponse,
@@ -335,6 +343,33 @@ def remove_contact(campaign_id: int, campaign_contact_id: int):
             raise HTTPException(status_code=404, detail="Campaign contact not found")
     db.remove_contact_from_campaign(campaign_contact_id)
     return {"removed": True}
+
+
+@router.post(
+    "/campaigns/{campaign_id}/sync-salesforce-history",
+    response_model=CampaignSalesforceHistorySyncResponse,
+    responses=COMMON_ERROR_RESPONSES,
+)
+async def sync_campaign_salesforce_history(campaign_id: int, limit: int = 500):
+    """
+    Backfill campaign progress from existing Salesforce lead timeline activity.
+    This seeds sent-email state for contacts that were already emailed directly in Salesforce.
+    """
+    require_campaign(campaign_id)
+    from services.email.salesforce_tracker import sync_campaign_salesforce_history as _sync_history
+
+    return await _sync_history(campaign_id=campaign_id, limit=limit)
+
+
+@router.post(
+    "/campaigns/{campaign_id}/reconcile-progress",
+    response_model=CampaignProgressReconcileResponse,
+    responses=COMMON_ERROR_RESPONSES,
+)
+def reconcile_campaign_progress(campaign_id: int, limit: int = 2000):
+    """Recompute campaign progression from existing sent/reply history."""
+    require_campaign(campaign_id)
+    return db.reconcile_campaign_progress(campaign_id=campaign_id, limit=limit)
 
 
 @router.get(
@@ -492,8 +527,28 @@ async def preview_email(campaign_id: int, contact_id: int, step_number: int = 1)
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT id, name, title, company_name, domain, email_generated as email
-        FROM linkedin_contacts WHERE id = ?
+        SELECT
+            lc.id,
+            lc.name,
+            lc.title,
+            lc.company_name,
+            lc.domain,
+            lc.email_generated as email,
+            COALESCE(NULLIF(lc.location, ''), '') AS resolved_location,
+            COALESCE(NULLIF(ile_latest.lead_industry, ''), t.vertical, '') AS resolved_industry
+        FROM linkedin_contacts lc
+        LEFT JOIN targets t ON TRIM(LOWER(lc.company_name)) = TRIM(LOWER(t.company_name))
+        LEFT JOIN (
+            SELECT ile.contact_id, ile.lead_industry
+            FROM inbound_lead_events ile
+            INNER JOIN (
+                SELECT contact_id, MAX(id) AS max_id
+                FROM inbound_lead_events
+                WHERE contact_id IS NOT NULL
+                GROUP BY contact_id
+            ) latest ON latest.max_id = ile.id
+        ) ile_latest ON ile_latest.contact_id = lc.id
+        WHERE lc.id = ?
     """,
         (contact_id,),
     )
@@ -503,14 +558,16 @@ async def preview_email(campaign_id: int, contact_id: int, step_number: int = 1)
         raise HTTPException(status_code=404, detail="Contact not found")
 
     contact = {
-        "contact_id": row[0],
+        "contact_id": row["id"],
         "campaign_id": campaign_id,
-        "name": row[1],
-        "contact_name": row[1],
-        "title": row[2],
-        "company_name": row[3],
-        "domain": row[4],
-        "email": row[5],
+        "name": row["name"],
+        "contact_name": row["name"],
+        "title": row["title"],
+        "company_name": row["company_name"],
+        "domain": row["domain"],
+        "email": row["email"],
+        "location": row["resolved_location"],
+        "industry": row["resolved_industry"],
         "campaign_name": campaign.get("name"),
         "template_id": campaign.get("template_id"),
         "template_mode": campaign.get("template_mode") or "copied",

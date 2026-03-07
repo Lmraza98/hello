@@ -1,4 +1,4 @@
----
+﻿---
 summary: "How chat model routing and fallback work, including OpenAI fallback controls."
 read_when:
   - You are debugging why a chat request used a specific model
@@ -24,16 +24,35 @@ title: "Chat Model Routing"
 
 OpenAI path is disabled by default.
 
-- `VITE_CHAT_ENABLE_OPENAI_ROUTE=false`
+- `NEXT_PUBLIC_CHAT_ENABLE_OPENAI_ROUTE=false`
   - Prevents normal routing decisions from selecting `openai`.
-- `VITE_CHAT_ALLOW_OPENAI_FALLBACK=false`
+- `NEXT_PUBLIC_CHAT_ALLOW_OPENAI_FALLBACK=false`
   - Prevents fallback chain from ending in OpenAI when local routes fail.
 
 When both are false, assistant behavior is local-first and local-only.
 
+## Runtime Model Picker (Chat + Planner)
+
+The chat composer now exposes two model selectors near the input:
+
+- `Chat`: overrides the conversational/fallback response model used by local chat generation.
+- `Planner`: overrides the tool-planner model route to a local (`ollama`/OpenAI-compatible local) model.
+
+Both selectors default to `Auto`, which keeps existing routing behavior unchanged.
+
+Picker contents include:
+- all models reported by the configured local runtime endpoint (`/api/tags` for Ollama or `/v1/models` for OpenAI-compatible local servers),
+- configured model ids from env (including `NEXT_PUBLIC_OLLAMA_*_MODEL` entries such as Qwen/Gemma/DeepSeek/tool-brain variants, plus hosted planner/chat ids where applicable).
+
+Provider safety guard: local model overrides are only applied on local routes, and OpenAI overrides are only applied on OpenAI routes. A local model id will not be forwarded to OpenAI fallback calls.
+
 ### Local-Only Exhaustion Behavior
 
-When `VITE_CHAT_ALLOW_OPENAI_FALLBACK=false` and local routes are unavailable/exhausted, `ui/src/chat/fallbackPipeline.ts` now returns a deterministic offline-safe reply instead of a hard failure string.
+When `NEXT_PUBLIC_CHAT_ALLOW_OPENAI_FALLBACK=false` and local routes are unavailable/exhausted, `ui/src/chat/fallbackPipeline.ts` now returns a deterministic offline-safe reply instead of a hard failure string.
+
+### Local Runtime Availability Check
+
+Local runtime readiness now treats the runtime as available when **any** local model is reachable from the configured local endpoint, not only when preferred model names are present. This avoids false `ollama_unavailable_*` routing when using custom model names (including llama.cpp/OpenAI-compatible servers).
 
 - Greeting inputs (for example `hello`) return a normal greeting plus limited-mode notice.
 - Capability/help prompts return a limited-mode capability response.
@@ -60,7 +79,7 @@ Tool planning is separate from chat routing. When `PLANNER_BACKEND=functiongemma
 
 The planner classifies queries into three tiers (`minimal`, `standard`, `full`) and scales both the system prompt and the visible tool set accordingly. Simple lookups get ~100 tokens of prompt and 3-8 tools; complex browser workflows get the full 3000+ token prompt with all tools.
 
-This is the primary mechanism that makes FunctionGemma viable as a planner backend — it can produce correct tool calls for `minimal` tier queries in 1-2 seconds.
+This is the primary mechanism that makes FunctionGemma viable as a planner backend â€” it can produce correct tool calls for `minimal` tier queries in 1-2 seconds.
 
 See [Tool planner tiering](/concepts/tool-planner-tiering) for the full architecture, including:
 - Tier classification rules
@@ -91,3 +110,4 @@ When a conversation has multiple recent entities (company/contact/campaign/email
 "I found multiple entities in this conversation. Which one should I use?"
 
 This prompt is only triggered by **coreference ambiguity** (for example: "email them", "use that campaign", "mark this company vetted") when there is no clear active entity to apply the request to. Planner failures/timeouts do not trigger entity disambiguation; they fall back to retrieval instead.
+

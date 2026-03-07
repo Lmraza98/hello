@@ -2,18 +2,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { flexRender, getCoreRowModel, type ColumnDef, useReactTable } from '@tanstack/react-table';
-import { Loader2, Menu, RefreshCw, Wand2, X } from 'lucide-react';
-import { api, type BrowserAnnotationBox, type BrowserTab } from '../api';
+import { Loader2, RefreshCw, Wand2 } from 'lucide-react';
+import { api, type BrowserAnnotationBox, type BrowserTab, type BrowserWorkflowTask } from '../api';
 import { getPageCapability } from '../capabilities/catalog';
 import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
-import { TabManagerExpanded } from '../components/browser/TabManagerExpanded';
-import { TabRailCollapsed } from '../components/browser/TabRailCollapsed';
 import { WorkflowDrawer } from '../components/browser/WorkflowDrawer';
 import type { TabValidationSummary, WorkbenchTab, WorkflowActionType } from '../components/browser/types';
+import { EmailTabs } from '../components/email/EmailTabs';
 import { BROWSER_WORKFLOW_COMMAND_EVENT, isBrowserWorkflowCommand } from '../components/browser/workbenchBridge';
-import { PageHeader } from '../components/shared/PageHeader';
+import { PageSearchInput } from '../components/shared/PageSearchInput';
+import { SidePanelContainer } from '../components/contacts/SidePanelContainer';
+import { BottomDrawerContainer } from '../components/contacts/BottomDrawerContainer';
 import { usePageContext } from '../contexts/PageContextProvider';
 import { useWorkspaceLayout } from '../components/shell/workspaceLayout';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 function extractDomain(url: string): string {
   try {
@@ -23,15 +25,91 @@ function extractDomain(url: string): string {
   }
 }
 
-function readStoredList(key: string): string[] {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((v) => typeof v === 'string') : [];
-  } catch {
-    return [];
+function resolveWorkflowTaskTabId(task: BrowserWorkflowTask): string | undefined {
+  const diagnostics = task.diagnostics || {};
+  const result = task.result || {};
+  const diagnosticsTabId = typeof diagnostics.tab_id === 'string' ? diagnostics.tab_id.trim() : '';
+  const resultTabId = typeof result.tab_id === 'string' ? result.tab_id.trim() : '';
+  return diagnosticsTabId || resultTabId || undefined;
+}
+
+function browserTaskLabel(task: BrowserWorkflowTask): string {
+  const diagnostics = task.diagnostics || {};
+  const candidates = [
+    typeof diagnostics.goal === 'string' ? diagnostics.goal : '',
+    typeof diagnostics.query === 'string' ? diagnostics.query : '',
+    typeof diagnostics.task === 'string' ? diagnostics.task : '',
+    typeof diagnostics.operation === 'string' ? diagnostics.operation : '',
+    typeof task.stage === 'string' ? task.stage : '',
+  ];
+  const label = candidates.map((value) => value.trim()).find(Boolean) || task.task_id;
+  return label.length > 28 ? `${label.slice(0, 25).trimEnd()}...` : label;
+}
+
+type BrowserTaskTab = {
+  id: string;
+  label: string;
+  status: string;
+  stage: string;
+  tabId?: string;
+  count?: number;
+};
+
+type BrowserFlowSelection = BrowserTaskTab & {
+  tabsOwned: string[];
+};
+
+function resolveTabOrder(tab: BrowserTab, fallbackIndex: number): number {
+  const index = typeof tab.index === 'number' && Number.isFinite(tab.index) ? tab.index : fallbackIndex;
+  return index;
+}
+
+function browserFlowLabel(tab: BrowserTab | undefined, tasks: BrowserWorkflowTask[]): string {
+  const title = String(tab?.title || '').trim();
+  if (title) {
+    const normalized = title
+      .replace(/\s*[-|]\s*linkedin.*$/i, '')
+      .replace(/\s*[-|]\s*google search.*$/i, '')
+      .trim();
+    if (normalized) return normalized.length > 28 ? `${normalized.slice(0, 25).trimEnd()}...` : normalized;
   }
+  const meaningfulTask = tasks.find((task) => {
+    const operation = String(task.diagnostics?.operation || '').toLowerCase();
+    return !['browser_snapshot', 'browser_find_ref', 'browser_wait', 'browser_act', 'browser_screenshot'].includes(operation);
+  }) || tasks[0];
+  return browserTaskLabel(meaningfulTask);
+}
+
+function browserWorkbenchTabLabel(tab: WorkbenchTab): string {
+  const title = String(tab.title || '').trim();
+  if (title) {
+    const normalized = title
+      .replace(/\s*[-|]\s*linkedin.*$/i, '')
+      .replace(/\s*[-|]\s*google search.*$/i, '')
+      .trim();
+    if (normalized) return normalized.length > 24 ? `${normalized.slice(0, 21).trimEnd()}...` : normalized;
+  }
+  const domain = String(tab.domain || '').trim();
+  if (domain && domain !== 'unknown') return domain;
+  return tab.id;
+}
+
+function workbenchStatusPillClass(status: WorkbenchTab['status']): string {
+  if (status === 'error') return 'bg-red-100 text-red-700';
+  if (status === 'running') return 'bg-blue-100 text-blue-700';
+  if (status === 'active') return 'bg-green-100 text-green-700';
+  if (status === 'blocked') return 'bg-amber-100 text-amber-700';
+  return 'bg-slate-100 text-slate-700';
+}
+
+function formatWorkbenchTime(ts?: number | null): string {
+  if (!ts || !Number.isFinite(ts)) return 'n/a';
+  return new Date(ts).toLocaleString();
+}
+
+function isHelperBrowserOperation(task: BrowserWorkflowTask): boolean {
+  const operation = String(task.diagnostics?.operation || '').toLowerCase();
+  return ['browser_snapshot', 'browser_find_ref', 'browser_wait', 'browser_act', 'browser_screenshot'].includes(operation);
 }
 
 type CandidateSeed = {
@@ -963,18 +1041,16 @@ export default function BrowserWorkbenchPage() {
   const { setPageContext } = usePageContext();
   const workspace = useWorkspaceLayout();
   useRegisterCapabilities(getPageCapability('browser'));
+  const isPhone = useIsMobile(640);
+  const detailsPanelRef = useRef<HTMLDivElement>(null);
 
-  const [isWide, setIsWide] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
-  const [mobileTabsOpen, setMobileTabsOpen] = useState(false);
-  const [tabManagerExpanded, setTabManagerExpanded] = useState(false);
-  const [tabSearchFocusNonce, setTabSearchFocusNonce] = useState(0);
+  const [tabSearch, setTabSearch] = useState('');
   const [workflowDrawerOpen, setWorkflowDrawerOpen] = useState(false);
   const [workflowDrawerOpenToHalfNonce, setWorkflowDrawerOpenToHalfNonce] = useState(0);
+  const [activeTaskId, setActiveTaskId] = useState<string>('browser-tabs');
 
   const [selectedTabId, setSelectedTabId] = useState<string>('');
-  const [expandedTabIds, setExpandedTabIds] = useState<Set<string>>(new Set());
-  const [pinnedTabIds, setPinnedTabIds] = useState<Set<string>>(() => new Set(readStoredList('browser-workbench:pinned-tabs')));
-  const [dismissedTabIds, setDismissedTabIds] = useState<Set<string>>(() => new Set());
+  const [selectedBrowserDetailsTabId, setSelectedBrowserDetailsTabId] = useState<string | null>(null);
   const [lastUsedAt, setLastUsedAt] = useState<Record<string, number>>({});
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Record<string, number>>({});
   const [runningActionByTab, setRunningActionByTab] = useState<Record<string, string | null>>({});
@@ -990,31 +1066,82 @@ export default function BrowserWorkbenchPage() {
     setPageContext({ listContext: 'browser' });
   }, [setPageContext]);
 
-  useEffect(() => {
-    const media = window.matchMedia('(min-width: 1024px)');
-    const onChange = (event: MediaQueryListEvent) => setIsWide(event.matches);
-    media.addEventListener('change', onChange);
-    setIsWide(media.matches);
-    return () => media.removeEventListener('change', onChange);
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('browser-workbench:pinned-tabs', JSON.stringify(Array.from(pinnedTabIds)));
-    } catch {
-      // ignore
-    }
-  }, [pinnedTabIds]);
-
   const tabsQ = useQuery({
     queryKey: ['browser', 'tabs', 'workbench'],
     queryFn: () => api.getBrowserTabs(),
     refetchInterval: 2000,
   });
+  const workflowTasksQ = useQuery({
+    queryKey: ['browser', 'workflowTasks', 'workbench'],
+    queryFn: () => api.getBrowserWorkflowTasks({ includeFinished: true, limit: 16 }),
+    refetchInterval: 2000,
+  });
 
-  const rawTabs = useMemo(() => tabsQ.data?.tabs || [], [tabsQ.data?.tabs]);
-  const tabs = useMemo(() => rawTabs.filter((tab) => !dismissedTabIds.has(tab.id)), [dismissedTabIds, rawTabs]);
+  const tabs = useMemo(() => tabsQ.data?.tabs || [], [tabsQ.data?.tabs]);
+  const tabsOrdered = useMemo(
+    () =>
+      tabs
+        .map((tab, idx) => ({ tab, idx }))
+        .sort((a, b) => resolveTabOrder(a.tab, a.idx) - resolveTabOrder(b.tab, b.idx))
+        .map(({ tab }) => tab),
+    [tabs]
+  );
+  const taskRows = useMemo(() => {
+    const rows = workflowTasksQ.data?.tasks || [];
+    return [...rows]
+      .filter((task) => resolveWorkflowTaskTabId(task))
+      .sort((a, b) => Number(a.updated_at || 0) - Number(b.updated_at || 0))
+      .slice(0, 40);
+  }, [workflowTasksQ.data?.tasks]);
+  const taskTabs = useMemo<BrowserFlowSelection[]>(() => {
+    const tasksByTabId = new Map<string, BrowserWorkflowTask[]>();
+    for (const task of taskRows) {
+      const tabId = resolveWorkflowTaskTabId(task);
+      if (!tabId) continue;
+      const existing = tasksByTabId.get(tabId) || [];
+      existing.push(task);
+      tasksByTabId.set(tabId, existing);
+    }
+    const anchors = tabsOrdered
+      .map((tab, idx) => ({ tab, idx, tasks: tasksByTabId.get(tab.id) || [] }))
+      .filter((row) => row.tasks.length > 0);
 
+    if (!anchors.length) {
+      return [];
+    }
+    const flows: BrowserFlowSelection[] = [];
+    anchors.forEach(({ tab, idx, tasks }, anchorIndex) => {
+      const sortedTasks = [...tasks].sort((a, b) => Number(a.updated_at || 0) - Number(b.updated_at || 0));
+      const meaningful = sortedTasks.filter((task) => !isHelperBrowserOperation(task));
+      const flowTasks = meaningful.length ? meaningful : [sortedTasks[sortedTasks.length - 1]];
+      const latestTask = flowTasks[flowTasks.length - 1] || sortedTasks[sortedTasks.length - 1];
+      const nextOrderIndex = anchors[anchorIndex + 1]?.idx ?? tabsOrdered.length;
+      const contiguousTabs = tabsOrdered.slice(idx, nextOrderIndex).map((row) => row.id);
+      flows.push({
+        id: `flow:${tab.id}`,
+        label: browserFlowLabel(tab, flowTasks),
+        status: String(latestTask?.status || ''),
+        stage: String(latestTask?.stage || ''),
+        tabId: tab.id,
+        count: contiguousTabs.length,
+        tabsOwned: contiguousTabs,
+      });
+    });
+    return flows;
+  }, [tabsOrdered, taskRows]);
+  const topLevelTabs = useMemo(
+    () => [{ id: 'browser-tabs', label: 'Browser Tabs', count: tabsOrdered.length }, ...taskTabs],
+    [tabsOrdered.length, taskTabs]
+  );
+  const selectedTask = useMemo(
+    () => taskTabs.find((task) => task.id === activeTaskId) || null,
+    [activeTaskId, taskTabs]
+  );
+  const browserTabsMode = activeTaskId === 'browser-tabs';
+  const selectedTaskTabIds = useMemo(() => {
+    if (browserTabsMode || !selectedTask || selectedTask.id === 'browser-live') return tabsOrdered.map((tab) => tab.id);
+    return selectedTask.tabsOwned.length ? selectedTask.tabsOwned : selectedTask.tabId ? [selectedTask.tabId] : tabsOrdered.map((tab) => tab.id);
+  }, [browserTabsMode, selectedTask, tabsOrdered]);
   useEffect(() => {
     if (!tabs.length) {
       setSelectedTabId('');
@@ -1033,6 +1160,32 @@ export default function BrowserWorkbenchPage() {
     }
     setSelectedTabId(tabs[0]?.id || '');
   }, [selectedTabId, tabs, tabsQ.data?.active_tab_id]);
+
+  useEffect(() => {
+    if (!topLevelTabs.length) {
+      setActiveTaskId('browser-tabs');
+      return;
+    }
+    if (topLevelTabs.some((tab) => tab.id === activeTaskId)) return;
+    setActiveTaskId(topLevelTabs[0]?.id || 'browser-tabs');
+  }, [activeTaskId, topLevelTabs]);
+
+  useEffect(() => {
+    if (browserTabsMode) return;
+    if (!selectedTask?.tabId) return;
+    if (!tabs.some((tab) => tab.id === selectedTask.tabId)) return;
+    setSelectedTabId(selectedTask.tabId);
+    setLastUsedAt((prev) => ({ ...prev, [selectedTask.tabId]: Date.now() }));
+  }, [browserTabsMode, selectedTask?.id, selectedTask?.tabId, tabs]);
+
+  useEffect(() => {
+    if (!selectedTaskTabIds.length) {
+      setSelectedTabId('');
+      return;
+    }
+    if (selectedTaskTabIds.includes(selectedTabId)) return;
+    setSelectedTabId(selectedTaskTabIds[0] || '');
+  }, [selectedTabId, selectedTaskTabIds]);
 
   useEffect(() => {
     if (!tabs.length) return;
@@ -1176,7 +1329,7 @@ export default function BrowserWorkbenchPage() {
       faviconUrl: domain && domain !== 'unknown' ? `https://www.google.com/s2/favicons?domain=${domain}&sz=32` : null,
       status,
       isActive,
-      isPinned: pinnedTabIds.has(tab.id),
+      isPinned: false,
       lastUsedAt: lastUsedAt[tab.id] || Date.now(),
       lastUpdatedAt: lastUpdatedAt[tab.id] || Date.now(),
       lastError: lastErrorByTab[tab.id] || null,
@@ -1184,68 +1337,78 @@ export default function BrowserWorkbenchPage() {
       validationSummary: validationByTab[tab.id] || null,
       screenshotUrl: screenshotByTab[tab.id] || null,
     };
-  }), [annotationCountByTab, lastErrorByTab, lastUpdatedAt, lastUsedAt, pinnedTabIds, runningActionByTab, screenshotByTab, selectedTabId, tabs, validationByTab]);
-
-  const selectedWorkbenchTab = useMemo(() => workbenchTabs.find((tab) => tab.id === selectedTabId) || null, [selectedTabId, workbenchTabs]);
+  }), [annotationCountByTab, lastErrorByTab, lastUpdatedAt, lastUsedAt, runningActionByTab, screenshotByTab, selectedTabId, tabs, validationByTab]);
+  const visibleWorkbenchTabs = useMemo(
+    () => workbenchTabs.filter((tab) => selectedTaskTabIds.includes(tab.id)),
+    [selectedTaskTabIds, workbenchTabs]
+  );
+  const filteredWorkbenchTabs = useMemo(() => {
+    const q = tabSearch.trim().toLowerCase();
+    if (!q) return visibleWorkbenchTabs;
+    return visibleWorkbenchTabs.filter((tab) =>
+      [tab.title, tab.domain, tab.url]
+        .join(' ')
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [tabSearch, visibleWorkbenchTabs]);
+  const selectedWorkbenchTab = useMemo(
+    () => visibleWorkbenchTabs.find((tab) => tab.id === selectedTabId) || null,
+    [selectedTabId, visibleWorkbenchTabs]
+  );
+  const selectedBrowserDetailsTab = useMemo(
+    () => (selectedBrowserDetailsTabId ? workbenchTabs.find((tab) => tab.id === selectedBrowserDetailsTabId) || null : null),
+    [selectedBrowserDetailsTabId, workbenchTabs]
+  );
+  const tasksByTabId = useMemo(() => {
+    const map = new Map<string, BrowserTabDetailTask[]>();
+    taskTabs.forEach((topTask) => {
+      const linkedRows = taskRows.filter((row) => topTask.tabsOwned.includes(resolveWorkflowTaskTabId(row) || ''));
+      linkedRows.forEach((row) => {
+        const tabId = resolveWorkflowTaskTabId(row);
+        if (!tabId) return;
+        const existing = map.get(tabId) || [];
+        existing.push({
+          id: row.task_id,
+          label: browserTaskLabel(row),
+          status: String(row.status || ''),
+          stage: String(row.stage || ''),
+          topLevelTaskId: topTask.id,
+        });
+        map.set(tabId, existing);
+      });
+    });
+    return map;
+  }, [taskRows, taskTabs]);
   const compactLayout = workspace.open && workspace.mode === 'drawer';
-
-  const closeTab = (tabId: string) => {
-    setDismissedTabIds((prev) => new Set(prev).add(tabId));
-    setExpandedTabIds((prev) => {
-      const next = new Set(prev);
-      next.delete(tabId);
-      return next;
-    });
-    if (tabId !== selectedTabId) return;
-    const nextTab = workbenchTabs.find((tab) => tab.id !== tabId);
-    setSelectedTabId(nextTab?.id || '');
-  };
-
-  const closeTabs = (tabIds: string[]) => {
-    if (!tabIds.length) return;
-    setDismissedTabIds((prev) => {
-      const next = new Set(prev);
-      tabIds.forEach((id) => next.add(id));
-      return next;
-    });
-    setExpandedTabIds((prev) => {
-      const next = new Set(prev);
-      tabIds.forEach((id) => next.delete(id));
-      return next;
-    });
-    if (tabIds.includes(selectedTabId)) {
-      const nextTab = workbenchTabs.find((tab) => !tabIds.includes(tab.id));
-      setSelectedTabId(nextTab?.id || '');
-    }
-  };
 
   const setActiveTab = (tabId: string) => {
     setSelectedTabId(tabId);
     setLastUsedAt((prev) => ({ ...prev, [tabId]: Date.now() }));
   };
-
-  const toggleExpanded = (tabId: string) => {
-    setExpandedTabIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(tabId)) next.delete(tabId);
-      else next.add(tabId);
-      return next;
-    });
+  const selectedTabLinkedTasks = useMemo(
+    () => (selectedBrowserDetailsTabId ? tasksByTabId.get(selectedBrowserDetailsTabId) || [] : []),
+    [selectedBrowserDetailsTabId, tasksByTabId]
+  );
+  const openTaskView = (taskId: string, tabId?: string) => {
+    setActiveTaskId(taskId);
+    if (tabId) {
+      setSelectedTabId(tabId);
+      setLastUsedAt((prev) => ({ ...prev, [tabId]: Date.now() }));
+    }
   };
 
-  const togglePin = (tabId: string) => {
-    setPinnedTabIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(tabId)) next.delete(tabId);
-      else next.add(tabId);
-      return next;
-    });
-  };
+  useEffect(() => {
+    if (!browserTabsMode || !selectedBrowserDetailsTab || isPhone) return;
+    const id = window.requestAnimationFrame(() => detailsPanelRef.current?.focus());
+    return () => window.cancelAnimationFrame(id);
+  }, [browserTabsMode, isPhone, selectedBrowserDetailsTab]);
 
-  const openSearchInExpanded = () => {
-    setTabManagerExpanded(true);
-    setTabSearchFocusNonce((prev) => prev + 1);
-  };
+  useEffect(() => {
+    if (!selectedBrowserDetailsTabId) return;
+    if (workbenchTabs.some((tab) => tab.id === selectedBrowserDetailsTabId)) return;
+    setSelectedBrowserDetailsTabId(null);
+  }, [selectedBrowserDetailsTabId, workbenchTabs]);
 
   const handleNewTab = async () => {
     try {
@@ -1263,157 +1426,357 @@ export default function BrowserWorkbenchPage() {
   return (
     <div className="h-full min-h-0 overflow-y-auto md:overflow-hidden">
       <div className="flex h-full min-h-0 flex-col">
-        <div className={`${compactLayout ? 'px-3 pb-2 pt-3 md:px-4 md:pt-4' : 'px-4 pb-2 pt-4 md:px-6 md:pt-5'}`}>
-          <PageHeader
-            title="Browser Workbench"
-            subtitle="Live viewer first, with tab management and workflow tools on demand"
-            desktopActions={(
-              <div className="flex items-center gap-2">
-                {!isWide ? (
-                  <button type="button" onClick={() => setMobileTabsOpen(true)} className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-hover">
-                    <Menu className="h-3.5 w-3.5" /> Tabs
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => {
-                    void tabsQ.refetch();
-                    if (selectedTabId) void fetchScreenshot(selectedTabId, false);
-                  }}
-                  className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-xs text-text-muted hover:bg-surface-hover"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" /> Refresh
-                </button>
-              </div>
-            )}
-          />
-        </div>
-
-        <div className={`${compactLayout ? 'min-h-0 flex-1 px-2 pb-2 md:px-2 md:pb-2' : 'min-h-0 flex-1 px-2 pb-2 md:px-3 md:pb-3'}`}>
-          <div className="flex h-full min-h-0 overflow-hidden rounded-xl border border-border bg-surface">
-            {isWide ? (
-              tabManagerExpanded ? (
-                <TabManagerExpanded
-                  tabs={workbenchTabs}
-                  selectedTabId={selectedTabId || null}
-                  expandedTabIds={expandedTabIds}
-                  runningActionByTab={runningActionByTab}
-                  searchFocusNonce={tabSearchFocusNonce}
-                  onCollapse={() => setTabManagerExpanded(false)}
-                  onSelectTab={setActiveTab}
-                  onToggleExpanded={toggleExpanded}
-                  onPinTab={togglePin}
-                  onCloseTab={closeTab}
-                  onCloseTabs={closeTabs}
-                  onSetExpandedTabIds={setExpandedTabIds}
-                  onTriggerWorkflowAction={(tabId, actionType) => {
-                    void triggerWorkflowAction(tabId, actionType);
-                  }}
-                />
-              ) : (
-                <TabRailCollapsed
-                  tabs={workbenchTabs}
-                  selectedTabId={selectedTabId || null}
-                  onSelectTab={setActiveTab}
-                  onExpand={() => setTabManagerExpanded(true)}
-                  onNewTab={() => {
-                    void handleNewTab();
-                  }}
-                  onOpenSearch={openSearchInExpanded}
-                />
-              )
-            ) : null}
-
-            <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden bg-bg">
-              <div className="h-full p-3">
-                <BrowserLiveViewer
-                  tab={selectedWorkbenchTab}
-                  screenshot={selectedTabId ? screenshotByTab[selectedTabId] || null : null}
-                  loading={!!(selectedTabId && loadingShotByTab[selectedTabId])}
-                  error={selectedTabId ? lastErrorByTab[selectedTabId] || null : null}
-                  onRefresh={() => {
-                    if (!selectedTabId) return;
-                    void fetchScreenshot(selectedTabId, false);
-                  }}
-                />
-              </div>
-
-              <WorkflowDrawer
-                key={workflowDrawerOpenToHalfNonce}
-                open={workflowDrawerOpen}
-                onOpenChange={setWorkflowDrawerOpen}
-                runningLabel={selectedTabId ? runningActionByTab[selectedTabId] : null}
-                bottomInsetPx={compactLayout ? 4 : 0}
-                onAction={(action) => {
-                  if (!selectedTabId) return;
-                  setWorkflowDrawerOpen(true);
-                  if (action === 'annotate' || action === 'validate' || action === 'synthesize') {
-                    setWorkflowDrawerOpenToHalfNonce((prev) => prev + 1);
-                  }
-                  requestWorkflowAction(selectedTabId, action);
-                }}
-              >
-                {selectedTabId ? (
-                  <WorkflowBuilderPanel
-                    tabs={tabs}
-                    selectedTabId={selectedTabId}
-                    actionRequest={workflowRequest}
-                    onSelectTab={setActiveTab}
-                    onValidationSummary={updateValidation}
-                    onAnnotationCount={(tabId, count) => setAnnotationCountByTab((prev) => ({ ...prev, [tabId]: count }))}
-                    onTabError={updateTabError}
-                    onRefreshTab={(tabId) => {
-                      void fetchScreenshot(tabId, false);
-                    }}
-                    onRunningAction={(tabId, action) => setRunningActionByTab((prev) => ({ ...prev, [tabId]: action }))}
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center rounded-lg border border-border bg-surface text-sm text-text-dim">
-                    No active tab selected.
-                  </div>
-                )}
-              </WorkflowDrawer>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {!isWide && mobileTabsOpen ? (
-        <div className="fixed inset-0 z-50 bg-black/35" onClick={() => setMobileTabsOpen(false)}>
-          <div className="h-full w-[88vw] max-w-[360px] border-r border-border bg-surface" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-border px-3 py-2">
-              <div className="text-sm font-semibold text-text">Tab Manager</div>
-              <button type="button" onClick={() => setMobileTabsOpen(false)} className="rounded border border-border p-1 text-text-dim hover:bg-surface-hover">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <div className="h-[calc(100%-41px)]">
-              <TabManagerExpanded
-                tabs={workbenchTabs}
-                selectedTabId={selectedTabId || null}
-                expandedTabIds={expandedTabIds}
-                runningActionByTab={runningActionByTab}
-                initialSearchOpen={false}
-                searchFocusNonce={tabSearchFocusNonce}
-                onCollapse={() => setMobileTabsOpen(false)}
-                onSelectTab={(tabId) => {
-                  setActiveTab(tabId);
-                  setMobileTabsOpen(false);
-                }}
-                onToggleExpanded={toggleExpanded}
-                onPinTab={togglePin}
-                onCloseTab={closeTab}
-                onCloseTabs={closeTabs}
-                onSetExpandedTabIds={setExpandedTabIds}
-                onTriggerWorkflowAction={(tabId, actionType) => {
-                  setMobileTabsOpen(false);
-                  void triggerWorkflowAction(tabId, actionType);
+        <div className="pb-2 pt-3 md:pt-4">
+          <div className="-mt-3 mb-2 flex h-14 items-end gap-2 md:-mt-4">
+            <div className="min-w-0 flex-1">
+              <EmailTabs
+                tabs={topLevelTabs}
+                activeTab={activeTaskId}
+                onSelectTab={(taskId) => {
+                  setActiveTaskId(taskId);
+                  if (taskId === 'browser-tabs') return;
+                  const nextTask = taskTabs.find((task) => task.id === taskId);
+                  if (!nextTask?.tabId) return;
+                  if (!tabs.some((tab) => tab.id === nextTask.tabId)) return;
+                  setSelectedTabId(nextTask.tabId);
+                  setLastUsedAt((prev) => ({ ...prev, [nextTask.tabId]: Date.now() }));
                 }}
               />
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                void tabsQ.refetch();
+                void workflowTasksQ.refetch();
+                if (selectedTabId) void fetchScreenshot(selectedTabId, false);
+              }}
+              className="mb-px inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-bg text-text-muted hover:bg-surface-hover hover:text-text"
+              aria-label="Refresh browser workbench"
+              title="Refresh browser workbench"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <div className="min-w-[220px] flex-1">
+              <PageSearchInput
+                value={tabSearch}
+                onChange={setTabSearch}
+                placeholder={browserTabsMode ? 'Search browser tabs...' : 'Search tabs in this task...'}
+              />
+            </div>
+            <span className="inline-flex h-9 items-center rounded-md border border-border bg-surface px-3 text-[11px] text-text-dim">
+              {filteredWorkbenchTabs.length} of {visibleWorkbenchTabs.length} tabs
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                void handleNewTab();
+              }}
+              className="inline-flex h-9 items-center rounded-md border border-border bg-surface px-3 text-xs text-text-dim hover:bg-surface-hover"
+            >
+              New Tab
+            </button>
           </div>
         </div>
+
+        <div className={`${compactLayout ? 'min-h-0 flex-1 pb-2 md:pb-2' : 'min-h-0 flex-1 pb-3 md:pb-3'}`}>
+          <div className="flex h-full min-h-0 overflow-hidden bg-surface">
+            {browserTabsMode ? (
+              <>
+                <div className="min-w-0 flex-1 overflow-auto">
+                  {filteredWorkbenchTabs.length === 0 ? (
+                    <div className="flex h-full items-center justify-center p-6 text-sm text-text-dim">
+                      No browser tabs found.
+                    </div>
+                  ) : (
+                    <table className="w-full min-w-[980px] table-fixed">
+                      <thead className="sticky top-0 z-10 bg-surface">
+                        <tr className="h-9 border-b border-border-subtle bg-surface-hover/30">
+                          <th className="w-[26%] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted">Title</th>
+                          <th className="w-[12%] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted">Status</th>
+                          <th className="w-[26%] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted">URL</th>
+                          <th className="w-[10%] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted">Domain</th>
+                          <th className="w-[10%] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted">Linked Tasks</th>
+                          <th className="w-[16%] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted">Updated</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border-subtle">
+                        {filteredWorkbenchTabs.map((tab) => {
+                          const linkedTasks = tasksByTabId.get(tab.id) || [];
+                          const isActive = selectedWorkbenchTab?.id === tab.id;
+                          return (
+                            <tr
+                              key={tab.id}
+                              className={`group h-[42px] cursor-pointer text-sm transition-colors ${isActive ? 'bg-accent/10' : 'hover:bg-surface-hover/60'}`}
+                              onClick={() => {
+                                setActiveTab(tab.id);
+                                setSelectedBrowserDetailsTabId((current) => (current === tab.id ? null : tab.id));
+                              }}
+                              tabIndex={0}
+                              aria-label={`Open details for browser tab ${browserWorkbenchTabLabel(tab)}`}
+                              onKeyDown={(event) => {
+                                if (event.key !== 'Enter' && event.key !== ' ') return;
+                                event.preventDefault();
+                                setActiveTab(tab.id);
+                                setSelectedBrowserDetailsTabId((current) => (current === tab.id ? null : tab.id));
+                              }}
+                            >
+                              <td className="h-[42px] px-3 py-0 align-middle leading-tight">
+                                <div className="min-w-0">
+                                  <p className="truncate font-medium text-text">{tab.title || 'Untitled tab'}</p>
+                                  <p className="mt-0.5 truncate text-xs text-text-dim">Tab {tab.id}</p>
+                                </div>
+                              </td>
+                              <td className="h-[42px] px-3 py-0 align-middle leading-tight">
+                                <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${workbenchStatusPillClass(tab.status)}`}>{tab.status}</span>
+                              </td>
+                              <td className="h-[42px] px-3 py-0 align-middle text-xs leading-tight text-text-dim">
+                                <span className="block truncate" title={tab.url}>{tab.url || 'n/a'}</span>
+                              </td>
+                              <td className="h-[42px] px-3 py-0 align-middle text-xs leading-tight text-text-dim">{tab.domain}</td>
+                              <td className="h-[42px] px-3 py-0 align-middle text-xs leading-tight text-text-dim">{linkedTasks.length}</td>
+                              <td className="h-[42px] px-3 py-0 align-middle text-xs leading-tight text-text-dim">{formatWorkbenchTime(tab.lastUpdatedAt)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+                {!isPhone && selectedBrowserDetailsTab ? (
+                  <SidePanelContainer ref={detailsPanelRef} ariaLabel="Browser tab details panel">
+                    <div tabIndex={-1} className="flex h-full min-h-0 flex-col outline-none">
+                      <BrowserTabDetailsPanel
+                        tab={selectedBrowserDetailsTab}
+                        linkedTasks={selectedTabLinkedTasks}
+                        onOpenTask={openTaskView}
+                        onSelectTab={setActiveTab}
+                        onClose={() => setSelectedBrowserDetailsTabId(null)}
+                      />
+                    </div>
+                  </SidePanelContainer>
+                ) : null}
+              </>
+            ) : (
+              <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden bg-bg">
+                <div className="bg-bg px-3 pt-2">
+                  <EmailTabs
+                    tabs={filteredWorkbenchTabs.map((tab) => ({
+                      id: tab.id,
+                      label: browserWorkbenchTabLabel(tab),
+                    }))}
+                    activeTab={selectedWorkbenchTab?.id || ''}
+                    onSelectTab={setActiveTab}
+                  />
+                </div>
+                <div className="h-full">
+                  <BrowserLiveViewer
+                    tab={selectedWorkbenchTab}
+                    screenshot={selectedTabId ? screenshotByTab[selectedTabId] || null : null}
+                    loading={!!(selectedTabId && loadingShotByTab[selectedTabId])}
+                    error={selectedTabId ? lastErrorByTab[selectedTabId] || null : null}
+                    onRefresh={() => {
+                      if (!selectedTabId) return;
+                      void fetchScreenshot(selectedTabId, false);
+                    }}
+                  />
+                </div>
+
+                <WorkflowDrawer
+                  key={workflowDrawerOpenToHalfNonce}
+                  open={workflowDrawerOpen}
+                  onOpenChange={setWorkflowDrawerOpen}
+                  runningLabel={selectedTabId ? runningActionByTab[selectedTabId] : null}
+                  bottomInsetPx={compactLayout ? 4 : 0}
+                  onAction={(action) => {
+                    if (!selectedTabId) return;
+                    setWorkflowDrawerOpen(true);
+                    if (action === 'annotate' || action === 'validate' || action === 'synthesize') {
+                      setWorkflowDrawerOpenToHalfNonce((prev) => prev + 1);
+                    }
+                    requestWorkflowAction(selectedTabId, action);
+                  }}
+                >
+                  {selectedTabId ? (
+                    <WorkflowBuilderPanel
+                      tabs={tabs.filter((tab) => selectedTaskTabIds.includes(tab.id))}
+                      selectedTabId={selectedTabId}
+                      actionRequest={workflowRequest}
+                      onSelectTab={setActiveTab}
+                      onValidationSummary={updateValidation}
+                      onAnnotationCount={(tabId, count) => setAnnotationCountByTab((prev) => ({ ...prev, [tabId]: count }))}
+                      onTabError={updateTabError}
+                      onRefreshTab={(tabId) => {
+                        void fetchScreenshot(tabId, false);
+                      }}
+                      onRunningAction={(tabId, action) => setRunningActionByTab((prev) => ({ ...prev, [tabId]: action }))}
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center rounded-lg border border-border bg-surface text-sm text-text-dim">
+                      No active tab selected.
+                    </div>
+                  )}
+                </WorkflowDrawer>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      {browserTabsMode && isPhone && selectedBrowserDetailsTab ? (
+        <BottomDrawerContainer onClose={() => setSelectedBrowserDetailsTabId(null)} ariaLabel="Browser tab details drawer">
+          <BrowserTabDetailsPanel
+            tab={selectedBrowserDetailsTab}
+            linkedTasks={selectedTabLinkedTasks}
+            onOpenTask={openTaskView}
+            onSelectTab={setActiveTab}
+            onClose={() => setSelectedBrowserDetailsTabId(null)}
+          />
+        </BottomDrawerContainer>
       ) : null}
+    </div>
+  );
+}
+
+type BrowserTabDetailTask = {
+  id: string;
+  label: string;
+  status: string;
+  stage: string;
+  topLevelTaskId: string;
+};
+
+function BrowserTabDetailsPanel({
+  tab,
+  linkedTasks,
+  onOpenTask,
+  onSelectTab,
+  onClose,
+}: {
+  tab: WorkbenchTab | null;
+  linkedTasks: BrowserTabDetailTask[];
+  onOpenTask: (taskId: string, tabId?: string) => void;
+  onSelectTab: (tabId: string) => void;
+  onClose: () => void;
+}) {
+  if (!tab) {
+    return (
+      <div className="flex h-full items-center justify-center p-6 text-center text-sm text-text-dim">
+        Select a browser tab to inspect details and jump into its running workflow.
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="sticky top-0 z-10 border-b border-border bg-surface px-4 py-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold text-text">{tab.title || 'Browser Tab'}</h3>
+            <p className="truncate text-xs text-text-dim">{tab.url || tab.domain || tab.id}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close browser tab details"
+            className="inline-flex h-7 items-center justify-center rounded-md border border-border px-2 text-[11px] text-text-muted hover:bg-surface-hover"
+          >
+            Close
+          </button>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+          <span className={`inline-flex rounded-full px-2 py-0.5 font-medium ${workbenchStatusPillClass(tab.status)}`}>{tab.status}</span>
+          <span className="inline-flex rounded-full border border-border bg-bg px-2 py-0.5 text-text-dim">Tab {tab.id}</span>
+          {tab.domain && tab.domain !== 'unknown' ? (
+            <span className="inline-flex rounded-full border border-border bg-bg px-2 py-0.5 text-text-dim">{tab.domain}</span>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 space-y-3 overflow-auto p-4 text-xs">
+        <section className="rounded-lg border border-border bg-bg/40 p-3">
+          <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-text-muted">Tab Metadata</p>
+          <dl className="grid grid-cols-1 gap-x-3 gap-y-2 md:grid-cols-2">
+            <div className="min-w-0">
+              <dt className="text-[11px] uppercase tracking-wide text-text-muted">Title</dt>
+              <dd className="mt-0.5 break-words text-text">{tab.title || 'n/a'}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-[11px] uppercase tracking-wide text-text-muted">URL</dt>
+              <dd className="mt-0.5 break-words text-text">{tab.url || 'n/a'}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-[11px] uppercase tracking-wide text-text-muted">Last Used</dt>
+              <dd className="mt-0.5 break-words text-text">{formatWorkbenchTime(tab.lastUsedAt)}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-[11px] uppercase tracking-wide text-text-muted">Last Updated</dt>
+              <dd className="mt-0.5 break-words text-text">{formatWorkbenchTime(tab.lastUpdatedAt)}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-[11px] uppercase tracking-wide text-text-muted">Annotations</dt>
+              <dd className="mt-0.5 break-words text-text">{tab.hasAnnotations ? 'Present' : 'None'}</dd>
+            </div>
+            <div className="min-w-0">
+              <dt className="text-[11px] uppercase tracking-wide text-text-muted">Validation</dt>
+              <dd className="mt-0.5 break-words text-text">{tab.validationSummary ? `${Math.round(tab.validationSummary.fitScore * 100)}% fit` : 'Not checked'}</dd>
+            </div>
+          </dl>
+        </section>
+
+        {tab.lastError ? (
+          <section className="rounded-lg border border-red-200 bg-red-50 p-3">
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-red-700">Last Error</p>
+            <p className="whitespace-pre-wrap break-words text-red-800">{tab.lastError}</p>
+          </section>
+        ) : null}
+
+        <section className="rounded-lg border border-border bg-bg/40 p-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Linked Tasks</p>
+            <button
+              type="button"
+              onClick={() => onSelectTab(tab.id)}
+              className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-[11px] text-text hover:bg-surface-hover"
+            >
+              Focus Tab
+            </button>
+          </div>
+          {linkedTasks.length === 0 ? (
+            <p className="text-text-dim">No browser workflow tasks are currently linked to this tab.</p>
+          ) : (
+            <div className="space-y-2">
+              {linkedTasks.map((task) => (
+                <div key={task.id} className="rounded-md border border-border bg-surface p-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-text">{task.label}</p>
+                      <p className="truncate text-[11px] text-text-dim">{task.stage}</p>
+                    </div>
+                    <span className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${workbenchStatusPillClass(task.status as WorkbenchTab['status'])}`}>{task.status}</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onOpenTask(task.topLevelTaskId, tab.id)}
+                      className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-[11px] text-text hover:bg-surface-hover"
+                    >
+                      Open Task View
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSelectTab(tab.id)}
+                      className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-[11px] text-text hover:bg-surface-hover"
+                    >
+                      Focus Browser Tab
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

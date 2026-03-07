@@ -139,8 +139,8 @@ export function sanitizeCallArgs(call: ParsedToolCall): ParsedToolCall | null {
 export function normalizePlannedCalls(
   calls: ParsedToolCall[],
   userMessage: string,
-  _selectedTools: string[]
-): { calls: ParsedToolCall[]; notes: string[] } {
+  selectedTools: string[] = []
+): { calls: ParsedToolCall[]; notes: string[]; clarificationQuestion?: string } {
   const normalized: ParsedToolCall[] = [];
   const notes: string[] = [];
   const lowerMsg = (userMessage || '').toLowerCase();
@@ -204,6 +204,61 @@ export function normalizePlannedCalls(
     return [];
   };
   const contextEntityHints = extractEntityHints(userMessage);
+  const selectedToolSet = new Set((selectedTools || []).map((tool) => String(tool)));
+  const salesNavMentioned = /\b(sales\s*navigator|salesnav|linkedin)\b/i.test(userMessage);
+  const hasBrowserSessionSalesNavContext = /\[BROWSER_SESSION\][\s\S]*linkedin\.com\/sales/i.test(userMessage);
+  const salesNavWorkflowAvailable = selectedToolSet.has('browser_search_and_extract') || selectedToolSet.has('browser_list_sub_items');
+  const impliedPeopleAtCompanyLookup =
+    /\b(employee|employees|people|contacts?|leads?|profiles?)\b/i.test(userMessage) &&
+    /\b(of|at)\b/i.test(userMessage) &&
+    /\b(details?|contact details|email|emails|phone|phones|title|titles|decision makers?)\b/i.test(userMessage);
+  const inferSalesNavTask = (source: string): 'salesnav_search_account' | 'salesnav_people_search' => {
+    const lower = source.toLowerCase();
+    if (/\b(company|companies|account|accounts|organization|organisations|org|firms|businesses)\b/.test(lower)) {
+      return 'salesnav_search_account';
+    }
+    if (/\b(person|people|lead|leads|contact|contacts|profile|profiles|employee|employees|founder|ceo|cmo|vp|director|head of|manager)\b/.test(lower)) {
+      return 'salesnav_people_search';
+    }
+    return 'salesnav_people_search';
+  };
+  const stripSalesNavPhrases = (source: string): string => {
+    const cleaned = source
+      .replace(/\bon\s+(linkedin\s+)?sales\s*navigator\b/gi, ' ')
+      .replace(/\bon\s+linkedin\b/gi, ' ')
+      .replace(/\busing\s+(linkedin\s+)?sales\s*navigator\b/gi, ' ')
+      .replace(/\b(in|from)\s+salesnav\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return cleaned || source.trim();
+  };
+  const extractCompanyFromEmployeeLookup = (source: string): string => {
+    const cleaned = stripSalesNavPhrases(source)
+      .replace(/\bfind\s+contact\s+details\s+for\b/gi, ' ')
+      .replace(/\bcontact\s+details\b/gi, ' ')
+      .replace(/\bdetails\b/gi, ' ')
+      .replace(/\bfind\b/gi, ' ')
+      .replace(/\bshow\b/gi, ' ')
+      .replace(/\bget\b/gi, ' ')
+      .replace(/\blist\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const match = cleaned.match(/\b(?:employees|people|contacts?|leads?|profiles?)\s+(?:of|at)\s+(.+)$/i);
+    if (!match) return '';
+    return match[1].replace(/[?.!]+$/g, '').trim();
+  };
+  const employeeLookupCompany = impliedPeopleAtCompanyLookup ? extractCompanyFromEmployeeLookup(userMessage) : '';
+  const hasExplicitContactLimit = /\b\d{1,3}\b/.test(userMessage);
+  const requestedDetailKinds = [
+    /\blinkedin\b/i.test(userMessage) ? 'LinkedIn URL' : '',
+    /\btitle|titles\b/i.test(userMessage) ? 'title' : '',
+    /\bemail|emails\b/i.test(userMessage) ? 'email' : '',
+    /\bphone|phones|mobile|direct dial\b/i.test(userMessage) ? 'phone' : '',
+  ].filter(Boolean);
+  const needsEmployeeLookupClarification =
+    Boolean(employeeLookupCompany) &&
+    /\bdetails?|contact details\b/i.test(userMessage) &&
+    (!hasExplicitContactLimit || requestedDetailKinds.length === 0);
 
   for (const raw of calls) {
     const cleaned = sanitizeCallArgs(raw);
@@ -427,6 +482,92 @@ export function normalizePlannedCalls(
     }
 
     browserFixed.push(call);
+  }
+
+  const hasStructuredSalesNavCall = browserFixed.some((call) =>
+    call.name === 'browser_search_and_extract' || call.name === 'browser_list_sub_items'
+  );
+  const hasRawSalesNavLoop = browserFixed.some((call) => {
+    if (!call.name.startsWith('browser_')) return false;
+    if (!['browser_navigate', 'browser_snapshot', 'browser_find_ref', 'browser_act', 'browser_wait'].includes(call.name)) return false;
+    const url = typeof call.args?.url === 'string' ? call.args.url.toLowerCase() : '';
+    const text = typeof call.args?.text === 'string' ? call.args.text.toLowerCase() : '';
+    const ref = typeof call.args?.ref === 'string' ? call.args.ref.toLowerCase() : '';
+    const value = typeof call.args?.value === 'string' ? call.args.value.toLowerCase() : '';
+    return url.includes('linkedin.com/sales') || text.includes('search') || ref.includes('search') || value.includes('linkedin');
+  });
+  const shouldForceSalesNavRewrite =
+    !hasStructuredSalesNavCall &&
+    hasRawSalesNavLoop &&
+    (salesNavMentioned || hasBrowserSessionSalesNavContext || (salesNavWorkflowAvailable && impliedPeopleAtCompanyLookup));
+  if (shouldForceSalesNavRewrite) {
+    const preservedPrefix = browserFixed.filter((call) => call.name === 'browser_health' || call.name === 'browser_tabs');
+    const navigateCall = browserFixed.find((call) => call.name === 'browser_navigate' && typeof call.args?.url === 'string');
+    const browserTypeCall = browserFixed.find((call) =>
+      call.name === 'browser_act' &&
+      typeof call.args?.action === 'string' &&
+      ['type', 'fill'].includes(String(call.args.action).toLowerCase()) &&
+      typeof call.args?.value === 'string' &&
+      String(call.args.value).trim().length > 0
+    );
+    const task = inferSalesNavTask(userMessage);
+    const query = stripSalesNavPhrases(
+      typeof browserTypeCall?.args?.value === 'string' && browserTypeCall.args.value.trim()
+        ? browserTypeCall.args.value
+        : userMessage
+    );
+    const tabId =
+      (typeof browserTypeCall?.args?.tab_id === 'string' && browserTypeCall.args.tab_id) ||
+      (typeof navigateCall?.args?.tab_id === 'string' && navigateCall.args.tab_id) ||
+      undefined;
+    browserFixed.length = 0;
+    browserFixed.push(
+      ...preservedPrefix,
+      {
+        name: 'browser_search_and_extract',
+        args: {
+          task,
+          query,
+          ...(tabId ? { tab_id: tabId } : {}),
+          limit: 25,
+        },
+      }
+    );
+    notes.push(`Rewrote raw SalesNav browser loop to browser_search_and_extract(${task}) so the backend URL builder handles the search flow.`);
+  }
+
+  const shouldForceEmployeeListFlow =
+    employeeLookupCompany &&
+    (salesNavMentioned || hasBrowserSessionSalesNavContext) &&
+    salesNavWorkflowAvailable;
+  if (needsEmployeeLookupClarification) {
+    return {
+      calls: [],
+      notes: [
+        ...notes,
+        `Held SalesNav employee lookup for ${employeeLookupCompany} because the request did not specify count and/or concrete detail fields.`,
+      ],
+      clarificationQuestion: `How many contacts do you want from ${employeeLookupCompany}, and which details should I collect: LinkedIn URL, title, email, or phone?`,
+    };
+  }
+  if (shouldForceEmployeeListFlow) {
+    const preservedPrefix = browserFixed.filter((call) => call.name === 'browser_health' || call.name === 'browser_tabs');
+    browserFixed.length = 0;
+    browserFixed.push(
+      ...preservedPrefix,
+      {
+        name: 'browser_list_sub_items',
+        args: {
+          task: 'salesnav_list_employees',
+          parent_query: employeeLookupCompany,
+          parent_task: 'salesnav_search_account',
+          entrypoint_action: 'entrypoint',
+          extract_type: 'lead',
+          limit: 25,
+        },
+      }
+    );
+    notes.push(`Rewrote SalesNav employee-at-company request to a single browser_list_sub_items flow for ${employeeLookupCompany}.`);
   }
 
   const mergeableTools = new Set(['search_companies', 'search_contacts']);

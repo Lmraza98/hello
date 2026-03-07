@@ -55,6 +55,7 @@ This topic was split into focused guides to keep maintenance and scanning fast.
 - Top action bar includes `Clear Cache`, which clears launcher step cache (`data/launcher_runs/step_cache.json`) so subsequent runs do not short-circuit as cache-satisfied.
 - Top action bar `Refresh` now performs a catalog/dependency reload in launcher runtime before UI fetch, so newly added tests/workflow steps appear without restarting `python launcher.py`.
 - Fixed recurring graph inspector regression where child-click briefly opened child details then snapped back to aggregate details. Root cause was child-id resolution drift across suite/aggregate/child scopes; launcher now preserves explicit child selection IDs and resolves child metadata from aggregate children when scoped DAG nodes are transient.
+- Launcher startup now conditionally skips the Node browser bridge when `BROWSER_GATEWAY_MODE` is `camoufox` (or other non-LeadPilot modes), so preflight no longer requires `scripts/leadpilot_browser_bridge.ts`/`tsx` unless gateway mode is `leadpilot`/`openclaw`.
 
 ## Full Change History
 

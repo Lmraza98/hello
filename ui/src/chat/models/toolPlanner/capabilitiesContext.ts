@@ -15,7 +15,18 @@ function summarizeRegistry(pages: CapabilityPage[]): string {
     const actions = Array.isArray(page.actions) ? page.actions.slice(0, 10).map((action) => action.id || '').filter(Boolean) : [];
     return [`### ${title} (\`${route}\`)`, `Actions: ${actions.length > 0 ? actions.join(', ') : 'none'}`].join('\n');
   });
-  return ['# UI Capabilities (Relevant Summary)', '', ...pageEntries].join('\n\n');
+  const assistantGuide = [
+    '### Assistant Guidance Overlay',
+    'Actions: assistant_ui_start_flow, assistant_ui_set_target, assistant_ui_clear',
+    'assistant_ui_start_flow shape: {"type":"assistant_ui_start_flow","flowId":"create_contact"}',
+    'assistant_ui_set_target shape: {"type":"assistant_ui_set_target","targetId":"new-contact-button","scrollTargetId":"new-contact-button","instruction":"Click New Contact","interaction":"click","pointerMode":"passthrough","autoClick":false}',
+    'Legacy assistant_guide / assistant_guide_clear are still accepted as aliases.',
+    'Use assistant_ui_start_flow for durable multi-step UI orchestration that should resume on session return.',
+    'Prefer click demonstration without activation for walkthroughs; only set autoClick=true when the user explicitly wants the assistant to perform the click.',
+    'Use pointerMode="passthrough" for live click-through targets and pointerMode="interactive" for panel/form guidance where chat scrolling must remain active.',
+    'Known target ids: new-contact-button, export-contacts-button, contact-create-panel, contact-name-input, contact-company-input, contact-email-input, contact-phone-input, contact-location-input, contact-title-input, contact-linkedin-input, contact-salesforce-input, add-contact-submit',
+  ].join('\n');
+  return ['# UI Capabilities (Relevant Summary)', '', ...pageEntries, assistantGuide].join('\n\n');
 }
 
 function scorePage(page: CapabilityPage, query: string): number {

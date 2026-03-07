@@ -1,0 +1,39 @@
+# TanStack Table State Patterns
+
+This note defines controlled state conventions for TanStack Table usage in this repo.
+
+## Controlled State Shape
+
+- Keep `sorting`, `columnVisibility`, `rowSelection`, and `columnSizing` in React state.
+- Pass state via the `state` option and update through explicit callbacks.
+- Avoid mixing uncontrolled internal state with external persisted state.
+
+## Sorting
+
+- Sorting state is an ordered array and should be treated as source of truth.
+- Multi-sort behavior must be intentional and documented per table.
+- Server-backed sorting must debounce network updates where appropriate.
+
+## Column Visibility
+
+- Visibility map keys must match stable column ids.
+- Hidden required columns should be blocked by config, not runtime checks.
+- Sync visibility with user preferences only after schema compatibility checks.
+
+## Row Selection
+
+- Selection keys must use a stable row id strategy.
+- Selection updates should survive virtualization window changes.
+- Batch actions consume selected ids from controlled state, not rendered rows.
+
+## Column Sizing
+
+- Keep sizing state controlled when header and body render separately.
+- Initialize sane default widths for identity, metadata, and action columns.
+- Clamp resize bounds to prevent unusable layouts.
+
+## Column IDs
+
+- Always provide explicit ids for accessor and display columns.
+- Do not derive ids from human labels that may change.
+- Reused ids across view variants must keep compatible semantics.

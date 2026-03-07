@@ -28,6 +28,35 @@ BROWSER_SKILLS_DIR.mkdir(parents=True, exist_ok=True)
 # Salesforce
 SALESFORCE_URL = os.getenv("SALESFORCE_URL", "https://login.salesforce.com")
 SALESFORCE_STORAGE_STATE = DATA_DIR / "salesforce_auth.json"
+SALESFORCE_NEW_LEAD_URL = os.getenv("SALESFORCE_NEW_LEAD_URL", "").strip()
+# Optional semicolon-separated defaults appended to Salesforce defaultFieldValues.
+# Example:
+# SALESFORCE_DEFAULT_FIELD_VALUES=Lead_Country__c=United States;Inbound_Outbound__c=Inbound
+SALESFORCE_DEFAULT_FIELD_VALUES = os.getenv("SALESFORCE_DEFAULT_FIELD_VALUES", "").strip()
+SALESFORCE_SESSION_MAX_AGE_HOURS = float(os.getenv("SALESFORCE_SESSION_MAX_AGE_HOURS", "0") or "0")
+LEADFORGE_ENABLE = os.getenv("LEADFORGE_ENABLE", "1").strip().lower() in {"1", "true", "yes", "on"}
+LEADFORGE_SALESFORCE_ENABLED = os.getenv("LEADFORGE_SALESFORCE_ENABLED", "0").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+LEADFORGE_TRACE_VERBOSITY = os.getenv("LEADFORGE_TRACE_VERBOSITY", "full").strip().lower()
+LEADFORGE_SOURCES_TAVILY = os.getenv("LEADFORGE_SOURCES_TAVILY", "1").strip().lower() in {"1", "true", "yes", "on"}
+LEADFORGE_SOURCES_MAPS = os.getenv("LEADFORGE_SOURCES_MAPS", "1").strip().lower() in {"1", "true", "yes", "on"}
+LEADFORGE_SOURCES_LICENSES = os.getenv("LEADFORGE_SOURCES_LICENSES", "1").strip().lower() in {"1", "true", "yes", "on"}
+LEADFORGE_SOURCES_REVIEWS = os.getenv("LEADFORGE_SOURCES_REVIEWS", "1").strip().lower() in {"1", "true", "yes", "on"}
+LEADFORGE_SOURCES_JOBS = os.getenv("LEADFORGE_SOURCES_JOBS", "1").strip().lower() in {"1", "true", "yes", "on"}
+LEADFORGE_SOURCES_FIRECRAWL = os.getenv("LEADFORGE_SOURCES_FIRECRAWL", "1").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
+LEADFORGE_FREE_LEADS_PER_MONTH = max(0, int(os.getenv("LEADFORGE_FREE_LEADS_PER_MONTH", "100") or "100"))
+LEADFORGE_DEFAULT_USER_ID = os.getenv("LEADFORGE_DEFAULT_USER_ID", "local").strip() or "local"
+LEADFORGE_HUBSPOT_WEBHOOK_URL = os.getenv("LEADFORGE_HUBSPOT_WEBHOOK_URL", "").strip()
+LEADFORGE_PIPEDRIVE_WEBHOOK_URL = os.getenv("LEADFORGE_PIPEDRIVE_WEBHOOK_URL", "").strip()
 
 # LLM Settings
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")

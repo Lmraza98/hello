@@ -314,6 +314,60 @@ describe('processMessage debug gating', () => {
     expect(result.response).toContain('step2 ok');
   });
 
+  it('uses generic retrieval bootstrap for non-browser lookup failures', async () => {
+    const plannerEvent = vi.fn();
+    const dispatchSpy = vi.spyOn(toolExecutorModule, 'dispatchToolCalls').mockResolvedValue({
+      success: true,
+      toolsUsed: ['hybrid_search'],
+      executed: [
+        {
+          name: 'hybrid_search',
+          args: { query: 'Find Lucas Raza', k: 10 },
+          ok: true,
+          result: {
+            results: [
+              {
+                entity_type: 'contact',
+                entity_id: '1',
+                title: 'Lucas Raza',
+                snippet: 'test',
+                source_refs: [{ row_id: 1, table: 'contacts' }],
+              },
+            ],
+          },
+        },
+      ],
+      summary: 'Executed hybrid_search.',
+    });
+
+    const result = await processMessage('Find Lucas Raza', {
+      forceModel: 'qwen3',
+      phase: 'planning',
+      debug: true,
+      onPlannerEvent: plannerEvent,
+    });
+
+    expect(plannerEvent).toHaveBeenCalledWith('Falling back to generic retrieval bootstrap (hybrid_search).');
+    expect(dispatchSpy).toHaveBeenCalled();
+    expect(result.toolsUsed).toContain('hybrid_search');
+  });
+
+  it('skips generic retrieval bootstrap for explicit LinkedIn browser requests', async () => {
+    const plannerEvent = vi.fn();
+    const dispatchSpy = vi.spyOn(toolExecutorModule, 'dispatchToolCalls');
+
+    const result = await processMessage('Go to LinkedIn and tell me who works for ZCo', {
+      forceModel: 'qwen3',
+      phase: 'planning',
+      debug: true,
+      onPlannerEvent: plannerEvent,
+    });
+
+    expect(plannerEvent).not.toHaveBeenCalledWith('Falling back to generic retrieval bootstrap (hybrid_search).');
+    expect(dispatchSpy).not.toHaveBeenCalled();
+    expect(result.response).toBe('fallback response');
+  });
+
   it('does not duplicate fallback summary text for confirmed get_contact calls', async () => {
     vi.spyOn(toolExecutorModule, 'dispatchToolCalls').mockResolvedValue({
       success: true,
@@ -455,5 +509,32 @@ describe('processMessage debug gating', () => {
     const hasToolRole = passedHistory.some((m) => m.role === 'tool');
     expect(userCount).toBeLessThanOrEqual(4);
     expect(hasToolRole).toBe(false);
+  });
+
+  it('strips session heuristic blocks before creating salesnav clarification task params', async () => {
+    vi.mocked(toolPlannerModule.runToolPlan).mockResolvedValueOnce({
+      success: false,
+      plannedCalls: [],
+      selectedTools: [],
+      rawContent: null,
+      planRationale: [],
+      constraintWarnings: [],
+      clarificationQuestion: 'How many contacts do you want from Zco Corporation, and which details should I collect: LinkedIn URL, title, email, or phone?',
+    });
+
+    const result = await processMessage('find contact details for employees of Zco Corporation on SalesNavigator', {
+      forceModel: 'qwen3',
+      sessionState: {
+        entities: [
+          { entityType: 'conversation', entityId: '3', label: 'Test Raza', score: 16, updatedAt: Date.now() },
+        ],
+        activeEntity: { entityType: 'conversation', entityId: '3', label: 'Test Raza', score: 16, updatedAt: Date.now() },
+      },
+    });
+
+    const activeTask = result.sessionState?.activeTask;
+    expect(activeTask?.params.company_name).toBe('Zco Corporation');
+    expect(String(activeTask?.goal || '')).not.toContain('[SESSION_ENTITIES]');
+    expect(String(activeTask?.steps?.[0]?.intent || '')).not.toContain('[SESSION_ENTITIES]');
   });
 });

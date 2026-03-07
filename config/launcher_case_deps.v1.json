@@ -559,6 +559,22 @@
       "deps": []
     },
     {
+      "id": "tests/salesnav/test_salesnav_interaction_profile.py::test_click_locator_uses_inner_ratio_profile",
+      "deps": []
+    },
+    {
+      "id": "tests/salesnav/test_salesnav_interaction_profile.py::test_idle_drift_clamps_pointer_to_viewport",
+      "deps": []
+    },
+    {
+      "id": "tests/salesnav/test_salesnav_interaction_profile.py::test_profile_is_cached_per_page_identity",
+      "deps": []
+    },
+    {
+      "id": "tests/salesnav/test_salesnav_interaction_profile.py::test_runtime_profile_bounds_contract",
+      "deps": []
+    },
+    {
       "id": "tests/salesnav/test_salesnav_query_builder.py::test_build_salesnav_account_search_url_handles_department_ranges",
       "deps": []
     },

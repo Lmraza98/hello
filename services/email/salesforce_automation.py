@@ -14,6 +14,7 @@ import asyncio
 import json
 from datetime import datetime
 from typing import Optional, Dict, List
+from urllib.parse import urljoin
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 
 import config
@@ -101,11 +102,11 @@ class SalesforceSender:
         print("[SFSender] Navigating to Salesforce Lightning...")
         await page.goto(f'{self.base_url}/lightning/page/home', timeout=60000)
         await page.wait_for_load_state('domcontentloaded')
-        await asyncio.sleep(5)
-        
-        # Wait for page to load and check authentication
-        print(f"[SFSender] Waiting for page to load...")
-        await asyncio.sleep(5)
+        try:
+            # Prefer a short state-based settle over fixed sleeps.
+            await page.wait_for_load_state('networkidle', timeout=2500)
+        except Exception:
+            pass
         
         current_url = page.url
         print(f"[SFSender] Current URL: {current_url}")
@@ -299,6 +300,123 @@ class SalesforceSender:
         await asyncio.sleep(3)
         composer = EmailComposer(page)
         return await composer.open_email_composer()
+
+    def _normalize_sf_url(self, href: str) -> Optional[str]:
+        raw = (href or "").strip()
+        if not raw:
+            return None
+        if raw.startswith("http://") or raw.startswith("https://"):
+            return raw
+        return urljoin(f"{self.base_url}/", raw.lstrip("/"))
+
+    async def get_latest_timeline_email_url(
+        self,
+        page: Page,
+        expected_subject: str = "",
+        limit: int = 25,
+    ) -> Optional[str]:
+        """
+        Read the lead activity timeline and return newest EmailMessage URL.
+        Filters out obvious task rows and optionally prefers subject matches.
+        """
+        expected = (expected_subject or "").strip().lower()
+        task_markers = ("details for task", "follow up", "upcoming task")
+        items = page.locator("li.row.Email, li.slds-timeline__item_email, .slds-timeline__item_email")
+        try:
+            count = await items.count()
+        except Exception:
+            count = 0
+
+        best_url: Optional[str] = None
+        for idx in range(min(count, max(1, limit))):
+            item = items.nth(idx)
+            try:
+                row_text = (await item.inner_text(timeout=1000) or "").strip().lower()
+            except Exception:
+                row_text = ""
+            if any(marker in row_text for marker in task_markers):
+                continue
+            link = item.locator('a.subjectLink[href*="/lightning/r/"][href*="/view"]').first
+            try:
+                href = await link.get_attribute("href")
+            except Exception:
+                href = None
+            normalized = self._normalize_sf_url(href or "")
+            if not normalized:
+                continue
+            if expected:
+                try:
+                    title = (await link.inner_text(timeout=1000) or "").strip().lower()
+                except Exception:
+                    title = ""
+                if expected in title:
+                    return normalized
+            if best_url is None:
+                best_url = normalized
+
+        return best_url
+
+    async def get_timeline_email_urls(self, page: Page, limit: int = 25) -> List[str]:
+        """Collect EmailMessage record URLs from lead timeline (newest first)."""
+        task_markers = ("details for task", "follow up", "upcoming task")
+        items = page.locator("li.row.Email, li.slds-timeline__item_email, .slds-timeline__item_email")
+        try:
+            count = await items.count()
+        except Exception:
+            count = 0
+
+        urls: List[str] = []
+        seen = set()
+        for idx in range(min(count, max(1, limit))):
+            item = items.nth(idx)
+            try:
+                row_text = (await item.inner_text(timeout=1000) or "").strip().lower()
+            except Exception:
+                row_text = ""
+            if any(marker in row_text for marker in task_markers):
+                continue
+            link = item.locator('a.subjectLink[href*="/lightning/r/"][href*="/view"]').first
+            try:
+                href = await link.get_attribute("href")
+            except Exception:
+                href = None
+            normalized = self._normalize_sf_url(href or "")
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            urls.append(normalized)
+        return urls
+
+    async def open_email_message_reply(self, page: Page, email_message_url: str) -> bool:
+        """Open EmailMessage record and click Reply to open composer."""
+        url = self._normalize_sf_url(email_message_url or "")
+        if not url:
+            return False
+        print(f"  [SFSender] Opening previous EmailMessage: {url}")
+        await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+        try:
+            await page.wait_for_load_state("networkidle", timeout=10000)
+        except Exception:
+            pass
+        await asyncio.sleep(1)
+
+        reply_btn = page.get_by_role("button", name="Reply").or_(
+            page.get_by_role("link", name="Reply")
+        ).or_(
+            page.locator("a:has-text('Reply')")
+        ).or_(
+            page.locator("button:has-text('Reply')")
+        ).first
+        try:
+            await reply_btn.wait_for(state="visible", timeout=10000)
+            await reply_btn.click()
+            await asyncio.sleep(1.2)
+        except Exception as e:
+            print(f"  [SFSender] Reply button not found/clickable: {e}")
+            return False
+
+        composer = EmailComposer(page)
+        return await composer.wait_for_composer_ready(timeout_ms=12000)
     
     async def select_template(self, page: Page, template_name: str) -> bool:
         """
@@ -307,6 +425,16 @@ class SalesforceSender:
         print(f"  [SFSender] Selecting template: {template_name}")
         composer = EmailComposer(page)
         return await composer.select_template(template_name)
+
+    async def maximize_composer(self, page: Page) -> None:
+        """Maximize composer immediately after it opens for stable editor interactions."""
+        composer = EmailComposer(page)
+        await composer.maximize()
+
+    async def focus_editor_body(self, page: Page) -> bool:
+        """Click into email body editor/iframe so keyboard actions target message body."""
+        composer = EmailComposer(page)
+        return await composer.focus_editor_body()
     
     async def fill_email_body(self, page: Page, subject: str, body: str) -> bool:
         """
@@ -327,18 +455,64 @@ class SalesforceSender:
                 return False
 
             await composer.clear_bcc()
-            await composer.maximize()
             print(f"  [SFSender] Email content ready ({len(body or '')} chars)")
             return True
         except Exception as e:
             print(f"  [SFSender] Error filling email: {e}")
             return False
-    
-    async def send_email(self, page: Page) -> bool:
-        """Click the Send button and verify success."""
-        print("  [SFSender] Clicking Send...")
+
+    async def fill_email_body_with_preserved_original(
+        self,
+        page: Page,
+        subject: str,
+        body: str,
+        preserved_original_html: str,
+    ) -> bool:
+        """Fill body while appending a previously captured original reply thread."""
+        print("  [SFSender] Filling email content with preserved original thread...")
+        try:
+            composer = EmailComposer(page)
+            filled = await composer.fill_email_with_keyboard(
+                subject,
+                body,
+                preserved_original_html=preserved_original_html or "",
+            )
+            if not filled:
+                print("  [SFSender] Keyboard fill failed, trying label-based fill...")
+                filled = await composer.fill_email(subject=subject, body=body)
+            if not filled:
+                print("  [SFSender] Could not fill email")
+                return False
+            await composer.clear_bcc()
+            print(f"  [SFSender] Email content ready ({len(body or '')} chars)")
+            return True
+        except Exception as e:
+            print(f"  [SFSender] Error filling email: {e}")
+            return False
+
+    async def capture_current_body_html(self, page: Page) -> str:
+        """Capture current editor HTML before template insertion."""
         composer = EmailComposer(page)
-        return await composer.send_email(skip_click=False)
+        return await composer.capture_current_body_html()
+
+    async def capture_current_subject(self, page: Page) -> str:
+        """Capture current subject before template insertion mutates it."""
+        composer = EmailComposer(page)
+        return await composer.capture_current_subject()
+
+    async def clear_current_body(self, page: Page) -> bool:
+        """Clear current editor body before template insertion."""
+        composer = EmailComposer(page)
+        return await composer.clear_current_body()
+    
+    async def send_email(self, page: Page, skip_click: bool = False) -> bool:
+        """Click Send (or only verify Send button visibility in manual-review mode)."""
+        if skip_click:
+            print("  [SFSender] Manual review mode: verifying Send button is visible...")
+        else:
+            print("  [SFSender] Clicking Send...")
+        composer = EmailComposer(page)
+        return await composer.send_email(skip_click=skip_click)
     
     async def process_contact(
         self,
@@ -492,4 +666,3 @@ class SalesforceSender:
                 results['details'].append(r)
         
         return results
-

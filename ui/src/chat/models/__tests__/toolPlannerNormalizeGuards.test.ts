@@ -83,4 +83,73 @@ describe('toolPlanner normalize guards', () => {
     expect(normalized.calls[0]?.args.query).toBe('companies in new hampshire');
     expect(normalized.calls[0]?.args.max_results).toBe(12);
   });
+
+  test('rewrites implied salesnav employee lookup browser loop to browser_search_and_extract', () => {
+    const normalized = normalizePlannedCalls(
+      [
+        { name: 'browser_health', args: {} },
+        { name: 'browser_tabs', args: {} },
+        { name: 'browser_navigate', args: { url: 'https://www.linkedin.com/sales/search/people' } },
+        { name: 'browser_find_ref', args: { text: 'Search', role: 'combobox' } },
+        { name: 'browser_act', args: { ref: '$prev.ref', action: 'type', value: 'find contact details for employees of Zco Corporation' } },
+      ],
+      'find contact details for employees of Zco Corporation',
+      ['browser_search_and_extract', 'browser_navigate', 'browser_act']
+    );
+
+    expect(normalized.calls).toHaveLength(3);
+    expect(normalized.calls[0]?.name).toBe('browser_health');
+    expect(normalized.calls[1]?.name).toBe('browser_tabs');
+    expect(normalized.calls[2]?.name).toBe('browser_search_and_extract');
+    expect(normalized.calls[2]?.args.task).toBe('salesnav_people_search');
+  });
+
+  test('rewrites explicit salesnav employee lookup to a single browser_list_sub_items call', () => {
+    const normalized = normalizePlannedCalls(
+      [
+        {
+          name: 'browser_search_and_extract',
+          args: { task: 'salesnav_search_account', query: 'Zco Corporation', limit: 25 },
+        },
+        {
+          name: 'browser_list_sub_items',
+          args: {
+            task: 'salesnav_list_employees',
+            parent_query: 'Zco Corporation',
+            parent_task: 'salesnav_search_account',
+            limit: 25,
+          },
+        },
+      ],
+      'find contact details for employees of Zco Corporation on SalesNavigator',
+      ['browser_search_and_extract', 'browser_list_sub_items']
+    );
+
+    expect(normalized.calls).toHaveLength(1);
+    expect(normalized.calls[0]?.name).toBe('browser_list_sub_items');
+    expect(normalized.calls[0]?.args.parent_query).toBe('Zco Corporation');
+    expect(normalized.calls[0]?.args.parent_task).toBe('salesnav_search_account');
+  });
+
+  test('asks for clarification on vague salesnav employee details requests', () => {
+    const normalized = normalizePlannedCalls(
+      [
+        {
+          name: 'browser_list_sub_items',
+          args: {
+            task: 'salesnav_list_employees',
+            parent_query: 'Zco Corporation',
+            parent_task: 'salesnav_search_account',
+            limit: 25,
+          },
+        },
+      ],
+      'find contact details for employees of Zco Corporation on SalesNavigator',
+      ['browser_list_sub_items']
+    );
+
+    expect(normalized.calls).toEqual([]);
+    expect(normalized.clarificationQuestion).toContain('How many contacts');
+    expect(normalized.clarificationQuestion).toContain('LinkedIn URL');
+  });
 });

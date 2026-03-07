@@ -1,4 +1,4 @@
-/**
+﻿/**
  * RecipeRouter: deterministic routing for known skills.
  *
  * Before the LLM planner runs, the RecipeRouter checks if a registered skill
@@ -9,7 +9,7 @@
  *   3. Execute the plan step-by-step with confirmation gates for write operations
  *   4. Synthesize a human-readable response from tool results
  *
- * If no skill matches, returns null — the caller falls through to the existing
+ * If no skill matches, returns null â€” the caller falls through to the existing
  * LLM planning pipeline.
  */
 
@@ -26,8 +26,8 @@ import { textMsg } from '../../services/messageHelpers';
 import { validateAndNormalizeParams } from '../skills/paramSchema';
 
 const EXTRACTION_MODEL =
-  import.meta.env.VITE_PLANNER_BACKEND ||
-  import.meta.env.VITE_TOOL_BRAIN ||
+  process.env.NEXT_PUBLIC_PLANNER_BACKEND ||
+  process.env.NEXT_PUBLIC_TOOL_BRAIN ||
   'gemma3:12b';
 
 export type RecipeResult = {
@@ -48,7 +48,7 @@ export type RecipeResult = {
     plan: ExecutionPlan;
     nextStepIndex: number;
     completedResults: Record<string, unknown>;
-    /** Step IDs already executed (idempotency — skip on resume). */
+    /** Step IDs already executed (idempotency â€” skip on resume). */
     executedStepIds: string[];
     summary: string;
   };
@@ -70,7 +70,7 @@ const PROSPECT_CAMPAIGN_STEP_IDS = new Set([
  * Try to route a message through a registered skill.
  * Returns null if no skill matches (caller should fall through to LLM planner).
  *
- * @param message  The raw user intent text — must NOT contain injected context
+ * @param message  The raw user intent text â€” must NOT contain injected context
  *                 like [SESSION_ENTITIES], [RESOLVED_ENTITY], or step results.
  *                 Trigger pattern matching runs against this string, so it must
  *                 reflect only what the user actually said.
@@ -99,7 +99,7 @@ export async function trySkillRoute(
   const extraction = await extractParams(message, match.skill);
 
   if (!extraction.valid && extraction.missing.length > 0) {
-    // Can't execute — enter param collection mode.
+    // Can't execute â€” enter param collection mode.
     const missingDescs = match.skill.extractFields
       .filter((f) => extraction.missing.includes(f.name))
       .map((f) => f.description || f.name);
@@ -127,7 +127,7 @@ export async function trySkillRoute(
       userMessage: message,
     });
   } catch {
-    return null; // Handler failed — fall through to LLM planner
+    return null; // Handler failed â€” fall through to LLM planner
   }
 
   emit({ type: 'plan_created', skillId: match.skill.id, stepCount: plan.steps.length, timestamp: Date.now() });
@@ -329,7 +329,7 @@ export async function resumeSkillExecution(
   };
 }
 
-// ── Helpers ─────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function isErrorResult(result: unknown): boolean {
   if (!result || typeof result !== 'object') return false;
@@ -442,14 +442,14 @@ async function extractParams(
     const cleaned = raw.replace(/```json\s*|```/g, '').trim();
     rawParsed = JSON.parse(cleaned);
   } catch {
-    // LLM extraction failed — rawParsed stays null
+    // LLM extraction failed â€” rawParsed stays null
   }
 
   // 2. Validate with Zod
   if (rawParsed && typeof rawParsed === 'object' && !Array.isArray(rawParsed)) {
     const result = validateAndNormalizeParams(rawParsed, skill.extractFields);
     if (result.ok) return { params: result.params, valid: true, missing: [] };
-    // Partial extraction — check if heuristic can fill gaps
+    // Partial extraction â€” check if heuristic can fill gaps
   }
 
   // 3. Heuristic fallback
@@ -570,7 +570,7 @@ function synthesizeSkillResponse(
 
   for (const call of executedCalls) {
     if (!call.ok) {
-      parts.push(`Failed: ${call.name} — ${JSON.stringify((call.result as Record<string, unknown>)?.error || 'Unknown error')}`);
+      parts.push(`Failed: ${call.name} â€” ${JSON.stringify((call.result as Record<string, unknown>)?.error || 'Unknown error')}`);
       continue;
     }
 
@@ -590,7 +590,7 @@ function synthesizeSkillResponse(
       parts.push(
         `Enrolled ${enrolled} ${industry}-related contact(s) into the campaign` +
         (skipped ? ` (${skipped} already enrolled)` : '') +
-        ` — ${matched} total matched the filter.`
+        ` â€” ${matched} total matched the filter.`
       );
     }
     if (call.name === 'compound_workflow_run') {
@@ -607,3 +607,4 @@ function synthesizeSkillResponse(
   if (parts.length === 0) return 'Done.';
   return parts.join('\n\n');
 }
+

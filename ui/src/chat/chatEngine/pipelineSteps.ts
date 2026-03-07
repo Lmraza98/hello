@@ -31,10 +31,16 @@ import { runWithFallback } from '../fallbackPipeline';
 import { ollamaChat } from '../models/ollamaClient';
 import { runToolPlan } from '../models/toolPlanner';
 import { assessComplexity } from '../models/toolPlanner/complexityClassifier';
+import { stripPlannerHeuristicContext } from '../models/toolPlanner/sessionBlocks';
 import { analyzeTaskRequirements } from '../taskClassifiers';
 import { createTask, isTaskActive, transitionTask, type ParamRequest } from '../taskState';
 import { handleActiveTask, EXECUTE_TASK_SENTINEL, generateParamRequest } from '../taskHandler';
-import { hasOpenBrowserSessionSignal, isBrowserFollowUpIntent, isLikelyInternalUiIntent } from '../chatEnginePolicy';
+import {
+  hasOpenBrowserSessionSignal,
+  isBrowserFollowUpIntent,
+  isExplicitBrowserAutomationIntent,
+  isLikelyInternalUiIntent,
+} from '../chatEnginePolicy';
 import { TOOLS } from '../tools';
 
 import { TOOL_BRAIN_MODEL, TOOL_BRAIN_NAME } from '../models/toolBrainConfig';
@@ -278,10 +284,11 @@ async function stepConversationalShortCircuit(ctx: PipelineContext, emitPlannerE
   }
   if (ctx.intentKind !== 'conversational') return null;
   emitPlannerEvent?.('Conversational â€” skipping tool planning.');
+  const chatModel = ctx.options.chatModelOverride || CONVERSATION_MODEL;
   try {
     const started = nowMs();
     const resp = await ollamaChat({
-      model: CONVERSATION_MODEL,
+      model: chatModel,
       messages: [
         {
           role: 'system',
@@ -308,7 +315,7 @@ async function stepConversationalShortCircuit(ctx: PipelineContext, emitPlannerE
       { role: 'user', content: ctx.userMessage },
       { role: 'assistant', content: text },
     ];
-    const conversationalRoute = modelRouteFromId(CONVERSATION_MODEL);
+    const conversationalRoute = modelRouteFromId(chatModel);
 
     return {
       response: text,
@@ -691,11 +698,69 @@ async function stepModelFastPath(ctx: PipelineContext, emitPlannerEvent: (msg: s
       ctx.plannerHistory,
       emitPlannerEvent,
       MODEL_FAST_PATH_ALLOWED_TOOLS,
-      { quick: useQuickMode, requiresDecomposition }
+      {
+        quick: useQuickMode,
+        requiresDecomposition,
+        ...(ctx.options.plannerModelOverride
+          ? { plannerRouteOverride: { provider: 'ollama', model: ctx.options.plannerModelOverride } }
+          : (ctx.options.plannerRouteOverride ? { plannerRouteOverride: ctx.options.plannerRouteOverride } : {})),
+      }
     );
     const plannedCalls = Array.isArray(fastPlan?.plannedCalls) ? fastPlan.plannedCalls : [];
-    const plannedUiActions = Array.isArray((fastPlan as any)?.plannedUiActions) ? (fastPlan as any).plannedUiActions : [];
+    const plannedUiActions = Array.isArray(fastPlan?.plannedUiActions) ? fastPlan.plannedUiActions : [];
     ctx.timings.plannerMs = (ctx.timings.plannerMs || 0) + elapsedMs(plannerStartedAt);
+    if (typeof fastPlan.clarificationQuestion === 'string' && fastPlan.clarificationQuestion.trim()) {
+      const question = fastPlan.clarificationQuestion.trim();
+      const clarifiedIntent = stripPlannerHeuristicContext(ctx.resolvedMessage || ctx.normalizedMessage);
+      const companyMatch = clarifiedIntent.match(/\b(?:employees|people|contacts?|leads?|profiles?)\s+(?:of|at)\s+(.+?)(?:\s+on\s+salesnavigator|\s+on\s+sales\s+navigator|[?.!]|$)/i);
+      const companyName = companyMatch?.[1]?.trim() || '';
+      const clarificationTask = createTask(clarifiedIntent, 'ask_writes');
+      clarificationTask.params = {
+        clarification_kind: 'salesnav_employee_details',
+        company_name: companyName,
+      };
+      clarificationTask.missingParams = [
+        {
+          name: 'contact_count',
+          description: 'How many contacts to collect',
+          type: 'number',
+          required: true,
+        },
+        {
+          name: 'detail_fields',
+          description: 'Which details to collect (LinkedIn URL, title, email, phone)',
+          type: 'string',
+          required: true,
+        },
+      ];
+      clarificationTask.steps = [
+        {
+          id: 's1',
+          intent: clarifiedIntent,
+          toolCall: { name: 'browser_list_sub_items', args: {} },
+          status: 'pending',
+          dependsOn: [],
+        },
+      ];
+      const updatedSession = {
+        ...(ctx.options.sessionState || { entities: [] }),
+        activeTask: clarificationTask,
+      };
+      return {
+        response: question,
+        updatedHistory: [
+          ...ctx.history,
+          { role: 'user', content: ctx.resolvedMessage || ctx.normalizedMessage },
+          { role: 'assistant', content: question },
+        ],
+        messages: [textMsg(question)],
+        modelUsed: 'qwen3',
+        toolsUsed: [],
+        fallbackUsed: false,
+        clarificationQuestion: question,
+        sessionState: updatedSession,
+      };
+    }
     if (fastPlan.success && (plannedCalls.length > 0 || plannedUiActions.length > 0)) {
       ctx.modelFastPathSucceeded = true;
       emitPlannerEvent(`Model fast path planned ${plannedUiActions.length} ui action(s) and ${plannedCalls.length} tool call(s).`);
@@ -795,6 +860,7 @@ async function stepParamCollectionGate(ctx: PipelineContext): Promise<StepResult
 async function stepGenericRetrievalBootstrap(ctx: PipelineContext, emitPlannerEvent: (msg: string) => void): Promise<StepResult> {
   if (ctx.intentKind === 'conversational') return null;
   const complexity = assessComplexity(ctx.resolvedMessage || ctx.normalizedMessage);
+  const explicitBrowserIntent = isExplicitBrowserAutomationIntent(ctx.resolvedMessage || ctx.normalizedMessage);
   const useGenericRetrievalBootstrap =
     ENABLE_GENERIC_RETRIEVAL_BOOTSTRAP &&
     ctx.phase === 'planning' &&
@@ -802,6 +868,7 @@ async function stepGenericRetrievalBootstrap(ctx: PipelineContext, emitPlannerEv
     ctx.modelFastPathAttempted &&
     !ctx.modelFastPathSucceeded &&
     Boolean(ctx.modelFastPathFailed) &&
+    !explicitBrowserIntent &&
     complexity.level !== 'complex';
 
   if (!useGenericRetrievalBootstrap) return null;
@@ -922,6 +989,8 @@ async function stepRouteAndRunPlannerOrFallback(ctx: PipelineContext, emitPlanne
     ctx.plannerMessage || (ctx.resolvedMessage || ctx.normalizedMessage),
     ctx.localHistory,
     ctx.history,
+    ctx.options.chatModelOverride,
+    ctx.options.chatModelProviderOverride,
     ctx.options.onToolCall,
     ctx.options.onAssistantToken,
     ctx.options.onModelSwitch

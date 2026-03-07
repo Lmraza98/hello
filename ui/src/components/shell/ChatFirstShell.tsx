@@ -1,10 +1,8 @@
-import { useMemo, useRef, useState } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import {
-  Building2,
   Clock3,
-  Dot,
-  FileCode2,
   FolderOpen,
   LayoutDashboard,
   Mail,
@@ -17,81 +15,132 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../api';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { GlobalAssistantPanel } from '../assistant/GlobalAssistantPanel';
 import { ContextPreviewDrawer } from '../assistant/ContextPreviewDrawer';
 import { isContextPreviewAllowed } from '../assistant/contextPreviewRules';
 import { SettingsModal } from '../settings/SettingsModal';
-import type { AppShellOutletContext, AppShellQuickAddTarget } from './appShellContext';
+import { AppShellContext, type AppShellQuickAddTarget } from './appShellContext';
 import { useWorkspaceLayout } from './workspaceLayout';
+import { useAssistantGuide } from '../../contexts/AssistantGuideContext';
 
-export function ChatFirstShell() {
+const ASSISTANT_DOCK_HEIGHT_KEY = 'hello_assistant_dock_height_v1';
+const ASSISTANT_DOCK_COLLAPSED_HEIGHT = 46;
+const ASSISTANT_DOCK_DEFAULT_HEIGHT = 340;
+
+function clampDockHeight(height: number): number {
+  return Math.max(ASSISTANT_DOCK_COLLAPSED_HEIGHT, Math.round(height));
+}
+
+export function ChatFirstShell({ children }: { children: ReactNode }) {
+  const assistantPanelEnabled = String(process.env.NEXT_PUBLIC_ASSISTANT_PANEL_ENABLED ?? '1') !== '0';
+  const shellPollingEnabled = String(process.env.NEXT_PUBLIC_SHELL_POLLING_ENABLED ?? '1') !== '0';
   const isMobile = useIsMobile();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const pathname = usePathname() ?? '/';
+  const router = useRouter();
   const workspace = useWorkspaceLayout();
+  const { guideState } = useAssistantGuide();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [openAddModalTarget, setOpenAddModalTarget] = useState<AppShellQuickAddTarget>(null);
-  const [chatExpanded, setChatExpanded] = useState(true);
   const [chatCollapseSignal, setChatCollapseSignal] = useState(0);
+  const [assistantDockHeight, setAssistantDockHeight] = useState(ASSISTANT_DOCK_DEFAULT_HEIGHT);
+  const [assistantDockResizing, setAssistantDockResizing] = useState(false);
+  const workspaceStackRef = useRef<HTMLDivElement | null>(null);
   const quickAddRef = useRef<HTMLDivElement>(null);
-  const hideDockOnContacts = location.pathname.startsWith('/contacts');
+  const queryClient = useQueryClient();
 
   const { data: stats } = useQuery({
     queryKey: ['stats'],
     queryFn: api.getStats,
-    refetchInterval: 5000,
+    refetchInterval: shellPollingEnabled ? 5000 : false,
   });
   const { data: activeBrowserTasks } = useQuery({
     queryKey: ['browser', 'activeTaskCount', 'nav'],
     queryFn: () => api.getBrowserWorkflowTasks({ includeFinished: false, limit: 1 }),
-    refetchInterval: 2000,
+    refetchInterval: shellPollingEnabled ? 2000 : false,
   });
   const { data: activeCompoundTasks } = useQuery({
     queryKey: ['compound', 'activeTaskCount', 'nav'],
     queryFn: () => api.getCompoundWorkflows({ status: 'running', limit: 1 }),
-    refetchInterval: 2000,
+    refetchInterval: shellPollingEnabled ? 2000 : false,
+  });
+  const { data: inboundLeadAlerts } = useQuery({
+    queryKey: ['emails', 'inboundLeadAlerts'],
+    queryFn: api.getInboundLeadAlerts,
+    refetchInterval: shellPollingEnabled ? 5000 : false,
   });
   const hasRunningBrowserTasks =
     Number(activeBrowserTasks?.count || 0) > 0 || Number(activeCompoundTasks?.count || 0) > 0;
+  const unseenInboundLeadCount = Number(inboundLeadAlerts?.unseen_count || 0);
+  const hasInboundLeadAlert = unseenInboundLeadCount > 0;
+  const { mutate: markInboundLeadsSeen, isPending: isMarkInboundLeadsSeenPending } = useMutation({
+    mutationFn: api.markInboundLeadsSeen,
+    onSuccess: () => {
+      queryClient.setQueryData(['emails', 'inboundLeadAlerts'], { unseen_count: 0 });
+    },
+  });
+
+  useEffect(() => {
+    if (!pathname.startsWith('/contacts')) return;
+    if (!hasInboundLeadAlert) return;
+    if (isMarkInboundLeadsSeenPending) return;
+    markInboundLeadsSeen();
+  }, [hasInboundLeadAlert, isMarkInboundLeadsSeenPending, pathname, markInboundLeadsSeen]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const storedHeight = Number.parseInt(window.localStorage.getItem(ASSISTANT_DOCK_HEIGHT_KEY) || '', 10);
+    if (Number.isFinite(storedHeight)) {
+      setAssistantDockHeight(clampDockHeight(storedHeight));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(ASSISTANT_DOCK_HEIGHT_KEY, String(clampDockHeight(assistantDockHeight)));
+  }, [assistantDockHeight]);
+
+  useEffect(() => {
+    if (!guideState.active) return;
+    const availableHeight = workspaceStackRef.current?.clientHeight || window.innerHeight;
+    setAssistantDockHeight((prev) => Math.max(prev, Math.max(availableHeight - 12, 420)));
+  }, [guideState.active]);
 
   const navItems = useMemo(
     () => [
       { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, count: undefined as number | undefined, hasAlert: false },
-      { to: '/companies', label: 'Companies', icon: Building2, count: stats?.total_companies, hasAlert: false },
-      { to: '/contacts', label: 'Contacts', icon: Users, count: stats?.total_contacts, hasAlert: false },
+      { to: '/contacts', label: 'Contacts', icon: Users, count: stats?.total_contacts, hasAlert: hasInboundLeadAlert },
       { to: '/documents', label: 'Documents', icon: FolderOpen, count: undefined as number | undefined, hasAlert: false },
       { to: '/email', label: 'Email', icon: Mail, count: undefined as number | undefined, hasAlert: false },
-      { to: '/templates', label: 'Templates', icon: FileCode2, count: undefined as number | undefined, hasAlert: false },
       { to: '/browser', label: 'Browser', icon: Monitor, count: undefined as number | undefined, hasAlert: false },
       { to: '/tasks', label: 'Tasks', icon: Clock3, count: undefined as number | undefined, hasAlert: hasRunningBrowserTasks },
       { to: '/admin/tests', label: 'Admin', icon: Shield, count: undefined as number | undefined, hasAlert: false },
     ],
-    [hasRunningBrowserTasks, stats?.total_companies, stats?.total_contacts]
+    [hasInboundLeadAlert, hasRunningBrowserTasks, stats?.total_contacts]
   );
 
   const activeNavItem = useMemo(
     () =>
       navItems.find((item) => {
-        if (item.to === '/admin/tests') return location.pathname.startsWith('/admin');
-        return location.pathname === item.to;
+        if (item.to === '/admin/tests') return pathname.startsWith('/admin');
+        if (item.to === '/email') return pathname.startsWith('/email') || pathname.startsWith('/templates');
+        return pathname === item.to;
       }) || null,
-    [location.pathname, navItems]
+    [pathname, navItems]
   );
 
   const handleQuickAdd = (type: AppShellQuickAddTarget) => {
     setShowQuickAdd(false);
-    if (type === 'contact') navigate('/contacts');
-    if (type === 'company') navigate('/companies');
-    if (type === 'campaign') navigate('/email');
-    workspace.ensureVisibleForRoute(type === 'campaign' ? '/email' : type === 'company' ? '/companies' : '/contacts', { source: 'sidebar' });
+    if (type === 'contact' || type === 'company') router.push('/contacts');
+    if (type === 'campaign') router.push('/email');
+    workspace.ensureVisibleForRoute(type === 'campaign' ? '/email' : '/contacts', { source: 'sidebar' });
     setChatCollapseSignal((prev) => prev + 1);
-    setOpenAddModalTarget(type);
+    setOpenAddModalTarget(type === 'company' ? 'contact' : type);
   };
 
   const clearAddModalTarget = () => setOpenAddModalTarget(null);
@@ -105,7 +154,30 @@ export function ChatFirstShell() {
     const [routePath] = route.split('?');
     workspace.clearInteraction();
     workspace.ensureVisibleForRoute(routePath || route, { source: 'sidebar', preferredMode: isMobile ? 'fullscreen' : 'drawer' });
-    navigate(route);
+    router.push(route);
+  };
+
+  const startAssistantDockResize = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (isMobile) return;
+    event.preventDefault();
+    const startY = event.clientY;
+    const startHeight = assistantDockHeight;
+    setAssistantDockResizing(true);
+    const nextMin = ASSISTANT_DOCK_COLLAPSED_HEIGHT;
+    const availableHeight = workspaceStackRef.current?.clientHeight || window.innerHeight;
+    const nextMax = Math.max(nextMin, availableHeight);
+    const onMove = (moveEvent: PointerEvent) => {
+      const delta = startY - moveEvent.clientY;
+      const nextHeight = Math.max(nextMin, Math.min(nextMax, Math.round(startHeight + delta)));
+      setAssistantDockHeight(nextHeight);
+    };
+    const onUp = () => {
+      setAssistantDockResizing(false);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
   };
 
   return (
@@ -146,36 +218,52 @@ export function ChatFirstShell() {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <NavLink
+                  <Link
                     key={item.to}
-                    to={item.to}
+                    href={item.to}
                     onClick={() => {
                       workspace.ensureVisibleForRoute(item.to, { source: 'sidebar', preferredMode: 'drawer' });
                       setChatCollapseSignal((prev) => prev + 1);
                     }}
                     title={sidebarCollapsed ? item.label : undefined}
-                    className={({ isActive }) =>
-                      `flex items-center rounded-md ${
-                        sidebarCollapsed ? 'justify-center px-2 py-2' : 'justify-between px-2.5 py-2'
-                      } text-sm font-medium ${
-                        isActive ? 'bg-accent/10 text-accent' : 'text-text-muted hover:bg-surface-hover'
-                      }`
-                    }
+                    className={`flex items-center rounded-md ${
+                      sidebarCollapsed ? 'justify-center px-2 py-2' : 'justify-between px-2.5 py-2'
+                    } text-sm font-medium ${
+                      (
+                        item.to === '/admin/tests'
+                          ? pathname.startsWith('/admin')
+                          : item.to === '/email'
+                          ? pathname.startsWith('/email') || pathname.startsWith('/templates')
+                          : pathname === item.to
+                      )
+                        ? 'bg-accent/10 text-accent'
+                        : 'text-text-muted hover:bg-surface-hover'
+                    }`}
                   >
                     <span className="flex items-center gap-2 min-w-0">
                       <Icon className="w-4 h-4 shrink-0" />
                       {!sidebarCollapsed ? <span className="truncate">{item.label}</span> : null}
-                      {sidebarCollapsed && item.hasAlert ? <Dot className="w-4 h-4 text-red-500 animate-pulse -ml-2" /> : null}
+                      {sidebarCollapsed && item.hasAlert ? (
+                        <span className="relative -ml-1 inline-flex h-3.5 w-3.5 items-center justify-center">
+                          <span className="absolute inline-flex h-3.5 w-3.5 rounded-full bg-red-500/70 animate-ping" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse" />
+                        </span>
+                      ) : null}
                     </span>
                     {!sidebarCollapsed ? (
                       <span className="flex items-center gap-1 shrink-0">
-                        {item.hasAlert ? <Dot className="w-4 h-4 text-red-500 animate-pulse -ml-1" /> : null}
-                        {item.count !== undefined ? (
+                        {item.hasAlert ? (
+                          <span className="relative inline-flex h-4 w-4 items-center justify-center">
+                            <span className="absolute inline-flex h-4 w-4 rounded-full bg-red-500/70 animate-ping" />
+                            <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500 animate-pulse" />
+                          </span>
+                        ) : null}
+                        {!item.hasAlert && item.count !== undefined ? (
                           <span className="text-[10px] tabular-nums text-text-dim">{item.count.toLocaleString()}</span>
                         ) : null}
                       </span>
                     ) : null}
-                  </NavLink>
+                  </Link>
                 );
               })}
             </nav>
@@ -200,7 +288,6 @@ export function ChatFirstShell() {
                     }`}
                   >
                     <button onClick={() => handleQuickAdd('contact')} className="w-full px-3 py-2 text-left text-sm text-text hover:bg-surface-hover">Add Contact</button>
-                    <button onClick={() => handleQuickAdd('company')} className="w-full px-3 py-2 text-left text-sm text-text hover:bg-surface-hover">Add Company</button>
                     <button onClick={() => handleQuickAdd('campaign')} className="w-full px-3 py-2 text-left text-sm text-text hover:bg-surface-hover">New Campaign</button>
                   </div>
                 ) : null}
@@ -249,29 +336,37 @@ export function ChatFirstShell() {
         {isMobile && mobileNavOpen ? (
           <div className="shrink-0 border-b border-border bg-surface px-3 py-2 flex items-center gap-1 overflow-x-auto">
             {navItems.map((item) => (
-              <NavLink
+              <Link
                 key={item.to}
-                to={item.to}
+                href={item.to}
                 onClick={() => {
                   workspace.ensureVisibleForRoute(item.to, { source: 'sidebar', preferredMode: 'fullscreen' });
                   setChatCollapseSignal((prev) => prev + 1);
                   setMobileNavOpen(false);
                 }}
-                className={({ isActive }) =>
-                  `inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium whitespace-nowrap ${
-                    isActive ? 'bg-accent/10 text-accent' : 'text-text-muted hover:bg-surface-hover'
-                  }`
-                }
+                className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium whitespace-nowrap ${
+                  (item.to === '/admin/tests' ? pathname.startsWith('/admin') : pathname === item.to)
+                    ? 'bg-accent/10 text-accent'
+                    : 'text-text-muted hover:bg-surface-hover'
+                }`}
               >
                 {item.label}
-                {item.hasAlert ? <Dot className="w-4 h-4 text-red-500 animate-pulse -ml-1" /> : null}
-              </NavLink>
+                {item.hasAlert ? (
+                  <span className="relative inline-flex h-4 w-4 items-center justify-center -ml-0.5">
+                    <span className="absolute inline-flex h-4 w-4 rounded-full bg-red-500/70 animate-ping" />
+                    <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500 animate-pulse" />
+                  </span>
+                ) : null}
+              </Link>
             ))}
           </div>
         ) : null}
 
-        <div className="flex flex-1 min-h-0 flex-col overflow-hidden p-2 md:p-3">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/80 bg-surface">
+        <div
+          ref={workspaceStackRef}
+          className={`relative flex min-h-0 flex-1 flex-col overflow-hidden ${assistantDockResizing ? 'cursor-row-resize select-none' : ''}`}
+        >
+          <div className="min-h-0 flex-1 overflow-hidden">
             {showingChatInteraction ? (
               <ContextPreviewDrawer
                 open={workspace.open}
@@ -287,27 +382,59 @@ export function ChatFirstShell() {
                 onDismiss={workspace.clearInteraction}
               />
             ) : (
-              <main className="min-h-0 flex-1 overflow-y-auto p-3 md:p-4">
-                <Outlet context={{ openAddModalTarget, clearAddModalTarget } satisfies AppShellOutletContext} />
-              </main>
+              <AppShellContext.Provider value={{ openAddModalTarget, clearAddModalTarget }}>
+                <main className="h-full min-h-0 overflow-y-auto px-3 pb-3 md:px-4 md:pb-4">{children}</main>
+              </AppShellContext.Provider>
             )}
-
-            {!hideDockOnContacts ? (
-              <div className={`min-h-0 overflow-hidden p-2 md:p-3 ${chatExpanded ? 'flex-1' : 'shrink-0 mt-auto'}`}>
-                <GlobalAssistantPanel
-                  dock={{
-                    onHeightChange: () => {},
-                    fullHeight: true,
-                    embedded: true,
-                    collapseSignal: chatCollapseSignal,
-                    onExpandedChange: setChatExpanded,
-                  }}
-                />
-              </div>
-            ) : null}
           </div>
+
+          {assistantPanelEnabled ? (
+            <section
+              className={
+                guideState.active
+                  ? 'pointer-events-none absolute inset-x-0 bottom-0 z-50 px-2 pb-2 md:px-3 md:pb-3'
+                  : 'relative shrink-0'
+              }
+            >
+              {!guideState.active ? (
+                <button
+                  type="button"
+                  onPointerDown={startAssistantDockResize}
+                  className="absolute inset-x-0 -top-2 z-20 flex h-2 items-end justify-center cursor-row-resize"
+                  aria-label="Resize assistant dock"
+                  title="Drag to resize assistant"
+                >
+                  <span className="pointer-events-none h-px w-24 rounded-full bg-border/90" />
+                </button>
+              ) : null}
+              <div className={guideState.active ? 'pointer-events-none bg-transparent' : 'bg-transparent'}>
+                <div
+                  style={{ height: `${assistantDockHeight}px` }}
+                  className={`${guideState.active ? 'pointer-events-none ' : ''}min-h-0 transition-[height] duration-[1100ms] ease-[cubic-bezier(0.16,1,0.3,1)]`}
+                >
+                  <GlobalAssistantPanel
+                    dock={{
+                      onHeightChange: () => {},
+                      fullHeight: true,
+                      forceExpanded: true,
+                      embedded: true,
+                      collapseSignal: chatCollapseSignal,
+                      onRequestMinimize: () => setAssistantDockHeight(ASSISTANT_DOCK_COLLAPSED_HEIGHT),
+                    }}
+                  />
+                </div>
+              </div>
+            </section>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
+
+
+
+
+
+
+

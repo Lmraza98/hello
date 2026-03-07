@@ -210,6 +210,7 @@ def init_database():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 company_name TEXT,
                 domain TEXT,
+                location TEXT,
                 name TEXT NOT NULL,
                 name_raw TEXT,
                 name_first TEXT,
@@ -229,9 +230,12 @@ def init_database():
                 phone_source TEXT,
                 phone_confidence INTEGER,
                 salesforce_status TEXT DEFAULT 'pending',
+                salesforce_sync_status TEXT,
                 salesforce_url TEXT,
                 salesforce_uploaded_at TIMESTAMP,
                 salesforce_upload_batch TEXT,
+                lead_source TEXT,
+                ingest_batch_id TEXT,
                 scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -242,8 +246,12 @@ def init_database():
         # Migration: Add salesforce tracking columns to existing databases
         sf_columns = [
             ('salesforce_url', 'TEXT'),
+            ('salesforce_sync_status', 'TEXT'),
             ('salesforce_uploaded_at', 'TIMESTAMP'),
             ('salesforce_upload_batch', 'TEXT'),
+            ('lead_source', 'TEXT'),
+            ('ingest_batch_id', 'TEXT'),
+            ('location', 'TEXT'),
             ('name_raw', 'TEXT'),
             ('name_first', 'TEXT'),
             ('name_middle', 'TEXT'),
@@ -259,6 +267,15 @@ def init_database():
             except sqlite3.OperationalError:
                 pass  # Column already exists
 
+        # Create source index after migration so existing DBs without the
+        # new column do not fail during startup.
+        cursor.execute("PRAGMA table_info(linkedin_contacts)")
+        contact_columns = {row[1] for row in cursor.fetchall()}
+        if "lead_source" in contact_columns:
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_linkedin_contacts_lead_source ON linkedin_contacts(lead_source)")
+        if "salesforce_sync_status" in contact_columns:
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_linkedin_contacts_sf_sync ON linkedin_contacts(salesforce_sync_status)")
+
         # Documents table - uploaded files for retrieval and analysis
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS documents (
@@ -268,6 +285,7 @@ def init_database():
                 file_size_bytes INTEGER,
                 storage_backend TEXT NOT NULL,
                 storage_path TEXT NOT NULL,
+                folder_path TEXT DEFAULT '',
                 status TEXT NOT NULL DEFAULT 'pending',
                 status_message TEXT,
                 processed_at TIMESTAMP,
@@ -290,6 +308,25 @@ def init_database():
                 notes TEXT
             )
         """)
+        # Migration: folder path support for user-managed document trees.
+        try:
+            cursor.execute("ALTER TABLE documents ADD COLUMN folder_path TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass
+        cursor.execute("UPDATE documents SET folder_path = '' WHERE folder_path IS NULL")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_documents_folder_path ON documents(folder_path)")
+
+        # User-defined document folders (supports empty folders and nested hierarchy).
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS document_folders (
+                path TEXT PRIMARY KEY,
+                parent_path TEXT NOT NULL DEFAULT '',
+                name TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_document_folders_parent_path ON document_folders(parent_path)")
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS document_chunks (
@@ -468,6 +505,7 @@ def init_database():
             ('scheduled_send_time', 'TIMESTAMP'),
             ('rendered_subject', 'TEXT'),
             ('rendered_body', 'TEXT'),
+            ('sf_email_url', 'TEXT'),
             ('opened', 'INTEGER DEFAULT 0'),
             ('open_count', 'INTEGER DEFAULT 0'),
             ('first_opened_at', 'TIMESTAMP'),
@@ -518,6 +556,39 @@ def init_database():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_replies_sent_email ON email_replies(sent_email_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_replies_contact ON email_replies(contact_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_email_replies_received ON email_replies(received_at)")
+
+        # Inbound lead notifications parsed from third-party notification emails.
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS inbound_lead_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                outlook_message_id TEXT UNIQUE,
+                source_sender TEXT,
+                subject TEXT,
+                body_preview TEXT,
+                lead_name TEXT,
+                lead_company TEXT,
+                lead_email TEXT,
+                lead_phone TEXT,
+                lead_title TEXT,
+                lead_industry TEXT,
+                lead_location TEXT,
+                contact_id INTEGER,
+                status TEXT DEFAULT 'created',
+                error TEXT,
+                received_at TIMESTAMP,
+                detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                seen INTEGER DEFAULT 0,
+                seen_at TIMESTAMP,
+                FOREIGN KEY (contact_id) REFERENCES linkedin_contacts(id)
+            )
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_inbound_lead_events_seen ON inbound_lead_events(seen)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_inbound_lead_events_received ON inbound_lead_events(received_at)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_inbound_lead_events_email ON inbound_lead_events(lead_email)")
+        try:
+            cursor.execute("ALTER TABLE inbound_lead_events ADD COLUMN lead_location TEXT")
+        except Exception:
+            pass
         
         # Add index for review queue queries
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sent_emails_review_status ON sent_emails(review_status)")
@@ -636,6 +707,7 @@ def init_database():
             ('min_minutes_between_sends', '20'),
             ('tracking_poll_interval_minutes', '90'),
             ('tracking_lookback_days', '14'),
+            ('outlook_poll_interval_minutes', '1'),
         ]
         for key, value in default_configs:
             cursor.execute(
@@ -932,12 +1004,15 @@ def add_linkedin_contact(
     company_name: str,
     name: str,
     domain: str | None = None,
+    location: str | None = None,
     title: str | None = None,
     email_generated: str | None = None,
     linkedin_url: str | None = None,
     phone: str | None = None,
     salesforce_url: str | None = None,
     salesforce_status: str | None = None,
+    lead_source: str | None = None,
+    ingest_batch_id: str | None = None,
 ) -> int:
     """Insert one LinkedIn contact after ingestion-time name normalization."""
     if not domain and company_name:
@@ -950,15 +1025,17 @@ def add_linkedin_contact(
         cursor.execute(
             """
             INSERT INTO linkedin_contacts (
-                company_name, domain, name, name_raw, name_first, name_middle, name_last,
+                company_name, domain, location, name, name_raw, name_first, name_middle, name_last,
                 name_prefix, name_suffix, name_confidence, name_review_reason,
-                title, email_generated, linkedin_url, phone, salesforce_url, salesforce_status, scraped_at
+                title, email_generated, linkedin_url, phone, salesforce_url, salesforce_status,
+                lead_source, ingest_batch_id, scraped_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
             (
                 company_name,
                 domain,
+                (location or "").strip() or None,
                 prepared["name"],
                 prepared["name_raw"],
                 prepared["name_first"],
@@ -974,12 +1051,20 @@ def add_linkedin_contact(
                 (phone or "").strip() or None,
                 (salesforce_url or "").strip() or None,
                 (salesforce_status or "").strip() or None,
+                (lead_source or "").strip() or None,
+                (ingest_batch_id or "").strip() or None,
             ),
         )
         return int(cursor.lastrowid)
 
 
-def save_linkedin_contacts(company_name: str, employees: List[Dict], domain: str | None = None) -> int:
+def save_linkedin_contacts(
+    company_name: str,
+    employees: List[Dict],
+    domain: str | None = None,
+    lead_source: str | None = None,
+    ingest_batch_id: str | None = None,
+) -> int:
     """Upsert LinkedIn contacts for a company and return number of affected rows."""
     if not domain and company_name:
         domain = _slugify_company_domain(company_name)
@@ -995,6 +1080,7 @@ def save_linkedin_contacts(company_name: str, employees: List[Dict], domain: str
             normalized_name = prepared["name"]
 
             title = str(employee.get("title") or "").strip() or None
+            location = str(employee.get("location") or "").strip() or None
             linkedin_url = (
                 str(employee.get("linkedin_url") or "").strip()
                 or str(employee.get("public_url") or "").strip()
@@ -1037,6 +1123,7 @@ def save_linkedin_contacts(company_name: str, employees: List[Dict], domain: str
                     """
                     UPDATE linkedin_contacts
                     SET domain = ?,
+                        location = COALESCE(NULLIF(?, ''), location),
                         name = ?,
                         name_raw = ?,
                         name_first = ?,
@@ -1048,11 +1135,14 @@ def save_linkedin_contacts(company_name: str, employees: List[Dict], domain: str
                         name_review_reason = ?,
                         title = ?,
                         linkedin_url = ?,
+                        lead_source = COALESCE(NULLIF(lead_source, ''), ?),
+                        ingest_batch_id = COALESCE(NULLIF(ingest_batch_id, ''), ?),
                         scraped_at = CURRENT_TIMESTAMP
                     WHERE id = ?
                     """,
                     (
                         domain,
+                        location,
                         prepared["name"],
                         prepared["name_raw"],
                         prepared["name_first"],
@@ -1064,6 +1154,8 @@ def save_linkedin_contacts(company_name: str, employees: List[Dict], domain: str
                         prepared["name_review_reason"],
                         merged_title,
                         merged_url,
+                        (lead_source or "").strip() or None,
+                        (ingest_batch_id or "").strip() or None,
                         contact_id,
                     ),
                 )
@@ -1074,15 +1166,16 @@ def save_linkedin_contacts(company_name: str, employees: List[Dict], domain: str
                 """
                 INSERT INTO linkedin_contacts
                 (
-                    company_name, domain, name, name_raw, name_first, name_middle, name_last,
+                    company_name, domain, location, name, name_raw, name_first, name_middle, name_last,
                     name_prefix, name_suffix, name_confidence, name_review_reason,
-                    title, linkedin_url, scraped_at
+                    title, linkedin_url, lead_source, ingest_batch_id, scraped_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 """,
                 (
                     company_name,
                     domain,
+                    location,
                     prepared["name"],
                     prepared["name_raw"],
                     prepared["name_first"],
@@ -1094,6 +1187,8 @@ def save_linkedin_contacts(company_name: str, employees: List[Dict], domain: str
                     prepared["name_review_reason"],
                     _merge_contact_title(None, title, prepared["name_prefix"]),
                     linkedin_url,
+                    (lead_source or "").strip() or None,
+                    (ingest_batch_id or "").strip() or None,
                 ),
             )
             affected_rows += int(cursor.rowcount)
@@ -2021,7 +2116,8 @@ def get_campaign_contacts(campaign_id: int, status: str = None) -> List[Dict]:
                 lc.email_generated as email,
                 lc.title,
                 lc.company_name,
-                lc.domain
+                lc.domain,
+                lc.salesforce_url
             FROM campaign_contacts cc
             JOIN linkedin_contacts lc ON cc.contact_id = lc.id
             WHERE cc.campaign_id = ?
@@ -2038,6 +2134,31 @@ def get_campaign_contacts(campaign_id: int, status: str = None) -> List[Dict]:
         return [dict(row) for row in cursor.fetchall()]
 
 
+def get_contact_campaign_enrollments(contact_id: int) -> List[Dict]:
+    """Get campaign enrollment rows for a contact."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                cc.id,
+                cc.campaign_id,
+                cc.contact_id,
+                cc.status,
+                cc.current_step,
+                cc.next_email_at,
+                cc.enrolled_at,
+                ec.name AS campaign_name
+            FROM campaign_contacts cc
+            JOIN email_campaigns ec ON ec.id = cc.campaign_id
+            WHERE cc.contact_id = ?
+            ORDER BY datetime(COALESCE(cc.enrolled_at, cc.next_email_at)) DESC, cc.id DESC
+            """,
+            (contact_id,),
+        )
+        return [dict(row) for row in cursor.fetchall()]
+
+
 def get_contacts_ready_for_email(campaign_id: int = None, limit: int = 50) -> List[Dict]:
     """Get campaign contacts ready to receive their next email."""
     with get_db() as conn:
@@ -2050,6 +2171,8 @@ def get_contacts_ready_for_email(campaign_id: int = None, limit: int = 50) -> Li
                 lc.title,
                 lc.company_name,
                 lc.domain,
+                lc.location,
+                t.vertical,
                 ec.name as campaign_name,
                 ec.num_emails,
                 ec.days_between_emails,
@@ -2058,10 +2181,18 @@ def get_contacts_ready_for_email(campaign_id: int = None, limit: int = 50) -> Li
             FROM campaign_contacts cc
             JOIN linkedin_contacts lc ON cc.contact_id = lc.id
             JOIN email_campaigns ec ON cc.campaign_id = ec.id
+            LEFT JOIN targets t ON TRIM(LOWER(lc.company_name)) = TRIM(LOWER(t.company_name))
             WHERE cc.status = 'active'
             AND cc.current_step < ec.num_emails
             AND cc.next_email_at <= datetime('now')
             AND ec.status = 'active'
+            AND NOT EXISTS (
+                SELECT 1
+                FROM sent_emails se_pending
+                WHERE se_pending.campaign_contact_id = cc.id
+                  AND se_pending.step_number = (cc.current_step + 1)
+                  AND lower(COALESCE(se_pending.review_status, '')) IN ('draft', 'ready_for_review', 'approved')
+            )
         """
         params = []
         
@@ -2130,6 +2261,7 @@ def log_sent_email(
     subject: str,
     body: str,
     sf_lead_url: str = None,
+    sf_email_url: str = None,
     status: str = 'sent',
     error_message: str = None,
     screenshot_path: str = None
@@ -2142,13 +2274,107 @@ def log_sent_email(
         cursor.execute("""
             INSERT INTO sent_emails (
                 campaign_id, campaign_contact_id, contact_id, step_number,
-                subject, body, sf_lead_url, status, review_status, sent_at, error_message, screenshot_path
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?)
+                subject, body, sf_lead_url, sf_email_url, status, review_status, sent_at, error_message, screenshot_path
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?)
         """, (
             campaign_id, campaign_contact_id, contact_id, step_number,
-            subject, body, sf_lead_url, status, review_status, error_message, screenshot_path
+            subject, body, sf_lead_url, sf_email_url, status, review_status, error_message, screenshot_path
         ))
         return cursor.lastrowid
+
+
+def get_latest_sent_email_message_url(campaign_contact_id: int, step_lt: int = None) -> Optional[str]:
+    """Get the most recent Salesforce EmailMessage URL for a campaign contact."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        query = """
+            SELECT sf_email_url
+            FROM sent_emails
+            WHERE campaign_contact_id = ?
+              AND lower(COALESCE(review_status, '')) = 'sent'
+              AND COALESCE(NULLIF(sf_email_url, ''), '') <> ''
+        """
+        params: List[Any] = [campaign_contact_id]
+        if step_lt is not None:
+            query += " AND COALESCE(step_number, 0) < ?"
+            params.append(step_lt)
+        query += " ORDER BY COALESCE(step_number, 0) DESC, id DESC LIMIT 1"
+        cursor.execute(query, params)
+        row = cursor.fetchone()
+        return (row["sf_email_url"] or "").strip() if row and row["sf_email_url"] else None
+
+
+def backfill_missing_sf_email_urls(campaign_contact_id: int, email_urls: List[str]) -> int:
+    """
+    Fill missing sf_email_url values for already-sent rows in newest-first order.
+    Timeline links are expected newest-first and mapped to highest step/id first.
+    """
+    cleaned: List[str] = []
+    seen = set()
+    for raw in email_urls or []:
+        url = (raw or "").strip()
+        if not url or url in seen:
+            continue
+        seen.add(url)
+        cleaned.append(url)
+    if not cleaned:
+        return 0
+
+    updated = 0
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT id
+            FROM sent_emails
+            WHERE campaign_contact_id = ?
+              AND lower(COALESCE(review_status, '')) = 'sent'
+              AND COALESCE(NULLIF(sf_email_url, ''), '') = ''
+            ORDER BY COALESCE(step_number, 0) DESC, id DESC
+            """,
+            (campaign_contact_id,),
+        )
+        rows = cursor.fetchall()
+        for idx, row in enumerate(rows):
+            if idx >= len(cleaned):
+                break
+            cursor.execute(
+                "UPDATE sent_emails SET sf_email_url = ? WHERE id = ?",
+                (cleaned[idx], int(row["id"])),
+            )
+            updated += int(cursor.rowcount or 0)
+    return updated
+
+
+def get_campaign_contacts_missing_sf_email_urls(campaign_id: int, limit: int = 500) -> List[Dict]:
+    """List campaign contacts with sent rows missing sf_email_url."""
+    bounded = max(1, min(int(limit or 500), 5000))
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                cc.id AS campaign_contact_id,
+                cc.contact_id,
+                lc.name AS contact_name,
+                lc.company_name,
+                COALESCE(NULLIF(cc.sf_lead_url, ''), NULLIF(lc.salesforce_url, '')) AS sf_lead_url,
+                COUNT(*) AS missing_rows
+            FROM sent_emails se
+            JOIN campaign_contacts cc ON cc.id = se.campaign_contact_id
+            JOIN linkedin_contacts lc ON lc.id = cc.contact_id
+            WHERE se.campaign_id = ?
+              AND lower(COALESCE(se.review_status, '')) = 'sent'
+              AND COALESCE(NULLIF(se.sf_email_url, ''), '') = ''
+            GROUP BY cc.id, cc.contact_id, lc.name, lc.company_name, COALESCE(NULLIF(cc.sf_lead_url, ''), NULLIF(lc.salesforce_url, ''))
+            HAVING COALESCE(NULLIF(cc.sf_lead_url, ''), NULLIF(lc.salesforce_url, '')) IS NOT NULL
+               AND COALESCE(NULLIF(cc.sf_lead_url, ''), NULLIF(lc.salesforce_url, '')) <> ''
+            ORDER BY missing_rows DESC, cc.id DESC
+            LIMIT ?
+            """,
+            (campaign_id, bounded),
+        )
+        return [dict(row) for row in cursor.fetchall()]
 
 
 def get_sent_emails(
@@ -2278,6 +2504,27 @@ def get_all_config() -> Dict:
         cursor = conn.cursor()
         cursor.execute("SELECT key, value FROM system_config")
         return {row['key']: row['value'] for row in cursor.fetchall()}
+
+
+def get_outlook_poll_status() -> Dict[str, Any]:
+    """Return the most recent Outlook poll summary persisted in system config."""
+    cfg = get_all_config()
+
+    def _as_int(key: str, default: int = 0) -> int:
+        try:
+            return int(cfg.get(key, str(default)) or default)
+        except Exception:
+            return default
+
+    return {
+        "last_polled_at": cfg.get("outlook_last_poll_at"),
+        "success": str(cfg.get("outlook_last_poll_success", "0")).strip() in {"1", "true", "True"},
+        "checked": _as_int("outlook_last_poll_checked"),
+        "new_replies": _as_int("outlook_last_poll_new_replies"),
+        "new_leads": _as_int("outlook_last_poll_new_leads"),
+        "message": cfg.get("outlook_last_poll_message"),
+        "error": cfg.get("outlook_last_poll_error"),
+    }
 
 
 # ============ Admin Logs & Cost Monitoring ============
@@ -2652,6 +2899,8 @@ def get_scheduled_emails(limit: int = 10) -> List[Dict]:
             JOIN campaign_contacts cc ON se.campaign_contact_id = cc.id
             WHERE se.review_status = 'approved'
             AND se.scheduled_send_time <= datetime('now')
+            AND cc.status = 'active'
+            AND ec.status = 'active'
             ORDER BY se.scheduled_send_time ASC
             LIMIT ?
         """, (limit,))
@@ -2686,6 +2935,8 @@ def get_all_scheduled_emails(campaign_id: int = None, limit: int = 200) -> List[
             WHERE se.review_status = 'approved'
             AND (se.status IS NULL OR se.status = 'draft' OR se.status = 'pending')
             AND se.scheduled_send_time IS NOT NULL
+            AND cc.status = 'active'
+            AND ec.status = 'active'
         """
         params = []
         if campaign_id:
@@ -2697,6 +2948,142 @@ def get_all_scheduled_emails(campaign_id: int = None, limit: int = 200) -> List[
         
         cursor.execute(query, params)
         return [dict(row) for row in cursor.fetchall()]
+
+
+def reconcile_campaign_progress(campaign_id: int, limit: int = 2000) -> Dict[str, Any]:
+    """
+    Recompute campaign_contact progression from sent/reply history.
+    This keeps multi-step campaign state aligned after imports/backfills.
+    """
+    scanned = 0
+    updated = 0
+    marked_replied = 0
+    marked_completed = 0
+    active_remaining = 0
+    canceled_pending = 0
+
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT cc.id, cc.current_step, cc.status, cc.next_email_at,
+                   ec.num_emails, ec.days_between_emails
+            FROM campaign_contacts cc
+            JOIN email_campaigns ec ON ec.id = cc.campaign_id
+            WHERE cc.campaign_id = ?
+            ORDER BY cc.id ASC
+            LIMIT ?
+            """,
+            (campaign_id, max(1, min(int(limit or 2000), 10000))),
+        )
+        contacts = cursor.fetchall()
+
+        now = datetime.now()
+        for row in contacts:
+            scanned += 1
+            campaign_contact_id = int(row["id"])
+            num_emails = max(1, int(row["num_emails"] or 1))
+            days_between = max(1, int(row["days_between_emails"] or 3))
+
+            cursor.execute(
+                """
+                SELECT
+                  MAX(CASE WHEN lower(COALESCE(review_status, '')) = 'sent' THEN COALESCE(step_number, 0) ELSE 0 END) as max_sent_step,
+                  MAX(CASE WHEN lower(COALESCE(review_status, '')) = 'sent' THEN sent_at ELSE NULL END) as last_sent_at,
+                  MAX(CASE WHEN COALESCE(replied, 0) = 1 THEN 1 ELSE 0 END) as has_reply
+                FROM sent_emails
+                WHERE campaign_contact_id = ?
+                """,
+                (campaign_contact_id,),
+            )
+            agg = cursor.fetchone()
+            max_sent_step = int(agg["max_sent_step"] or 0)
+            has_reply = int(agg["has_reply"] or 0) == 1
+            last_sent_raw = agg["last_sent_at"]
+            last_sent_dt = None
+            if last_sent_raw:
+                try:
+                    last_sent_dt = datetime.fromisoformat(str(last_sent_raw).replace("Z", "+00:00")).replace(tzinfo=None)
+                except Exception:
+                    last_sent_dt = None
+
+            next_step = min(max_sent_step, num_emails)
+            if has_reply:
+                next_status = "replied"
+                next_email_at = None
+                marked_replied += 1
+            elif max_sent_step >= num_emails:
+                next_status = "completed"
+                next_email_at = None
+                marked_completed += 1
+            else:
+                next_status = "active"
+                active_remaining += 1
+                if last_sent_dt is None:
+                    next_email_at = now.isoformat(timespec="seconds")
+                else:
+                    target = last_sent_dt + timedelta(days=days_between)
+                    next_email_at = max(now, target).isoformat(timespec="seconds")
+
+            if next_status in {"replied", "completed"}:
+                cursor.execute(
+                    """
+                    UPDATE sent_emails
+                    SET review_status = 'rejected',
+                        status = 'failed',
+                        error_message = COALESCE(error_message, 'Auto-cancelled after campaign reconcile')
+                    WHERE campaign_contact_id = ?
+                      AND lower(COALESCE(review_status, '')) IN ('draft', 'ready_for_review', 'approved')
+                    """,
+                    (campaign_contact_id,),
+                )
+                canceled_pending += int(cursor.rowcount or 0)
+            else:
+                cursor.execute(
+                    """
+                    UPDATE sent_emails
+                    SET review_status = 'rejected',
+                        status = 'failed',
+                        error_message = COALESCE(error_message, 'Auto-cancelled stale step after campaign reconcile')
+                    WHERE campaign_contact_id = ?
+                      AND lower(COALESCE(review_status, '')) IN ('draft', 'ready_for_review', 'approved')
+                      AND COALESCE(step_number, 0) <= ?
+                    """,
+                    (campaign_contact_id, next_step),
+                )
+                canceled_pending += int(cursor.rowcount or 0)
+
+            prev_step = int(row["current_step"] or 0)
+            prev_status = str(row["status"] or "active")
+            prev_next = str(row["next_email_at"] or "")
+            next_next = str(next_email_at or "")
+            if prev_step != next_step or prev_status != next_status or prev_next != next_next:
+                update_parts = ["current_step = ?", "status = ?"]
+                params: List[Any] = [next_step, next_status]
+                if next_email_at is None:
+                    update_parts.append("next_email_at = NULL")
+                else:
+                    update_parts.append("next_email_at = ?")
+                    params.append(next_email_at)
+                if next_status == "completed":
+                    update_parts.append("completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP)")
+                params.append(campaign_contact_id)
+                cursor.execute(
+                    f"UPDATE campaign_contacts SET {', '.join(update_parts)} WHERE id = ?",
+                    params,
+                )
+                updated += 1
+
+    return {
+        "success": True,
+        "campaign_id": int(campaign_id),
+        "scanned": int(scanned),
+        "updated": int(updated),
+        "marked_replied": int(marked_replied),
+        "marked_completed": int(marked_completed),
+        "active_remaining": int(active_remaining),
+        "canceled_pending": int(canceled_pending),
+    }
 
 
 def reschedule_email(sent_email_id: int, new_send_time: str):
@@ -2829,7 +3216,7 @@ def get_campaign_scheduled_summary() -> List[Dict]:
         return results
 
 
-def mark_email_sent(sent_email_id: int, sf_lead_url: str = None):
+def mark_email_sent(sent_email_id: int, sf_lead_url: str = None, sf_email_url: str = None):
     """Called after successful Salesforce send. Sets review_status = 'sent', sent_at = now."""
     with get_db() as conn:
         cursor = conn.cursor()
@@ -2838,9 +3225,10 @@ def mark_email_sent(sent_email_id: int, sf_lead_url: str = None):
             SET review_status = 'sent', 
                 status = 'sent',
                 sent_at = CURRENT_TIMESTAMP,
-                sf_lead_url = COALESCE(?, sf_lead_url)
+                sf_lead_url = COALESCE(?, sf_lead_url),
+                sf_email_url = COALESCE(?, sf_email_url)
             WHERE id = ?
-        """, (sf_lead_url, sent_email_id))
+        """, (sf_lead_url, sf_email_url, sent_email_id))
 
 
 def mark_email_failed(sent_email_id: int, error_message: str = None):
@@ -2906,6 +3294,22 @@ def update_email_tracking(sent_email_id: int, opened: bool = None, open_count: i
             UPDATE sent_emails SET {', '.join(updates)}
             WHERE id = ?
         """, params)
+
+        # Stop remaining sequence sends if this contact replied.
+        if replied:
+            cursor.execute(
+                """
+                UPDATE campaign_contacts
+                SET status = 'replied',
+                    next_email_at = NULL
+                WHERE id = (
+                    SELECT campaign_contact_id
+                    FROM sent_emails
+                    WHERE id = ?
+                )
+                """,
+                (sent_email_id,),
+            )
 
 
 def get_todays_draft_count() -> int:
@@ -3353,7 +3757,8 @@ def log_email_reply(
         # Pause the campaign contact (stop further emails)
         cursor.execute("""
             UPDATE campaign_contacts
-            SET status = 'replied'
+            SET status = 'replied',
+                next_email_at = NULL
             WHERE id = ?
         """, (campaign_contact_id,))
 
@@ -3392,6 +3797,357 @@ def get_email_replies(
         query += " ORDER BY er.received_at DESC LIMIT ?"
         params.append(limit)
         cursor.execute(query, params)
+        return [dict(row) for row in cursor.fetchall()]
+
+
+def find_contact_for_inbound_lead(
+    *,
+    lead_email: str | None = None,
+    name: str | None = None,
+    company_name: str | None = None,
+) -> Optional[int]:
+    """Resolve an existing contact id for an inbound lead using email-first matching."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        email = (lead_email or "").strip().lower()
+        if email:
+            cursor.execute(
+                """
+                SELECT id
+                FROM linkedin_contacts
+                WHERE lower(email_generated) = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (email,),
+            )
+            row = cursor.fetchone()
+            if row:
+                return int(row["id"])
+
+        normalized_name = (name or "").strip().lower()
+        normalized_company = (company_name or "").strip().lower()
+        if normalized_name and normalized_company:
+            cursor.execute(
+                """
+                SELECT id
+                FROM linkedin_contacts
+                WHERE lower(name) = ? AND lower(company_name) = ?
+                ORDER BY id DESC
+                LIMIT 1
+                """,
+                (normalized_name, normalized_company),
+            )
+            row = cursor.fetchone()
+            if row:
+                return int(row["id"])
+    return None
+
+
+def upsert_inbound_lead_contact(
+    *,
+    lead_name: str,
+    lead_company: str | None = None,
+    lead_email: str | None = None,
+    lead_phone: str | None = None,
+    lead_title: str | None = None,
+    lead_location: str | None = None,
+    lead_source: str | None = None,
+    ingest_batch_id: str | None = None,
+) -> tuple[int, bool]:
+    """
+    Create or update a contact from inbound lead data.
+    Returns (contact_id, created_new).
+    """
+    company_name = (lead_company or "").strip() or "Inbound Leads"
+    resolved_id = find_contact_for_inbound_lead(
+        lead_email=lead_email,
+        name=lead_name,
+        company_name=company_name,
+    )
+    if resolved_id:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE linkedin_contacts
+                SET
+                    email_generated = COALESCE(NULLIF(email_generated, ''), ?),
+                    phone = COALESCE(NULLIF(phone, ''), ?),
+                    title = COALESCE(NULLIF(title, ''), ?),
+                    location = COALESCE(NULLIF(location, ''), ?),
+                    company_name = COALESCE(NULLIF(company_name, ''), ?),
+                    lead_source = COALESCE(NULLIF(lead_source, ''), ?),
+                    ingest_batch_id = COALESCE(NULLIF(ingest_batch_id, ''), ?),
+                    salesforce_status = CASE
+                        WHEN COALESCE(NULLIF(salesforce_status, ''), '') = '' THEN 'inbound mapped'
+                        ELSE salesforce_status
+                    END,
+                    salesforce_sync_status = CASE
+                        WHEN COALESCE(NULLIF(salesforce_sync_status, ''), '') = '' THEN 'queued'
+                        ELSE salesforce_sync_status
+                    END
+                WHERE id = ?
+                """,
+                (
+                    (lead_email or "").strip() or None,
+                    (lead_phone or "").strip() or None,
+                    (lead_title or "").strip() or None,
+                    (lead_location or "").strip() or None,
+                    company_name,
+                    (lead_source or "").strip() or "website_form",
+                    (ingest_batch_id or "").strip() or None,
+                    resolved_id,
+                ),
+            )
+        return resolved_id, False
+
+    created_id = add_linkedin_contact(
+        company_name=company_name,
+        name=(lead_name or "").strip() or "Unknown Lead",
+        title=(lead_title or "").strip() or None,
+        location=(lead_location or "").strip() or None,
+        email_generated=(lead_email or "").strip() or None,
+        phone=(lead_phone or "").strip() or None,
+        salesforce_status="inbound created",
+        lead_source=(lead_source or "").strip() or "website_form",
+        ingest_batch_id=(ingest_batch_id or "").strip() or None,
+    )
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE linkedin_contacts SET salesforce_sync_status = 'queued' WHERE id = ?",
+            (created_id,),
+        )
+    return int(created_id), True
+
+
+def insert_inbound_lead_event(
+    *,
+    outlook_message_id: str | None,
+    source_sender: str | None,
+    subject: str | None,
+    body_preview: str | None,
+    lead_name: str | None,
+    lead_company: str | None,
+    lead_email: str | None,
+    lead_phone: str | None,
+    lead_title: str | None,
+    lead_industry: str | None,
+    lead_location: str | None,
+    contact_id: int | None,
+    received_at: str | None,
+    status: str = "created",
+    error: str | None = None,
+) -> tuple[int, bool]:
+    """Insert inbound lead event if new. Returns (event_id, inserted_new)."""
+    normalized_msg_id = (outlook_message_id or "").strip() or None
+    normalized_status = (status or "").strip() or "created"
+    with get_db() as conn:
+        cursor = conn.cursor()
+        if normalized_msg_id:
+            cursor.execute(
+                """
+                SELECT id, status FROM inbound_lead_events WHERE outlook_message_id = ?
+                """,
+                (normalized_msg_id,),
+            )
+            row = cursor.fetchone()
+            if row:
+                existing_id = int(row["id"])
+                existing_status = (row["status"] or "").strip().lower()
+                # Allow parser backfills to upgrade previously failed rows.
+                if existing_status == "parse_failed" and (
+                    (lead_name or "").strip() or (lead_email or "").strip()
+                ):
+                    cursor.execute(
+                        """
+                        UPDATE inbound_lead_events
+                        SET
+                            source_sender = COALESCE(NULLIF(source_sender, ''), ?),
+                            subject = COALESCE(NULLIF(subject, ''), ?),
+                            body_preview = COALESCE(NULLIF(body_preview, ''), ?),
+                            lead_name = COALESCE(NULLIF(lead_name, ''), ?),
+                            lead_company = COALESCE(NULLIF(lead_company, ''), ?),
+                            lead_email = COALESCE(NULLIF(lead_email, ''), ?),
+                            lead_phone = COALESCE(NULLIF(lead_phone, ''), ?),
+                            lead_title = COALESCE(NULLIF(lead_title, ''), ?),
+                            lead_industry = COALESCE(NULLIF(lead_industry, ''), ?),
+                            lead_location = COALESCE(NULLIF(lead_location, ''), ?),
+                            contact_id = COALESCE(contact_id, ?),
+                            received_at = COALESCE(received_at, ?),
+                            status = ?,
+                            error = NULL
+                        WHERE id = ?
+                        """,
+                        (
+                            (source_sender or "").strip() or None,
+                            (subject or "").strip() or None,
+                            (body_preview or "").strip() or None,
+                            (lead_name or "").strip() or None,
+                            (lead_company or "").strip() or None,
+                            (lead_email or "").strip() or None,
+                            (lead_phone or "").strip() or None,
+                            (lead_title or "").strip() or None,
+                            (lead_industry or "").strip() or None,
+                            (lead_location or "").strip() or None,
+                            contact_id,
+                            received_at,
+                            normalized_status,
+                            existing_id,
+                        ),
+                    )
+                return int(row["id"]), False
+
+        cursor.execute(
+            """
+            INSERT INTO inbound_lead_events (
+                outlook_message_id, source_sender, subject, body_preview,
+                lead_name, lead_company, lead_email, lead_phone, lead_title, lead_industry, lead_location,
+                contact_id, received_at, status, error
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                normalized_msg_id,
+                (source_sender or "").strip() or None,
+                (subject or "").strip() or None,
+                (body_preview or "").strip() or None,
+                (lead_name or "").strip() or None,
+                (lead_company or "").strip() or None,
+                (lead_email or "").strip() or None,
+                (lead_phone or "").strip() or None,
+                (lead_title or "").strip() or None,
+                (lead_industry or "").strip() or None,
+                (lead_location or "").strip() or None,
+                contact_id,
+                received_at,
+                normalized_status,
+                (error or "").strip() or None,
+            ),
+        )
+        return int(cursor.lastrowid), True
+
+
+def update_inbound_lead_event_details(
+    *,
+    event_id: int,
+    lead_name: str | None = None,
+    lead_company: str | None = None,
+    lead_email: str | None = None,
+    lead_phone: str | None = None,
+    lead_title: str | None = None,
+    lead_industry: str | None = None,
+    lead_location: str | None = None,
+    body_preview: str | None = None,
+    contact_id: int | None = None,
+    status: str | None = None,
+    error: str | None = None,
+) -> bool:
+    """Patch missing inbound lead event fields while preserving existing non-empty values."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE inbound_lead_events
+            SET
+                lead_name = COALESCE(NULLIF(lead_name, ''), ?),
+                lead_company = COALESCE(NULLIF(lead_company, ''), ?),
+                lead_email = COALESCE(NULLIF(lead_email, ''), ?),
+                lead_phone = COALESCE(NULLIF(lead_phone, ''), ?),
+                lead_title = COALESCE(NULLIF(lead_title, ''), ?),
+                lead_industry = COALESCE(NULLIF(lead_industry, ''), ?),
+                lead_location = COALESCE(NULLIF(lead_location, ''), ?),
+                body_preview = COALESCE(NULLIF(body_preview, ''), ?),
+                contact_id = COALESCE(contact_id, ?),
+                status = COALESCE(NULLIF(?, ''), status),
+                error = CASE
+                    WHEN ? IS NULL OR ? = '' THEN error
+                    ELSE ?
+                END
+            WHERE id = ?
+            """,
+            (
+                (lead_name or "").strip() or None,
+                (lead_company or "").strip() or None,
+                (lead_email or "").strip() or None,
+                (lead_phone or "").strip() or None,
+                (lead_title or "").strip() or None,
+                (lead_industry or "").strip() or None,
+                (lead_location or "").strip() or None,
+                (body_preview or "").strip() or None,
+                contact_id,
+                (status or "").strip() or None,
+                (error or "").strip() or None,
+                (error or "").strip() or None,
+                (error or "").strip() or None,
+                int(event_id),
+            ),
+        )
+        return int(cursor.rowcount or 0) > 0
+
+
+def get_unseen_inbound_lead_count() -> int:
+    """Count inbound lead events not yet acknowledged in the UI."""
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) AS c FROM inbound_lead_events WHERE COALESCE(seen, 0) = 0")
+        row = cursor.fetchone()
+        return int(row["c"] if row and row["c"] is not None else 0)
+
+
+def mark_inbound_leads_seen() -> int:
+    """Mark all unseen inbound lead events as seen. Returns affected rows."""
+    now_iso = datetime.utcnow().isoformat()
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            UPDATE inbound_lead_events
+            SET seen = 1,
+                seen_at = COALESCE(seen_at, ?)
+            WHERE COALESCE(seen, 0) = 0
+            """,
+            (now_iso,),
+        )
+        return int(cursor.rowcount or 0)
+
+
+def get_recent_inbound_leads(limit: int = 20) -> List[Dict]:
+    """Fetch recent inbound lead ingestion events for UI display."""
+    bounded_limit = max(1, min(int(limit or 20), 200))
+    with get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                ile.id,
+                ile.outlook_message_id,
+                ile.source_sender,
+                ile.subject,
+                ile.body_preview,
+                ile.lead_name,
+                ile.lead_company,
+                ile.lead_email,
+                ile.lead_phone,
+                ile.lead_title,
+                ile.lead_industry,
+                ile.lead_location,
+                ile.contact_id,
+                ile.status,
+                ile.error,
+                ile.received_at,
+                ile.detected_at,
+                ile.seen,
+                ile.seen_at,
+                lc.name AS contact_name
+            FROM inbound_lead_events ile
+            LEFT JOIN linkedin_contacts lc ON lc.id = ile.contact_id
+            ORDER BY datetime(COALESCE(ile.received_at, ile.detected_at)) DESC, ile.id DESC
+            LIMIT ?
+            """,
+            (bounded_limit,),
+        )
         return [dict(row) for row in cursor.fetchall()]
 
 
@@ -3454,8 +4210,8 @@ def get_conversation_thread(contact_id: int, limit: int = 20) -> List[Dict]:
             SELECT
                 'sent' as msg_type,
                 se.id,
-                se.rendered_subject as subject,
-                se.rendered_body as body,
+                COALESCE(NULLIF(se.rendered_subject, ''), NULLIF(se.subject, '')) as subject,
+                COALESCE(NULLIF(se.rendered_body, ''), NULLIF(se.body, '')) as body,
                 se.sent_at as timestamp,
                 ec.name as campaign_name,
                 se.step_number

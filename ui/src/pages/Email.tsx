@@ -1,38 +1,76 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { usePageContext } from '../contexts/PageContextProvider';
-import { Mail, Plus, CalendarClock, CheckCircle, FileText, Settings } from 'lucide-react';
+import { CheckCircle, Clock, Mail, Plus, RefreshCw, Send, Settings } from 'lucide-react';
 import { useNotificationContext } from '../contexts/NotificationContext';
-import { useIsMobile } from '../hooks/useIsMobile';
 import { useEmailCampaigns } from '../hooks/useEmailCampaigns';
 import { CampaignModal } from '../components/email/CampaignModal';
-import { TemplateEditorModal } from '../components/email/TemplateEditorModal';
+import { CampaignTemplateEditorPane } from '../components/email/CampaignTemplateEditorPane';
 import { CampaignsView } from '../components/email/CampaignsView';
-import { ReviewQueueView } from '../components/email/ReviewQueueView';
-import { SentEmailsList } from '../components/email/SentEmailsList';
-import { ScheduledView } from '../components/email/ScheduledView';
+import { CampaignDetailsPanel } from '../components/email/CampaignDetailsPanel';
+import { EmailDetailsPanel } from '../components/email/EmailDetailsPanel';
+import { EmailTabs } from '../components/email/EmailTabs';
+import { StandardEmailTable, type StandardEmailColumn } from '../components/email/StandardEmailTable';
 import { SettingsPanel } from '../components/email/SettingsPanel';
-import { EmailDetailModal } from '../components/email/EmailDetailModal';
 import { SendNowConfirm } from '../components/email/SendNowConfirm';
-import { PageHeader } from '../components/shared/PageHeader';
-import type { EmailCampaign, ScheduledEmail } from '../types/email';
+import { HeaderActionButton } from '../components/shared/HeaderActionButton';
+import { PageSearchInput } from '../components/shared/PageSearchInput';
+import { WorkspacePageShell } from '../components/shared/WorkspacePageShell';
+import type { EmailCampaign, ReviewQueueItem, ScheduledEmail, SentEmail } from '../types/email';
 import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
 import { getPageCapability } from '../capabilities/catalog';
+import { useIsMobile } from '../hooks/useIsMobile';
+import { useEmailDetailsRouteState } from '../hooks/useEmailDetailsRouteState';
+import { SidePanelContainer } from '../components/contacts/SidePanelContainer';
+import { BottomDrawerContainer } from '../components/contacts/BottomDrawerContainer';
 
-/* ── Main Email Page ───────────────────────────────── */
+type EmailView = 'campaigns' | 'review' | 'history' | 'scheduled';
+
+function parseEmailView(value: string | null): EmailView {
+  if (value === 'review' || value === 'history' || value === 'scheduled' || value === 'campaigns') return value;
+  return 'campaigns';
+}
+
+function formatShortDateTime(value?: string | null) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function statusTone(status?: string | null) {
+  const value = String(status || '').toLowerCase();
+  if (value === 'approved' || value === 'sent') return 'bg-emerald-500/15 text-emerald-700';
+  if (value === 'pending' || value === 'queued') return 'bg-amber-500/15 text-amber-700';
+  if (value === 'rejected' || value === 'failed') return 'bg-red-500/15 text-red-700';
+  return 'bg-accent/10 text-accent';
+}
 
 export default function Email({ openAddModal, onModalOpened }: { openAddModal?: boolean; onModalOpened?: () => void }) {
-  const isMobile = useIsMobile();
-  const location = useLocation();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { setPageContext } = usePageContext();
   const { addNotification } = useNotificationContext();
-  const [view, setView] = useState<'campaigns' | 'review' | 'history' | 'scheduled'>('campaigns');
+  const isCompact = useIsMobile();
+  const isPhone = useIsMobile(640);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingTemplates, setEditingTemplates] = useState<EmailCampaign | null>(null);
+  const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(null);
   const [uploadingCampaignId, setUploadingCampaignId] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [viewingEmail, setViewingEmail] = useState<ScheduledEmail | null>(null);
+  const [emailSearch, setEmailSearch] = useState('');
   const [sendNowTarget, setSendNowTarget] = useState<ScheduledEmail | null>(null);
+  const [scheduledCampaignFilter, setScheduledCampaignFilter] = useState<number | null>(null);
+  const { emailId: selectedEmailId, openEmail, closeEmail, setEmailId } = useEmailDetailsRouteState();
+  const lastFocusedRowRef = useRef<HTMLElement | null>(null);
+  const detailsPanelRef = useRef<HTMLDivElement>(null);
+  const view = useMemo(() => parseEmailView(searchParams?.get('view') ?? null), [searchParams]);
+
   useRegisterCapabilities(getPageCapability(`email.${view}`));
 
   const {
@@ -59,254 +97,780 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
     uploadToSalesforce,
     sendEmailNow,
     rescheduleEmail,
-    reorderEmails
+    processScheduled,
   } = useEmailCampaigns();
 
-  // Open create modal from sidebar quick-add
   useEffect(() => {
     if (openAddModal) {
-      setShowCreateModal(true);
-      onModalOpened?.();
+      const id = window.requestAnimationFrame(() => {
+        setShowCreateModal(true);
+        onModalOpened?.();
+      });
+      return () => window.cancelAnimationFrame(id);
     }
   }, [openAddModal, onModalOpened]);
 
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const nextView = params.get('view');
-    if (nextView === 'campaigns' || nextView === 'review' || nextView === 'history' || nextView === 'scheduled') {
-      setView(nextView);
-    }
-  }, [location.search]);
+  const updateEmailRoute = useCallback(
+    (mutate: (params: URLSearchParams) => void, options?: { replace?: boolean }) => {
+      const params = new URLSearchParams(searchParams?.toString() ?? '');
+      mutate(params);
+      const search = params.toString();
+      const nextUrl = `/email${search ? `?${search}` : ''}`;
+      if (options?.replace ?? false) {
+        router.replace(nextUrl, { scroll: false });
+      } else {
+        router.push(nextUrl, { scroll: false });
+      }
+    },
+    [router, searchParams]
+  );
+
+  const setEmailView = useCallback(
+    (nextView: EmailView) => {
+      updateEmailRoute((params) => {
+        params.set('view', nextView);
+        params.delete('selectedEmailId');
+      });
+    },
+    [updateEmailRoute]
+  );
 
   useEffect(() => {
     setPageContext({
       listContext: 'email',
+      selected: selectedEmailId ? { emailId: selectedEmailId } : selectedCampaignId ? { campaignId: selectedCampaignId } : {},
       loadedIds: { campaignIds: campaigns.slice(0, 200).map((c) => c.id) },
     });
-  }, [campaigns, setPageContext]);
+  }, [campaigns, selectedCampaignId, selectedEmailId, setPageContext]);
+
+  const selectedCampaign = useMemo(
+    () => campaigns.find((item) => item.id === selectedCampaignId) || null,
+    [campaigns, selectedCampaignId]
+  );
 
   const handleCreateCampaign = (data: Partial<EmailCampaign>) => {
     createCampaign.mutate(data);
     setShowCreateModal(false);
   };
 
-  const handleSaveTemplates = (templates: Array<{ step_number: number; subject_template: string; body_template: string }>) => {
-    if (editingTemplates) {
-      saveTemplates.mutate({ campaignId: editingTemplates.id, templates });
-      setEditingTemplates(null);
-    }
+  const handleSaveTemplates = (
+    templates: Array<{ step_number: number; subject_template: string; body_template: string }>,
+  ) => {
+    if (!editingTemplates) return;
+    saveTemplates.mutate({ campaignId: editingTemplates.id, templates });
+    setEditingTemplates(null);
   };
 
   const handleUploadToSalesforce = (campaignId: number) => {
     setUploadingCampaignId(campaignId);
     uploadToSalesforce.mutate(campaignId, {
-      onSettled: () => setUploadingCampaignId(null)
+      onSettled: () => setUploadingCampaignId(null),
     });
   };
-
-  // "Send Now" shows a confirmation dialog first
-  const handleSendNowRequest = useCallback((emailId: number) => {
-    const email = allScheduled.find(e => e.id === emailId);
-    if (email) {
-      setSendNowTarget(email);
-    }
-  }, [allScheduled]);
 
   const handleSendNowConfirm = useCallback(() => {
     if (!sendNowTarget) return;
     sendEmailNow.mutate(sendNowTarget.id);
     setSendNowTarget(null);
-    setViewingEmail(null);
   }, [sendNowTarget, sendEmailNow]);
 
   const handleReschedule = (email: ScheduledEmail) => {
-    // Simple reschedule: prompt for new time
     const currentTime = new Date(email.scheduled_send_time);
-    const newTimeStr = prompt(
-      'Enter new send time (e.g., "2026-02-10 14:30"):',
-      currentTime.toLocaleString()
-    );
-    if (newTimeStr) {
-      const parsed = new Date(newTimeStr);
-      if (!isNaN(parsed.getTime())) {
-        rescheduleEmail.mutate({ emailId: email.id, sendTime: parsed.toISOString() });
-      } else {
-        addNotification({ type: 'error', title: 'Invalid date format' });
-      }
+    const newTimeStr = prompt('Enter new send time (e.g., "2026-02-10 14:30"):', currentTime.toLocaleString());
+    if (!newTimeStr) return;
+    const parsed = new Date(newTimeStr);
+    if (Number.isNaN(parsed.getTime())) {
+      addNotification({ type: 'error', title: 'Invalid date format' });
+      return;
     }
+    rescheduleEmail.mutate({ emailId: email.id, sendTime: parsed.toISOString() });
   };
 
-  const handleReorder = (emailIds: number[], startTime?: string) => {
-    reorderEmails.mutate({ emailIds, startTime });
-  };
+  const totalCampaigns = stats?.total_campaigns ?? campaigns.length;
+  const activeCampaigns =
+    stats?.active_campaigns ??
+    campaigns.filter((campaign) => String(campaign.status || '').toLowerCase() === 'active').length;
+  const metaText = `${totalCampaigns} total · ${activeCampaigns} active`;
+
+  const tabs = useMemo(
+    () => [
+      { id: 'campaigns', label: 'Campaigns' },
+      { id: 'templates', label: 'Templates' },
+      { id: 'review', label: 'Review', count: reviewQueue.length },
+      { id: 'scheduled', label: 'Scheduled', count: allScheduled.length },
+      { id: 'history', label: 'Sent History' },
+    ],
+    [allScheduled.length, reviewQueue.length]
+  );
+
+  const templateEditorOpen = Boolean(editingTemplates) && view === 'campaigns';
+  const normalizedSearch = emailSearch.trim().toLowerCase();
+  const filteredCampaigns = useMemo(() => {
+    if (!normalizedSearch) return campaigns;
+    return campaigns.filter((campaign) => {
+      const haystack = [
+        campaign.name,
+        campaign.status,
+        String(campaign.stats?.total_contacts ?? ''),
+        String(campaign.stats?.total_sent ?? ''),
+      ]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(normalizedSearch);
+    });
+  }, [campaigns, normalizedSearch]);
+  const filteredReviewQueue = useMemo(() => {
+    if (!normalizedSearch) return reviewQueue;
+    return reviewQueue.filter((item) =>
+      [item.contact_name, item.company_name, item.contact_title, item.campaign_name, item.rendered_subject, item.rendered_body]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedSearch)
+    );
+  }, [normalizedSearch, reviewQueue]);
+  const filteredScheduled = useMemo(() => {
+    if (!normalizedSearch) return allScheduled;
+    return allScheduled.filter((item) =>
+      [item.contact_name, item.company_name, item.campaign_name, item.subject]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedSearch)
+    );
+  }, [allScheduled, normalizedSearch]);
+  const scheduledCampaignOptions = useMemo(() => {
+    const options = new Map<number, string>();
+    allScheduled.forEach((item) => options.set(item.campaign_id, item.campaign_name));
+    return Array.from(options.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [allScheduled]);
+  const filteredScheduledRows = useMemo(() => {
+    if (!scheduledCampaignFilter) return filteredScheduled;
+    return filteredScheduled.filter((item) => item.campaign_id === scheduledCampaignFilter);
+  }, [filteredScheduled, scheduledCampaignFilter]);
+  const filteredSentEmails = useMemo(() => {
+    if (!normalizedSearch) return sentEmails;
+    return sentEmails.filter((item) =>
+      [item.contact_name, item.company_name, item.subject, item.body]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedSearch)
+    );
+  }, [normalizedSearch, sentEmails]);
+  const searchPlaceholder = useMemo(() => {
+    if (view === 'campaigns') return 'Search campaigns...';
+    if (view === 'review') return 'Search review queue...';
+    if (view === 'scheduled') return 'Search scheduled emails...';
+    return 'Search sent history...';
+  }, [view]);
+  const pageSubtitle = useMemo(() => {
+    if (view === 'review') {
+      return `${filteredReviewQueue.length} pending review${filteredScheduled.length ? ` · ${filteredScheduled.length} scheduled` : ''}`;
+    }
+    if (view === 'scheduled') {
+      return `${filteredScheduledRows.length} scheduled${queue.length ? ` · ${queue.length} waiting for next step` : ''}`;
+    }
+    if (view === 'history') {
+      return `${filteredSentEmails.length} sent emails`;
+    }
+    return metaText;
+  }, [filteredReviewQueue.length, filteredScheduled.length, filteredScheduledRows.length, filteredSentEmails.length, metaText, queue.length, view]);
+
+  const selectedEmailPanel = useMemo(() => {
+    if (!selectedEmailId) return null;
+    if (view === 'review') {
+      const email = filteredReviewQueue.find((item) => item.id === selectedEmailId) || null;
+      return email ? { mode: 'review' as const, email } : null;
+    }
+    if (view === 'scheduled') {
+      const email = filteredScheduledRows.find((item) => item.id === selectedEmailId) || null;
+      return email ? { mode: 'scheduled' as const, email } : null;
+    }
+    if (view === 'history') {
+      const email = filteredSentEmails.find((item) => item.id === selectedEmailId) || null;
+      return email ? { mode: 'history' as const, email } : null;
+    }
+    return null;
+  }, [filteredReviewQueue, filteredScheduledRows, filteredSentEmails, selectedEmailId, view]);
+
+  useEffect(() => {
+    if (view === 'campaigns') {
+      if (selectedEmailId) setEmailId(null, { replace: true });
+      return;
+    }
+    if (selectedEmailId && !selectedEmailPanel) {
+      setEmailId(null, { replace: true });
+    }
+  }, [selectedEmailId, selectedEmailPanel, setEmailId, view]);
+
+  useEffect(() => {
+    if (isPhone || !selectedEmailPanel) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeEmail();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [closeEmail, isPhone, selectedEmailPanel]);
+
+  useEffect(() => {
+    if (!selectedEmailPanel || isPhone) return;
+    const id = window.requestAnimationFrame(() => detailsPanelRef.current?.focus());
+    return () => window.cancelAnimationFrame(id);
+  }, [isPhone, selectedEmailPanel]);
+
+  useEffect(() => {
+    if (selectedEmailId || isPhone) return;
+    lastFocusedRowRef.current?.focus();
+  }, [selectedEmailId, isPhone]);
+
+  const openEmailDetails = useCallback(
+    (emailId: number, element: HTMLElement) => {
+      lastFocusedRowRef.current = element;
+      openEmail(emailId);
+    },
+    [openEmail]
+  );
+
+  const reviewColumns = useMemo<StandardEmailColumn<ReviewQueueItem>[]>(
+    () => [
+      {
+        key: 'contact',
+        label: 'Contact',
+        width: '28%',
+        render: (item) => (
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-text">{item.contact_name}</p>
+            <p className="truncate text-xs text-text-muted">
+              {item.company_name}
+              {item.contact_title ? ` · ${item.contact_title}` : ''}
+            </p>
+          </div>
+        ),
+      },
+      {
+        key: 'campaign',
+        label: 'Campaign',
+        width: '18%',
+        render: (item) => (
+          <div className="min-w-0">
+            <p className="truncate text-sm text-text">{item.campaign_name}</p>
+            <p className="text-xs text-text-muted">
+              Email {item.step_number} of {item.num_emails}
+            </p>
+          </div>
+        ),
+      },
+      {
+        key: 'subject',
+        label: 'Draft',
+        width: '42%',
+        render: (item) => (
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-text">{item.rendered_subject || item.subject || 'No subject'}</p>
+            <p className="truncate text-xs text-text-muted">{item.rendered_body || item.body || 'No preview available.'}</p>
+          </div>
+        ),
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        width: '12%',
+        render: (item) => (
+          <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${statusTone(item.review_status)}`}>
+            {item.review_status || 'pending'}
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
+  const scheduledColumns = useMemo<StandardEmailColumn<ScheduledEmail>[]>(
+    () => [
+      {
+        key: 'contact',
+        label: 'Contact',
+        width: '26%',
+        render: (item) => (
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-text">{item.contact_name}</p>
+            <p className="truncate text-xs text-text-muted">
+              {item.company_name}
+              {item.contact_title ? ` · ${item.contact_title}` : ''}
+            </p>
+          </div>
+        ),
+      },
+      {
+        key: 'campaign',
+        label: 'Campaign',
+        width: '18%',
+        render: (item) => (
+          <div className="min-w-0">
+            <p className="truncate text-sm text-text">{item.campaign_name}</p>
+            <p className="text-xs text-text-muted">Email {item.step_number}</p>
+          </div>
+        ),
+      },
+      {
+        key: 'subject',
+        label: 'Subject',
+        width: '28%',
+        render: (item) => (
+          <p className="truncate text-sm text-text">{item.rendered_subject || item.subject || 'No subject'}</p>
+        ),
+      },
+      {
+        key: 'scheduled',
+        label: 'Scheduled',
+        width: '16%',
+        render: (item) => <span className="text-xs text-text-muted">{formatShortDateTime(item.scheduled_send_time)}</span>,
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        width: '12%',
+        render: (item) => (
+          <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${statusTone(item.review_status || item.status)}`}>
+            {item.review_status || item.status || 'scheduled'}
+          </span>
+        ),
+      },
+    ],
+    []
+  );
+
+  const historyColumns = useMemo<StandardEmailColumn<SentEmail>[]>(
+    () => [
+      {
+        key: 'contact',
+        label: 'Contact',
+        width: '26%',
+        render: (item) => (
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-text">{item.contact_name}</p>
+            <p className="truncate text-xs text-text-muted">{item.company_name}</p>
+          </div>
+        ),
+      },
+      {
+        key: 'campaign',
+        label: 'Campaign',
+        width: '18%',
+        render: (item) => (
+          <div className="min-w-0">
+            <p className="truncate text-sm text-text">{item.campaign_name}</p>
+            <p className="text-xs text-text-muted">Email {item.step_number}</p>
+          </div>
+        ),
+      },
+      {
+        key: 'subject',
+        label: 'Subject',
+        width: '30%',
+        render: (item) => (
+          <p className="truncate text-sm text-text">{item.rendered_subject || item.subject || 'No subject'}</p>
+        ),
+      },
+      {
+        key: 'engagement',
+        label: 'Engagement',
+        width: '14%',
+        render: (item) => (
+          <div className="flex items-center gap-1.5 text-xs text-text-muted">
+            <span>{item.open_count || 0} opens</span>
+            {item.replied ? <span className="rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-700">Reply</span> : null}
+          </div>
+        ),
+      },
+      {
+        key: 'sent',
+        label: 'Sent',
+        width: '12%',
+        render: (item) => <span className="text-xs text-text-muted">{formatShortDateTime(item.sent_at)}</span>,
+      },
+    ],
+    []
+  );
+
+  const emailDetailsContent = selectedEmailPanel ? (
+    <EmailDetailsPanel
+      key={`${selectedEmailPanel.mode}-${selectedEmailPanel.email.id}`}
+      mode={selectedEmailPanel.mode}
+      email={selectedEmailPanel.email}
+      onClose={closeEmail}
+      onApproveEmail={(emailId, subject, body) => approveEmail.mutate({ emailId, subject, body })}
+      onRejectEmail={(emailId) => rejectEmail.mutate(emailId)}
+      onSendNow={(email) => setSendNowTarget(email)}
+      onReschedule={handleReschedule}
+      isApproving={approveEmail.isPending}
+      isRejecting={rejectEmail.isPending}
+      isSendingNow={sendEmailNow.isPending}
+      isRescheduling={rescheduleEmail.isPending}
+    />
+  ) : null;
+
+  const renderCompactReviewRow = useCallback((item: ReviewQueueItem) => {
+    return (
+      <div className="min-w-0">
+        <div className="mb-1 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-text">{item.contact_name}</p>
+            <p className="truncate text-xs text-text-muted">
+              {item.company_name}
+              {item.contact_title ? ` · ${item.contact_title}` : ''}
+            </p>
+          </div>
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusTone(item.review_status)}`}>
+            {item.review_status || 'pending'}
+          </span>
+        </div>
+        <p className="truncate text-xs font-medium text-accent">
+          {item.campaign_name} · Email {item.step_number} of {item.num_emails}
+        </p>
+        <p className="mt-1 truncate text-sm text-text">{item.rendered_subject || item.subject || 'No subject'}</p>
+        <p className="mt-1 line-clamp-2 text-xs text-text-muted">{item.rendered_body || item.body || 'No preview available.'}</p>
+      </div>
+    );
+  }, []);
+
+  const renderCompactScheduledRow = useCallback((item: ScheduledEmail) => {
+    return (
+      <div className="min-w-0">
+        <div className="mb-1 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-text">{item.contact_name}</p>
+            <p className="truncate text-xs text-text-muted">
+              {item.company_name}
+              {item.contact_title ? ` · ${item.contact_title}` : ''}
+            </p>
+          </div>
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusTone(item.review_status || item.status)}`}>
+            {item.review_status || item.status || 'scheduled'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-text-muted">
+          <span className="truncate text-accent">{item.campaign_name}</span>
+          <span>·</span>
+          <span>Email {item.step_number}</span>
+        </div>
+        <p className="mt-1 truncate text-sm text-text">{item.rendered_subject || item.subject || 'No subject'}</p>
+        <p className="mt-1 text-xs text-text-muted">{formatShortDateTime(item.scheduled_send_time)}</p>
+      </div>
+    );
+  }, []);
+
+  const renderCompactHistoryRow = useCallback((item: SentEmail) => {
+    return (
+      <div className="min-w-0">
+        <div className="mb-1 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-text">{item.contact_name}</p>
+            <p className="truncate text-xs text-text-muted">{item.company_name}</p>
+          </div>
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusTone(item.review_status || item.status)}`}>
+            {item.review_status || item.status || 'sent'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-text-muted">
+          <span className="truncate text-accent">{item.campaign_name}</span>
+          <span>·</span>
+          <span>Email {item.step_number}</span>
+        </div>
+        <p className="mt-1 truncate text-sm text-text">{item.rendered_subject || item.subject || 'No subject'}</p>
+        <div className="mt-1 flex items-center gap-3 text-xs text-text-muted">
+          <span>{item.open_count || 0} opens</span>
+          <span>{item.replied ? 'Replied' : 'No reply'}</span>
+          <span className="truncate">{formatShortDateTime(item.sent_at)}</span>
+        </div>
+      </div>
+    );
+  }, []);
+
+  const inlineControls = (
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div className="min-w-[220px] flex-1">
+        <PageSearchInput value={emailSearch} onChange={setEmailSearch} placeholder={searchPlaceholder} />
+      </div>
+      {view === 'review' ? (
+        <>
+          <HeaderActionButton
+            onClick={() => prepareBatch.mutate()}
+            variant="secondary"
+            icon={<RefreshCw className={`h-4 w-4 ${prepareBatch.isPending ? 'animate-spin' : ''}`} />}
+            disabled={prepareBatch.isPending}
+          >
+            Prepare Batch
+          </HeaderActionButton>
+          <HeaderActionButton
+            onClick={() => approveAll.mutate(filteredReviewQueue.map((item) => item.id))}
+            variant="primary"
+            icon={<CheckCircle className="h-4 w-4" />}
+            disabled={filteredReviewQueue.length === 0 || approveAll.isPending}
+          >
+            Approve All
+          </HeaderActionButton>
+        </>
+      ) : null}
+      {view === 'scheduled' ? (
+        <>
+          <select
+            value={scheduledCampaignFilter ?? ''}
+            onChange={(event) => setScheduledCampaignFilter(event.target.value ? Number(event.target.value) : null)}
+            className="h-8 rounded-md border border-border bg-surface px-2.5 text-xs text-text"
+            aria-label="Filter scheduled emails by campaign"
+          >
+            <option value="">All campaigns</option>
+            {scheduledCampaignOptions.map(([campaignId, campaignName]) => (
+              <option key={campaignId} value={campaignId}>
+                {campaignName}
+              </option>
+            ))}
+          </select>
+          <HeaderActionButton
+            onClick={() => processScheduled.mutate(true)}
+            variant="secondary"
+            icon={<Clock className="h-4 w-4" />}
+            disabled={filteredScheduledRows.length === 0 || (processScheduled.isPending && processScheduled.variables === true)}
+          >
+            Review in Tabs
+          </HeaderActionButton>
+          <HeaderActionButton
+            onClick={() => processScheduled.mutate(false)}
+            variant="primary"
+            icon={<Send className="h-4 w-4" />}
+            disabled={filteredScheduledRows.length === 0 || (processScheduled.isPending && processScheduled.variables !== true)}
+          >
+            Process Due
+          </HeaderActionButton>
+        </>
+      ) : null}
+      <HeaderActionButton
+        onClick={() => setShowSettings((prev) => !prev)}
+        variant={showSettings ? 'primary' : 'secondary'}
+        compact
+        icon={<Settings className="h-4 w-4" />}
+        title="Email Settings"
+      />
+      <HeaderActionButton
+        onClick={() => setShowCreateModal(true)}
+        variant="primary"
+        icon={<Plus className="h-4 w-4" />}
+      >
+        New Campaign
+      </HeaderActionButton>
+    </div>
+  );
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="pt-5 px-4 md:pt-8 md:px-8 pb-4 md:pb-8">
-        <div className="flex flex-row justify between md:justify-between">
-        <PageHeader
+    <>
+      <WorkspacePageShell
         title="Email"
-        subtitle={`${stats?.total_campaigns || 0} campaigns � ${stats?.total_sent || 0} sent � ${stats?.sent_today || 0} today`}
-        mobileActions={(
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex md:hidden p-2 bg-accent text-white rounded-lg hover:bg-accent-hover transition-colors shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-        )}
-      />
-
-      {/* View Tabs */}
-      <div className="flex items-center justify-between gap-1.5 md:gap-2 mb-3 md:mb-6">
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar min-w-0">
-          <div className="flex items-center gap-0.5 md:gap-1 bg-surface border border-border rounded-lg p-0.5 md:p-1 shrink-0">
-            {[
-              { id: 'campaigns', label: 'Campaigns', icon: Mail, shortLabel: 'All' },
-              { id: 'review', label: `Review${reviewQueue.length > 0 ? ` (${reviewQueue.length})` : ''}`, icon: CheckCircle, shortLabel: reviewQueue.length > 0 ? `Review (${reviewQueue.length})` : 'Review' },
-              { id: 'scheduled', label: `Scheduled (${allScheduled.length})`, icon: CalendarClock, shortLabel: `Sched (${allScheduled.length})` },
-              { id: 'history', label: 'Sent History', icon: FileText, shortLabel: 'Sent' }
-            ].map(tab => {
-              const Icon = tab.icon;
-              const displayLabel = isMobile ? tab.shortLabel : tab.label;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setView(tab.id as typeof view)}
-                  className={`flex items-center gap-1 px-2 md:px-4 py-1 md:py-2 rounded-md text-[11px] md:text-sm font-medium transition-colors whitespace-nowrap ${
-                    view === tab.id
-                      ? 'bg-accent text-white'
-                      : 'text-text-muted hover:text-text hover:bg-surface-hover'
-                  } ${tab.id === 'review' && reviewQueue.length > 0 && view !== 'review' ? 'text-amber-600' : ''}`}
-                >
-                  <Icon className="w-3 h-3 md:w-4 md:h-4" />
-                  <span>{displayLabel}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Settings gear button */}
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className={`p-1.5 md:p-2 rounded-md transition-colors shrink-0 ${showSettings ? 'bg-accent text-white' : 'text-text-muted hover:text-text hover:bg-surface-hover'}`}
-            title="Email Settings"
-          >
-            <Settings className="w-3.5 h-3.5 md:w-4 md:h-4" />
-          </button>
-        </div>
-
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="hidden md:flex items-center gap-2 px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition-colors shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          New Campaign
-        </button>
-      </div>
-
-      {/* Settings Panel */}
-      {showSettings && emailConfig && (
-        <SettingsPanel 
-          emailConfig={emailConfig} 
-          onUpdateConfig={(data) => updateConfig.mutate(data)} 
-        />
-      )}
-      </div>
-      </div>
-      {/* Content */}
-      {view === 'campaigns' && (
-        <>
-          {/* Next Scheduled Sends Widget */}
-          {/* <NextScheduledSends
-            scheduledEmails={allScheduled}
-            onViewEmail={setViewingEmail}
-            onEditEmail={setViewingEmail}
-            onSendNow={handleSendNowRequest}
-            onViewAll={() => setView('scheduled')}
-          /> */}
-
-          <CampaignsView
-            campaigns={campaigns}
-            campaignScheduleSummary={campaignScheduleSummary}
-            isLoading={campaignsLoading}
-            onCreateCampaign={() => setShowCreateModal(true)}
-            onEditTemplates={setEditingTemplates}
-            onDelete={(id) => deleteCampaign.mutate(id)}
-            onActivate={(id) => activateCampaign.mutate(id)}
-            onPause={(id) => pauseCampaign.mutate(id)}
-            onViewContacts={() => {
-              addNotification({ type: 'info', title: 'View contacts', message: 'Go to Contacts tab and filter by this campaign' });
+        subtitle={pageSubtitle}
+        contentClassName="overflow-hidden"
+        hideHeader
+        preHeader={
+          <EmailTabs
+            tabs={tabs}
+            activeTab={view}
+            onSelectTab={(tabId) => {
+              if (tabId === 'templates') {
+                router.push('/templates');
+                return;
+              }
+              if (tabId === 'campaigns' || tabId === 'review' || tabId === 'scheduled' || tabId === 'history') {
+                setEmailView(tabId);
+              }
             }}
-            onSendEmails={(id) => sendEmails.mutate(id)}
-            onUploadToSalesforce={handleUploadToSalesforce}
-            uploadingCampaignId={uploadingCampaignId}
           />
-        </>
-      )}
+        }
+        preHeaderAffectsLayout
+        preHeaderClassName="-mt-3 md:-mt-4 h-14 flex items-end"
+        toolbar={inlineControls}
+      >
+        {showSettings && emailConfig ? (
+          <SettingsPanel emailConfig={emailConfig} onUpdateConfig={(data) => updateConfig.mutate(data)} />
+        ) : null}
 
-      {view === 'review' && (
-        <ReviewQueueView
-          reviewQueue={reviewQueue}
-          scheduledCount={allScheduled.length}
-          onPrepareBatch={() => prepareBatch.mutate()}
-          onApproveEmail={(emailId, subject, body) => approveEmail.mutate({ emailId, subject, body })}
-          onRejectEmail={(emailId) => rejectEmail.mutate(emailId)}
-          onApproveAll={(emailIds) => approveAll.mutate(emailIds)}
-          isPreparingBatch={prepareBatch.isPending}
-          isApprovingEmail={approveEmail.isPending}
-          isRejectingEmail={rejectEmail.isPending}
-          isApprovingAll={approveAll.isPending}
-        />
-      )}
+        {view === 'campaigns' && (
+          <div className="min-h-0 flex-1 overflow-hidden pt-2">
+            <div className="flex h-full min-h-0 overflow-hidden bg-surface">
+              <div className="min-h-0 min-w-0 flex-1">
+                <CampaignsView
+                  campaigns={filteredCampaigns}
+                  campaignScheduleSummary={campaignScheduleSummary}
+                  isLoading={campaignsLoading}
+                  searchQuery={emailSearch}
+                  withinCard
+                  selectedCampaignId={selectedCampaign?.id ?? null}
+                  onSelectCampaign={(campaign) => setSelectedCampaignId(campaign.id)}
+                  onCreateCampaign={() => setShowCreateModal(true)}
+                  onEditTemplates={setEditingTemplates}
+                  onDelete={(id) => deleteCampaign.mutate(id)}
+                  onActivate={(id) => activateCampaign.mutate(id)}
+                  onPause={(id) => pauseCampaign.mutate(id)}
+                  onViewContacts={() => {
+                    addNotification({
+                      type: 'info',
+                      title: 'View contacts',
+                      message: 'Go to Contacts tab and filter by this campaign',
+                    });
+                  }}
+                  onSendEmails={(id) => sendEmails.mutate({ campaignId: id, limit: 500, reviewMode: true })}
+                  onUploadToSalesforce={handleUploadToSalesforce}
+                  uploadingCampaignId={uploadingCampaignId}
+                />
+              </div>
+              {!isPhone && templateEditorOpen && editingTemplates ? (
+                <SidePanelContainer ariaLabel="Campaign template editor panel">
+                  <CampaignTemplateEditorPane
+                    campaign={editingTemplates}
+                    onClose={() => setEditingTemplates(null)}
+                    onSave={handleSaveTemplates}
+                  />
+                </SidePanelContainer>
+              ) : !isPhone && selectedCampaign ? (
+                <SidePanelContainer ariaLabel="Campaign details panel">
+                  <CampaignDetailsPanel
+                    campaign={selectedCampaign}
+                    onClose={() => setSelectedCampaignId(null)}
+                    onEditTemplates={setEditingTemplates}
+                  />
+                </SidePanelContainer>
+              ) : null}
+            </div>
+          </div>
+        )}
 
-      {view === 'history' && (
-        <div className="bg-surface border border-border rounded-lg p-4 md:p-6">
-          <h3 className="text-base md:text-lg font-semibold text-text mb-3 md:mb-4">Sent Email History</h3>
-          <SentEmailsList emails={sentEmails} />
-        </div>
-      )}
+        {view === 'review' && (
+          <div className="min-h-0 flex-1 overflow-hidden pt-2">
+            <div className="flex h-full min-h-0 overflow-hidden bg-surface">
+              <div className="flex min-w-0 min-h-0 flex-1 flex-col">
+                <StandardEmailTable
+                  columns={reviewColumns}
+                  rows={filteredReviewQueue}
+                  rowId={(item) => item.id}
+                  selectedId={selectedEmailPanel?.mode === 'review' ? selectedEmailPanel.email.id : null}
+                  isCompact={isCompact}
+                  renderCompactRow={renderCompactReviewRow}
+                  onSelectRow={(item, element) => openEmailDetails(item.id, element)}
+                  getRowAriaLabel={(item) => `Open review details for ${item.contact_name}`}
+                  emptyState={
+                    <div className="text-center text-text-muted">
+                      <CheckCircle className="mx-auto mb-3 h-10 w-10 opacity-50" />
+                      <p className="text-sm font-medium text-text">No emails pending review</p>
+                      <p className="mt-1 text-xs">Prepare a batch to generate fresh drafts.</p>
+                    </div>
+                  }
+                />
+              </div>
+              {!isPhone && emailDetailsContent ? (
+                <SidePanelContainer ref={detailsPanelRef} ariaLabel="Email details panel">
+                  <div id="email-details-panel" tabIndex={-1} className="flex h-full min-h-0 flex-col outline-none">
+                    {emailDetailsContent}
+                  </div>
+                </SidePanelContainer>
+              ) : null}
+            </div>
+          </div>
+        )}
 
-      {view === 'scheduled' && (
-        <ScheduledView
-          allScheduled={allScheduled}
-          queue={queue}
-          onViewEmail={setViewingEmail}
-          onEditEmail={setViewingEmail}
-          onSendNow={handleSendNowRequest}
-          onReschedule={handleReschedule}
-          onReorder={handleReorder}
-          onSendAll={() => sendEmails.mutate(undefined)}
-          isSending={sendEmails.isPending}
-        />
-      )}
+        {view === 'history' && (
+          <div className="min-h-0 flex-1 overflow-hidden pt-2">
+            <div className="flex h-full min-h-0 overflow-hidden bg-surface">
+              <div className="flex min-w-0 min-h-0 flex-1 flex-col">
+                <StandardEmailTable
+                  columns={historyColumns}
+                  rows={filteredSentEmails}
+                  rowId={(item) => item.id}
+                  selectedId={selectedEmailPanel?.mode === 'history' ? selectedEmailPanel.email.id : null}
+                  isCompact={isCompact}
+                  renderCompactRow={renderCompactHistoryRow}
+                  onSelectRow={(item, element) => openEmailDetails(item.id, element)}
+                  getRowAriaLabel={(item) => `Open sent email details for ${item.contact_name}`}
+                  emptyState={
+                    <div className="text-center text-text-muted">
+                      <Mail className="mx-auto mb-3 h-10 w-10 opacity-50" />
+                      <p className="text-sm font-medium text-text">No emails sent yet</p>
+                      <p className="mt-1 text-xs">Processed messages will appear here with engagement history.</p>
+                    </div>
+                  }
+                />
+              </div>
+              {!isPhone && emailDetailsContent ? (
+                <SidePanelContainer ref={detailsPanelRef} ariaLabel="Email details panel">
+                  <div id="email-details-panel" tabIndex={-1} className="flex h-full min-h-0 flex-col outline-none">
+                    {emailDetailsContent}
+                  </div>
+                </SidePanelContainer>
+              ) : null}
+            </div>
+          </div>
+        )}
 
-      {/* Modals */}
-      {showCreateModal && (
-        <CampaignModal
-          onClose={() => setShowCreateModal(false)}
-          onSave={handleCreateCampaign}
-        />
-      )}
+        {view === 'scheduled' && (
+          <div className="min-h-0 flex-1 overflow-hidden pt-2">
+            <div className="flex h-full min-h-0 overflow-hidden bg-surface">
+              <div className="flex min-w-0 min-h-0 flex-1 flex-col">
+                <StandardEmailTable
+                  columns={scheduledColumns}
+                  rows={filteredScheduledRows}
+                  rowId={(item) => item.id}
+                  selectedId={selectedEmailPanel?.mode === 'scheduled' ? selectedEmailPanel.email.id : null}
+                  isCompact={isCompact}
+                  renderCompactRow={renderCompactScheduledRow}
+                  onSelectRow={(item, element) => openEmailDetails(item.id, element)}
+                  getRowAriaLabel={(item) => `Open scheduled email details for ${item.contact_name}`}
+                  emptyState={
+                    <div className="text-center text-text-muted">
+                      <Clock className="mx-auto mb-3 h-10 w-10 opacity-50" />
+                      <p className="text-sm font-medium text-text">No scheduled emails</p>
+                      <p className="mt-1 text-xs">Approved drafts appear here with their send time.</p>
+                    </div>
+                  }
+                />
+              </div>
+              {!isPhone && emailDetailsContent ? (
+                <SidePanelContainer ref={detailsPanelRef} ariaLabel="Email details panel">
+                  <div id="email-details-panel" tabIndex={-1} className="flex h-full min-h-0 flex-col outline-none">
+                    {emailDetailsContent}
+                  </div>
+                </SidePanelContainer>
+              ) : null}
+            </div>
+          </div>
+        )}
+      </WorkspacePageShell>
 
-      {editingTemplates && (
-        <TemplateEditorModal
-          campaign={editingTemplates}
-          onClose={() => setEditingTemplates(null)}
-          onSave={handleSaveTemplates}
-        />
-      )}
+      {showCreateModal && <CampaignModal onClose={() => setShowCreateModal(false)} onSave={handleCreateCampaign} />}
 
-      {viewingEmail && (
-        <EmailDetailModal
-          email={viewingEmail}
-          onClose={() => setViewingEmail(null)}
-          onReschedule={handleReschedule}
-          onSendNow={handleSendNowRequest}
-        />
-      )}
+      {isPhone && templateEditorOpen && editingTemplates ? (
+        <BottomDrawerContainer onClose={() => setEditingTemplates(null)} ariaLabel="Campaign template editor drawer">
+          <CampaignTemplateEditorPane
+            campaign={editingTemplates}
+            onClose={() => setEditingTemplates(null)}
+            onSave={handleSaveTemplates}
+          />
+        </BottomDrawerContainer>
+      ) : null}
 
-      {/* Send Now confirmation dialog */}
+      {isPhone && !templateEditorOpen && selectedCampaign ? (
+        <BottomDrawerContainer onClose={() => setSelectedCampaignId(null)} ariaLabel="Campaign details drawer">
+          <CampaignDetailsPanel
+            campaign={selectedCampaign}
+            onClose={() => setSelectedCampaignId(null)}
+            onEditTemplates={setEditingTemplates}
+          />
+        </BottomDrawerContainer>
+      ) : null}
+
+      {isPhone && emailDetailsContent ? (
+        <BottomDrawerContainer onClose={closeEmail} ariaLabel="Email details drawer">
+          {emailDetailsContent}
+        </BottomDrawerContainer>
+      ) : null}
+
       {sendNowTarget && (
         <SendNowConfirm
           email={sendNowTarget}
@@ -315,6 +879,6 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
           onCancel={() => setSendNowTarget(null)}
         />
       )}
-    </div>
+    </>
   );
 }

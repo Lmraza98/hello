@@ -1,24 +1,24 @@
-// ── Task Classifiers ────────────────────────────────────────
+﻿// â”€â”€ Task Classifiers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // LLM-based classifiers for task relevance, param extraction,
 // and task requirements analysis.  All functions have try/catch
-// with safe fallbacks — they never throw.
+// with safe fallbacks â€” they never throw.
 
 import { ollamaChat } from './models/ollamaClient';
 import type { Task } from './taskState';
 import { taskSummary } from './taskState';
 
 // Use the same classifier model as the intent classifier in chatEngine.ts.
-// Default to gemma3:12b — functiongemma is too small and frequently returns
+// Default to gemma3:12b â€” functiongemma is too small and frequently returns
 // invalid output for classification tasks.
 const CLASSIFIER_MODEL =
-  import.meta.env.VITE_DECOMPOSE_CLASSIFIER_MODEL ||
-  import.meta.env.VITE_OLLAMA_GEMMA_MODEL ||
+  process.env.NEXT_PUBLIC_DECOMPOSE_CLASSIFIER_MODEL ||
+  process.env.NEXT_PUBLIC_OLLAMA_GEMMA_MODEL ||
   'gemma3:12b';
 
-// Use the planner model for param extraction — needs to output structured JSON.
+// Use the planner model for param extraction â€” needs to output structured JSON.
 const PLANNER_MODEL =
-  import.meta.env.VITE_PLANNER_BACKEND ||
-  import.meta.env.VITE_TOOL_BRAIN ||
+  process.env.NEXT_PUBLIC_PLANNER_BACKEND ||
+  process.env.NEXT_PUBLIC_TOOL_BRAIN ||
   'gemma3:12b';
 
 export type TaskRelevance = 'continuation' | 'cancellation' | 'new_topic';
@@ -165,8 +165,8 @@ export async function analyzeTaskRequirements(
             '  "missingParams": [{"name": "...", "description": "...", "type": "string|number|boolean|entity_ref", "required": true}],\n' +
             '  "suggestedTool": "tool_name or null"\n' +
             '}\n' +
-            'If the request is a simple lookup (find, search, list, show) → canExecuteImmediately: true, missingParams: [].\n' +
-            'If the request needs info the user has not provided → canExecuteImmediately: false, list what is missing.',
+            'If the request is a simple lookup (find, search, list, show) â†’ canExecuteImmediately: true, missingParams: [].\n' +
+            'If the request needs info the user has not provided â†’ canExecuteImmediately: false, list what is missing.',
         },
         { role: 'user', content: goal },
       ],
@@ -190,3 +190,4 @@ export async function analyzeTaskRequirements(
     return { canExecuteImmediately: true, missingParams: [] };
   }
 }
+

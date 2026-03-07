@@ -1,0 +1,62 @@
+# Contacts UI Playbook
+
+This playbook is the source of truth for Contacts page UI behavior and structure.
+
+## 1. Split Pane Structure
+
+- Desktop layout must use real flex siblings for list pane and inspector pane.
+- Do not render desktop inspector as an overlay on top of the table region.
+- Parent container must be a single `flex` row with explicit pane widths and shrink rules.
+- Inspector rail can collapse to width `0` only if list pane remains mounted and stable.
+
+## 2. Flex and Scroll Constraints
+
+- Any scrollable region inside nested flex containers must include `min-h-0` on every flex ancestor up to the scroll container.
+- Any text truncation or overflow-safe content in flex children must include `min-w-0`.
+- Table shell, row viewport, and inspector body must each have one clear scroll owner.
+- Never rely on implicit browser overflow in deeply nested flex trees.
+
+## 3. Table Contract
+
+- Header and row cells must stay width-synced through shared column sizing state.
+- Column ids must be stable and explicit.
+- Resize and visibility state must be controlled, not inferred from render order.
+- Column menu actions are non-row actions and must not trigger row selection.
+- Row action buttons, checkboxes, and menus must stop event propagation before row click handlers.
+
+## 4. Interaction Rules
+
+- Escape closes details panel or bottom drawer first.
+- On detail close, focus returns to the last active row trigger.
+- Row click opens details only when the click target is not an interactive control.
+- Keyboard row activation (`Enter` or `Space`) follows the same open-details behavior as row click.
+
+## 5. Responsive Behavior
+
+- Desktop uses table plus right inspector rail in one split pane.
+- Tablet may keep rail behavior if horizontal space allows and text remains readable.
+- Phone uses list-first flow with details in a bottom drawer.
+- Do not keep desktop rail mounted as a hidden overlay for phone layout.
+
+## 6. Required States
+
+- Loading state: preserve shell structure and reserve row area.
+- Empty state: provide clear next action and keep filter context visible.
+- Error state: show recoverable message with retry action.
+- State transitions must not remount core layout containers unless route changes.
+
+## 7. Accessibility Requirements
+
+- All icon-only controls need descriptive `aria-label` values.
+- Active row, selected rows, and expanded details state must be announced with semantic attributes.
+- Focus order must remain predictable when opening and closing rail or drawer.
+- Drawer and popover surfaces must trap focus only while open and restore focus on close.
+- Keyboard-only operation must support filtering, row selection, row actions, and close actions.
+
+## 8. Regression Checklist
+
+- Verify header and body alignment after column resize.
+- Verify Escape behavior from inspector and mobile drawer.
+- Verify click-outside behavior for menus does not clear row selection unexpectedly.
+- Verify loading, empty, and error states for both desktop and phone.
+- Verify focus return lands on the same row trigger after closing details.

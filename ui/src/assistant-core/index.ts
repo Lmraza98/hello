@@ -1,5 +1,5 @@
-/**
- * Assistant Core — public API.
+﻿/**
+ * Assistant Core â€” public API.
  *
  * Usage:
  *   import { initAssistantCore, trySkillRoute } from '../assistant-core';
@@ -34,8 +34,9 @@ import { registerBuiltinSkills as _registerBuiltinSkills } from './skills/loader
 
 /**
  * Initialize the assistant core: register all built-in skills.
- * Call once at app startup (e.g., in main.tsx).
+ * Call once at app startup (e.g., in app/(workspace)/layout.tsx).
  */
 export function initAssistantCore(): void {
   _registerBuiltinSkills();
 }
+

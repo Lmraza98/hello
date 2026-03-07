@@ -23,7 +23,7 @@ export default function Admin({
   return (
     <div className="h-full flex flex-col">
       <div className="sticky top-0 z-10 bg-bg pb-3 md:pb-6">
-        <div className="pt-5 px-4 md:pt-8 md:px-8">
+        <div className="pt-3 px-3 md:pt-4 md:px-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-2">
@@ -75,7 +75,7 @@ export default function Admin({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 px-4 md:px-8 pb-4 md:pb-8">
+      <div className="flex-1 min-h-0 px-3 pb-3 md:px-4 md:pb-4">
         {tab === 'logs' ? (
           logsContent ?? (
             <div className="bg-surface border border-border rounded-lg p-4 text-sm text-text-muted">

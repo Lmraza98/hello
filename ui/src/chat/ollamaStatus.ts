@@ -1,12 +1,12 @@
-import { TOOL_BRAIN_MODEL } from './models/toolBrainConfig';
+﻿import { TOOL_BRAIN_MODEL } from './models/toolBrainConfig';
 import { listOllamaModels, type LocalChatMessage } from './models/ollamaClient';
 import type { ChatCompletionMessageParam } from './chatEngineTypes';
 
 const LOCAL_MODEL_PRIORITY = [
   TOOL_BRAIN_MODEL,
-  import.meta.env.VITE_OLLAMA_QWEN3_MODEL || 'qwen3-coder-next:latest',
-  import.meta.env.VITE_OLLAMA_GEMMA_MODEL || 'gemma3:12b',
-  import.meta.env.VITE_OLLAMA_DEEPSEEK_MODEL || 'deepseek-r1:14b',
+  process.env.NEXT_PUBLIC_OLLAMA_QWEN3_MODEL || 'qwen3-coder-next:latest',
+  process.env.NEXT_PUBLIC_OLLAMA_GEMMA_MODEL || 'gemma3:12b',
+  process.env.NEXT_PUBLIC_OLLAMA_DEEPSEEK_MODEL || 'deepseek-r1:14b',
 ] as const;
 
 let ollamaStatus: { available: boolean; checkedAt: number } = {
@@ -15,8 +15,8 @@ let ollamaStatus: { available: boolean; checkedAt: number } = {
 };
 let ollamaChecking: Promise<void> | null = null;
 
-const LOCAL_HISTORY_MAX_MESSAGES = Number.parseInt(import.meta.env.VITE_CHAT_HISTORY_MAX_MESSAGES || '10', 10);
-const LOCAL_HISTORY_MAX_CONTENT_CHARS = Number.parseInt(import.meta.env.VITE_CHAT_HISTORY_MAX_CONTENT_CHARS || '700', 10);
+const LOCAL_HISTORY_MAX_MESSAGES = Number.parseInt(process.env.NEXT_PUBLIC_CHAT_HISTORY_MAX_MESSAGES || '10', 10);
+const LOCAL_HISTORY_MAX_CONTENT_CHARS = Number.parseInt(process.env.NEXT_PUBLIC_CHAT_HISTORY_MAX_CONTENT_CHARS || '700', 10);
 
 function compactContent(content: unknown): string {
   if (typeof content === 'string') {
@@ -75,12 +75,13 @@ function refreshOllamaStatus(force = false): void {
     try {
       const availableModels = await listOllamaModels();
       const normalizedModels = availableModels.map((m) => m.toLowerCase());
+      const hasAnyModel = normalizedModels.length > 0;
       const hasPreferredModel = LOCAL_MODEL_PRIORITY.some((preferred) =>
         normalizedModels.some((loaded) =>
           loaded.startsWith((preferred.split(':')[0] || preferred).toLowerCase())
         )
       );
-      ollamaStatus = { available: hasPreferredModel, checkedAt: Date.now() };
+      ollamaStatus = { available: hasAnyModel || hasPreferredModel, checkedAt: Date.now() };
     } catch {
       ollamaStatus = { available: false, checkedAt: Date.now() };
     } finally {
@@ -102,3 +103,4 @@ export function getOllamaReadyFast(): boolean {
   }
   return ollamaStatus.available;
 }
+

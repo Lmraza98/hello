@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { useLocation } from 'react-router-dom';
+﻿import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import type { PageContextSnapshot } from '../types/pageContext';
 
 interface PageContextApi {
@@ -10,9 +10,12 @@ interface PageContextApi {
 const PageContextContext = createContext<PageContextApi | undefined>(undefined);
 
 export function PageContextProvider({ children }: { children: ReactNode }) {
-  const location = useLocation();
+  const pageContextWritesEnabled = String(process.env.NEXT_PUBLIC_PAGE_CONTEXT_WRITES_ENABLED ?? '0') === '1';
+  const pathname = usePathname() ?? '/';
+  const searchParams = useSearchParams();
   const [extra, setExtra] = useState<Partial<PageContextSnapshot>>({});
   const setPageContext = useCallback((partial: Partial<PageContextSnapshot>) => {
+    if (!pageContextWritesEnabled) return;
     setExtra((prev) => {
       const next = { ...prev, ...partial };
       const prevJson = JSON.stringify(prev);
@@ -20,22 +23,22 @@ export function PageContextProvider({ children }: { children: ReactNode }) {
       if (prevJson === nextJson) return prev;
       return next;
     });
-  }, []);
+  }, [pageContextWritesEnabled]);
 
   const pageContext = useMemo<PageContextSnapshot>(() => {
-    const params = new URLSearchParams(location.search);
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
     const filters: Record<string, string | number | boolean | null> = {};
     for (const [k, v] of params.entries()) {
       filters[k] = v;
     }
     return {
-      route: location.pathname,
+      route: pathname,
       filters,
       listContext: extra.listContext,
       selected: extra.selected,
       loadedIds: extra.loadedIds,
     };
-  }, [location.pathname, location.search, extra]);
+  }, [pathname, searchParams, extra]);
 
   const value = useMemo<PageContextApi>(
     () => ({
@@ -53,3 +56,5 @@ export function usePageContext() {
   if (!ctx) throw new Error('usePageContext must be used inside PageContextProvider');
   return ctx;
 }
+
+

@@ -66,6 +66,7 @@ export interface EmailProvider {
   // Contacts & enrollment
   getCampaignContacts(campaignId: number): Promise<CampaignContact[]>;
   enrollContacts(campaignId: number, contactIds: number[]): Promise<{ enrolled: number; skipped: number }>;
+  removeCampaignContact(campaignId: number, campaignContactId: number): Promise<{ success: boolean }>;
 
   // Sending
   sendEmails(campaignId?: number, limit?: number, reviewMode?: boolean): Promise<{ success: boolean; message?: string; error?: string; ready_count?: number }>;
@@ -95,6 +96,7 @@ export interface EmailProvider {
   rescheduleEmail(emailId: number, sendTime: string): Promise<void>;
   reorderEmails(emailIds: number[], startTime?: string): Promise<void>;
   getCampaignScheduleSummary(): Promise<CampaignScheduleSummary[]>;
+  processScheduled(reviewMode?: boolean): Promise<{ success: boolean; message?: string; count?: number; processed?: number; error?: string }>;
 
   // Config
   getConfig(): Promise<EmailConfig | null>;
@@ -217,6 +219,10 @@ function createHttpEmailProvider(baseUrl: string): EmailProvider {
         method: 'POST',
         body: JSON.stringify({ contact_ids: contactIds }),
       }, 'Failed to enroll contacts'),
+    removeCampaignContact: (campaignId, campaignContactId) =>
+      strictFetch(`${baseUrl}/campaigns/${campaignId}/contacts/${campaignContactId}`, {
+        method: 'DELETE',
+      }, 'Failed to remove contact from campaign'),
 
     sendEmails: (campaignId, limit, reviewMode = true) =>
       safeFetch(`${baseUrl}/send`, { success: false, error: 'Request failed' }, {
@@ -306,6 +312,13 @@ function createHttpEmailProvider(baseUrl: string): EmailProvider {
 
     getCampaignScheduleSummary: () =>
       safeFetch(`${baseUrl}/campaign-schedule-summary`, []),
+
+    processScheduled: (reviewMode = false) =>
+      safeFetch(
+        `${baseUrl}/process-scheduled${reviewMode ? '?review_mode=true' : ''}`,
+        { success: false, error: 'Request failed' },
+        { method: 'POST' }
+      ),
   };
 }
 

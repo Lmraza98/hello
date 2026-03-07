@@ -53,7 +53,7 @@ function isZeroContactCreateScenario(interaction: WorkspaceInteractionState): bo
 export function ContextualInteractionPanel({ interaction, onOpenRoute, onDismiss }: ContextualInteractionPanelProps) {
   const route = interaction.route || '/dashboard';
   const hasRouteAction = Boolean(onOpenRoute && interaction.route);
-  const [pinned, setPinned] = useState(() => parseStoredBool(localStorage.getItem(STORAGE_PIN_KEY), false));
+  const [pinned, setPinned] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [appliedChips, setAppliedChips] = useState<string[]>(interaction.chips);
   const [createForm, setCreateForm] = useState({
@@ -70,6 +70,11 @@ export function ContextualInteractionPanel({ interaction, onOpenRoute, onDismiss
   const statusMeta = useMemo(() => statusUi(interaction.status), [interaction.status]);
   const collapsedMeta = `${routeLabel(route)} • ${interaction.kind} • ${statusMeta.label.toLowerCase()}`;
   const showCreate = isZeroContactCreateScenario(interaction);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setPinned(parseStoredBool(localStorage.getItem(STORAGE_PIN_KEY), false));
+  }, []);
 
   useEffect(() => {
     setAppliedChips(interaction.chips);

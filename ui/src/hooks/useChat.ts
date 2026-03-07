@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api';
 import {
   processAction as processLlmAction,
@@ -8,7 +8,7 @@ import {
 } from '../chat/chatEngine';
 import type { ChatEngineResult } from '../chat/chatEngine/pipelineTypes';
 import type { PendingTaskPlan, PlannedToolCall } from '../chat/chatEngineTypes';
-/** @deprecated alias — prefer PlannedToolCall directly */
+/** @deprecated alias â€” prefer PlannedToolCall directly */
 type ParsedFunctionCall = PlannedToolCall;
 import { parseSlashCommand } from '../chat/slashCommands';
 import { loadMessages, saveMessages } from '../services/chatPersistence';
@@ -23,6 +23,7 @@ import type {
   ChatMessage,
   EmbeddedComponentMessage,
   EmbeddedComponentType,
+  LeadResearchResultItem,
   ThoughtPhase,
   ThoughtUIState,
   ThoughtToolActivity,
@@ -31,6 +32,9 @@ import type {
 import type { ChatAction } from '../chat/actions';
 import { normalizeQueryFilterParam } from '../utils/filterNormalization';
 import { areAllPlannedCallsReadOnly } from '../chat/chatEnginePolicy';
+import { listOllamaModels } from '../chat/models/ollamaClient';
+import { forceRefreshOllama } from '../chat/ollamaStatus';
+import { normalizeChatSessionId, shouldPersistHydratedMessages } from './chatSessionPersistence';
 
 let _counter = 0;
 function createId() {
@@ -123,6 +127,92 @@ const WELCOME_MESSAGE: ChatMessage = {
     'Hi! I am your sales assistant. I can help you find contacts, manage campaigns, and send emails. Type "help" to see what I can do.',
   timestamp: new Date(),
 };
+const LOCAL_RUNTIME_LABEL = (process.env.NEXT_PUBLIC_LOCAL_LLM_API || 'ollama').toLowerCase();
+type ModelProvider = 'ollama' | 'openai' | 'openrouter';
+type ModelOption = {
+  value: string;
+  label: string;
+  provider: ModelProvider;
+  model: string;
+};
+
+function parseModelSelection(value: string): { provider?: ModelProvider; model?: string } {
+  if (!value || value === 'auto') return {};
+  const [providerRaw, modelRaw] = value.includes('|') ? value.split('|', 2) : ['ollama', value];
+  const provider = (providerRaw || 'ollama').trim().toLowerCase();
+  const model = (modelRaw || '').trim();
+  if (!model) return {};
+  if (provider === 'openai' || provider === 'openrouter') {
+    return { provider, model };
+  }
+  return { provider: 'ollama', model };
+}
+
+function modelOptionValue(provider: ModelProvider, model: string): string {
+  return `${provider}|${model}`;
+}
+
+function dedupeModelOptions(options: ModelOption[]): ModelOption[] {
+  const seen = new Set<string>();
+  const out: ModelOption[] = [];
+  for (const option of options) {
+    if (!option.model.trim()) continue;
+    if (seen.has(option.value)) continue;
+    seen.add(option.value);
+    out.push(option);
+  }
+  return out;
+}
+
+function extractLeadResearchPrompt(input: string): string | null {
+  const trimmed = (input || '').trim();
+  if (!trimmed) return null;
+  if (/^\/leads(\s+.+)?$/i.test(trimmed)) {
+    const q = trimmed.replace(/^\/leads/i, '').trim();
+    return q || null;
+  }
+  if (/^leads(\s+.+)?$/i.test(trimmed)) {
+    const q = trimmed.replace(/^leads/i, '').trim();
+    return q || null;
+  }
+  const explicit = trimmed.match(/^(find leads|lead research|research leads)\s*[:\-]?\s*(.+)$/i);
+  if (explicit && explicit[2]) return explicit[2].trim();
+  return null;
+}
+
+const PUBLIC_ENV_MODEL_VALUES: Record<string, string | undefined> = {
+  NEXT_PUBLIC_OLLAMA_QWEN3_MODEL: process.env.NEXT_PUBLIC_OLLAMA_QWEN3_MODEL,
+  NEXT_PUBLIC_OLLAMA_GEMMA_MODEL: process.env.NEXT_PUBLIC_OLLAMA_GEMMA_MODEL,
+  NEXT_PUBLIC_OLLAMA_DEEPSEEK_MODEL: process.env.NEXT_PUBLIC_OLLAMA_DEEPSEEK_MODEL,
+  NEXT_PUBLIC_OLLAMA_TOOL_BRAIN_MODEL: process.env.NEXT_PUBLIC_OLLAMA_TOOL_BRAIN_MODEL,
+  NEXT_PUBLIC_OLLAMA_FUNCTIONGEMMA_MODEL: process.env.NEXT_PUBLIC_OLLAMA_FUNCTIONGEMMA_MODEL,
+  NEXT_PUBLIC_OLLAMA_DEVSTRAL_MODEL: process.env.NEXT_PUBLIC_OLLAMA_DEVSTRAL_MODEL,
+  NEXT_PUBLIC_OLLAMA_AUX_PLANNER_MODEL: process.env.NEXT_PUBLIC_OLLAMA_AUX_PLANNER_MODEL,
+  NEXT_PUBLIC_DECOMPOSE_CLASSIFIER_MODEL: process.env.NEXT_PUBLIC_DECOMPOSE_CLASSIFIER_MODEL,
+  NEXT_PUBLIC_CHAT_BENCHMARK_MODEL: process.env.NEXT_PUBLIC_CHAT_BENCHMARK_MODEL,
+  NEXT_PUBLIC_OPENAI_CHAT_MODEL: process.env.NEXT_PUBLIC_OPENAI_CHAT_MODEL,
+  NEXT_PUBLIC_OPENAI_SYNTHESIS_MODEL: process.env.NEXT_PUBLIC_OPENAI_SYNTHESIS_MODEL,
+  NEXT_PUBLIC_OPENAI_PLANNER_MODEL: process.env.NEXT_PUBLIC_OPENAI_PLANNER_MODEL,
+  NEXT_PUBLIC_OPENAI_PLANNER_COMPLEX_MODEL: process.env.NEXT_PUBLIC_OPENAI_PLANNER_COMPLEX_MODEL,
+  NEXT_PUBLIC_OPENAI_PLANNER_PREMIUM_MODEL: process.env.NEXT_PUBLIC_OPENAI_PLANNER_PREMIUM_MODEL,
+  NEXT_PUBLIC_OPENROUTER_PLANNER_MODEL: process.env.NEXT_PUBLIC_OPENROUTER_PLANNER_MODEL,
+  NEXT_PUBLIC_OPENROUTER_TOOL_BRAIN_MODEL: process.env.NEXT_PUBLIC_OPENROUTER_TOOL_BRAIN_MODEL,
+  NEXT_PUBLIC_OPENROUTER_PLANNER_COMPLEX_MODEL: process.env.NEXT_PUBLIC_OPENROUTER_PLANNER_COMPLEX_MODEL,
+  NEXT_PUBLIC_OPENROUTER_QWEN3_MODEL: process.env.NEXT_PUBLIC_OPENROUTER_QWEN3_MODEL,
+  NEXT_PUBLIC_OPENROUTER_DEVSTRAL_MODEL: process.env.NEXT_PUBLIC_OPENROUTER_DEVSTRAL_MODEL,
+};
+
+function getEnvModelValues(keys: string[]): string[] {
+  const values: string[] = [];
+  for (const key of keys) {
+    const raw = PUBLIC_ENV_MODEL_VALUES[key];
+    if (typeof raw !== 'string') continue;
+    const value = raw.trim();
+    if (!value) continue;
+    values.push(value);
+  }
+  return [...new Set(values)];
+}
 
 const SECTION_TO_COMPONENT: Record<string, EmbeddedComponentType> = {
   overview: 'overview',
@@ -142,6 +232,75 @@ const INITIAL_THOUGHT_STATE: ThoughtUIState = {
   visible: false,
   allowAnswerNow: false,
 };
+
+type ChatRuntimeSnapshot = {
+  conversationHistory: ChatCompletionMessageParam[];
+  sessionState?: ChatSessionState;
+  activeWorkflow: Workflow | null;
+  pendingToolPlan: {
+    uiActions?: ChatAction[];
+    calls: ParsedFunctionCall[];
+    summary: string;
+    sourceUserMessage: string;
+    reactTrace?: unknown[];
+    pendingTaskPlan?: PendingTaskPlan;
+  } | null;
+  pendingDocumentAssumptionEdit: {
+    documentId: string;
+    promptMessageId?: string;
+  } | null;
+  pendingDocumentQuestionScope: string | null;
+  pendingFilterSelection: {
+    sourceUserMessage: string;
+    toolName: string;
+    argName: string;
+    values: string[];
+  } | null;
+  browserViewerOpen: boolean;
+  backgroundTasks: BackgroundTask[];
+};
+
+function cloneRuntimeSnapshot(snapshot: ChatRuntimeSnapshot): ChatRuntimeSnapshot {
+  return {
+    conversationHistory: [...snapshot.conversationHistory],
+    sessionState: snapshot.sessionState,
+    activeWorkflow: snapshot.activeWorkflow,
+    pendingToolPlan: snapshot.pendingToolPlan
+      ? {
+          ...snapshot.pendingToolPlan,
+          uiActions: snapshot.pendingToolPlan.uiActions ? [...snapshot.pendingToolPlan.uiActions] : undefined,
+          calls: [...snapshot.pendingToolPlan.calls],
+          reactTrace: snapshot.pendingToolPlan.reactTrace ? [...snapshot.pendingToolPlan.reactTrace] : undefined,
+        }
+      : null,
+    pendingDocumentAssumptionEdit: snapshot.pendingDocumentAssumptionEdit
+      ? { ...snapshot.pendingDocumentAssumptionEdit }
+      : null,
+    pendingDocumentQuestionScope: snapshot.pendingDocumentQuestionScope,
+    pendingFilterSelection: snapshot.pendingFilterSelection
+      ? {
+          ...snapshot.pendingFilterSelection,
+          values: [...snapshot.pendingFilterSelection.values],
+        }
+      : null,
+    browserViewerOpen: snapshot.browserViewerOpen,
+    backgroundTasks: [...snapshot.backgroundTasks],
+  };
+}
+
+function createEmptyRuntimeSnapshot(): ChatRuntimeSnapshot {
+  return {
+    conversationHistory: [],
+    sessionState: undefined,
+    activeWorkflow: null,
+    pendingToolPlan: null,
+    pendingDocumentAssumptionEdit: null,
+    pendingDocumentQuestionScope: null,
+    pendingFilterSelection: null,
+    browserViewerOpen: false,
+    backgroundTasks: [],
+  };
+}
 
 function formatMs(value: unknown): string {
   const num = Number(value);
@@ -216,6 +375,9 @@ function buildReasoningSummary(trace: ChatEngineResult['debugTrace']): string[] 
 }
 
 export function useChat(options?: {
+  sessionId?: string;
+  initialMessages?: ChatMessage[] | null;
+  onMessagesChange?: (sessionId: string, messages: ChatMessage[]) => void;
   recentReplies?: unknown[];
   stats?: unknown;
   emailStats?: unknown;
@@ -231,13 +393,14 @@ export function useChat(options?: {
     values: string[];
   };
 
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    const persisted = loadMessages();
-    return persisted && persisted.length > 0 ? persisted : [WELCOME_MESSAGE];
-  });
+  const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [thoughtState, setThoughtState] = useState<ThoughtUIState>(INITIAL_THOUGHT_STATE);
   const [isTyping, setIsTyping] = useState(false);
   const [assistantStreamingText, setAssistantStreamingText] = useState('');
+  const [localModelOptions, setLocalModelOptions] = useState<string[]>([]);
+  const [localRuntimeAvailable, setLocalRuntimeAvailable] = useState(false);
+  const [chatModelSelection, setChatModelSelection] = useState<string>('auto');
+  const [plannerModelSelection, setPlannerModelSelection] = useState<string>('auto');
   const [browserViewerOpen, setBrowserViewerOpen] = useState(false);
   const [backgroundTasks, setBackgroundTasks] = useState<BackgroundTask[]>([]);
   const [conversationHistory, setConversationHistory] = useState<ChatCompletionMessageParam[]>([]);
@@ -266,11 +429,88 @@ export function useChat(options?: {
   const thoughtRevealTimerRef = useRef<number | null>(null);
   const thoughtPanelTimerRef = useRef<number | null>(null);
   const sawAssistantTokenRef = useRef(false);
-  const typingStartedAtRef = useRef(0);
+  const typingStartedAtRef = useRef<Record<string, number>>({});
+  const messagesHydratedRef = useRef(false);
+  const hydratedSessionIdRef = useRef<string | null>(null);
+  const latestMessagesRef = useRef<ChatMessage[]>([WELCOME_MESSAGE]);
+
+  const currentSessionId = normalizeChatSessionId(options?.sessionId);
+  const initialMessages = options?.initialMessages;
+  const onMessagesChange = options?.onMessagesChange;
+  const activeSessionIdRef = useRef(currentSessionId);
+  const messageCacheRef = useRef<Record<string, ChatMessage[]>>({});
+  const runtimeCacheRef = useRef<Record<string, ChatRuntimeSnapshot>>({});
+
+  const persistRuntimeSnapshot = useCallback((sessionId = currentSessionId) => {
+    runtimeCacheRef.current[sessionId] = cloneRuntimeSnapshot({
+      conversationHistory,
+      sessionState: sessionStateRef.current,
+      activeWorkflow: activeWorkflowRef.current,
+      pendingToolPlan: pendingToolPlanRef.current,
+      pendingDocumentAssumptionEdit: pendingDocumentAssumptionEditRef.current,
+      pendingDocumentQuestionScope: pendingDocumentQuestionScopeRef.current,
+      pendingFilterSelection: pendingFilterSelectionRef.current,
+      browserViewerOpen,
+      backgroundTasks,
+    });
+  }, [backgroundTasks, browserViewerOpen, conversationHistory, currentSessionId]);
 
   useEffect(() => {
-    saveMessages(messages);
+    activeSessionIdRef.current = currentSessionId;
+  }, [currentSessionId]);
+
+  useEffect(() => {
+    latestMessagesRef.current = messages;
   }, [messages]);
+
+  useEffect(() => {
+    if (!messagesHydratedRef.current) return;
+    if (!shouldPersistHydratedMessages(hydratedSessionIdRef.current, currentSessionId)) return;
+    saveMessages(messages, currentSessionId);
+    messageCacheRef.current[currentSessionId] = messages;
+    onMessagesChange?.(currentSessionId, messages);
+  }, [currentSessionId, messages, onMessagesChange]);
+
+  useEffect(() => {
+    persistRuntimeSnapshot(currentSessionId);
+  }, [backgroundTasks, browserViewerOpen, conversationHistory, currentSessionId, messages, persistRuntimeSnapshot]);
+
+  useEffect(() => {
+    messagesHydratedRef.current = false;
+    const hydrated = initialMessages && initialMessages.length > 0
+      ? initialMessages
+      : loadMessages(currentSessionId);
+    if (hydrated && hydrated.length > 0) {
+      messageCacheRef.current[currentSessionId] = hydrated;
+      setMessages(hydrated);
+      hydratedSessionIdRef.current = currentSessionId;
+      messagesHydratedRef.current = true;
+      return;
+    }
+    hydratedSessionIdRef.current = currentSessionId;
+    messagesHydratedRef.current = true;
+    messageCacheRef.current[currentSessionId] = [WELCOME_MESSAGE];
+    setMessages([WELCOME_MESSAGE]);
+  }, [currentSessionId, initialMessages]);
+
+  useEffect(() => {
+    const snapshot = runtimeCacheRef.current[currentSessionId]
+      ? cloneRuntimeSnapshot(runtimeCacheRef.current[currentSessionId])
+      : createEmptyRuntimeSnapshot();
+    setConversationHistory(snapshot.conversationHistory);
+    sessionStateRef.current = snapshot.sessionState;
+    activeWorkflowRef.current = snapshot.activeWorkflow;
+    pendingToolPlanRef.current = snapshot.pendingToolPlan;
+    pendingDocumentAssumptionEditRef.current = snapshot.pendingDocumentAssumptionEdit;
+    pendingDocumentQuestionScopeRef.current = snapshot.pendingDocumentQuestionScope;
+    pendingFilterSelectionRef.current = snapshot.pendingFilterSelection;
+    setBrowserViewerOpen(snapshot.browserViewerOpen);
+    setBackgroundTasks(snapshot.backgroundTasks);
+    setThoughtState(INITIAL_THOUGHT_STATE);
+    setIsTyping(false);
+    setAssistantStreamingText('');
+    sawAssistantTokenRef.current = false;
+  }, [currentSessionId]);
 
   useEffect(() => {
     return () => {
@@ -293,31 +533,182 @@ export function useChat(options?: {
     };
   }, []);
 
-  const appendMessages = useCallback((newMessages: ChatMessage[]) => {
-    setMessages((prev) => [...prev, ...newMessages]);
+  useEffect(() => {
+    let cancelled = false;
+    const refreshModels = async () => {
+      const models = await listOllamaModels();
+      if (cancelled) return;
+      setLocalModelOptions(models);
+      setLocalRuntimeAvailable(models.length > 0);
+      forceRefreshOllama();
+    };
+    void refreshModels();
+    const intervalId = window.setInterval(() => {
+      void refreshModels();
+    }, 30000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
   }, []);
 
-  const removeMessage = useCallback((id: string) => {
-    setMessages((prev) => prev.filter((m) => m.id !== id));
-  }, []);
+  const buildModelOverrides = useCallback(
+    () => {
+      const chat = parseModelSelection(chatModelSelection);
+      const planner = parseModelSelection(plannerModelSelection);
+      return {
+        ...(chat.model ? { chatModelOverride: chat.model } : {}),
+        ...(chat.provider ? { chatModelProviderOverride: chat.provider } : {}),
+        ...(chat.provider === 'openai' ? { forceModel: 'openai' as const } : {}),
+        ...(planner.model
+          ? (planner.provider === 'ollama'
+            ? { plannerModelOverride: planner.model }
+            : { plannerRouteOverride: { provider: planner.provider, model: planner.model } })
+          : {}),
+      };
+    },
+    [chatModelSelection, plannerModelSelection]
+  );
 
-  const updateMessage = useCallback((id: string, updater: (m: ChatMessage) => ChatMessage) => {
-    setMessages((prev) => prev.map((m) => (m.id === id ? updater(m) : m)));
-  }, []);
+  const chatModelOptions = useMemo<ModelOption[]>(() => {
+    const local = localModelOptions.map((model) => ({
+      value: modelOptionValue('ollama', model),
+      label: `${model} (local)`,
+      provider: 'ollama' as const,
+      model,
+    }));
+    const configuredLocalFromEnv = getEnvModelValues([
+      'NEXT_PUBLIC_OLLAMA_QWEN3_MODEL',
+      'NEXT_PUBLIC_OLLAMA_GEMMA_MODEL',
+      'NEXT_PUBLIC_OLLAMA_DEEPSEEK_MODEL',
+      'NEXT_PUBLIC_OLLAMA_TOOL_BRAIN_MODEL',
+      'NEXT_PUBLIC_OLLAMA_FUNCTIONGEMMA_MODEL',
+      'NEXT_PUBLIC_OLLAMA_DEVSTRAL_MODEL',
+      'NEXT_PUBLIC_OLLAMA_AUX_PLANNER_MODEL',
+      'NEXT_PUBLIC_DECOMPOSE_CLASSIFIER_MODEL',
+      'NEXT_PUBLIC_CHAT_BENCHMARK_MODEL',
+    ]).map((model) => ({
+      value: modelOptionValue('ollama', model),
+      label: `${model} (local, env)`,
+      provider: 'ollama' as const,
+      model,
+    }));
+    const configuredOpenAI = getEnvModelValues([
+      'NEXT_PUBLIC_OPENAI_CHAT_MODEL',
+      'NEXT_PUBLIC_OPENAI_SYNTHESIS_MODEL',
+      'NEXT_PUBLIC_OPENAI_PLANNER_MODEL',
+      'NEXT_PUBLIC_OPENAI_PLANNER_COMPLEX_MODEL',
+      'NEXT_PUBLIC_OPENAI_PLANNER_PREMIUM_MODEL',
+    ])
+      .map((model) => ({
+        value: modelOptionValue('openai', model),
+        label: `${model} (openai)`,
+        provider: 'openai' as const,
+        model,
+      }));
+    return dedupeModelOptions([
+      ...local,
+      ...configuredLocalFromEnv,
+      ...configuredOpenAI,
+    ]);
+  }, [localModelOptions]);
 
-  const setThoughtPhase = useCallback((phase: ThoughtPhase, fields?: Partial<ThoughtUIState>, forceVisible = false) => {
+  const plannerModelOptions = useMemo<ModelOption[]>(() => {
+    const local = localModelOptions.map((model) => ({
+      value: modelOptionValue('ollama', model),
+      label: `${model} (local)`,
+      provider: 'ollama' as const,
+      model,
+    }));
+    const configuredLocalFromEnv = getEnvModelValues([
+      'NEXT_PUBLIC_OLLAMA_QWEN3_MODEL',
+      'NEXT_PUBLIC_OLLAMA_GEMMA_MODEL',
+      'NEXT_PUBLIC_OLLAMA_DEEPSEEK_MODEL',
+      'NEXT_PUBLIC_OLLAMA_TOOL_BRAIN_MODEL',
+      'NEXT_PUBLIC_OLLAMA_FUNCTIONGEMMA_MODEL',
+      'NEXT_PUBLIC_OLLAMA_DEVSTRAL_MODEL',
+      'NEXT_PUBLIC_OLLAMA_AUX_PLANNER_MODEL',
+      'NEXT_PUBLIC_DECOMPOSE_CLASSIFIER_MODEL',
+      'NEXT_PUBLIC_CHAT_BENCHMARK_MODEL',
+    ]).map((model) => ({
+      value: modelOptionValue('ollama', model),
+      label: `${model} (local, env)`,
+      provider: 'ollama' as const,
+      model,
+    }));
+    const configuredOpenAI = getEnvModelValues([
+      'NEXT_PUBLIC_OPENAI_PLANNER_MODEL',
+      'NEXT_PUBLIC_OPENAI_CHAT_MODEL',
+      'NEXT_PUBLIC_OPENAI_PLANNER_COMPLEX_MODEL',
+      'NEXT_PUBLIC_OPENAI_PLANNER_PREMIUM_MODEL',
+    ])
+      .map((model) => ({
+        value: modelOptionValue('openai', model),
+        label: `${model} (openai)`,
+        provider: 'openai' as const,
+        model,
+      }));
+    const configuredOpenRouter = getEnvModelValues([
+      'NEXT_PUBLIC_OPENROUTER_PLANNER_MODEL',
+      'NEXT_PUBLIC_OPENROUTER_TOOL_BRAIN_MODEL',
+      'NEXT_PUBLIC_OPENROUTER_PLANNER_COMPLEX_MODEL',
+      'NEXT_PUBLIC_OPENROUTER_QWEN3_MODEL',
+      'NEXT_PUBLIC_OPENROUTER_DEVSTRAL_MODEL',
+    ])
+      .map((model) => ({
+        value: modelOptionValue('openrouter', model),
+        label: `${model} (openrouter)`,
+        provider: 'openrouter' as const,
+        model,
+      }));
+    return dedupeModelOptions([
+      ...local,
+      ...configuredLocalFromEnv,
+      ...configuredOpenAI,
+      ...configuredOpenRouter,
+    ]);
+  }, [localModelOptions]);
+
+  const commitMessages = useCallback((updater: (prev: ChatMessage[]) => ChatMessage[], sessionId = currentSessionId) => {
+    const base =
+      messageCacheRef.current[sessionId] ||
+      (sessionId === activeSessionIdRef.current ? latestMessagesRef.current : [WELCOME_MESSAGE]);
+    const next = updater(base);
+    messageCacheRef.current[sessionId] = next;
+    onMessagesChange?.(sessionId, next);
+    if (activeSessionIdRef.current === sessionId) {
+      latestMessagesRef.current = next;
+      setMessages(next);
+    }
+  }, [currentSessionId, onMessagesChange]);
+
+  const appendMessages = useCallback((newMessages: ChatMessage[], sessionId = currentSessionId) => {
+    commitMessages((prev) => [...prev, ...newMessages], sessionId);
+  }, [commitMessages, currentSessionId]);
+
+  const removeMessage = useCallback((id: string, sessionId = currentSessionId) => {
+    commitMessages((prev) => prev.filter((m) => m.id !== id), sessionId);
+  }, [commitMessages, currentSessionId]);
+
+  const updateMessage = useCallback((id: string, updater: (m: ChatMessage) => ChatMessage, sessionId = currentSessionId) => {
+    commitMessages((prev) => prev.map((m) => (m.id === id ? updater(m) : m)), sessionId);
+  }, [commitMessages, currentSessionId]);
+
+  const setThoughtPhase = useCallback((phase: ThoughtPhase, fields?: Partial<ThoughtUIState>, forceVisible = false, sessionId = currentSessionId) => {
+    if (activeSessionIdRef.current !== sessionId) return;
     setThoughtState((prev) => ({
       ...prev,
-      phase,
-      ...(fields || {}),
-      visible: forceVisible ? true : (fields?.visible ?? prev.visible),
-      display_mode: forceVisible
-        ? (prev.display_mode === 'none' ? 'micro' : prev.display_mode)
-        : (fields?.display_mode ?? prev.display_mode),
+        phase,
+        ...(fields || {}),
+        visible: forceVisible ? true : (fields?.visible ?? prev.visible),
+        display_mode: forceVisible
+          ? (prev.display_mode === 'none' ? 'micro' : prev.display_mode)
+          : (fields?.display_mode ?? prev.display_mode),
     }));
-  }, []);
+  }, [currentSessionId]);
 
-  const startThought = useCallback((title: string, summary: string) => {
+  const startThought = useCallback((title: string, summary: string, sessionId = currentSessionId) => {
+    if (activeSessionIdRef.current !== sessionId) return;
     if (thoughtRevealTimerRef.current) {
       window.clearTimeout(thoughtRevealTimerRef.current);
       thoughtRevealTimerRef.current = null;
@@ -339,6 +730,7 @@ export function useChat(options?: {
       startedAtMs: now,
     });
     thoughtRevealTimerRef.current = window.setTimeout(() => {
+      if (activeSessionIdRef.current !== sessionId) return;
       setThoughtState((prev) => {
         if (prev.phase === 'complete' || prev.phase === 'idle') return prev;
         return { ...prev, visible: true, display_mode: 'micro' };
@@ -346,15 +738,17 @@ export function useChat(options?: {
       thoughtRevealTimerRef.current = null;
     }, 500);
     thoughtPanelTimerRef.current = window.setTimeout(() => {
+      if (activeSessionIdRef.current !== sessionId) return;
       setThoughtState((prev) => {
         if (prev.phase === 'complete' || prev.phase === 'idle') return prev;
         return { ...prev, visible: true, display_mode: 'panel' };
       });
       thoughtPanelTimerRef.current = null;
     }, 2000);
-  }, []);
+  }, [currentSessionId]);
 
-  const appendThoughtStep = useCallback((step: string) => {
+  const appendThoughtStep = useCallback((step: string, sessionId = currentSessionId) => {
+    if (activeSessionIdRef.current !== sessionId) return;
     const line = String(step || '').trim();
     if (!line) return;
     setThoughtState((prev) => {
@@ -365,9 +759,10 @@ export function useChat(options?: {
         steps: next.slice(-6),
       };
     });
-  }, []);
+  }, [currentSessionId]);
 
-  const updateThoughtTool = useCallback((name: string, status: ThoughtToolActivity['status']) => {
+  const updateThoughtTool = useCallback((name: string, status: ThoughtToolActivity['status'], sessionId = currentSessionId) => {
+    if (activeSessionIdRef.current !== sessionId) return;
     const label = name.replace(/_/g, ' ').trim();
     if (!label) return;
     setThoughtState((prev) => {
@@ -381,9 +776,10 @@ export function useChat(options?: {
         toolActivity: current.slice(-8),
       };
     });
-  }, []);
+  }, [currentSessionId]);
 
-  const completeThought = useCallback(() => {
+  const completeThought = useCallback((sessionId = currentSessionId) => {
+    if (activeSessionIdRef.current !== sessionId) return;
     if (thoughtRevealTimerRef.current) {
       window.clearTimeout(thoughtRevealTimerRef.current);
       thoughtRevealTimerRef.current = null;
@@ -393,9 +789,10 @@ export function useChat(options?: {
       thoughtPanelTimerRef.current = null;
     }
     setThoughtState(INITIAL_THOUGHT_STATE);
-  }, []);
+  }, [currentSessionId]);
 
-  const suppressThoughtForStreaming = useCallback(() => {
+  const suppressThoughtForStreaming = useCallback((sessionId = currentSessionId) => {
+    if (activeSessionIdRef.current !== sessionId) return;
     if (thoughtRevealTimerRef.current) {
       window.clearTimeout(thoughtRevealTimerRef.current);
       thoughtRevealTimerRef.current = null;
@@ -405,40 +802,44 @@ export function useChat(options?: {
       thoughtPanelTimerRef.current = null;
     }
     setThoughtState(INITIAL_THOUGHT_STATE);
-  }, []);
+  }, [currentSessionId]);
 
-  const resetAssistantStreaming = useCallback(() => {
+  const resetAssistantStreaming = useCallback((sessionId = currentSessionId) => {
+    if (activeSessionIdRef.current !== sessionId) return;
     sawAssistantTokenRef.current = false;
     setAssistantStreamingText('');
-  }, []);
+  }, [currentSessionId]);
 
-  const handleAssistantToken = useCallback((token: string) => {
+  const handleAssistantToken = useCallback((token: string, sessionId = currentSessionId) => {
+    if (activeSessionIdRef.current !== sessionId) return;
     if (!token) return;
     if (!sawAssistantTokenRef.current) {
       sawAssistantTokenRef.current = true;
-      suppressThoughtForStreaming();
+      suppressThoughtForStreaming(sessionId);
     }
     setAssistantStreamingText((prev) => prev + token);
-  }, [suppressThoughtForStreaming]);
+  }, [currentSessionId, suppressThoughtForStreaming]);
 
-  const beginTyping = useCallback(() => {
-    typingStartedAtRef.current = Date.now();
+  const beginTyping = useCallback((sessionId = currentSessionId) => {
+    if (activeSessionIdRef.current !== sessionId) return;
+    typingStartedAtRef.current[sessionId] = Date.now();
     setIsTyping(true);
-  }, []);
+  }, [currentSessionId]);
 
-  const endTyping = useCallback(async () => {
-    const elapsed = Date.now() - typingStartedAtRef.current;
+  const endTyping = useCallback(async (sessionId = currentSessionId) => {
+    if (activeSessionIdRef.current !== sessionId) return;
+    const elapsed = Date.now() - (typingStartedAtRef.current[sessionId] || 0);
     const minWindowMs = 150;
     if (elapsed < minWindowMs) {
       await new Promise((resolve) => window.setTimeout(resolve, minWindowMs - elapsed));
     }
     setIsTyping(false);
-  }, []);
+  }, [currentSessionId]);
 
   const sleep = useCallback((ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms)), []);
 
   const maybeStreamFallbackAssistantText = useCallback(
-    async (resultMessages: ChatMessage[], fallbackText?: string) => {
+    async (resultMessages: ChatMessage[], fallbackText?: string, sessionId = currentSessionId) => {
       if (sawAssistantTokenRef.current) return;
       const firstBotText = resultMessages.find(
         (m) =>
@@ -455,20 +856,21 @@ export function useChat(options?: {
       if (!content) return;
 
       sawAssistantTokenRef.current = true;
-      suppressThoughtForStreaming();
+      suppressThoughtForStreaming(sessionId);
 
       const chars = Array.from(content);
       const chunkSize = Math.max(2, Math.ceil(chars.length / 28));
       let cursor = 0;
       while (cursor < chars.length) {
         const next = Math.min(chars.length, cursor + chunkSize);
+        if (activeSessionIdRef.current !== sessionId) return;
         setAssistantStreamingText(chars.slice(0, next).join(''));
         cursor = next;
         await sleep(18);
       }
       await sleep(90);
     },
-    [sleep, suppressThoughtForStreaming]
+    [currentSessionId, sleep, suppressThoughtForStreaming]
   );
 
   const appendPlannerStatusLog = useCallback((message: string) => {
@@ -542,7 +944,7 @@ export function useChat(options?: {
 
     const searchCompanies = successful.find((x) => x.name === 'search_companies');
     if (searchCompanies) {
-      actions.push({ type: 'navigate', to: '/companies' });
+      actions.push({ type: 'navigate', to: '/contacts' });
       const args = searchCompanies.args || {};
       const exactCompanyOnlyLookup =
         typeof args.company_name === 'string' &&
@@ -699,20 +1101,20 @@ export function useChat(options?: {
       props: {},
     };
 
-    setMessages((prev) => [...prev, msg]);
-  }, []);
+    commitMessages((prev) => [...prev, msg]);
+  }, [commitMessages]);
 
   const getWorkflowCallbacks = useCallback(
     (): EngineCallbacks => ({
       emitMessages: (msgs: ChatMessage[]) => {
-        setMessages((prev) => [...prev, ...msgs]);
+        commitMessages((prev) => [...prev, ...msgs]);
       },
       openBrowserViewer: () => {
         setBrowserViewerOpen(true);
         options?.onBrowserViewerOpen?.();
       },
     }),
-    [options]
+    [commitMessages, options]
   );
 
   const enqueuePrimary = useCallback(async (task: () => Promise<void>) => {
@@ -752,6 +1154,7 @@ export function useChat(options?: {
         const result = await processLlmMessage(pending.sourceUserMessage, {
           conversationHistory,
           sessionState: sessionStateRef.current,
+          ...buildModelOverrides(),
           forceModel: 'qwen3',
           phase: 'executing',
           debug: true,
@@ -891,6 +1294,7 @@ export function useChat(options?: {
       resetAssistantStreaming,
       beginTyping,
       endTyping,
+      buildModelOverrides,
     ]
   );
 
@@ -1113,6 +1517,259 @@ export function useChat(options?: {
     void poll();
   }, [appendMessages, summarizeDocumentAnalysis, updateMessage]);
 
+  const runLeadResearchFlow = useCallback(async (prompt: string) => {
+    const normalizedPrompt = prompt.trim();
+    if (!normalizedPrompt) {
+      appendMessages([
+        {
+          id: createId(),
+          type: 'status',
+          sender: 'bot',
+          content: 'Lead research needs a prompt. Example: /leads HVAC companies in Austin, TX',
+          status: 'info',
+          timestamp: new Date(),
+        },
+      ]);
+      return;
+    }
+
+    startThought('Running lead research', 'Launching LeadForge graph and gathering sources.');
+    appendRunEvent({
+      lane: 'primary',
+      phase: 'tool_call',
+      message: 'lead_research',
+      meta: { prompt: normalizedPrompt },
+    });
+
+    const statusMessageId = createId();
+    appendMessages([
+      {
+        id: statusMessageId,
+        type: 'status',
+        sender: 'bot',
+        content: `Starting lead research for: ${normalizedPrompt}`,
+        status: 'loading',
+        timestamp: new Date(),
+      },
+    ]);
+
+    try {
+      let runId = '';
+      const traceRows: Array<{
+        step: string;
+        summary?: string;
+        sourceCount?: number;
+        sources?: Array<{ source?: string; title?: string; url?: string }>;
+      }> = [];
+      const seenTraceKeys = new Set<string>();
+      try {
+        const created = await api.langgraph.createLeadResearchRun({
+          prompt: normalizedPrompt,
+          options: { max_results: 30 },
+        });
+        runId = created.run_id;
+      } catch (error) {
+        // Compatibility fallback for backends that do not expose POST /runs/lead-research yet.
+        const message = error instanceof Error ? error.message : '';
+        if (!/405/.test(message)) throw error;
+        const created = await api.langgraph.createRun({
+          graph_id: 'lead_research',
+          input: { prompt: normalizedPrompt, options: { max_results: 30 } },
+        });
+        runId = created.run_id;
+        await api.langgraph.startRun(runId);
+      }
+
+      if (!runId) throw new Error('Lead research run could not be created.');
+      const startedAt = Date.now();
+      const timeoutMs = 180000;
+      let runStatus = 'running';
+      while (Date.now() - startedAt < timeoutMs) {
+        const status = await api.langgraph.getRunStatus(runId);
+        runStatus = status.status || runStatus;
+        const progress = (status.progress || {}) as Record<string, unknown>;
+        const step = typeof progress.step === 'string' ? progress.step : '';
+        const summary = typeof progress.summary === 'string' ? progress.summary : '';
+        const sources = Array.isArray(progress.sources)
+          ? progress.sources
+              .filter((row): row is Record<string, unknown> => Boolean(row) && typeof row === 'object')
+              .map((row) => ({
+                source: typeof row.source === 'string' ? row.source : undefined,
+                title: typeof row.title === 'string' ? row.title : undefined,
+                url: typeof row.url === 'string' ? row.url : undefined,
+              }))
+          : [];
+        const traceKey = `${step}|${summary}|${sources.length}`;
+        if ((step || summary) && !seenTraceKeys.has(traceKey)) {
+          seenTraceKeys.add(traceKey);
+          traceRows.push({
+            step: step || 'progress',
+            summary: summary || undefined,
+            sourceCount: sources.length,
+            sources: sources.slice(0, 8),
+          });
+          appendRunEvent({
+            lane: 'primary',
+            phase: 'planner_event',
+            message: `lead_research:${step || 'progress'}`,
+            meta: { summary, source_count: sources.length },
+          });
+        }
+        updateMessage(statusMessageId, (message) =>
+          message.type === 'status'
+            ? {
+                ...message,
+                content: `Lead research running${step ? ` (${step})` : ''}...`,
+                details: summary ? `${summary}${sources.length ? ` (${sources.length} sources)` : ''}` : undefined,
+                status: 'loading',
+              }
+            : message
+        );
+        if (runStatus === 'completed' || runStatus === 'failed' || runStatus === 'cancelled') break;
+        await sleep(1200);
+      }
+
+      if (runStatus !== 'completed') {
+        updateMessage(statusMessageId, (message) =>
+          message.type === 'status'
+            ? {
+                ...message,
+                content: `Lead research did not complete (status: ${runStatus}).`,
+                status: 'error',
+              }
+            : message
+        );
+        appendRunEvent({
+          lane: 'primary',
+          phase: 'error',
+          message: 'lead_research_incomplete',
+          meta: { status: runStatus },
+        });
+        return;
+      }
+
+      const results = await api.langgraph.getLeadResults(runId);
+      const summaryCredits = (results.summary && typeof results.summary === 'object'
+        ? (results.summary as Record<string, unknown>).credits
+        : null) as Record<string, unknown> | null;
+      let credits: {
+        monthly_limit: number;
+        used: number;
+        remaining: number;
+        period_ym: string;
+        charged?: number;
+      } | null = summaryCredits && typeof summaryCredits === 'object'
+        ? {
+            monthly_limit: Number(summaryCredits.monthly_limit || 0),
+            used: Number(summaryCredits.used || 0),
+            remaining: Number(summaryCredits.remaining || 0),
+            period_ym: String(summaryCredits.period_ym || ''),
+            charged: Number(summaryCredits.charged || 0),
+          }
+        : null;
+      if (!credits || !Number.isFinite(credits.remaining)) {
+        try {
+          const latestCredits = await api.leads.getCredits();
+          credits = {
+            monthly_limit: Number(latestCredits.monthly_limit || 0),
+            used: Number(latestCredits.used || 0),
+            remaining: Number(latestCredits.remaining || 0),
+            period_ym: String(latestCredits.period_ym || ''),
+          };
+        } catch {
+          credits = null;
+        }
+      }
+      let evidenceItems: Array<{
+        lead_id?: number;
+        kind?: string;
+        title?: string;
+        url?: string;
+        confidence?: number;
+      }> = [];
+      try {
+        const evidence = await api.langgraph.getLeadEvidence(runId);
+        evidenceItems = (evidence.items || [])
+          .map((row) => ({
+            lead_id: typeof row.lead_id === 'number' ? row.lead_id : undefined,
+            kind: typeof row.kind === 'string' ? row.kind : undefined,
+            title: typeof row.title === 'string' ? row.title : undefined,
+            url: typeof row.url === 'string' ? row.url : undefined,
+            confidence: typeof row.confidence === 'number' ? row.confidence : undefined,
+          }))
+          .slice(0, 40);
+      } catch {
+        // Evidence is best-effort; lead rows are the primary output.
+      }
+      const items: LeadResearchResultItem[] = (results.items || []).map((row) => ({
+        id: Number(row.id),
+        run_id: row.run_id,
+        name: row.name || null,
+        company_name: row.company_name || null,
+        domain: row.domain || null,
+        email: row.email || null,
+        phone: row.phone || null,
+        title: row.title || null,
+        location: row.location || null,
+        source_type: row.source_type || null,
+        rating: row.rating ?? null,
+        review_count: row.review_count ?? null,
+        score_total: row.score_total ?? null,
+      }));
+
+      updateMessage(statusMessageId, (message) =>
+        message.type === 'status'
+          ? {
+              ...message,
+              content: `Lead research completed: ${items.length} leads`,
+              status: 'success',
+            }
+          : message
+      );
+
+      appendRunEvent({
+        lane: 'primary',
+        phase: 'tool_result',
+        message: 'lead_research_complete',
+        meta: { run_id: runId, total: items.length },
+      });
+
+      appendMessages([
+        {
+          id: createId(),
+          type: 'lead_research_results',
+          sender: 'bot',
+          timestamp: new Date(),
+          runId,
+          prompt: normalizedPrompt,
+          total: Number(results.total || items.length),
+          items,
+          traces: traceRows,
+          evidence: evidenceItems,
+          ...(credits ? { credits } : {}),
+        },
+      ]);
+    } catch (error) {
+      updateMessage(statusMessageId, (message) =>
+        message.type === 'status'
+          ? {
+              ...message,
+              content: 'Lead research failed.',
+              details: error instanceof Error ? error.message : 'Unknown error',
+              status: 'error',
+            }
+          : message
+      );
+      appendRunEvent({
+        lane: 'primary',
+        phase: 'error',
+        message: 'lead_research_failed',
+      });
+    } finally {
+      completeThought();
+    }
+  }, [appendMessages, completeThought, sleep, startThought, updateMessage]);
+
   const uploadFiles = useCallback(async (files: File[]) => {
     return enqueuePrimary(async () => {
       const picked = (files || []).filter(Boolean);
@@ -1172,15 +1829,29 @@ export function useChat(options?: {
       requestOptions?: { requestText?: string }
     ) => {
       return enqueuePrimary(async () => {
+      const requestSessionId = currentSessionId;
       const trimmed = text.trim();
       if (!trimmed) return;
-      resetAssistantStreaming();
+      resetAssistantStreaming(requestSessionId);
       appendRunEvent({
         lane: 'primary',
         phase: 'input',
         message: trimmed,
       });
       const modelRequestText = (requestOptions?.requestText || trimmed).trim() || trimmed;
+      if (/^\/leads$/i.test(trimmed)) {
+        appendMessages([
+          {
+            id: createId(),
+            type: 'status',
+            sender: 'bot',
+            content: 'Add a target query after /leads. Example: /leads HVAC companies in Austin TX',
+            status: 'info',
+            timestamp: new Date(),
+          },
+        ]);
+        return;
+      }
 
       const pendingDocEdit = pendingDocumentAssumptionEditRef.current;
       if (pendingDocEdit) {
@@ -1192,8 +1863,8 @@ export function useChat(options?: {
           content: trimmed,
           timestamp: new Date(),
         };
-        setMessages((prev) => [...prev, userMsgPending]);
-        beginTyping();
+        commitMessages((prev) => [...prev, userMsgPending], requestSessionId);
+        beginTyping(requestSessionId);
         try {
           const companyLine = (trimmed.match(/company\s*:\s*([^\n\r]+)/i)?.[1] || '').trim();
           const contactsLine = (trimmed.match(/contacts?\s*:\s*([^\n\r]+)/i)?.[1] || '').trim();
@@ -1258,7 +1929,7 @@ export function useChat(options?: {
                 { label: 'Open Documents Page', value: `open_documents:${pendingDocEdit.documentId}`, variant: 'secondary' },
               ],
             },
-          ]);
+          ], requestSessionId);
         } catch {
           appendMessages([
             {
@@ -1270,9 +1941,9 @@ export function useChat(options?: {
               status: 'error',
               timestamp: new Date(),
             },
-          ]);
+          ], requestSessionId);
         } finally {
-          await endTyping();
+          await endTyping(requestSessionId);
         }
         return;
       }
@@ -1287,8 +1958,8 @@ export function useChat(options?: {
           content: trimmed,
           timestamp: new Date(),
         };
-        setMessages((prev) => [...prev, userMsgPending]);
-        beginTyping();
+        commitMessages((prev) => [...prev, userMsgPending], requestSessionId);
+        beginTyping(requestSessionId);
         try {
           const answer = await api.askDocuments({
             question: trimmed,
@@ -1314,7 +1985,7 @@ export function useChat(options?: {
               status: 'info',
               timestamp: new Date(),
             },
-          ]);
+          ], requestSessionId);
         } catch {
           appendMessages([
             {
@@ -1325,9 +1996,9 @@ export function useChat(options?: {
               status: 'error',
               timestamp: new Date(),
             },
-          ]);
+          ], requestSessionId);
         } finally {
-          await endTyping();
+          await endTyping(requestSessionId);
         }
         return;
       }
@@ -1389,7 +2060,7 @@ export function useChat(options?: {
             content: trimmed,
             timestamp: new Date(),
           };
-          setMessages((prev) => [...prev, userMsgPending]);
+          commitMessages((prev) => [...prev, userMsgPending], requestSessionId);
 
           if (isConfirmText) {
             pendingToolPlanRef.current = null;
@@ -1406,19 +2077,20 @@ export function useChat(options?: {
                 content: 'Plan canceled. Tell me how you want to adjust the task and I will re-plan.',
                 timestamp: new Date(),
               },
-            ]);
+            ], requestSessionId);
             return;
           }
 
           // Treat any other reply as refinement of the pending tool plan.
-          beginTyping();
-          startThought('Refining plan', 'Updating the plan based on your feedback.');
+          beginTyping(requestSessionId);
+          startThought('Refining plan', 'Updating the plan based on your feedback.', requestSessionId);
           try {
             const replan = await processLlmMessage(
               `Previous planned actions:\n${pending.summary}\n\nUser refinement:\n${trimmed}`,
               {
                 conversationHistory,
                 sessionState: sessionStateRef.current,
+                ...buildModelOverrides(),
                 forceModel: 'qwen3',
                 phase: 'refining',
                 requireToolConfirmation: true,
@@ -1426,7 +2098,7 @@ export function useChat(options?: {
                 onPlannerEvent: (message) => {
                   appendPlannerStatusLog(message);
                 },
-                onAssistantToken: handleAssistantToken,
+                onAssistantToken: (token) => handleAssistantToken(token, requestSessionId),
               }
             );
             const confirmation = replan.confirmation;
@@ -1461,8 +2133,8 @@ export function useChat(options?: {
                     { label: 'Deny', value: 'tool_plan_deny', variant: 'danger' },
                   ],
                 },
-              ]);
-              appendThoughtStep('Refined plan ready for confirmation');
+              ], requestSessionId);
+              appendThoughtStep('Refined plan ready for confirmation', requestSessionId);
             }
           } catch {
             appendMessages([
@@ -1474,10 +2146,10 @@ export function useChat(options?: {
                 status: 'error',
                 timestamp: new Date(),
               },
-            ]);
+            ], requestSessionId);
           } finally {
-            completeThought();
-            await endTyping();
+            completeThought(requestSessionId);
+            await endTyping(requestSessionId);
           }
           return;
         }
@@ -1489,10 +2161,16 @@ export function useChat(options?: {
         content: trimmed,
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, userMsg]);
-      beginTyping();
+      commitMessages((prev) => [...prev, userMsg], requestSessionId);
+      beginTyping(requestSessionId);
 
       try {
+        const leadResearchPrompt = extractLeadResearchPrompt(trimmed);
+        if (leadResearchPrompt) {
+          await runLeadResearchFlow(leadResearchPrompt);
+          return;
+        }
+
         const slashIntentMessage = parseSlashCommand(trimmed);
         if (slashIntentMessage) {
           const result = await processWorkflowMessage(
@@ -1534,28 +2212,29 @@ export function useChat(options?: {
             },
           ]);
         } else {
-          startThought('Analyzing request and preparing plan', 'Planning the best sequence of actions.');
+          startThought('Analyzing request and preparing plan', 'Planning the best sequence of actions.', requestSessionId);
           const result = await processLlmMessage(modelRequestText, {
             conversationHistory,
             sessionState: sessionStateRef.current,
+            ...buildModelOverrides(),
             phase: 'planning',
             debug: true,
             requireToolConfirmation: true,
             onPlannerEvent: (message) => {
               appendPlannerStatusLog(message);
             },
-            onAssistantToken: handleAssistantToken,
+            onAssistantToken: (token) => handleAssistantToken(token, requestSessionId),
             onToolCall: (name) => {
               appendRunEvent({
                 lane: 'primary',
                 phase: 'tool_call',
                 message: name,
               });
-              updateThoughtTool(name, 'running');
+              updateThoughtTool(name, 'running', requestSessionId);
               appendPlannerStatusLog(`Running ${name.replace(/_/g, ' ')}...`);
             },
           });
-          setThoughtPhase('synthesizing', { summary: 'Synthesizing response from planned actions.' }, true);
+          setThoughtPhase('synthesizing', { summary: 'Synthesizing response from planned actions.' }, true, requestSessionId);
           appendReasoningTrace(result.debugTrace, 'planning');
           const timingSummary = summarizeTraceTiming(result.debugTrace);
           if (timingSummary) {
@@ -1568,11 +2247,6 @@ export function useChat(options?: {
           }
           if (result.appActions && result.appActions.length > 0 && options?.onAppActions) {
             await options.onAppActions(result.appActions);
-            appendRunEvent({
-              lane: 'primary',
-              phase: 'info',
-              message: `Executed ${result.appActions.length} planned UI action(s).`,
-            });
           }
           if (result.debugTrace?.executedCalls && result.debugTrace.executedCalls.length > 0 && options?.onAppActions) {
             const actions = deriveAppActionsFromExecutedCalls(result.debugTrace.executedCalls);
@@ -1618,7 +2292,7 @@ export function useChat(options?: {
                 reactTrace: result.confirmation.traceSnapshot || result.debugTrace?.reactTraceRaw || [],
                 pendingTaskPlan: result.confirmation.pendingTaskPlan,
               });
-              completeThought();
+              completeThought(requestSessionId);
               return;
             }
             appendRunEvent({
@@ -1631,7 +2305,7 @@ export function useChat(options?: {
               },
             });
             if (result.messages.length > 0) {
-              appendMessages(result.messages);
+              appendMessages(result.messages, requestSessionId);
             }
             pendingToolPlanRef.current = {
               uiActions: result.confirmation.uiActions || [],
@@ -1663,8 +2337,8 @@ export function useChat(options?: {
                   { label: 'Deny', value: 'tool_plan_deny', variant: 'danger' },
                 ],
               },
-            ]);
-            completeThought();
+            ], requestSessionId);
+            completeThought(requestSessionId);
             return;
           }
 
@@ -1689,11 +2363,11 @@ export function useChat(options?: {
             }).catch(() => undefined);
           }
 
-          await maybeStreamFallbackAssistantText(result.messages, result.response);
+          await maybeStreamFallbackAssistantText(result.messages, result.response, requestSessionId);
           setConversationHistory(result.updatedHistory);
           sessionStateRef.current = result.sessionState || sessionStateRef.current;
-          appendMessages(result.messages);
-          completeThought();
+          appendMessages(result.messages, requestSessionId);
+          completeThought(requestSessionId);
         }
       } catch {
         appendRunEvent({
@@ -1710,11 +2384,11 @@ export function useChat(options?: {
             status: 'error',
             timestamp: new Date(),
           },
-        ]);
-        completeThought();
+        ], requestSessionId);
+        completeThought(requestSessionId);
       } finally {
-        completeThought();
-        await endTyping();
+        completeThought(requestSessionId);
+        await endTyping(requestSessionId);
       }
       });
     },
@@ -1746,6 +2420,8 @@ export function useChat(options?: {
       resetAssistantStreaming,
       beginTyping,
       endTyping,
+      buildModelOverrides,
+      runLeadResearchFlow,
     ]
   );
 
@@ -2118,6 +2794,157 @@ export function useChat(options?: {
         }
         return;
       }
+      if (baseAction.startsWith('lead_research_export:')) {
+        const runId = baseAction.slice('lead_research_export:'.length).trim();
+        if (!runId) return;
+        const csvText = await api.leads.exportCsv({ run_id: runId });
+        const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+        const href = window.URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = href;
+        anchor.download = `leadforge_export_${runId}.csv`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        window.URL.revokeObjectURL(href);
+        appendMessages([
+          {
+            id: createId(),
+            type: 'status',
+            sender: 'bot',
+            content: 'Lead CSV exported.',
+            status: 'success',
+            timestamp: new Date(),
+          },
+        ]);
+        return;
+      }
+      if (baseAction.startsWith('lead_research_export_ids:')) {
+        const csv = baseAction.slice('lead_research_export_ids:'.length).trim();
+        const leadIds = csv
+          .split(',')
+          .map((part) => Number(part.trim()))
+          .filter((id) => Number.isFinite(id) && id > 0);
+        if (leadIds.length === 0) {
+          appendMessages([
+            {
+              id: createId(),
+              type: 'status',
+              sender: 'bot',
+              content: 'No leads selected to export.',
+              status: 'info',
+              timestamp: new Date(),
+            },
+          ]);
+          return;
+        }
+        const csvText = await api.leads.exportCsv({ lead_ids: leadIds });
+        const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+        const href = window.URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = href;
+        anchor.download = `leadforge_export_selected_${leadIds.length}.csv`;
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+        window.URL.revokeObjectURL(href);
+        appendMessages([
+          {
+            id: createId(),
+            type: 'status',
+            sender: 'bot',
+            content: `Exported ${leadIds.length} selected leads.`,
+            status: 'success',
+            timestamp: new Date(),
+          },
+        ]);
+        return;
+      }
+      if (baseAction.startsWith('lead_research_save:')) {
+        const csv = baseAction.slice('lead_research_save:'.length).trim();
+        const leadIds = csv
+          .split(',')
+          .map((part) => Number(part.trim()))
+          .filter((id) => Number.isFinite(id) && id > 0);
+        if (leadIds.length === 0) {
+          appendMessages([
+            {
+              id: createId(),
+              type: 'status',
+              sender: 'bot',
+              content: 'No leads selected to save.',
+              status: 'info',
+              timestamp: new Date(),
+            },
+          ]);
+          return;
+        }
+        const saved = await api.leads.save({ lead_ids: leadIds, target: 'contacts' });
+        appendMessages([
+          {
+            id: createId(),
+            type: 'status',
+            sender: 'bot',
+            content: `Saved ${saved.saved} leads to Contacts (${saved.duplicates} existing).`,
+            status: 'success',
+            timestamp: new Date(),
+          },
+        ]);
+        if (options?.onAppActions) {
+          await options.onAppActions([{ type: 'navigate', to: '/contacts' }]);
+        }
+        return;
+      }
+      if (baseAction.startsWith('lead_research_crm:')) {
+        const partsCrm = baseAction.split(':');
+        const provider = (partsCrm[1] || '').trim().toLowerCase();
+        const csv = (partsCrm[2] || '').trim();
+        const leadIds = csv
+          .split(',')
+          .map((part) => Number(part.trim()))
+          .filter((id) => Number.isFinite(id) && id > 0);
+        if (provider !== 'hubspot' && provider !== 'pipedrive') {
+          appendMessages([
+            {
+              id: createId(),
+              type: 'status',
+              sender: 'bot',
+              content: 'Unsupported CRM provider.',
+              status: 'error',
+              timestamp: new Date(),
+            },
+          ]);
+          return;
+        }
+        if (leadIds.length === 0) {
+          appendMessages([
+            {
+              id: createId(),
+              type: 'status',
+              sender: 'bot',
+              content: 'No leads selected for CRM export.',
+              status: 'info',
+              timestamp: new Date(),
+            },
+          ]);
+          return;
+        }
+        const resp = await api.leads.exportCrm({
+          provider: provider as 'hubspot' | 'pipedrive',
+          lead_ids: leadIds,
+        });
+        appendMessages([
+          {
+            id: createId(),
+            type: 'status',
+            sender: 'bot',
+            content: `Sent ${resp.sent} leads to ${provider}.`,
+            status: 'success',
+            timestamp: new Date(),
+          },
+        ]);
+        return;
+      }
       if (baseAction === 'salesnav_search') {
         openBrowserViewer();
       }
@@ -2247,7 +3074,7 @@ export function useChat(options?: {
           const original = optimisticButtonsRef.current[src];
           delete optimisticButtonsRef.current[src];
           if (original) {
-            setMessages((prev) => prev.map((m) => (m.id === src ? original : m)));
+            commitMessages((prev) => prev.map((m) => (m.id === src ? original : m)));
           }
         }
         appendMessages([
@@ -2460,6 +3287,14 @@ export function useChat(options?: {
     assistantStreamingText,
     isTyping,
     sendMessage,
+    chatModelSelection,
+    plannerModelSelection,
+    setChatModelSelection,
+    setPlannerModelSelection,
+    chatModelOptions,
+    plannerModelOptions,
+    localRuntimeAvailable,
+    localRuntimeLabel: LOCAL_RUNTIME_LABEL,
     uploadFiles,
     stopAssistantResponse,
     handleAction,
@@ -2475,3 +3310,5 @@ export function useChat(options?: {
     getBackgroundTasks,
   };
 }
+
+

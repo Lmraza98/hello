@@ -8,5 +8,5 @@ from services.web_automation.salesforce.auth_manager import (
     SalesforceAuthStatus,
 )
 from services.web_automation.salesforce.lookup_queue import (
-    enqueue_salesforce_lookup, start_salesforce_lookup_worker, stop_salesforce_lookup_worker,
+    enqueue_salesforce_lookup, enqueue_salesforce_create, start_salesforce_lookup_worker, stop_salesforce_lookup_worker,
 )

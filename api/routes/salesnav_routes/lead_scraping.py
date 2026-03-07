@@ -1,5 +1,7 @@
 """Lead scraping endpoint for Sales Navigator."""
 
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, HTTPException
 
 import database as db
@@ -22,6 +24,7 @@ async def scrape_leads(request: ScrapeLeadsRequest):
     """
     all_leads = []
     errors = []
+    ingest_batch_id = f"salesnav-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
     try:
         for idx, company in enumerate(request.companies):
@@ -87,6 +90,8 @@ async def scrape_leads(request: ScrapeLeadsRequest):
                         company_name=company.name,
                         employees=employees,
                         domain=company.domain,
+                        lead_source="salesnav",
+                        ingest_batch_id=ingest_batch_id,
                     )
 
                 all_leads.extend({**employee, "company": company.name} for employee in employees)

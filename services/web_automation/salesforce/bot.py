@@ -3,10 +3,13 @@ SalesforceBot: UI automation for sending tracked emails from Salesforce.
 Uses persistent browser session to minimize re-authentication.
 """
 import asyncio
+import base64
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, List
+from urllib.parse import parse_qs, quote, unquote, urlparse
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 
 import config
@@ -287,7 +290,7 @@ class SalesforceBot:
         # The search results page shows a data-table with <a> links.
         # We can read the href without clicking, which is faster and more reliable.
         url = await search.get_record_url_by_name(name)
-        if url and ('/lightning/r/Lead/' in url or '/Lead/' in url):
+        if self._looks_like_lead_url(url):
             print(f"[SFBot] Found Lead URL from search results: {url}")
             return url
 
@@ -317,6 +320,34 @@ class SalesforceBot:
 
         # If we landed elsewhere (Contact/Account), treat as not-found for this feature.
         return None
+
+    async def find_first_lead_url_by_query(
+        self,
+        query: str,
+        *,
+        preferred_name: Optional[str] = None,
+        strict_preferred: bool = False,
+    ) -> Optional[str]:
+        """
+        Search Salesforce and return a Lead record URL from the results grid.
+        If preferred_name is provided, prefer matching titles before fallback.
+        """
+        term = (query or "").strip()
+        if not term:
+            return None
+        if not self.is_authenticated:
+            await self._check_auth()
+        if not self.is_authenticated:
+            return None
+
+        search = GlobalSearch(self.page)
+        if not await search.search(term):
+            return None
+        await asyncio.sleep(1.5)
+        return await self._pick_lead_url_from_results(
+            preferred_name=preferred_name,
+            allow_first_fallback=not (strict_preferred and (preferred_name or "").strip()),
+        )
     
     async def wait_for_manual_login(self, timeout_minutes: int = 15):
         """
@@ -414,6 +445,23 @@ class SalesforceBot:
         
         return {'found': False}
     
+    @staticmethod
+    def _parse_default_field_values(raw: str) -> dict[str, str]:
+        out: dict[str, str] = {}
+        text = (raw or "").strip()
+        if not text:
+            return out
+        for chunk in text.split(";"):
+            part = chunk.strip()
+            if not part or "=" not in part:
+                continue
+            key, val = part.split("=", 1)
+            k = key.strip()
+            v = val.strip()
+            if k and v:
+                out[k] = v
+        return out
+
     async def create_or_update_lead(
         self,
         first_name: str = None,
@@ -421,6 +469,7 @@ class SalesforceBot:
         company: str = None,
         title: str = None,
         email: str = None,
+        phone: str = None,
         website: str = None,
         description: str = None,
         lead_source: str = "Web Research"
@@ -430,29 +479,49 @@ class SalesforceBot:
         Returns the Lead record URL or None on failure.
         """
         lead_page = LeadPage(self.page)
-        
-        # Search for existing record first
-        print(f"    [SFBot] Searching for existing record: {email}")
-        search_result = await self.search_for_record(email, company)
-        
-        if search_result.get('found'):
-            print(f"    [SFBot] Found existing record, clicking...")
-            search = GlobalSearch(self.page)
-            clicked = await search.click_result_by_text(email or company)
-            if clicked:
-                await asyncio.sleep(2)  # Wait for page to load
-                await self.page.wait_for_load_state('networkidle', timeout=15000)
-                return self.page.url
+        direct_url_mode = bool(config.SALESFORCE_NEW_LEAD_URL)
+
+        if not direct_url_mode:
+            # Search for existing record first (legacy flow).
+            print(f"    [SFBot] Searching for existing record: {email}")
+            search_result = await self.search_for_record(email, company)
+
+            if search_result.get('found'):
+                print(f"    [SFBot] Found existing record, clicking...")
+                search = GlobalSearch(self.page)
+                clicked = await search.click_result_by_text(email or company)
+                if clicked:
+                    await asyncio.sleep(2)  # Wait for page to load
+                    await self.page.wait_for_load_state('networkidle', timeout=15000)
+                    return self.page.url
+        else:
+            print("    [SFBot] Direct URL mode enabled; skipping global search duplicate check")
         
         # Create new Lead
         print(f"    [SFBot] No existing record, creating new Lead...")
         try:
-            await lead_page.create_new_lead()
+            if direct_url_mode:
+                extra_defaults = self._parse_default_field_values(config.SALESFORCE_DEFAULT_FIELD_VALUES)
+                await lead_page.open_new_lead_via_url(
+                    base_url=config.SALESFORCE_NEW_LEAD_URL,
+                    first_name=first_name,
+                    last_name=last_name,
+                    company=company,
+                    title=title,
+                    email=email,
+                    phone=phone,
+                    website=website,
+                    lead_source=lead_source,
+                    description=description,
+                    extra_field_values=extra_defaults,
+                )
+            else:
+                await lead_page.create_new_lead()
         except Exception as e:
             print(f"    [SFBot] Error opening new Lead form: {e}")
             return None
         
-        await asyncio.sleep(2)  # Wait for modal to fully render
+        await asyncio.sleep(0.4 if direct_url_mode else 2.0)  # Direct URL mode needs less settle time
         
         # Prepare name
         if not last_name:
@@ -462,33 +531,401 @@ class SalesforceBot:
             else:
                 last_name = "Unknown"
         
-        # Fill form
-        print(f"    [SFBot] Filling Lead form: {first_name} {last_name}, {company}")
-        success = await lead_page.fill_lead_form(
-            first_name=first_name,
-            last_name=last_name,
-            company=company or "Unknown Company",
-            title=title,
-            email=email,
-            website=website,
-            lead_source=lead_source,
-            description=description
-        )
-        
-        if not success:
-            print(f"    [SFBot] Failed to fill Lead form")
-            return None
+        # Fill form only when not using direct URL prefill mode.
+        if not direct_url_mode:
+            print(f"    [SFBot] Filling Lead form: {first_name} {last_name}, {company}")
+            success = await lead_page.fill_lead_form(
+                first_name=first_name,
+                last_name=last_name,
+                company=company or "Unknown Company",
+                title=title,
+                email=email,
+                phone=phone,
+                website=website,
+                lead_source=lead_source,
+                description=description
+            )
+            if not success:
+                print(f"    [SFBot] Failed to fill Lead form")
+                return None
+        else:
+            print("    [SFBot] Direct URL prefill mode enabled; skipping DOM field typing")
         
         # Save
         print(f"    [SFBot] Saving Lead...")
         record_url = await lead_page.save_lead()
-        
-        if record_url:
-            print(f"    [SFBot] Lead saved: {record_url}")
-        else:
-            print(f"    [SFBot] Failed to save Lead")
-        
-        return record_url
+        if record_url == "duplicate://detected":
+            print("    [SFBot] Duplicate lead warning detected; skipping create")
+            return "duplicate://detected"
+        if not self._looks_like_lead_url(record_url):
+            # Salesforce can sometimes create successfully but keep us on a list/overlay.
+            # Recover record URL via URL-driven search context in direct URL mode.
+            if direct_url_mode:
+                full_name = " ".join(
+                    [part for part in [(first_name or "").strip(), (last_name or "").strip()] if part]
+                ).strip()
+                recovered = await self.resolve_lead_url_from_search_context(
+                    candidate_url=record_url,
+                    preferred_name=full_name or None,
+                    fallback_queries=[(email or "").strip(), full_name, (company or "").strip()],
+                )
+            else:
+                # Legacy fallback may interact with global search.
+                recovered = await self._recover_created_lead_url(email=email, company=company, candidate_url=record_url)
+            if recovered:
+                record_url = recovered
+
+        normalized = self._normalize_lead_record_url(record_url)
+        if self._looks_like_lead_url(normalized):
+            print(f"    [SFBot] Lead saved: {normalized}")
+            return normalized
+
+        print(f"    [SFBot] Failed to resolve Lead URL after save")
+        return None
+
+    @staticmethod
+    def _extract_lead_id(value: str) -> Optional[str]:
+        text = (value or "").strip()
+        if not text:
+            return None
+        # Salesforce Lead IDs start with 00Q and are 15 or 18 chars total.
+        match = re.search(r"(00Q[a-zA-Z0-9]{12}(?:[a-zA-Z0-9]{3})?)", text)
+        return match.group(1) if match else None
+
+    @staticmethod
+    def _looks_like_lead_url(url: Optional[str]) -> bool:
+        value = (url or "").strip()
+        if not value:
+            return False
+        # Exclude object/list/pipeline pages that are not actual lead records.
+        if "/lightning/o/Lead/" in value:
+            return False
+        if "/lightning/r/Lead/" in value:
+            return True
+        # Lightning result tables commonly link as /lightning/r/00Q.../view
+        if re.search(r"/lightning/r/00Q[a-zA-Z0-9]{12,18}/view", value):
+            return True
+        # Classic patterns can still include explicit Lead + ID.
+        if re.search(r"/Lead/00Q[a-zA-Z0-9]{12,18}", value):
+            return True
+        # Fallback: only treat as record URL if a 00Q id appears on a record-ish path.
+        lead_id = SalesforceBot._extract_lead_id(value)
+        if lead_id and ("/lightning/r/" in value or "/Lead/" in value):
+            return True
+        return False
+
+    @staticmethod
+    def _normalize_lead_record_url(url: Optional[str]) -> Optional[str]:
+        value = (url or "").strip()
+        if not value:
+            return None
+        if SalesforceBot._looks_like_lead_url(value):
+            return value
+        # Normalize direct-id Lightning URLs: /lightning/r/00Q.../view
+        if re.search(r"/lightning/r/00Q[a-zA-Z0-9]{12,18}/view", value):
+            return value
+        try:
+            parsed = urlparse(value)
+            if "/lightning/o/Lead/new" not in parsed.path:
+                return value
+            background = (parse_qs(parsed.query).get("backgroundContext") or [None])[0]
+            if not background:
+                return value
+            decoded = unquote(str(background))
+            decoded_url = f"{parsed.scheme}://{parsed.netloc}{decoded}" if decoded.startswith("/") else decoded
+            if SalesforceBot._looks_like_lead_url(decoded_url):
+                return decoded_url
+            return value
+        except Exception:
+            return value
+
+    def resolve_lead_record_url(self, candidate_url: Optional[str] = None) -> Optional[str]:
+        """
+        Resolve the best Lead record URL from a candidate and current page state.
+        """
+        normalized = self._normalize_lead_record_url(candidate_url)
+        if self._looks_like_lead_url(normalized):
+            return normalized
+        try:
+            current = (self.page.url or "").strip() if self.page is not None else ""
+        except Exception:
+            current = ""
+        normalized_current = self._normalize_lead_record_url(current)
+        if self._looks_like_lead_url(normalized_current):
+            return normalized_current
+        return None
+
+    async def _recover_created_lead_url(
+        self,
+        *,
+        email: Optional[str],
+        company: Optional[str],
+        candidate_url: Optional[str] = None,
+    ) -> Optional[str]:
+        # 1) Check candidate returned by save call.
+        if self._looks_like_lead_url(candidate_url):
+            return candidate_url
+
+        # 2) Check current URL after save transitions.
+        try:
+            current_url = (self.page.url or "").strip()
+            if self._looks_like_lead_url(current_url):
+                return current_url
+        except Exception:
+            pass
+
+        # 3) Re-search and click matching record as a fallback resolver.
+        try:
+            query = (email or "").strip() or (company or "").strip()
+            if not query:
+                return None
+            direct_result = await self.find_first_lead_url_by_query(query)
+            if self._looks_like_lead_url(direct_result):
+                print(f"    [SFBot] Recovered Lead URL via query results: {direct_result}")
+                return direct_result
+            search = GlobalSearch(self.page)
+            if await search.search(query):
+                await asyncio.sleep(1.5)
+                if await search.click_result_by_text(query):
+                    await asyncio.sleep(1.5)
+                    resolved = (self.page.url or "").strip()
+                    if self._looks_like_lead_url(resolved):
+                        print(f"    [SFBot] Recovered Lead URL after save via search: {resolved}")
+                        return resolved
+        except Exception as e:
+            print(f"    [SFBot] Lead URL recovery fallback failed: {e}")
+
+        return None
+
+    @staticmethod
+    def _extract_one_app_search_terms(url: Optional[str]) -> list[str]:
+        """
+        Decode Salesforce one.app hash state and extract candidate search terms.
+        """
+        value = (url or "").strip()
+        if not value:
+            return []
+        try:
+            parsed = urlparse(value)
+            if "/one/one.app" not in parsed.path:
+                return []
+            fragment = (parsed.fragment or "").strip()
+            if not fragment:
+                return []
+            payload = unquote(fragment)
+            padded = payload + ("=" * (-len(payload) % 4))
+            decoded = base64.b64decode(padded).decode("utf-8", errors="ignore")
+            data = json.loads(decoded)
+            attrs = data.get("attributes") if isinstance(data, dict) else None
+            if not isinstance(attrs, dict):
+                return []
+            scope_map = attrs.get("scopeMap") or {}
+            scope_name = str((scope_map.get("name") if isinstance(scope_map, dict) else "") or "").strip().lower()
+            term = str(attrs.get("term") or "").strip()
+            if not term:
+                return []
+            # Only trust lead-scoped search state for URL recovery.
+            if scope_name and scope_name != "lead":
+                return []
+            return [term]
+        except Exception:
+            return []
+
+    @staticmethod
+    def _decode_one_app_state(url: Optional[str]) -> tuple[Optional[str], Optional[dict]]:
+        """
+        Decode one.app hash state into (base_url, payload_json).
+        """
+        value = (url or "").strip()
+        if not value:
+            return None, None
+        try:
+            parsed = urlparse(value)
+            if "/one/one.app" not in parsed.path:
+                return None, None
+            base_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+            fragment = (parsed.fragment or "").strip()
+            if not fragment:
+                return base_url, None
+            payload = unquote(fragment)
+            padded = payload + ("=" * (-len(payload) % 4))
+            decoded = base64.b64decode(padded).decode("utf-8", errors="ignore")
+            data = json.loads(decoded)
+            if not isinstance(data, dict):
+                return base_url, None
+            return base_url, data
+        except Exception:
+            return None, None
+
+    @staticmethod
+    def reconstruct_one_app_search_url(candidate_url: Optional[str], term: str) -> Optional[str]:
+        """
+        Rebuild a valid Salesforce one.app search URL using existing payload shape
+        and a new search term.
+        """
+        search_term = (term or "").strip()
+        if not search_term:
+            return None
+        base_url, payload = SalesforceBot._decode_one_app_state(candidate_url)
+        if not base_url or not isinstance(payload, dict):
+            return None
+        attrs = payload.get("attributes")
+        if not isinstance(attrs, dict):
+            attrs = {}
+            payload["attributes"] = attrs
+        attrs["term"] = search_term
+        if not attrs.get("scopeMap"):
+            attrs["scopeMap"] = {"name": "Lead", "label": "Lead", "id": "Lead"}
+        encoded = base64.b64encode(
+            json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+        ).decode("ascii")
+        return f"{base_url}#{quote(encoded, safe='')}"
+
+    def build_one_app_lead_search_url(self, term: str) -> Optional[str]:
+        """
+        Build a direct Salesforce one.app lead-search URL from a term, without
+        relying on captured hash payloads.
+        """
+        query = (term or "").strip()
+        if not query:
+            return None
+        origin = ""
+        try:
+            current = (self.page.url or "").strip() if self.page is not None else ""
+            parsed_current = urlparse(current)
+            if parsed_current.scheme and parsed_current.netloc:
+                origin = f"{parsed_current.scheme}://{parsed_current.netloc}"
+        except Exception:
+            origin = ""
+        if not origin:
+            try:
+                parsed_base = urlparse((self.base_url or "").strip())
+                if parsed_base.scheme and parsed_base.netloc:
+                    origin = f"{parsed_base.scheme}://{parsed_base.netloc}"
+            except Exception:
+                origin = ""
+        if not origin:
+            return None
+        payload = {
+            "componentDef": "forceSearch:searchPageDesktop",
+            "attributes": {
+                "term": query,
+                "scopeMap": {
+                    "name": "Lead",
+                    "id": "Lead",
+                    "label": "Lead",
+                    "keyPrefix": "00Q",
+                },
+                "context": {
+                    "FILTERS": {},
+                    "searchSource": "ASSISTANT_DIALOG",
+                    "disableIntentQuery": True,
+                    "disableSpellCorrection": False,
+                },
+                "groupId": "DEFAULT",
+            },
+            "state": {},
+        }
+        encoded = base64.b64encode(
+            json.dumps(payload, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+        ).decode("ascii")
+        return f"{origin}/one/one.app#{quote(encoded, safe='')}"
+
+    async def _pick_lead_url_from_results(
+        self,
+        *,
+        preferred_name: Optional[str] = None,
+        allow_first_fallback: bool = True,
+    ) -> Optional[str]:
+        links = self.page.locator('table[role="grid"] a[data-refid="recordId"]')
+        count = await links.count()
+        if count <= 0:
+            return None
+
+        preferred = " ".join((preferred_name or "").strip().lower().split())
+        preferred_parts = [p for p in preferred.split(" ") if p]
+        first_pref = preferred_parts[0] if preferred_parts else ""
+        last_pref = preferred_parts[-1] if len(preferred_parts) > 1 else ""
+        best_match_url: Optional[str] = None
+        first_lead_url: Optional[str] = None
+
+        for i in range(min(count, 25)):
+            link = links.nth(i)
+            href = ((await link.get_attribute("href")) or "").strip()
+            title = ((await link.get_attribute("title")) or "").strip()
+            if not href:
+                continue
+            if href.startswith("/"):
+                parsed = urlparse(self.page.url)
+                href = f"{parsed.scheme}://{parsed.netloc}{href}"
+            normalized = self._normalize_lead_record_url(href)
+            if not self._looks_like_lead_url(normalized):
+                continue
+            if not first_lead_url:
+                first_lead_url = normalized
+            if preferred:
+                t = " ".join(title.lower().split())
+                has_full = preferred in t
+                has_last = bool(last_pref and last_pref in t)
+                has_first = bool(first_pref and first_pref in t)
+                if has_full or (has_first and has_last):
+                    best_match_url = normalized
+                    break
+        if best_match_url:
+            return best_match_url
+        if preferred and not allow_first_fallback:
+            return None
+        return first_lead_url
+
+    async def resolve_lead_url_from_search_context(
+        self,
+        *,
+        candidate_url: Optional[str],
+        preferred_name: Optional[str] = None,
+        fallback_queries: Optional[list[str]] = None,
+    ) -> Optional[str]:
+        """
+        Resolve a Lead URL from Salesforce encoded one.app search context, then
+        optional fallback queries.
+        """
+        queries: list[str] = []
+        seen: set[str] = set()
+        for q in self._extract_one_app_search_terms(candidate_url):
+            token = q.strip()
+            key = token.lower()
+            if token and key not in seen:
+                seen.add(key)
+                queries.append(token)
+        for q in fallback_queries or []:
+            token = (q or "").strip()
+            key = token.lower()
+            if token and key not in seen:
+                seen.add(key)
+                queries.append(token)
+
+        for q in queries:
+            try:
+                direct_search_url = self.build_one_app_lead_search_url(q)
+                if direct_search_url:
+                    await self.page.goto(direct_search_url, timeout=20_000)
+                    try:
+                        await self.page.wait_for_load_state("networkidle", timeout=8_000)
+                    except Exception:
+                        pass
+                    await asyncio.sleep(0.8)
+                    # Identity-sensitive resolution: when we have a preferred
+                    # name, do not fall back to the first arbitrary search row.
+                    from_reconstructed = await self._pick_lead_url_from_results(
+                        preferred_name=preferred_name,
+                        allow_first_fallback=not bool((preferred_name or "").strip()),
+                    )
+                    if self._looks_like_lead_url(from_reconstructed):
+                        print(f"    [SFBot] Resolved Lead URL from direct one.app search URL for '{q}'")
+                        return from_reconstructed
+            except Exception as exc:
+                print(f"    [SFBot] Search-context URL recovery failed for '{q}': {exc}")
+                continue
+        return None
     
     async def send_email_from_record(
         self,

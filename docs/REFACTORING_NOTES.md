@@ -1,589 +1,322 @@
 ---
-summary: "Baseline metrics and prioritized refactor plan for backend/API maintainability."
+summary: "Active refactoring notes for current behavior and operational workflows."
 read_when:
-  - You are planning refactors by impact
-  - You need API contract quality status and priorities
+  - You need the current architecture decisions quickly
+  - You are debugging Contacts, Outlook inbound ingestion, or Salesforce sync
+  - You want current launcher/browser gateway behavior
 title: "Refactoring Notes"
 ---
 
 # Refactoring Notes
 
-## 2026-02-19 - Service Layer Slimming (Safe Pass)
-
-- Fixed stale runtime import in `database.py` from deprecated `services.linkedin.*` to `services.web_automation.linkedin.*`.
-- Updated legacy SalesNav scripts to current browser workflow import paths under `services.web_automation.browser.*`.
-- Removed dead modules:
-  - `services/testing/*`
-  - `services/identity/name_normalizer.py`
-- Expanded `scripts/check_service_boundaries.py` scan scope beyond `services/` so deprecated `services.*` roots are now flagged in:
-  - `api/`
-  - `scripts/`
-  - `tests/`
-  - root backend entrypoints (`database.py`, `main.py`, `app.py`)
-
-## Service Path Migration Note (2026-02-19)
-
-Historical entries below may reference pre-restructure paths. Use this mapping when reading older notes:
-
-- `services/linkedin/*` -> `services/web_automation/linkedin/*`
-- `services/google/*` -> `services/web_automation/google/*`
-- `services/salesforce/*` -> `services/web_automation/salesforce/*`
-- `services/browser_backends/*` -> `services/web_automation/browser/backends/*`
-- `services/browser_skills/*` -> `services/web_automation/browser/skills/*`
-- `services/browser_workflows/*` -> `services/web_automation/browser/workflows/*`
-- `services/browser_workflow.py` -> `services/web_automation/browser/core/workflow.py`
-- `services/browser_policy.py` -> `services/web_automation/browser/core/policy.py`
-- `services/browser_stealth.py` -> `services/web_automation/browser/core/stealth.py`
-- `services/challenge_*` and related challenge modules -> `services/web_automation/browser/challenges/*`
-- `services/workflows/*` -> `services/orchestration/workflows/*`
-- `services/compound_workflow/*` -> `services/orchestration/compound/*`
-- `services/runners/*` -> `services/orchestration/runners/*`
-- `services/phone/*` -> `services/enrichment/phone/*`
-
-## 2026-02-19 - Ingestion-Time LLM Name Normalization
-
-- Added `services/identity/name_classifier.py` as the ingestion-time name normalizer/classifier.
-- Normalization now happens when contacts are written to `linkedin_contacts` (not at export/use time).
-- Extended `linkedin_contacts` schema with preserved raw/structured name fields:
-  - `name_raw`, `name_first`, `name_middle`, `name_last`,
-  - `name_prefix`, `name_suffix`, `name_confidence`, `name_review_reason`.
-- Updated ingestion paths to use normalized storage:
-  - `database.save_linkedin_contacts(...)`,
-  - `database.add_linkedin_contact(...)` (new),
-  - manual contact creation and outreach create-if-missing flows now route through DB ingestion helper.
-- Removed runtime name re-normalization from Salesforce upload/export/email-discovery consumers; these now use stored normalized components with lightweight fallback splitting only.
-
-## Current Baseline (2026-02-10)
-
-This baseline was generated from:
-- `export-signatures.ps1`
-- `python scripts/export_api_docs.py`
-- `app.openapi()` inspection
-
-### Scale
-- Source files indexed by signature export: `193`
-- FastAPI operations in OpenAPI spec: `92`
-- Tagged API operations: `92`
-- Untagged operations: `0`
-
-### High-impact backend files (size)
-- `services/linkedin/scraper_core.py` (`133.6 KB`)
-- `database.py` (`83.2 KB`)
-- `services/phone/discoverer.py` (`42 KB`)
-- `services/salesforce/bot.py` (`30.4 KB`)
-- `services/salesforce/pages.py` (`27.8 KB`)
-- `services/email/salesforce_sender.py` (`21.7 KB`)
-
-### High-impact backend files (symbol density)
-- `database.py` (`76` signatures)
-- `services/linkedin/scraper_core.py` (`36` signatures)
-- `services/salesforce/pages.py` (`34` signatures)
-- `services/phone/discoverer.py` (`23` signatures)
-- `services/email/discovery/pipeline.py` (`21` signatures)
-
-### API route density
-- `api/routes/email_routes/engagement.py` (`17` endpoints)
-- `api/routes/email_routes/campaign_management.py` (`16` endpoints)
-- `api/routes/companies.py` (`13` endpoints)
-- `api/routes/email_routes/delivery.py` (`13` endpoints)
-
-### OpenAPI documentation gap
-- Most request models are represented in OpenAPI.
-- JSON success response schemas are now complete (`90/90` JSON-returning operations have typed schemas).
-- Two endpoints intentionally return file payloads (`/api/contacts/export`, `/api/contacts/salesforce-csv/{filename}`).
-- Next improvement is tightening permissive DTOs into domain-specific response models.
-
-## Refactor Priorities
-
-### P0: API contract quality for Swagger/admin tooling
-- Add `response_model` to all API handlers. (`done` for all JSON-returning endpoints)
-- Replace generic `dict`/`list` responses with Pydantic response DTOs by domain.
-- Add operation summaries/descriptions where missing.
-- Keep frontend catch-all routes excluded from docs if desired (`include_in_schema=False`).
-
-### P1: Split `database.py` by domain
-- Create `database/` package with focused modules:
-  - `database/core.py` (connection, context manager, migrations bootstrap)
-  - `database/targets.py`
-  - `database/contacts.py`
-  - `database/campaigns.py`
-  - `database/sent_emails.py`
-  - `database/replies.py`
-  - `database/stats.py`
-- Keep backward-compatible re-exports from `database.py` during migration.
-
-### P2: Service decomposition
-- `services/linkedin/scraper_core.py`
-  - Split into `auth/session`, `navigation/search`, `lead-extraction`, `url-extraction`.
-  - Keep `SalesNavigatorScraper` as facade.
-- `services/phone/discoverer.py`
-  - Mirror email discovery pattern:
-    - `models.py`, `search.py`, `llm.py`, `pipeline.py`, `export.py`, `db_io.py`.
-- `services/salesforce/*`
-  - Consolidate shared concerns (auth/session/retry/selectors).
-  - Remove duplicated browser/page interaction helpers.
-
-### P3: SQL safety and consistency
-- Remove remaining string-interpolated query fragments where values are dynamic.
-- Standardize parameterized filtering for dates and IDs.
-
-### P4: Documentation automation
-- Keep generated artifacts committed:
-  - `docs/api/openapi.json`
-  - `docs/api/endpoints.md`
-- Add CI check to ensure OpenAPI export still builds.
-- Add endpoint contract tests for critical workflows.
-
-## Immediate Artifacts
-
-- Signature export script: `export-signatures.ps1`
-  - Updated to exclude `venv` and `.venv`.
-- API docs export script: `scripts/export_api_docs.py`
-  - Generates:
-    - `docs/api/openapi.json`
-    - `docs/api/endpoints.md`
-
-## Definition of Done for the API Layer
-
-- Every endpoint has:
-  - request model (if body exists),
-  - typed response model,
-  - summary/description,
-  - consistent error envelope.
-- OpenAPI export is deterministic and committed.
-- Admin portal can render endpoint docs from generated OpenAPI without manual curation.
-
-## 2026-02-16 - ChatEngine Phase 2A responseBuilder extraction
-
-- Added ui/src/chat/chatEngine/responseBuilder.ts with dispatch-backed result builder extracted 1:1 from dispatchPlanAndBuildResult behavior.
-- Kept ui/src/chat/chatEngine/dispatchResponse.ts as a compatibility layer exporting existing helpers and dispatchPlanAndBuildResult wrapper.
-- Migrated Phase 2A call sites only: fastPath default branch and confirmed_read_only_fastlane branch in reactAdapter.
-- Added golden tests for confirmation gate, synthesis-skip dedupe path, and override path (meta/phase/post-process).
-
-## 2026-02-16 - ChatEngine Phase 2B/2C builder consolidation
-
-- Added dispatchAndBuildArtifacts to ui/src/chat/chatEngine/responseBuilder.ts and rewired ast_path_email_lookup to use it while preserving follow-up prompt/history/message behavior.
-- Added uildExecutedToolBackedResult to 
-esponseBuilder.ts and migrated 
-eactResultToChatResult in 
-eactAdapter.ts to use it.
-- Kept confirmation, grounded messaging, session merge, and debug trace semantics intact; all tests passing.
-## 2026-02-16 - ChatEngine routing hardening for send-email and confirmations
-
-- Added deterministic email-to-person routing in `ui/src/chat/chatEngine/pipelineSteps.ts` for direct patterns (`send an email to`, `email`, `reach out to`, `send message to`) to run a tool-grounded `hybrid_search` contact lookup path.
-- Ensured active-task/skill resume executes before conversational short-circuit, and affirmative confirmations (for assistant confirmation prompts) are no longer swallowed as conversational replies.
-- Added execution-time tool argument schema guards in `ui/src/chat/toolExecutor/dispatch.ts` so invalid required args are blocked before API calls.
-- Added `pick_contact_for_email:*` handling in `ui/src/chat/chatEngine/actionRouter.ts` so disambiguation actions route back into the planning pipeline.
-- Updated email fast-path handling in `ui/src/chat/chatEngine/fastPath.ts` to prompt for more identifying info when no matching contact is found.
-- Added regression tests in `ui/src/chat/__tests__/toolExecutorGuards.test.ts` and `ui/tests/chatScenarios.smoke.test.ts`.
-## 2026-02-16 - Multi-step planner dependency hardening
-
-- Strengthened step context propagation in `ui/src/chat/chatEngine/stepContext.ts` to include strict dependency guidance and top entity hints from prior-step tool results.
-- Updated `ui/src/chat/chatEngine/taskPlanExecutor.ts` to use rolling per-step history during multi-step execution, improving downstream step grounding.
-- Added deterministic fallback for deferred email scheduling intents during step execution when no deterministic scheduling tool is available, returning a clear manual-confirmation path.
-- Added semantic planner guardrails in `ui/src/chat/models/toolPlanner/normalize.ts`:
-  - map `resolve_entity` person-like entity types to supported schema values,
-  - rewrite generic role lookups (e.g., "Head of Marketing") into constrained `hybrid_search` calls,
-  - enforce contact constraints on generic role lookups and carry forward context entity hints.
-- Clarified ReAct failure trace wording in `ui/src/chat/reactLoop.ts` from "step" to "iteration" for accurate debugging.
-- Added regression tests in `ui/src/chat/models/__tests__/toolPlannerNormalizeGuards.test.ts` and `ui/tests/stepContext.test.ts`.
-## 2026-02-17 - Deterministic prospecting skill + scheduling primitives
-
-- Added new deterministic built-in skill `prospect-companies-and-draft-emails` in `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts` and registered it in `ui/src/assistant-core/skills/loader.ts`.
-- The skill targets complex outreach requests (company discovery -> head-of-marketing discovery -> campaign creation -> enrollment -> draft prep -> queue approval -> schedule verification) with explicit write confirmations.
-- Added new chat tools and executor mappings:
-  - `approve_campaign_review_queue`
-  - `reschedule_campaign_emails`
-- Added backend API endpoints to support those tools:
-  - `POST /api/emails/review-queue/approve-campaign`
-  - `PUT /api/emails/scheduled-emails/reschedule-by-offset`
-- Added Pydantic request/response models for the new endpoints in `api/routes/email_routes/models.py`.
-- Updated planner tool preselection to treat `schedule`/`reschedule` as mutating intents.
-- Added regression tests:
-  - `ui/tests/skillProspectingFlow.test.ts`
-  - extended `ui/tests/skillSystem.test.ts` for matching and deterministic plan checks.
-
-## 2026-02-17 - Admin IA cleanup (tests-first, fine-tune advanced)
-
-- Changed primary admin entry to planner tests:
-  - sidebar `Admin` nav now targets `/admin/tests`,
-  - added `/admin` route redirect to `/admin/tests`.
-- Reordered admin top tabs to emphasize day-to-day operations:
-  - primary tabs now show `Tests`, `Logs`, `Costs`.
-- Kept `Fine-tune` route and functionality intact but demoted it to an advanced tab action:
-  - labeled as `Advanced: Fine-tune` in `ui/src/pages/admin/Admin.tsx`.
-
-## 2026-02-17 - Email campaigns list refactor to table model
-
-- Refactored `ui/src/components/email/CampaignsView.tsx` from status-grouped cards to a table-first layout aligned with Companies/Contacts page structure.
-- Added shared toolbar behavior for campaigns:
-  - global search,
-  - filter panel toggle,
-  - active filter pills with per-filter clear.
-- Added campaign filters for:
-  - status,
-  - template mode (`linked`/`copied`),
-  - review queue state (has/no pending review).
-- Added sortable table columns with row-level actions preserved (`edit templates`, `upload to Salesforce`, `activate/pause`, `send`, `delete`).
-- Kept non-campaign email views unchanged (`Review`, `Scheduled`, `Sent History`).
-
-## UI Planner Refactor Notes (2026-02-16)
-- Removed deprecated ui/src/chat/models/toolPlanner/parseNormalize.ts after splitting parse/normalize responsibilities into parse.ts and normalize.ts.
-- Restored regex/escape semantics in ui/src/chat/models/toolPlanner/parse.ts and ui/src/chat/models/toolPlanner/normalize.ts so fenced JSON extraction and browser normalization behavior match intended planner behavior.
-- Added schema-independent safety guards so get_contact requires a positive integer contact_id in planner normalization and dispatch validation, preventing /contacts/undefined calls even under stale schema/runtime states.
-- Added resolve_entity execution fallback in UI tool executor: map person-like entity_types to contact and, when deterministic resolve returns empty, retry through hybrid_search for better name lookup recall.
-- Fixed browser workflow skill entry behavior: auto-learned skills now include entry_url/base_url, and search_and_extract now proceeds on current tab when entry_url is missing but current URL matches skill domains (prevents false no_entry_url failures).
-- Added deterministic target-market heuristic in SalesNav filter parsing: queries like X for the healthcare industry now force industry to Hospital & Health Care and keep X terms in keywords, preventing over-constraining to generic Technology.
-- Hardened SalesNav company-focus extraction to remain deterministic while handling realistic user phrasing: supports quoted/company-named entity extraction and rejects generic criteria-heavy queries (for fallback keyword safety).
-- Pruned legacy SalesNav UI-filter click path coverage in favor of URL-first workflow contracts: tests now prioritize URL builder, navigation, and extraction boundary behavior over deprecated suggestion/filter-expander interactions.
-- Expanded SalesNav account filter coverage in browser workflow decomposition/merge to include annual_revenue, fortune, department/spotlight/workflow filters, and added regression tests in `tests/test_salesnav_filters.py` to verify frontmatter wiring plus `apply_filter` execution across all requested filter groups.
-
-## 2026-02-16 - SalesNav scraper reliability + modularization pass
-
-- Added `services/linkedin/salesnav/` support modules to split responsibilities:
-  - `session.py`, `selectors.py`, `nav.py`, `waits.py`, `filters.py`, `scrape_people.py`, `scrape_companies.py`, `debug.py`, `operations.py`, `models.py`.
-- Converted `services/linkedin/scraper_core.py` into a thin facade (now 72 lines) with split mixins:
-  - `services/linkedin/salesnav/session_mixin.py`
-  - `services/linkedin/salesnav/navigation_mixin.py`
-  - `services/linkedin/salesnav/filter_url_mixin.py`
-  - `services/linkedin/salesnav/public_url_mixin.py`
-  - `services/linkedin/salesnav/parsing_mixin.py`
-- Kept delegated modules for core responsibilities (`filter_applier`, `scrape_people`, `scrape_companies`) and removed the temporary monolith file `services/linkedin/scraper_legacy.py`.
-- Completed third-pass decomposition of public URL extraction:
-  - `services/linkedin/salesnav/public_url_mixin.py` reduced to thin compatibility wrappers (35 lines),
-  - heavy flow moved to `services/linkedin/salesnav/public_url_flow.py`,
-  - batch two-pass enrichment moved to `services/linkedin/salesnav/public_url_batch.py`.
-- Completed fourth-pass decomposition of navigation responsibilities:
-  - `services/linkedin/salesnav/navigation_mixin.py` reduced to thin wrappers (81 lines),
-  - company lookup/decision-maker navigation moved to `services/linkedin/salesnav/navigation_company_search.py`,
-  - employee fetch flow moved to `services/linkedin/salesnav/navigation_employee_fetch.py`,
-  - multi-step workflow orchestration moved to `services/linkedin/salesnav/navigation_workflows.py`.
-- Completed fifth-pass decomposition of filter URL responsibilities:
-  - `services/linkedin/salesnav/filter_url_mixin.py` reduced to thin wrappers (48 lines),
-  - URL construction moved to `services/linkedin/salesnav/filter_url_build_flow.py`,
-  - location-ID dropdown extraction moved to `services/linkedin/salesnav/filter_url_location_flow.py`,
-  - filter-ID extraction moved to `services/linkedin/salesnav/filter_url_filter_id_flow.py`.
-- Grouped `services/linkedin/salesnav/` into logical subpackages for maintainability:
-  - `core/`, `flows/`, `extractors/`, `mixins/`, `parser/`.
-- Tightened auth checks to require `linkedin.com` host and `/sales/` paths while excluding login/checkpoint/authwall states.
-- Replaced key `networkidle`/fixed waits in hot paths with explicit SalesNav wait helpers (shell/results container/lead cards/company cards).
-- Added operation-level retry wrapper and structured debug artifact capture (`debug/*.html`, `debug/*.png`, `debug/*.json`) on failures.
-- Changed always-on debug HTML writes to conditional sampled captures controlled by `DEBUG_SNAPSHOTS` and `DEBUG_SNAPSHOT_RATE`.
-- Removed same-page parallel card extraction in company scraping to avoid flaky shared-page race conditions.
-- Improved dedupe identity: lead URL/company URL normalization now used as primary keys before text fallbacks.
-- Normalized mojibake-affected log output and bullet parsing handling for both proper and mojibake bullet characters.
-- Removed legacy contact-storage coupling from `services.linkedin`:
-  - deleted `services/linkedin/contacts.py` compatibility shim,
-  - updated API/CLI imports to use `database.py` contact helpers directly,
-  - removed contact function re-exports from `services/linkedin/__init__.py`.
-- Standardized CLI data access on `database.py` for SalesNav scrape/backfill flows:
-  - added `database.py` helpers for pending target retrieval with tier filters,
-  - added `database.py` helpers for missing-public-URL contacts and generated-email writes,
-  - removed inline SQL/cursor usage from `cli/commands/scrape.py` and `cli/commands/backfill.py`.
-- Standardized remaining CLI database utility commands on `database.py` helpers:
-  - removed direct SQL from `cli/commands/status.py` and `cli/commands/db.py`,
-  - added centralized count/reset/delete helper functions in `database.py` for targets, contacts, send queue, campaigns, and sent-email stats.
-- Moved company collection/classification modules into LinkedIn namespace:
-  - `services/company/collector.py` -> `services/linkedin/salesnav/flows/company_collection.py`
-  - `services/company/vertical_classifier.py` -> parser-native helpers in `services/linkedin/salesnav/parser/filter_parser.py`
-  - updated API/CLI/tests imports to `services.linkedin.salesnav.flows.company_collection` and parser helper imports from `services.linkedin.salesnav.filter_parser`
-- Refactored `services/linkedin/salesnav/flows/company_collection.py` to match SalesNav flow cadence:
-  - introduced focused helpers for HQ filter extraction, account-search execution, company normalization, and fallback orchestration,
-  - aligned constructor/signature pattern with other flow classes (`__init__(self, scraper: Any = None)`),
-  - kept external behavior and return payload shape stable.
-- Removed `services/linkedin/company/vertical_classifier.py` and replaced call sites with parser-native inference:
-  - added `infer_company_vertical`, `infer_company_vertical_if_missing`, and `backfill_missing_verticals` to `services/linkedin/salesnav/parser/filter_parser.py`,
-  - switched vertical inference in `database.add_target`, CSV ingest, and SalesNav company collection flow to those parser helpers.
-- Hardened `services/linkedin/scraper_core.py` facade API:
-  - removed private `_apply_*` passthrough exposure and replaced with public single-filter methods (`apply_industry`, `apply_location`, `apply_headcount`, `apply_revenue`),
-  - updated filter-URL flows to call public filter APIs instead of private internals,
-  - added facade precondition guards (`_require_page`, `_require_auth`, `_ensure_on_account_search`) before delegation,
-  - added async lifecycle context-manager support (`__aenter__`, `__aexit__`),
-  - added typed convenience methods (`scrape_current_results_typed`, `scrape_company_results_typed`) while preserving existing dict-based APIs.
-- Simplified scraper architecture to facade + composition:
-  - removed mixin inheritance from `SalesNavigatorScraper`,
-  - facade now delegates explicitly to composed flows/services (`company_search_flow`, `employee_fetch_flow`, `workflow_flow`, `filter_url_*`, `public_url_flow`, applier/extractors),
-  - preserved public method surface so existing API/CLI call sites continue to work.
-- Tightened facade surface and helper reuse:
-  - removed internal/private wrapper exports from `SalesNavigatorScraper` (`_get_location_id_from_dropdown`, `_get_filter_id_from_url`, `_get_filter_id`, `_abs_salesnav_url`, `_extract_public_url_from_html`, `_copy_public_url_from_lead_page`),
-  - updated URL/filter flows to call composed flow objects directly instead of private facade wrappers,
-  - introduced shared parsing helpers in `services/linkedin/salesnav/core/parsing.py` and switched consumers to use it (headcount range parsing, employee-count parsing),
-  - added consistent readiness gate in facade (`_ensure_ready(require_auth=..., require_account_search=...)`) and applied it across public navigation/filter/public-url/task methods.
-- Standardized raw employee URL schema across SalesNav people flows:
-  - `services/linkedin/salesnav/extractors/scrape_people.py`, `services/linkedin/salesnav/flows/public_url_batch.py`, and `services/linkedin/salesnav/flows/navigation_employee_fetch.py` now emit explicit `sales_nav_url` and `public_url` fields with `has_public_url`, instead of ambiguous `linkedin_url`,
-  - public URL enrichment updates `public_url` only and preserves `sales_nav_url`,
-  - typed mapping in `services/linkedin/scraper_core.py` now prefers explicit fields and only uses `linkedin_url` as a backward-compat fallback.
-- Added optional auth self-heal path to facade readiness checks:
-  - `services/linkedin/scraper_core.py::_ensure_ready(...)` now accepts `interactive_auth` (default `False`),
-  - when `require_auth=True` and cached auth state is false, readiness calls `ensure_authenticated(interactive=interactive_auth)` before raising.
-- Hardened login-wait success criteria in `services/linkedin/scraper_core.py::wait_for_login(...)`:
-  - switched timeout loop timing to `asyncio.get_running_loop().time()` for deterministic monotonic timing,
-  - on authenticated URL detection, now requires `wait_for_salesnav_shell(...)` before saving storage state and returning success.
-- Simplified typed employee mapping in `services/linkedin/scraper_core.py::scrape_current_results_typed(...)`:
-  - now reads only explicit raw fields (`sales_nav_url`, `public_url`),
-  - removed legacy `linkedin_url` fallback from typed mapping to keep the schema unambiguous.
-- Promoted typed high-level SalesNav facade APIs and added explicit raw variants:
-  - added `ContactsResult` model in `services/linkedin/salesnav/core/models.py`,
-  - `search_companies_with_filters(...)` now returns `list[CompanyResult]` via `search_companies_with_filters_typed(...)`,
-  - `scrape_company_contacts(...)` now returns `ContactsResult` via `scrape_company_contacts_typed(...)`,
-  - retained raw dict payload access with `search_companies_with_filters_raw(...)` and `scrape_company_contacts_raw(...)`.
-- Facade/API consistency cleanup in `services/linkedin/scraper_core.py`:
-  - added shared mapping helpers (`_to_employee_result`, `_to_company_result`) and reused them across typed wrappers to prevent drift,
-  - added reusable `self.public_url_batch` initialized in `__init__` (no per-call batch allocation),
-  - added `scrape_current_results_raw(...)` alias for raw-people naming consistency,
-  - made top-level typed-first public methods explicitly enforce readiness (`scrape_company_contacts`, `search_companies_with_filters`),
-  - split auth checks into passive (`_check_auth_passive`, no navigation) and active (`_check_auth_active`, navigates to Sales Home), with `ensure_authenticated(...)` using passive first.
-- Tightened raw employee schema contract in SalesNav workflow output:
-  - `services/linkedin/salesnav/flows/navigation_workflows.py` now ensures returned employee entries always include `sales_nav_url`, `public_url`, and `has_public_url` keys.
-- Applied safe pacing/reliability hardening for SalesNav automation (non-evasive):
-  - added configurable pacing settings in `config.py` (`SALESNAV_SLOW_MO_MS`, `SALESNAV_PACING_*`),
-  - added `services/linkedin/salesnav/core/pacing.py` with bounded jitter/backoff delay helpers for load smoothing,
-  - replaced fixed sleeps in key extractors/flows (`scrape_people`, `scrape_companies`, `navigation_employee_fetch`) with pacing helpers,
-  - removed invalid `navigator.plugins` overrides from SalesNav browser init scripts (facade + session mixin),
-  - updated URL wait loop timing in `services/linkedin/salesnav/core/waits.py` to use `asyncio.get_running_loop().time()`.
-- Added orchestration-level cadence controls in `services/linkedin/salesnav/flows/company_collection.py`:
-  - introduced a process-local search gate (`_search_gate_lock` + `_min_search_interval_seconds`) to throttle back-to-back account-search recipe calls,
-  - added bounded pause before fallback retry attempts in `_collect_with_fallback(...)` to avoid immediate retry bursts.
-- Reduced fixed-interval cadence in browser workflow recipes/core:
-  - `services/browser_workflow.py` now exposes `wait_jitter(...)` and uses jittered per-page settle waits in `paginate_and_extract(...)`,
-  - `services/browser_workflows/recipes.py` replaced hardcoded `wf.wait(...)` constants with bounded jittered wait helpers for UI-settle and results-settle phases.
-  - added explicit inter-phase cooldown in `services/browser_workflows/recipes.py` (`_wait_phase_cooldown`, bounded to 2-4s) at major `search_and_extract` boundaries.
-- Hardened LinkedIn facade/workflow reliability surfaces:
-  - `services/linkedin/scraper_core.py` now routes key interaction-heavy public methods through a single `_run_operation(...)` wrapper backed by `run_operation_with_retries(...)` with timing logs and debug context,
-  - `services/linkedin/workflows.py` now uses `ensure_authenticated(...)` and returns structured `auth_required` / `error` payloads on failure paths.
-- Added safe LinkedIn interaction utility module:
-  - `services/linkedin/salesnav/core/interaction.py` with deterministic pointer/scroll helpers (`move_to_element`, `click_locator`, `wheel_scroll`, `scroll_into_view`) and bounded jitter pacing helper (`wait_with_jitter`),
-  - includes `idle_drift` as a timing-only idle helper for load smoothing without synthetic cursor-drift behavior.
-- Interaction helper reliability tweak:
-  - `click_locator` now targets a random inner-area point (15%-85% bounds) to reduce fragile center-pixel interception issues,
-  - `idle_drift` now uses bounded jittered wait chunks via `wait_with_jitter` for smoother long idle periods.
-- Added safe operation-level CDP keepalive in `services/linkedin/scraper_core.py`:
-  - `_run_operation(...)` now starts a lightweight heartbeat task during wrapped operations,
-  - heartbeat sends periodic `page.evaluate("() => 1")` pings to prevent fully idle CDP stretches without synthesizing input events.
-- Wired SalesNav interaction reliability helpers into primary automation paths:
-  - `services/browser_workflows/recipes.py::_wait_phase_cooldown(...)` now adds guarded `idle_drift(...)` after jitter waits,
-  - `services/linkedin/scraper_core.py::reset_search_state(...)` now performs guarded `idle_drift(...)` before home navigation,
-  - `services/linkedin/salesnav/extractors/scrape_people.py` now scrolls each card into view before extraction and adds brief guarded `idle_drift(...)` every 5 extracted people,
-  - `services/linkedin/salesnav/flows/filter_applier.py` now uses `click_locator(...)` at main filter open/select click points and adds guarded per-filter `idle_drift(...)`,
-  - `services/browser_workflow.py::paginate_and_extract(...)` now uses bounded jitter wait (`min_ms=500`, `max_ms=3000`) plus guarded `idle_drift(...)` after pagination clicks.
-- Added post-selection filter-panel collapse safeguards for SalesNav filter application:
-  - `services/browser_workflow.py::apply_filter(...)` now executes a fallback collapse chain after selection/confirm and before verify (toggle expand button, then `Escape`, then click-away evaluate) with settle waits,
-  - `services/linkedin/salesnav/flows/filter_applier.py` now presses `Escape` after successful industry/location/headcount/revenue selections to ensure panels are closed before the next filter step.
-
-## 2026-02-22 - Launcher Graph Refactor (Maintainability Pass)
-
-- Added shared graph UI type definitions in `launcher_frontend/src/components/graph/graphTypes.ts` to reduce ad-hoc `any` usage across graph components.
-- Extracted scope-aware graph selection/filter derivation into `launcher_frontend/src/components/graph/useGraphViewModel.ts`.
-  - This centralizes `currentNodeId` resolution and scoped node/edge selection for suite/aggregate/child modes.
-- Updated `launcher_frontend/src/components/graph/TestDependencyGraph.tsx` to consume the new hook, removing a large block of inline scope/selection logic.
-- Tightened `GraphNode` typing via explicit `GraphNodeProps` in `launcher_frontend/src/components/graph/GraphNode.tsx`.
-- Preserved runtime behavior while reducing coupling and making future bug fixes (scope tracking, dynamic right-panel selection, playback selection) easier to isolate.
-- Graph stability fixes in `TestDependencyGraph.tsx`:
-  - dependency status resolution now uses a unified scoped status map (suite + aggregate children + child DAG IDs) to avoid false blocked/unmet deps in aggregate/child scopes.
-  - canvas scroll viewport updates are requestAnimationFrame-coalesced to reduce render thrash.
-  - auto-fit now runs once per scope signature (suite/aggregate/child key) instead of snapping on every layout/current-node update.
-  - edge style precedence updated so transition/blocked/path states override cycle styling.
-- Scoped graph model correctness pass (`TestDependencyGraph.tsx`, `useGraphViewModel.ts`):
-  - context trimming and bundling now derive from a base scoped model (`suite|aggregate|child`) instead of always suite nodes.
-  - child scope semantic adjacency now uses child DAG edges, fixing upstream/downstream reachability and blocked-dependency logic in child view.
-  - search source and status counts now align with rendered scoped graph model.
-  - cycle banner wording updated to `Non-DAG edge detected` to match current back-edge detection behavior.
-- Type-safety fix in `TestDependencyGraph.tsx` playback stream: normalized timeline/path entries into a shared `PlaybackEntry` shape so mixed `RunEvent | PathStepEvent` access (e.g. `focusNodeId`) is type-safe.
-
-## 2026-02-23 - Launcher Frontend Graph Behavior Contract Updates
-
-- Updated graph docs/contracts for current frontend behavior:
-  - aggregate filters are global across Tests/Graph and act as visibility/scope filters without changing live replay ownership semantics,
-  - suite inline aggregate expansion remains the canonical graph interaction path for filtered aggregate selection,
-  - graph bottom playback controls are artifact-replay scoped (shown only while an artifact run is loaded, hidden otherwise).
-- `launcher_frontend/src/components/graph/GraphCanvas.tsx` was restructured into internal layers (`EdgesLayer`, `NodesLayer`, `OverlaysLayer`) with pure style/state helpers while preserving existing event and rendering semantics.
-
-## 2026-02-23 - UI Build Fix (TypeScript)
-
-- Fixed a strict TypeScript build failure in `ui/src/chat/models/toolPlanner/complexityClassifier.ts` by removing an unused local variable (`lower`) so `tsc -b` passes during `scripts/start_backend.bat`.
-
-## 2026-02-23 - Chat Quick Search Confirmation + Lead-First Lookup
-
-- Updated `ui/src/chat/chatEngine/responseBuilder.ts` confirmation gating so read-only tool plans (for example `search_contacts`, `search_companies`, `hybrid_search`) no longer prompt confirmation just because `requireToolConfirmation` is enabled.
-- Added deterministic quick-lookup routing in `ui/src/chat/chatEngine/pipelineSteps.ts`:
-  - reverted: quick-lookup regex routing for `find/search/who is` was removed to keep these intents on the standard planner flow.
-- Added lead-first fallback behavior in `ui/src/chat/toolExecutor/executeTool.ts` for `search_contacts(name=...)`:
-  - if local contacts return no close name match, automatically fallback to `hybrid_search` for contact recall,
-  - if a close match exists in contacts/leads, no hybrid fallback is triggered.
-- Reduced noisy chat-driven workspace preview churn for exact lookups in `ui/src/hooks/useChat.ts`:
-  - exact `search_contacts(name=...)` and exact `search_companies(company_name=...)` results no longer auto-emit `navigate + set_filter` app actions,
-  - avoids showing an empty/in-progress "Applying filters" Live UI Preview card for simple person/company find queries.
-- Applied table-density UI compaction for CRM list pages and shared controls:
-  - `ui/src/pages/Contacts.tsx`: reduced header/padding footprint, tighter table header/body spacing, lower virtual row height, smaller action buttons, lighter chip density, narrower table minimum width.
-  - `ui/src/components/contacts/tableColumns.tsx`: compact checkbox/chevron gutter, reduced typography scale, tighter line-height, single-line truncation for title/company, narrower status/actions columns, lighter sort affordances.
-  - `ui/src/components/contacts/SalesforceStatusBadge.tsx`: smaller pill chip treatment (`text-[10px]`, tight padding).
-  - `ui/src/components/shared/SearchToolbar.tsx`: reduced search/input/button heights and icon/label spacing for denser list-page toolbars.
-  - `ui/src/components/shared/PageHeader.tsx`: compressed title/subtitle/action spacing; subtitle now aligns inline with title on desktop for reduced vertical header weight.
-  - `ui/src/pages/Companies.tsx` + `ui/src/components/companies/tableColumns.tsx`: mirrored compact density adjustments so list pages remain visually consistent with Contacts.
-
-## 2026-02-23 - Assistant Panel System (Phase Progress)
-
-- Continued implementation of `docs/concepts/assistant-panel-system-proposal.md`:
-  - Phase 1 card unification: `ui/src/components/chat/EventRow.tsx` and `ui/src/components/chat/WorkflowEventCard.tsx` now render through `ui/src/components/chat/UnifiedCard.tsx`.
-  - Phase 2 shell integration foundation:
-    - added `ui/src/components/assistant/GlobalAssistantPanel.tsx`,
-    - added `ui/src/components/assistant/ContextPreviewDrawer.tsx`,
-    - updated `ui/src/components/shell/ChatFirstShell.tsx` to route assistant and preview surfaces via these new abstractions,
-    - updated `ui/src/components/shell/LegacySplitShell.tsx` to route assistant surface via `GlobalAssistantPanel`.
-- This keeps existing behavior stable while reducing shell-level coupling to legacy chat surface components, enabling Phase 3 deprecation work.
-
-## 2026-02-23 - Assistant Panel System (Phase 4 Trigger Rules)
-
-- Tightened context-preview trigger behavior in `ui/src/chat/actionExecutor.ts`:
-  - removed chat-driven workspace interaction previews for navigation/filter/selection actions,
-  - preserved route updates and chat context while clearing interaction state to prevent unwanted preview takeovers.
-- Context preview now remains primarily tied to complex browser workflow actions (`browser.observe`, `browser.annotate`, `browser.synthesize`, `browser.validate`).
-- Updated shell labeling in `ui/src/components/shell/ChatFirstShell.tsx` from `Live UI Preview` to `Context Preview` to align with the new surface naming.
-
-## 2026-02-23 - Assistant Panel System (Phase 3 Route Migration Complete)
-
-- Unified assistant surface routing to `ui/src/components/assistant/GlobalAssistantPanel.tsx` across shell paths.
-- Removed legacy split-shell implementation:
-  - deleted `ui/src/components/shell/LegacySplitShell.tsx`.
-- Removed deprecated assistant pane implementation:
-  - deleted `ui/src/components/chat/ChatPane.tsx`.
-- Removed legacy shell toggles and query-param fallback:
-  - simplified `ui/src/components/shell/AppShell.tsx` to always render `ChatFirstShell`,
-  - removed interface shell-toggle controls/state from `ui/src/components/settings/SettingsModal.tsx`.
-
-## 2026-02-23 - Assistant Panel System (Phase 4 Strict Preview Allowlist)
-
-- Added centralized preview gating helper:
-  - `ui/src/components/assistant/contextPreviewRules.ts`
-- Enforced allowlist in shell rendering:
-  - `ui/src/components/shell/ChatFirstShell.tsx` now shows `ContextPreviewDrawer` only when `isContextPreviewAllowed(...)` is true.
-- Enforced allowlist in interaction signaling:
-  - `ui/src/chat/actionExecutor.ts` now sets `openWorkspace` from `isContextPreviewAllowed(...)` for routed interaction payloads.
-- Current allowlist behavior:
-  - preview is only eligible for `workflow` interactions on `/browser*` routes.
-
-## 2026-02-23 - Chat Confirmation Regression Guard (Read-only Plans)
-
-- Hardened read-only plan confirmation behavior so lookup plans do not block on confirmation:
-  - added `areAllPlannedCallsReadOnly(...)` in `ui/src/chat/chatEnginePolicy.ts`.
-  - updated `ui/src/chat/chatEngine/responseBuilder.ts` to force `shouldConfirm=false` when all planned calls are read-only.
-- Added a defensive UI-layer fallback in `ui/src/hooks/useChat.ts`:
-  - if a confirmation payload is marked required but contains only read-only calls, it auto-executes immediately instead of rendering confirm/deny controls.
-
-## 2026-02-23 - LLM-first Intent Routing (No Deterministic Regex Fast Path)
-
-- Updated `ui/src/chat/chatEngine/intentClassifier.ts` to remove deterministic regex/keyword intent guards and use LLM classification as the primary route decision path.
-- Removed deterministic regex contact-target fast routine from `ui/src/chat/chatEngine/pipelineSteps.ts` (`extractActionTarget` + `stepDeterministicRoutines`).
-- Added a guard in `stepGenericRetrievalBootstrap` so conversational intents do not fall into automatic `hybrid_search` bootstrap when fast-path planning fails.
-
-## 2026-02-23 - Complex BDR Workflow Routing/Planning Fix
-
-- Re-enabled skill-first routing in planning mode even when `requireToolConfirmation` is true:
-  - `ui/src/chat/chatEngine/pipelineSteps.ts` (`stepTrySkillFirst`).
-  - This prevents complex BDR requests from skipping deterministic skill plans and degrading into shallow generic tool plans.
-- Expanded `prospect-companies-and-draft-emails` skill matching + extraction coverage for realistic enterprise constraints:
-  - `ui/src/assistant-core/skills/loader.ts`
-  - added trigger phrases for decision-maker identification, personalized outreach, revenue/location/years constraints.
-  - added extract fields: `decision_maker_title`, `min_revenue_millions`, `min_years_in_business`.
-- Improved skill handler parsing and query construction for those constraints:
-  - `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts`
-  - parses phrases like "based in California", "revenue over $500 million", and "at least 10 years in business",
-  - carries those constraints into company/contact discovery query strings and campaign enrollment query.
-
-## 2026-02-23 - BDR Local-First Execution + Frontend Rebuild Reliability
-
-- Updated `prospect-companies-and-draft-emails` execution plan to run local CRM discovery first:
-  - `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts`
-  - now starts with `search_companies` and `search_contacts` for constrained BDR prompts.
-  - SalesNav collection (`collect_companies_from_salesnav`) is now only inserted when the user explicitly references Sales Navigator/LinkedIn in the request.
-- Expanded skill allowlist to support local-first steps:
-  - `ui/src/assistant-core/skills/loader.ts`
-  - added `search_companies`, `search_contacts`, and `collect_companies_from_salesnav`.
-- Fixed startup behavior that served stale frontend bundles:
-  - `scripts/start_backend.bat` now rebuilds `ui` on every backend start by default (set `SKIP_UI_BUILD=1` to bypass).
-
-## 2026-02-23 - BDR Discovery-Only Requests No Longer Auto-Create Campaigns
-
-- Refined `prospect-companies-and-draft-emails` flow assembly in:
-  - `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts`
-- Behavior change:
-  - discovery steps (`search_companies`, optional SalesNav expansion, `search_contacts`) always run for matched prospecting requests.
-  - campaign/email mutation steps are now appended only when the user explicitly asks for campaign/outreach/email/sequence/draft/send/schedule/enroll actions.
-- This prevents prompts like "Identify key decision-makers..." from opening write confirmations before discovery is completed.
-
-## 2026-02-23 - Conditional SalesNav Escalation for Complex BDR Workflows
-
-- Refined complex prospecting orchestration to match expected behavior for prompts that combine strict filters + outreach intent.
-- `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts`:
-  - local-first discovery remains first (`search_companies`, `search_contacts`),
-  - added explicit `escalate_salesnav_background` step using `compound_workflow_run` with Sales Navigator phases,
-  - escalation is confirmation-gated and designed for async background execution.
-- `ui/src/assistant-core/router/recipeRouter.ts`:
-  - added conditional step routing for `prospect-companies-and-draft-emails`:
-    - if local leads exist, skip SalesNav escalation and proceed to campaign steps,
-    - if local leads do not exist, skip campaign steps and pause on a custom escalation confirmation prompt.
-  - improved `$prev.*` argument resolution to support nested/fallback campaign id extraction (`id`, `campaign_id`, nested payloads).
-  - resume path now stores resolved args for follow-on confirmation steps to avoid unresolved template args after confirm.
-- `ui/src/chat/chatEngine/skillAdapter.ts`:
-  - confirmation payload now includes only the next pending step call (not all remaining steps), preventing accidental execution with unresolved downstream args.
-
-## 2026-02-23 - SalesNav Escalation Now Builds Structured URL Filters
-
-- Improved background SalesNav escalation spec generation in:
-  - `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts`
-- Changes:
-  - escalation account-search phase now passes explicit `filter_values` (industry when derivable, headquarters location, annual revenue lower bound),
-  - escalation people-search phase now runs as an iteration over discovered companies and passes structured people filters (`seniority_level`, inferred function, annual revenue, location scope) with company identity templates,
-  - this reduces reliance on raw keyword-only search input and pushes constraints into URL/query builder filter handling.
-
-## 2026-02-23 - Shifted SalesNav Filter Derivation to Backend Canonical Parser/Builder
-
-- Updated `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts` to remove UI-side deterministic people-filter inference.
-- Escalation phases now pass full natural-language query and rely on backend SalesNav workflow decomposition + URL query builder for canonical filter mapping.
-- Canonical mapping sources used by backend:
-  - `data/linkedin/salesnav-filters.json`
-  - `data/linkedin/salesnav-filters-ids.json`
-- This reduces drift between assistant skill prompts and live SalesNav filter-ID coverage.
-
-## 2026-02-23 - Region Filter Fallback for SalesNav URL Builder
-
-- Updated `services/web_automation/linkedin/salesnav/query_builder.py`:
-  - `_build_region_clause` now gracefully degrades state-level values like `"California, United States"` to `"United States"` when a state REGION id is not mapped.
-  - This prevents hard failures (`salesnav_filter_unmapped` / `unmapped_region_id`) and allows SalesNav URL navigation to proceed with country-level filtering.
-
-## 2026-02-23 - Industry Canonicalization Fallback for Noisy NL Outputs
-
-- Updated `services/web_automation/linkedin/salesnav/query_builder.py`:
-  - `_build_industry_clause` now canonicalizes noisy industry strings produced by NL decomposition (for example `"companies in the tech"`) before ID lookup.
-  - Added synonym/token fallback mapping to known canonical industries (for example tech/software -> `Technology, Information and Internet`).
-  - Unmapped error payloads now preserve the original raw input value while using normalized values for successful query construction.
-
-## 2026-02-23 - SalesNav LLM-Driven Keywords + Deterministic Filter-ID Mapping
-
-- Updated `services/web_automation/browser/workflows/recipes.py`:
-  - removed deterministic keyword shaping (`query.split()[0]`, stopword token filtering, and single-token reducers) from SalesNav account/people URL flow.
-  - SalesNav keyword text now comes from parser output only (LLM-driven) for both account and people tasks.
-  - removed deterministic people-filter derivation from raw query text in this path.
-  - removed local regex fallback decomposition when parser fails; failures now fall back to existing query/filter payloads without regex/pattern rewriting.
-  - added decomposition-availability guard: if parser output is unavailable, the workflow never uses raw NL prompt as keyword; it runs filter-only when structured filters exist, otherwise returns `salesnav_decomposition_unavailable`.
-- Updated `services/web_automation/linkedin/salesnav/parser/filter_parser.py` prompt rules:
-  - added explicit guidance to avoid instruction/meta words in `keywords`.
-  - added guidance to emit `keywords: []` when strong structured constraints already capture intent.
-- Deterministic behavior remains in canonical SalesNav filter mapping only, sourced from:
-  - `data/linkedin/salesnav-filters.json`
-  - `data/linkedin/salesnav-filters-ids.json`
-
-## 2026-02-23 - Prospect Handler Now Passes Raw Industry to Backend SalesNav Mapper
-
-- Updated `ui/src/assistant-core/skills/handlers/prospectCompaniesAndDraftEmails.ts`:
-  - removed narrow UI-side industry allowlist that only forwarded a few verticals.
-  - SalesNav escalation now forwards the parsed `industry` text directly in `filter_values.industry` so backend canonical mapping can resolve values like `tech`.
-  - people-phase SalesNav filter payload now carries location when available (`headquarters_location`) in addition to revenue/industry.
-
-## 2026-02-23 - Backend Industry Fallback When Decomposition Is Unavailable
-
-- Updated `services/web_automation/browser/workflows/recipes.py`:
-  - when SalesNav decomposition is unavailable, account-search fallback now attempts deterministic industry inference from the original query before URL build.
-- Added `infer_industry_from_query_text` in `services/web_automation/linkedin/salesnav/query_builder.py`:
-  - infers canonical industry values using catalog/ID-grounded mappings (including `tech` -> `Technology, Information and Internet`),
-  - keeps deterministic filter matching tied to `data/linkedin/salesnav-filters.json` and `data/linkedin/salesnav-filters-ids.json`.
+This document is intentionally compact and only tracks active behavior.
+For full historical detail, use git history:
+
+- `git log -- docs/REFACTORING_NOTES.md`
+
+## Current Focus Areas
+
+1. Contacts UX stability and integrated details panel
+2. Outlook inbound lead ingestion into Contacts
+3. Single-contact Salesforce create sync for inbound leads
+4. Camoufox-first runtime startup (no OpenClaw dependency)
+
+## Contacts (Current Behavior)
+
+- Contacts uses a responsive details architecture with a shared details content component:
+  - desktop/tablet: right-side panel in normal layout flow
+  - mobile: bottom drawer
+- "New Contact" now uses that same responsive panel system instead of a standalone modal.
+- Contact row selection is URL-synced via `?contactId=<id>`.
+- Contacts top toolbar now keeps only:
+  - global search input
+- Contacts column visibility trigger (sliders icon) is now pinned in the rightmost table header cell (desktop), with a mobile fallback trigger beside search.
+- The column-visibility menu controls which table headers/cells are shown (for toggleable table columns).
+- Contact rows include both:
+  - workflow status (`salesforce_status`, including inbound states)
+  - Salesforce sync status (`salesforce_sync_status`)
+- Contact details activity timeline now includes campaign enrollment events.
+- Contacts row activation now follows playbook rules:
+  - Enter/Space opens details from a focused row
+  - row clicks ignore nested controls (`input`, `button`, links, and explicit row controls)
+  - Escape closes details and focus returns to the last active row trigger
+- Contacts now renders explicit data states in-place:
+  - loading spinner
+  - empty state
+  - error state with retry action
+- Contacts column visibility now keeps identity column `name` always visible.
+- Contacts source labeling is now normalized in UI:
+  - inbound Salesforce statuses (for example raw `inbound created`, shown as badge `Inbound New`) show source `Small Business Expo`
+  - contacts with legacy inbound lead-source values (for example `website_form`) also show source `Small Business Expo` even after status transitions like `uploaded`
+  - all other statuses show source `LinkedIn`
+
+## Workspace Layout (Current Behavior)
+
+- Workspace pages now share the Contacts-aligned shell spacing:
+  - `pt-3 px-3 md:pt-4 md:px-6 pb-3 md:pb-6`
+- This uniform wrapper is applied across Dashboard, Email, Documents, Templates, Tasks, Workflows, and Admin for consistent width and padding.
+- Global UI base styles no longer apply fixed height/padding/size classes to all `<button>` elements; button sizing is now component-scoped to avoid icon-button collapse in table action columns.
+- Table row density is now standardized to a 42px body-row target across core data tables (Contacts, Companies, Documents, Email Campaigns tablet rows) to keep visual rhythm and scan speed consistent between pages.
+- Contacts desktop virtualized rows now use explicit `42px` row/cell height with collapsed table borders plus row measurement to prevent post-first-row height drift.
+
+## Documents (Current Behavior)
+
+- Documents page now follows the Contacts table + details pattern:
+  - top toolbar with search input
+  - type and status filters in the toolbar
+  - table-first primary content area
+  - right-side details pane as a real split-pane sibling on desktop only when a document row is explicitly selected (no default auto-open on initial load)
+  - mobile document details in a bottom drawer
+- Documents filters/columns trigger is pinned to the right edge of the table header row for consistent table controls.
+- The left collection rail is removed; collection views are now selected from the toolbar filter menu.
+- Documents table supports nested folder/file presentation from `storage_path` with collapsible folder rows.
+- Documents header and body rows now share one deterministic grid column definition (NAME flexible, TYPE/STATUS fixed), so columns stay aligned when the right-side inspector is open.
+- Documents table row density now matches Contacts row height using compact fixed-height rows and single-line name cells.
+- Column visibility is configurable from the toolbar menu for the document table.
+- Tree depth indentation is applied only inside the NAME cell content, preventing TYPE/COMPANY/STATUS drift on nested rows.
+- Documents row interaction now matches Contacts conventions:
+  - Escape closes details panel on desktop
+  - focus returns to the last active row after closing details
+  - row click and keyboard open behavior ignore nested controls
+- Folder structure is now user-managed and persisted:
+  - create folders inline from the table (immediate in-row rename/edit input)
+  - move folders
+  - move files between folders
+  - delete empty folders
+- Documents table supports drag-and-drop movement (folder-to-folder, file-to-folder, drop to root) for OS-style organization workflows.
+
+## Email Campaigns (Current Behavior)
+
+- Campaigns table now uses the same compact header/row sizing pattern as Contacts (`h-9` header, tighter `px-3 py-2` cells) for visual consistency.
+- Campaigns toolbar now matches Contacts table controls:
+  - no outer select-all/count control
+  - search input
+- Campaigns column-visibility trigger is pinned in the rightmost table header cell, aligned with the contacts/documents pattern.
+- Campaign column visibility menu controls which table columns are shown.
+- Campaign deletion is available both per-row and as bulk delete for selected campaigns from the campaigns table.
+- Campaigns list now renders responsively by breakpoint to avoid horizontal page overflow:
+  - desktop (`>=1024`): full table with sticky header and full action strip
+- Campaigns table headers now enforce fixed one-line labels with truncation (`h-9`), so long labels (for example `Pending Review`) no longer increase header row height at narrower widths.
+  - tablet (`640-1023`): compact row grid with key columns and overflow actions menu
+  - mobile (`<640`): stacked campaign cards with status, compact metrics, and overflow actions menu
+- Email page header is explicitly responsive:
+  - desktop (`lg+`): single-row title/meta, tab rail inline to the right of title, actions on the far right.
+  - tablet/mobile (`<lg`): two-row layout with title/actions on top and non-wrapping horizontally scrollable tabs below.
+  - mobile (`<sm`): compact icon-only new-campaign action.
+- Scheduled sending now supports a manual Salesforce review mode:
+  - `POST /api/emails/process-scheduled?review_mode=true` launches headed browser tabs (one per due approved email), opens each composer, and leaves Send unclicked for manual approve/deny.
+  - Email Scheduled view includes `Review in Tabs` to trigger that flow directly.
+- Campaign sender `review_mode` no longer auto-clicks Send; it now verifies composer readiness only and leaves final send decision to the user.
+- Email campaign template editing now uses the same pane system as contact details:
+  - desktop: shared right-side `SidePanelContainer`
+  - mobile: shared `BottomDrawerContainer`
+  - editor content extracted into a reusable `CampaignTemplateEditorPane` component.
+
+## Templates (Current Behavior)
+
+- Templates list pane now allows horizontal table scrolling when the side editor is open, preventing column compression.
+- Template editor action controls are non-shrinking and horizontally scrollable, preventing tiny/collapsed buttons in narrow side-panel widths.
+
+## Outlook Inbound Leads (Current Behavior)
+
+- Outlook monitor parses inbound notifications from:
+  - `clientservices@theshowproducers.com`
+- Parsed leads are upserted to `linkedin_contacts` and recorded in `inbound_lead_events`.
+- Newly ingested inbound leads auto-enroll into the `Small Business Expo` campaign when a matching campaign exists.
+- Inbound contacts use `salesforce_status` values like:
+  - `inbound created`
+  - `inbound mapped`
+- Poll status is persisted and exposed via:
+  - `GET /api/emails/outlook/poll-status`
+
+## Salesforce Sync for Inbound Leads (Current Behavior)
+
+- Inbound sync uses single-contact create jobs in queue worker (`lookup_queue.py`).
+- Queue statuses are tracked in `linkedin_contacts.salesforce_sync_status`:
+  - `queued`, `creating`, `success`, `failed_*`
+- Outlook poller enqueue rules treat `queued` as enqueue-eligible (not terminal) so
+  DB pre-marked rows are still pushed into the in-memory worker queue.
+- Existing inbound contacts can be backfilled and queued via:
+  - `POST /api/emails/outlook/inbound-leads/queue-salesforce?limit=<n>`
+- Campaigns can now backfill "already sent in Salesforce" activity before sending:
+  - `POST /api/emails/campaigns/{campaign_id}/sync-salesforce-history?limit=<n>`
+  - This scans lead activity timeline rows (for example "You sent an email to ...")
+    and seeds `sent_emails` + campaign step state so previously-emailed contacts
+    are not re-sent as brand new.
+- Startup now includes inbound backfill queue pass when Salesforce sync is enabled.
+- Worker rehydrates in-memory queue from DB rows already marked `queued`, so restart-safe processing works.
+- Salesforce queue worker now performs periodic in-process DB rehydrate (every ~30s) for `queued` inbound rows, reducing risk of stuck queued contacts when in-memory enqueue is missed.
+- Salesforce create jobs now surface in Tasks via workflow task manager (`operation=salesforce_create`).
+- Queue worker now clears stale active browser-page locks (closed page references) and forces navigation to Salesforce login when a blank tab is detected, preventing stuck `SF queued` jobs with empty address bar.
+- Lead create now supports direct URL mode (`SALESFORCE_NEW_LEAD_URL`) and pre-fills standard lead fields via `defaultFieldValues`, reducing brittle UI field typing failures.
+- In direct URL mode, pre-create global search duplicate-check is skipped entirely, so automation no longer types name/email into global search before opening the new lead URL.
+- Direct URL mode now supports required custom defaults via `SALESFORCE_DEFAULT_FIELD_VALUES` (semicolon-separated `FieldApiName=value` pairs), e.g. `Lead_Country__c=United States;Inbound_Outbound__c=Outbound`.
+- Inbound queue create now passes `phone` into Salesforce lead create flow.
+- Inbound queue create now maps Salesforce Lead Source to `Small Business Expo` and builds description text from the original inbound email categories (`title`, `industry`, `company`, `sender`).
+- Inbound backfill now re-queues stale `creating` records (not just `queued`) so partially processed batches continue after interruptions.
+- Lead URL normalization now resolves Salesforce `/lightning/o/Lead/new?...backgroundContext=...` URLs to the underlying lead record URL before persisting `salesforce_url`.
+- Queue worker now performs a post-create URL resolution pass from the live Salesforce page state and persists the resolved lead-record URL to `linkedin_contacts.salesforce_url`.
+- Lead save flow now clicks the top-right Salesforce modal close button (`Cancel and close`) when present after save, so URL context updates and created lead URL can be captured reliably.
+- The queue now builds direct Salesforce `one.app#<base64>` Lead-search URLs from term-only payloads (no global-search typing), opens those URL-driven search pages, resolves Lead record links from results, and persists the matched `/lightning/r/Lead/...` URL.
+- Lead URL detection/normalization now also accepts Salesforce table links in ID form (`/lightning/r/00Q.../view`), so record URLs from search-result rows are persisted correctly.
+- Inbound Salesforce backfill now queues lookup-only URL resolution for rows with `salesforce_sync_status='success'` but empty `salesforce_url`, avoiding duplicate lead creation while repairing missing URLs.
+- Contacts details panels now display a dedicated Salesforce link row, and "Open full details" prioritizes `salesforce_url` over LinkedIn when both exist.
+- Salesforce inbound queue latency tuned:
+  - Browser-busy gate now polls faster and caps at ~20s (was effectively much longer in practice).
+  - Inbound create jobs preempt stale busy state after ~3s to start processing quickly.
+  - Direct URL lead-create path uses shorter settle waits before save/URL capture.
+- Lead URL validation hardened to avoid false positives on object/list pages (`/lightning/o/Lead/...` such as pipelineInspection). Only record-like Lead URLs (including `00Q` record routes) are treated as sync success.
+- Lead save flow now waits briefly for post-save URL stabilization before and after modal close to reduce premature close/capture races.
+- In URL-mode Salesforce sync, lead URL recovery/lookup now uses direct `one.app#<base64>` search URL navigation only; global search bar typing fallback is disabled.
+- Lead create now checks Salesforce duplicate-warning UI (`force-dedupe-content` / "This record looks like an existing record") before/after save click; when detected, queue marks contact `salesforce_sync_status='skipped_duplicate'` and does not create another Lead.
+- Inbound Salesforce create queue now has two pre-create duplicate gates:
+  - local DB reuse: if another contact row already has a `salesforce_url` for the same email (or same name+company), the URL is reused and create is skipped.
+  - live Salesforce lookup reuse: the queue searches Salesforce by email/name/company and reuses an existing Lead URL when found, before calling create.
+- Template/contact variable sourcing for inbox-ingested leads (Small Business Expo):
+  - `industry` now prefers latest `inbound_lead_events.lead_industry` and falls back to `targets.vertical`.
+  - `location` continues to use `linkedin_contacts.location`, and Outlook inbound parser now captures `Location:` when present and upserts it onto the contact.
+- Outlook inbound lead ingestion now attempts to open the `preview-lead=...&autologin=...` details URL from the email body, parse form fields (name, company, title, industry, email, phone, city/state/zip), and use those values to enrich contact upsert + inbound event storage.
+- `inbound_lead_events` now includes `lead_location` for richer audit/debug data from inbox-ingested lead detail pages.
+
+## Salesforce Auth (Current Behavior)
+
+- Re-auth flow supports Salesforce MFA variant screens by:
+  - clicking `Use a Different Verification Method`
+  - selecting `Approve using Salesforce Authenticator` (`sem3` / `sem=3`)
+  - clicking `Continue` (`save` submit button) after method selection
+- Auth lifecycle emits browser automation and auth events used by UI/task monitoring.
+- Session reuse is no longer force-expired by a fixed 24h heuristic:
+  - `SALESFORCE_SESSION_MAX_AGE_HOURS` controls optional age expiry,
+  - set `0` (default) to disable age-based expiry and reuse stored session as long as possible.
+- Inbound Salesforce create duplicate-check ordering now uses existing columns only
+  (`scraped_at` / `salesforce_uploaded_at`), preventing `salesforce_queue_exception`
+  failures caused by missing `linkedin_contacts.created_at` in legacy DB schemas.
+
+## Launcher / Browser Gateway (Current Behavior)
+
+- `BROWSER_GATEWAY_MODE=camoufox` is treated as no-bridge-required mode.
+- Launcher preflight/startup skips LeadPilot Node bridge checks/start when mode is not `leadpilot/openclaw`.
+- Bridge script has a gateway-mode guard and skips cleanly when not required.
+
+## Operational Flags
+
+- `LEADFORGE_ENABLE=1`
+- `LEADFORGE_SALESFORCE_ENABLED=1` (required for inbound Salesforce queue worker behavior)
+- `BROWSER_GATEWAY_MODE=camoufox`
+- `SALESFORCE_SESSION_MAX_AGE_HOURS=0` (disable forced session age expiry)
+- `SALESFORCE_NEW_LEAD_URL=<org-specific lightning/o/Lead/new...>` (optional direct create flow)
+- `SALESFORCE_DEFAULT_FIELD_VALUES=<FieldA=ValueA;FieldB=ValueB>` (optional required/custom prefill defaults)
+
+## Contacts Inspector UI
+
+- Refactored the contact right-side inspector into a compact layout:
+  - sticky header with inline status/source chips
+  - single-row compact actions (`Add to campaign`, overflow)
+  - compact key/value quick facts list with copy/mail/call affordances
+- Added an `Activities` timeline section at the bottom of the inspector:
+  - currently populated from `/api/emails/conversations/{contact_id}/thread`
+  - includes typed fallback timeline items and an empty-state CTA
+  - includes TODO wiring note for a future unified contact-activities API payload
+
+## Next.js Route Hygiene
+
+- Moved dashboard helper modules out of `ui/src/pages/dashboard/*` into
+  `ui/src/components/dashboard/page/*` and updated `ui/src/pages/Dashboard.tsx`
+  imports so only real page modules remain under `src/pages`.
+- This prevents Next.js page-config validation errors for non-route helper files.
+- Next.js navigation hooks are now null-safe across shell/chat route state (`usePathname`/`useSearchParams` fallbacks in workspace shell, page context, and action executor), preventing startup/runtime crashes and strict type-check failures when Next returns nullable values.
+- Contact table column definitions now explicitly use a unified TanStack `ColumnDef<Contact, any>[]` array to support mixed accessor-key and accessor-function columns (including the computed `lead_source` column) without Next.js TypeScript build failures.
+- Page-level query parsing is now null-safe for Next `useSearchParams()` across Companies, Contacts, Documents, Email, and Templates pages by using fallback `URLSearchParams('')`/optional access, preventing recurring `searchParams is possibly 'null'` build failures.
+
+## Campaign Progress Reconcile
+
+- Added `POST /api/emails/campaigns/{campaign_id}/reconcile-progress` to recompute each enrolled contact's campaign progression from existing sent/reply history.
+- Reconcile now cancels stale/pending drafts for already-replied/completed contacts, and `update_email_tracking(..., replied=True)` also pauses the corresponding campaign contact (`status='replied'`, `next_email_at=NULL`) to prevent step 3 from sending after a reply.
+- Contact conversation thread now falls back from `rendered_subject/body` to `subject/body`, preventing sent items from rendering as `Email sent: No subject` when rendered fields are empty.
+- Salesforce timeline history seeding now ignores task-style timeline entries (for example "Details for Task / Follow Up / You have an upcoming task") so non-email tasks are not seeded as sent emails.
+- Contact details activity timeline now deduplicates merged entries from `/emails/sent` and `/emails/conversations/{contact_id}/thread` by `(type, timestamp, campaign, subject)` and keeps the richer status item (replied/opened/sent priority), preventing duplicate "Email sent" rows for the same event.
+- Sent email records now persist Salesforce `EmailMessage` links (`sf_email_url`) captured from lead timeline `a.subjectLink`.
+- For campaign steps after the first, sender flow now prefers navigating to the prior `sf_email_url` and clicking `Reply` on the EmailMessage record, then fills follow-up content in the reply composer. If reply navigation fails, it falls back to lead-level `Send Email`.
+- Campaign sender review mode now truly prepares tabs for manual send (`skip_click=True`) instead of auto-sending when launched with `--review`, aligning campaign mode behavior with scheduled-review sessions.
+- Fixed `email_sender_runner` module-path bootstrapping to add repository root (not `.../services`) to `sys.path`, preventing stdlib `email` shadowing (`ModuleNotFoundError: No module named 'email.message'`) during runner startup.
+- Hardened Salesforce `EmailComposer.open_email_composer()` for Lightning variability: it now checks if composer is already open, tries multiple direct `Email` action selectors, then overflow `Show more actions` menu, then timeline action fallbacks before failing.
+- Reply-composer fill now preserves conversation order by placing generated body first and appending the existing quoted/original thread at the very bottom when reply-thread markers are detected (`Original Message`, `From:`, `Sent:`, etc.).
+- Added explicit Salesforce CKEditor iframe reply handling (`iframe.cke_wysiwyg_frame` / `iframe[title*='Email Body']`): automation now captures existing iframe body text, writes the generated template first, and re-appends original thread content beneath it.
+- Composer interaction order updated: after composer opens (lead email action or EmailMessage reply), automation now clicks `Maximize` first, then proceeds with template selection and body fill.
+- Reply flow now snapshots current CKEditor/reply body HTML **before** template insertion, inserts `Footer`, then fills generated template content above footer and appends the snapshotted original thread HTML at the very end.
+- Added focused debug utility `scripts/reply_compose_probe.py` to test one EmailMessage reply page end-to-end (capture body -> clear/cut -> insert template -> fill above footer -> append original) without running full campaign batches.
+- Campaign sender now performs a pre-run backfill for missing `sent_emails.sf_email_url` values by visiting each lead with prior sent history and collecting timeline `EmailMessage` links; this enables step-2+ flows to navigate directly to prior email URLs and click `Reply`.
+- Step-2+ send behavior is now strict about direct reply flow when prior email URL exists: it attempts `EmailMessage -> Reply` first (with on-the-fly URL recovery from lead timeline if needed) and no longer silently falls back to lead-level compose for those contacts.
+- CKEditor iframe focus was hardened for reply pages: automation now clicks a visible `iframe.cke_wysiwyg_frame`/`iframe[title*='Email Body']`, enters its `content_frame()` body, and only then runs select-all/delete behavior. Frame discovery now prefers visible/non-empty editor iframes instead of returning the first empty match.
+- Added a short composer settle delay before clicking `Insert template` to reduce Lightning toolbar race conditions right after maximize/reply-body preparation.
+- Reply-body merge now preserves inserted footer/template content already present in the editor: final compose order is generated body, then current editor HTML (for example Footer), then preserved original thread (if captured and not already present).
+- Salesforce sender startup no longer uses fixed 5s+5s sleeps on initial Lightning navigation; it now uses a short `networkidle` settle and proceeds immediately when session is already authenticated.
+- Reply-compose HTML merge now trims trailing/leading break markup around inserted template and footer/original boundaries to prevent excessive blank lines (notably between `Best,` and signature block).
+- Reply-compose spacing normalization now runs on per-fragment DOM containers (template/footer/original) before merge, stripping leading/trailing blank nodes without deleting real signature content.
+- Reply-compose section joiner now uses a single `<br>` boundary (not `<br><br>`) to avoid extra visible blank space between generated template, footer, and appended original message content.
+- Reply flow now captures the existing subject before template insertion and restores it during final fill, preventing Footer/template actions from overwriting the thread subject line.
+- Campaign template variable support expanded for contact name parts: `{firstName}` / `{lastName}` (plus `{first_name}` / `{last_name}` and legacy `{FirstName}` / `{LastName}`) now render in generator and fallback paths; template editor UI now advertises these tokens.
+- Added utility script `scripts/reconcile_manual_review_sends.py` to backfill manual Salesforce sends (from headed review tabs) into `sent_emails` with `sf_email_url` and advance `campaign_contacts.current_step`/status so contact-details activity timelines stay accurate after manual send sessions.
+- Contact details Activities pane now includes a minimal status filter (default `Non-failed`) so failed events do not surface immediately; users can switch to `All`/`Failed`/specific statuses as needed.
+- Contact details Activities now default to `All` and present a clearer plan+execution timeline: sent rows are consolidated by campaign step (reducing duplicate failure cards), failures surface as red status on the corresponding activity, and active enrollments show upcoming scheduled activity from `next_email_at`.
+- Contact details activity status pills use colored borders plus matching background/text to keep statuses clear at a glance.
+- Contact details timestamps now render in `America/New_York` with explicit zone suffix (`EST`/`EDT`) for consistent activity timeline times.
+- Contact details timestamp parsing now treats timezone-naive backend datetime strings as UTC before rendering in ET, preventing future-time shifts (for example sent rows showing several hours ahead).
+- Contact details Campaigns summary now shows Small Business Expo enrollment status, active/total counts, and a single link to the active campaign for quick navigation to Email campaigns.
+- Contacts API now returns a derived `engagement_status` (campaign/activity state) per contact using replies, latest send status, campaign enrollment, and upcoming schedule signals.
+- Contacts UI now uses `engagement_status` as the primary status badge/filter (table, mobile cards, detail panes), while raw Salesforce status remains visible as secondary CRM context.
+- Contact details pane now falls back to timeline-derived engagement status when `engagement_status` is missing/stale from the contacts payload, preventing misleading `Pending` labels when sent/scheduled activities already exist.
+- Contact detail views now show a single primary status (`engagement_status`) and no longer render a separate `CRM Status` row to reduce conflicting signals during outreach operations.
+- Contacts table now suppresses `SF success` sync pills; only actionable Salesforce sync states (queued/creating/failed) are shown next to engagement status.
+- Unified contact lifecycle status now uses `needs_sync` as the pre-Salesforce state (replacing `inbound_new`/`pending`) so table and details show one operational status taxonomy.
+- Hardened Salesforce duplicate-suppression lookup: pre-create search now requires preferred-name match and no longer falls back to first arbitrary search result, preventing wrong lead URL attachment between contacts.
+- Removed company-name fallback from pre-create Salesforce duplicate lookup; matching now uses email and full-name only to avoid broad-result misattachment.
+- Tightened pre-create Salesforce duplicate suppression further: remote reuse now only matches by deterministic identity keys (`email` and `phone`) and no longer reuses records from name-only matches, preventing false positives on common names (for example same-name different person/company).
+- Name normalization now preserves numeric characters in contact names (for example `Gr3g`) instead of stripping them during ingestion-time classification.
+- Salesforce one.app search-context URL recovery now disables "first-result" fallback whenever a preferred contact name is provided, preventing wrong lead attachment during URL reconstruction when search results are ambiguous.
+- Fixed Documents drag/drop move bubbling: folder-level drops now stop propagation and root drop only handles direct root drops, preventing accidental "move to root" overrides that looked like no-op moves.
+- Sidebar navigation no longer shows a standalone Templates item; templates are now accessed from the Email tab row via a Templates sub-tab link, and `/templates` highlights under Email in nav state.
+- Added shared page search input component and wired it across Contacts, Documents, Templates, Email, and Tasks so search appears in a consistent toolbar position when switching pages.
+- Standardized table placement and header density across Contacts, Documents, Templates, Email Campaigns, and Tasks: table regions now start with a consistent `mt-2` gap below toolbar search and table header rows use the same 36px (`h-9`) style with 11px uppercase labels.
+- Replaced Email segmented navigation with browser-style tabs (Campaigns, Templates, Review, Scheduled, Sent History) in a dedicated tab bar above the search row to improve visual hierarchy and support future closeable-tab behavior.
+- Templates page now uses the shared `EmailTabs` component in the same pre-header slot as Email so tab visuals and positioning remain consistent when switching between Campaigns and Templates.
+- Browser Workbench now uses the same shared tab pattern for top-level browser flow selection, while preserving the existing in-page browser tab manager as a second tab layer for live tabs opened within each flow. Helper actions on the same page no longer create new outer tabs; same-tab flow tabs are only created from meaningful page/flow transitions, and final flow groups own contiguous live browser tabs until the next anchored flow.
+- Tool-planner normalization now rewrites raw Sales Navigator browser loops back to `browser_search_and_extract` when a SalesNav turn falls into low-level `browser_navigate`/`browser_act` steps without choosing the mapped workflow tool, forcing the backend URL-builder path for standard SalesNav searches.
+- SalesNav browser-tool selection now preserves `[BROWSER_SESSION]` context during planner tool gating, so implicit employee-at-company lookups on an already-open LinkedIn Sales Navigator tab can still select browser/SalesNav workflow tools instead of collapsing to local `hybrid_search`.
+- SalesNav company-identity presearch now uses a fast path in company result scraping when only a handful of rows are needed (for example resolving `current_company` before a people search), avoiding the full 20-scroll company extraction loop that made exact-company prepasses feel stuck on `/sales/search/company`.
+- SalesNav URL-builder fallback no longer hard-fails on simple keyword/name-only queries when NL decomposition is unavailable; short plain queries like `Zco Corporation` now pass straight to the URL builder, while natural-language constraint queries still fail closed unless decomposed or structurally filtered.
+- SalesNav employee listing now applies that same exact-company fallback inside `browser_list_sub_items` parent resolution, so `salesnav_list_employees` can resolve a company SalesNav URL from a plain company name without failing on decomposition before the employee flow starts.
+- SalesNav employee listing now also has a deterministic account-results fallback: when `salesnav_list_employees` lands on `/sales/search/company`, it can open the matched company row's `employees on LinkedIn` link directly instead of depending solely on the learned `employee_entrypoint` action.
+- Browser `salesnav_list_employees` now reuses the existing Sales Navigator public-profile enrichment flow on the live people-results page, so employee listing can click into profiles / copy public LinkedIn URLs before returning rows instead of stopping at shallow lead cards.
+- `salesnav_list_employees` now always classifies as a long-running browser workflow because the deeper public-profile enrichment can continue well after the initial people-results page loads; this avoids sync-response 500s while the browser is still correctly working through profile URL extraction.
+- Chat dispatch summaries now surface extracted rows for browser workflow tools like `browser_list_sub_items` instead of collapsing successful item-returning runs to generic `Executed ...` status text, so SalesNav contact lookups return visible contact data in the assistant reply.
+- Browser-extracted SalesNav people rows now normalize into the existing contact result shape (`title`, `company_name`, `email`, `phone`, `linkedin_url`) and render through chat contact cards with a follow-up prompt asking whether to create them as contacts.
+- Tasks workspace now sanitizes compound-workflow metadata before rendering: internal planner prompts in workflow `name`, `description`, or `original_query` are hidden/collapsed in favor of human phase labels so the details panel shows meaningful workflow context instead of raw ReAct/system prompt payloads.
+- Tasks workspace now sorts unified browser + compound rows by most recent heartbeat/update time so newly launched tasks surface at the top instead of being buried below older compound entries.
+- Tasks workspace now hides low-level `browser_automation` primitives (`browser_act`, `browser_wait`, `browser_navigate`, etc.) from the main `/tasks` table so the page stays focused on workflow-level browser tasks instead of listing every underlying action as a separate row.
+- Tasks workspace now enforces the stronger policy that `/tasks` only shows long-running background browser jobs (`browser_workflow_async`) plus compound workflows; short synchronous browser workflows are excluded from the table entirely.
+- Browser task result cards in the Tasks details panel now render as compact contact-style summaries with linked names and short action links (`LinkedIn`, `SalesNav`, `Source`) instead of printing full raw URLs inside each card.
+- SalesNav public-profile enrichment now preserves direct public profile URLs when `View profile` opens an actual `linkedin.com/in/...` page, and the batch enrichment path writes that captured public URL back onto each employee row immediately so Tasks/browser results do not collapse both links to the SalesNav lead URL.
+- SalesNav public-profile copying now retries clipboard reads after the `Copy LinkedIn URL` action, re-checks the page HTML after copy, and the Tasks browser-result summary shows how many public profile URLs were actually captured so extraction failures are visible immediately.
+- Tasks now uses the same top-tab workspace shell pattern as Contacts, Documents, Email, and Browser Workbench, with route-backed `All Tasks`, `Browser`, and `Compound` tabs plus the same 42px desktop row height and cell density as the other table pages.
+- SalesNav public-profile extraction now routes overflow/menu/copy clicks through the shared interaction helpers (`scroll_into_view`, pointer click, jittered settle) instead of raw direct clicks, preventing off-screen and pre-load clicks during the lead-profile copy flow.
+- Planner fast-path now pauses vague SalesNav employee-detail requests to ask a clarification question for missing count/detail fields, and SalesNav lead-profile public URL copying opens lead pages in separate tabs so the main search/results tab stays open during enrichment.
+- SalesNav clarification follow-ups now persist as an active task with required params (`contact_count`, `detail_fields`), so replies like `10 and all the details` resume the original SalesNav request instead of being routed as a fresh standalone `hybrid_search`.
+- SalesNav clarification resume no longer appends raw `Parameters: {...}` JSON into the search text; the active-task confirmation path reconstructs a clean structured request sentence from the collected params so SalesNav account search URLs only contain the company name.
+- Campaigns table Send action now launches review-mode prep for all ready contacts in that campaign (high limit), matching manual backend review-tab launches from `/api/emails/send` with `review_mode=true`.
+- Email Campaigns now includes a contact-style campaign details rail (desktop side panel, phone drawer) with high-level campaign metadata and one unified scrollable Contacts manager that combines add/remove actions in a single fixed-height section.
+- Browser Workbench no longer renders the separate `Browser Workbench / Flow: ...` header block above the canvas; the small circular refresh control now lives in the top flow-tab row so the workbench matches the other tab-first pages more closely.
+- Browser Workbench also no longer uses the dedicated left-side `Tab Manager` rail in the main layout; flow tabs now sit on the first row, open browser tabs render as a second nested tab row, and tab search moved into the standard inline toolbar position directly below the tabs.
+- Browser Workbench now treats `Browser Tabs` as the first top-level tab: it renders a contact-style table of open browser tabs with a right-side details panel for browser-oriented metadata and linked workflow/task hops, while the remaining top-level tabs represent high-level running tasks and continue to show the live browser imagery for the nested browser tabs tied to that task.
+- Table-first workspace pages now use the same wide, flush presentation as the Browser page: removed the extra rounded outer border shell around the main table regions in Contacts, Companies, Documents, Templates, Email, Tasks, and Campaign tables so tables span the workspace width more cleanly while keeping their existing split details panels.
+- Workspace page padding is now tightened to the Browser layout baseline (`px-3 md:px-4` with `pb-3 md:pb-4`) in the shared page shell and custom table pages, so the wider table treatment stays consistent instead of snapping back to older `md:px-6` gutters.
+- Remaining custom page wrappers that bypass the shared shell now use the same tighter horizontal gutter too (`Companies`, `Admin`, `Dashboard`, and `Workflows`), removing the old double-inset effect where two nested `px-3`/`md:px-6` layers made non-browser pages feel narrower than the Browser table layout.
+- The shared `WorkspacePageShell` content region no longer adds its own horizontal `px-*` gutter; header/toolbars still align on `px-3 md:px-4`, but the main content area is now flush so table pages do not get doubly inset before their normal cell padding.
+- The shared `WorkspacePageShell` header wrapper is also now flush horizontally: top search/tool rows and tab preheaders no longer sit inside a second `px-3 md:px-4` gutter, so the toolbar width matches the table region below instead of appearing narrower.
+- The chat dock session header is now split into two visual groups: session tabs plus `+` on the left, and muted panel controls on the right (`Trace`, divider, minimize, collapse). The collapse control is icon-only with a rotate animation so it reads as a dock/panel affordance rather than another session action.
+
+## Notes Removed
+
+- Historical step-by-step freeze-debug timelines
+- Duplicated migration logs and repeated change blocks
+- One-off intermediate experiments no longer relevant to current runtime behavior

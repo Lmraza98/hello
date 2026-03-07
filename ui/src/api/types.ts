@@ -165,6 +165,7 @@ export type Contact = {
   id: number;
   company_name: string;
   domain: string | null;
+  location: string | null;
   name: string;
   title: string | null;
   email: string | null;
@@ -177,8 +178,12 @@ export type Contact = {
   linkedin_url: string | null;
   salesforce_url: string | null;
   salesforce_status: string | null;
+  salesforce_sync_status: string | null;
   salesforce_uploaded_at: string | null;
   salesforce_upload_batch: string | null;
+  engagement_status: string | null;
+  lead_source: string | null;
+  ingest_batch_id: string | null;
   scraped_at: string | null;
   vertical: string | null;
 };
@@ -213,6 +218,52 @@ export type LangGraphRunListResponse = {
   ok: boolean;
   count: number;
   runs: LangGraphRunStatus[];
+};
+
+export type LeadResearchRunRequest = {
+  prompt: string;
+  options?: {
+    max_results?: number;
+    geo_bias?: string;
+    include_sources?: string[];
+    exclude_sources?: string[];
+  };
+};
+
+export type LeadResearchLead = {
+  id: number;
+  run_id: string;
+  name?: string | null;
+  company_name?: string | null;
+  domain?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  title?: string | null;
+  location?: string | null;
+  source_type?: string | null;
+  rating?: number | null;
+  review_count?: number | null;
+  score_total?: number | null;
+  score_breakdown?: Record<string, unknown>;
+  dedupe_key?: string | null;
+  created_at?: string | null;
+};
+
+export type LeadCreditsSummary = {
+  ok?: boolean;
+  user_id: string;
+  period_ym: string;
+  monthly_limit: number;
+  used: number;
+  remaining: number;
+  charged?: number;
+};
+
+export type LeadCrmExportResponse = {
+  ok: boolean;
+  provider: 'hubspot' | 'pipedrive';
+  sent: number;
+  status_code: number;
 };
 
 // â”€â”€ Email / Outlook / Conversations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -255,6 +306,47 @@ export type OutlookAuthStatus = {
   tenant_id?: string;
   has_active_flow?: boolean;
   error?: string;
+};
+
+export type InboundLeadAlerts = {
+  unseen_count: number;
+};
+
+export type InboundLeadMarkSeenResponse = {
+  success: boolean;
+  marked_seen: number;
+};
+
+export type OutlookPollStatus = {
+  last_polled_at?: string | null;
+  success: boolean;
+  checked: number;
+  new_replies: number;
+  new_leads: number;
+  message?: string | null;
+  error?: string | null;
+};
+
+export type InboundLeadEvent = {
+  id: number;
+  outlook_message_id?: string | null;
+  source_sender?: string | null;
+  subject?: string | null;
+  body_preview?: string | null;
+  lead_name?: string | null;
+  lead_company?: string | null;
+  lead_email?: string | null;
+  lead_phone?: string | null;
+  lead_title?: string | null;
+  lead_industry?: string | null;
+  contact_id?: number | null;
+  contact_name?: string | null;
+  status?: string | null;
+  error?: string | null;
+  received_at?: string | null;
+  detected_at?: string | null;
+  seen?: number | null;
+  seen_at?: string | null;
 };
 
 export type SalesforceAuthStatus = {
@@ -572,6 +664,7 @@ export type DocumentRecord = {
   file_size_bytes?: number | null;
   storage_backend: string;
   storage_path: string;
+  folder_path?: string | null;
   status: DocumentStatus;
   status_message?: string | null;
   processed_at?: string | null;
@@ -599,6 +692,14 @@ export type DocumentRecord = {
   source?: string | null;
   conversation_id?: string | null;
   notes?: string | null;
+};
+
+export type DocumentFolderRecord = {
+  path: string;
+  parent_path: string;
+  name: string;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 export type DocumentListResponse = {

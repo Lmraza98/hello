@@ -180,6 +180,34 @@ class CampaignSalesforceUploadResponse(BaseModel):
     model_config = ConfigDict(extra="allow")
 
 
+class CampaignSalesforceHistorySyncResponse(BaseModel):
+    success: bool
+    campaign_id: int
+    checked: int = 0
+    seeded: int = 0
+    detected_salesforce_activity: int = 0
+    skipped_existing_sent: int = 0
+    skipped_no_salesforce_url: int = 0
+    message: Optional[str] = None
+    error: Optional[str] = None
+
+    model_config = ConfigDict(extra="allow")
+
+
+class CampaignProgressReconcileResponse(BaseModel):
+    success: bool
+    campaign_id: int
+    scanned: int = 0
+    updated: int = 0
+    marked_replied: int = 0
+    marked_completed: int = 0
+    active_remaining: int = 0
+    canceled_pending: int = 0
+    error: Optional[str] = None
+
+    model_config = ConfigDict(extra="allow")
+
+
 class EmailPreviewContact(BaseModel):
     name: Optional[str] = None
     title: Optional[str] = None
@@ -244,6 +272,8 @@ class SentEmailRecord(BaseModel):
     body: Optional[str] = None
     rendered_subject: Optional[str] = None
     rendered_body: Optional[str] = None
+    sf_lead_url: Optional[str] = None
+    sf_email_url: Optional[str] = None
     review_status: Optional[str] = None
     status: Optional[str] = None
     sent_at: Optional[str] = None
@@ -271,6 +301,7 @@ class EmailSequenceRecord(BaseModel):
     step_number: Optional[int] = None
     subject: Optional[str] = None
     rendered_subject: Optional[str] = None
+    sf_email_url: Optional[str] = None
     status: Optional[str] = None
     review_status: Optional[str] = None
     sent_at: Optional[str] = None
@@ -474,10 +505,73 @@ class OutlookPollRepliesResponse(BaseModel):
     success: bool
     checked: int = 0
     new_replies: int = 0
+    new_leads: int = 0
     matched: Optional[int] = None
     message: Optional[str] = None
     error: Optional[str] = None
     traceback: Optional[str] = None
+
+    model_config = ConfigDict(extra="allow")
+
+
+class OutlookPollStatusResponse(BaseModel):
+    last_polled_at: Optional[str] = None
+    success: bool = False
+    checked: int = 0
+    new_replies: int = 0
+    new_leads: int = 0
+    message: Optional[str] = None
+    error: Optional[str] = None
+
+    model_config = ConfigDict(extra="allow")
+
+
+class InboundLeadAlertsResponse(BaseModel):
+    unseen_count: int
+
+
+class InboundLeadMarkSeenResponse(BaseModel):
+    success: bool
+    marked_seen: int
+
+
+class InboundLeadQueueSalesforceResponse(BaseModel):
+    success: bool
+    queued: int
+    message: Optional[str] = None
+
+
+class InboundLeadBackfillResponse(BaseModel):
+    success: bool
+    scanned: int
+    updated: int
+    skipped: int
+    errors: int
+    message: Optional[str] = None
+    error: Optional[str] = None
+
+
+class InboundLeadEventRecord(BaseModel):
+    id: int
+    outlook_message_id: Optional[str] = None
+    source_sender: Optional[str] = None
+    subject: Optional[str] = None
+    body_preview: Optional[str] = None
+    lead_name: Optional[str] = None
+    lead_company: Optional[str] = None
+    lead_email: Optional[str] = None
+    lead_phone: Optional[str] = None
+    lead_title: Optional[str] = None
+    lead_industry: Optional[str] = None
+    lead_location: Optional[str] = None
+    contact_id: Optional[int] = None
+    contact_name: Optional[str] = None
+    status: Optional[str] = None
+    error: Optional[str] = None
+    received_at: Optional[str] = None
+    detected_at: Optional[str] = None
+    seen: Optional[int] = None
+    seen_at: Optional[str] = None
 
     model_config = ConfigDict(extra="allow")
 

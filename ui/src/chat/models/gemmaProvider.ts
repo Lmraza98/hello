@@ -1,8 +1,8 @@
-import type { ChatMessage } from '../../types/chat';
+﻿import type { ChatMessage } from '../../types/chat';
 import { textMsg } from '../../services/messageHelpers';
 import { ollamaChat, type LocalChatMessage } from './ollamaClient';
 
-const MODEL = import.meta.env.VITE_OLLAMA_GEMMA_MODEL || 'gemma3:12b';
+const MODEL = process.env.NEXT_PUBLIC_OLLAMA_GEMMA_MODEL || 'gemma3:12b';
 
 const SYSTEM_PROMPT = `You are a sales automation assistant for a CRM.
 
@@ -23,6 +23,7 @@ export async function runGemma(
   userMessage: string,
   conversationHistory: LocalChatMessage[],
   _onToolCall?: (name: string) => void,
+  modelOverride?: string,
   onToken?: (token: string) => void,
 ): Promise<GemmaResult> {
   const messages: LocalChatMessage[] = [
@@ -33,7 +34,7 @@ export async function runGemma(
 
   try {
     const result = await ollamaChat({
-      model: MODEL,
+      model: modelOverride || MODEL,
       messages,
       temperature: 0.2,
       onToken,
@@ -44,3 +45,4 @@ export async function runGemma(
     return { response: '', messages: [], toolsUsed: [], success: false };
   }
 }
+

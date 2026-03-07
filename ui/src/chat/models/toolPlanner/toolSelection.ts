@@ -215,6 +215,12 @@ function preselectToolNames(userMessage: string): Set<string> | null {
 function shouldAllowBrowserTools(userMessage: string): boolean {
   const lower = (userMessage || '').toLowerCase();
   if (!lower.trim()) return false;
+  const hasSalesNavBrowserSession = /\[browser_session\][\s\S]*linkedin\.com\/sales/i.test(userMessage);
+  const impliedSalesNavPeopleLookup =
+    /\b(employee|employees|people|contacts?|leads?|profiles?)\b/.test(lower) &&
+    /\b(of|at)\b/.test(lower) &&
+    /\b(details?|contact details|email|emails|phone|phones|title|titles|decision makers?)\b/.test(lower);
+  if (hasSalesNavBrowserSession && impliedSalesNavPeopleLookup) return true;
   if (/https?:\/\//.test(lower)) return true;
   if (/\b(browser|tab|screenshot|snapshot|navigate|open|visit|go to|click|type|fill|scroll)\b/.test(lower)) return true;
   if (/\b(sales\s*navigator|salesnav|linkedin)\b/.test(lower)) return true;
@@ -242,8 +248,8 @@ function selectToolsForMessage(
 ): (typeof TOOLS)[number][] {
   const selectionMessage = stripPlannerHeuristicContext(userMessage);
 
-  const allowBrowser = shouldAllowBrowserTools(selectionMessage);
-  const allowCollect = shouldAllowSalesNavCollection(selectionMessage);
+  const allowBrowser = shouldAllowBrowserTools(userMessage);
+  const allowCollect = shouldAllowSalesNavCollection(userMessage);
 
   const allowed = allowedToolNames && allowedToolNames.length > 0 ? new Set(allowedToolNames) : null;
 

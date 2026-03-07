@@ -137,6 +137,8 @@ async def enroll_and_draft(
             email_generated=create_if_missing.get("email"),
             linkedin_url=create_if_missing.get("linkedin_url"),
             phone=create_if_missing.get("phone"),
+            lead_source=(create_if_missing.get("lead_source") or "import"),
+            ingest_batch_id=create_if_missing.get("ingest_batch_id"),
         )
 
     if contact_id is None:

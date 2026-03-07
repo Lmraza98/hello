@@ -12,6 +12,7 @@ export type ChatMessage =
   | CampaignListMessage
   | ConversationCardMessage
   | EmbeddedComponentMessage
+  | LeadResearchResultsMessage
   | CompanyListMessage
   | CompanyVetCardMessage
   | BackgroundTaskMessage;
@@ -209,6 +210,57 @@ export interface EmbeddedComponentMessage extends BaseMessage {
   componentType: EmbeddedComponentType;
   sender: 'bot';
   props: Record<string, any>;
+}
+
+export interface LeadResearchResultItem {
+  id: number;
+  run_id: string;
+  name?: string | null;
+  company_name?: string | null;
+  domain?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  title?: string | null;
+  location?: string | null;
+  source_type?: string | null;
+  rating?: number | null;
+  review_count?: number | null;
+  score_total?: number | null;
+}
+
+export interface LeadResearchTraceItem {
+  step: string;
+  summary?: string;
+  sourceCount?: number;
+  sources?: Array<{ source?: string; title?: string; url?: string }>;
+}
+
+export interface LeadResearchEvidenceItem {
+  lead_id?: number;
+  kind?: string;
+  title?: string;
+  url?: string;
+  confidence?: number;
+}
+
+export interface LeadResearchCredits {
+  monthly_limit: number;
+  used: number;
+  remaining: number;
+  period_ym: string;
+  charged?: number;
+}
+
+export interface LeadResearchResultsMessage extends BaseMessage {
+  type: 'lead_research_results';
+  sender: 'bot';
+  runId: string;
+  prompt: string;
+  total: number;
+  items: LeadResearchResultItem[];
+  traces?: LeadResearchTraceItem[];
+  evidence?: LeadResearchEvidenceItem[];
+  credits?: LeadResearchCredits;
 }
 
 /* -- Company Vet Card -- */

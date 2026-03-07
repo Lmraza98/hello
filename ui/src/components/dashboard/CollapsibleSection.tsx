@@ -20,14 +20,16 @@ export function CollapsibleSection({
   headerRight,
   children,
 }: CollapsibleSectionProps) {
-  const [collapsed, setCollapsed] = useState(() => {
+  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+
+  useEffect(() => {
     try {
       const stored = localStorage.getItem(`dash-collapse-${storageKey}`);
-      return stored !== null ? stored === 'true' : defaultCollapsed;
+      if (stored !== null) setCollapsed(stored === 'true');
     } catch {
-      return defaultCollapsed;
+      // ignore
     }
-  });
+  }, [storageKey]);
 
   const contentRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState<number | undefined>(undefined);

@@ -16,7 +16,7 @@ export function isContextPreviewAllowed(interaction: PreviewCandidate): boolean 
   if (interaction.route.startsWith('/email') || interaction.route.startsWith('/templates')) return true;
 
   // Deep-Dive Entity Analysis: When explicit navigation or selection happens to a specific entity
-  if (interaction.kind === 'selection' && (interaction.route.startsWith('/contacts') || interaction.route.startsWith('/companies'))) {
+  if (interaction.kind === 'selection' && interaction.route.startsWith('/contacts')) {
     return true;
   }
 

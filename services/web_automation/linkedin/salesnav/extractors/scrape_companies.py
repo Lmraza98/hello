@@ -28,10 +28,20 @@ class SalesNavCompanyExtractor:
             await self.scraper.waits.wait_for_company_cards(min_count=1, timeout_ms=20_000)
             await pacing_delay(base_seconds=0.9, variance_seconds=0.25, min_seconds=0.3, max_seconds=1.8)
 
-            print("[LinkedIn] Scrolling to load company results...")
-            last_count = 0
+            fast_probe_limit = max(1, min(int(max_companies), 5))
+            fast_mode = fast_probe_limit <= 5
+            initial_count = await self.page.locator('[data-x-search-result="COMPANY"], a[href*="/sales/company/"]').count()
+            if fast_mode and initial_count > 0:
+                print(f"[LinkedIn] Fast company presearch mode: {initial_count} companies visible, skipping deep scroll")
+            else:
+                print("[LinkedIn] Scrolling to load company results...")
+            last_count = initial_count
             no_change_count = 0
-            for scroll_attempt in range(20):
+            max_scroll_attempts = 2 if fast_mode else 20
+            for scroll_attempt in range(max_scroll_attempts):
+                if fast_mode and last_count >= fast_probe_limit:
+                    print(f"[LinkedIn] Fast mode reached target window with {last_count} visible companies")
+                    break
                 await self.page.evaluate(
                     """
                     const container = document.querySelector('#search-results-container, [data-view-name="search-results-container"]');
@@ -52,7 +62,7 @@ class SalesNavCompanyExtractor:
                 if current_count >= max_companies:
                     print(f"[LinkedIn] Reached max {max_companies} companies")
                     break
-                if no_change_count >= 5:
+                if no_change_count >= (1 if fast_mode else 5):
                     print(f"[LinkedIn] Reached bottom with {current_count} companies")
                     break
                 last_count = current_count

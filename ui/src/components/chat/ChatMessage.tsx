@@ -24,7 +24,8 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { parseAssistantResponse } from '../../chat/actions';
 import type {
   BackgroundTask,
   ChatMessage as ChatMessageType,
@@ -32,6 +33,7 @@ import type {
   ContactAction,
   DashboardDataBridge,
   EmbeddedComponentMessage,
+  LeadResearchResultsMessage,
   RetrievalResultItem,
   RetrievalResultsMessage,
   ResearchCardMessage,
@@ -71,6 +73,11 @@ export function ChatMessage({
   onSalesforceSkip,
   dashboardData,
 }: ChatMessageProps) {
+  const assistantTextContent =
+    message.type === 'text' && message.sender === 'bot'
+      ? parseAssistantResponse(message.content).text || message.content
+      : null;
+
   switch (message.type) {
     case 'status':
       return <StatusBlock message={message} />;
@@ -130,6 +137,8 @@ export function ChatMessage({
       return <ContactCardRenderer message={message} onAction={onAction} />;
     case 'retrieval_results':
       return <RetrievalResultsRenderer message={message} onAction={onAction} />;
+    case 'lead_research_results':
+      return <LeadResearchResultsRenderer message={message} onAction={onAction} />;
     case 'research_card':
       return <ResearchCardRenderer message={message} />;
     case 'email_preview':
@@ -293,19 +302,20 @@ export function ChatMessage({
     case 'text':
     default: {
       const isUser = message.sender === 'user';
-      const normalized = (message.content || '').trim().toLowerCase();
+      const visibleText = assistantTextContent ?? message.content;
+      const normalized = (visibleText || '').trim().toLowerCase();
       const isSystemEvent = normalized === 'plan confirmed.' || normalized.startsWith('plan canceled');
       if (!isUser && isSystemEvent) {
-        return <SystemEventMessage text={message.content} />;
+        return <SystemEventMessage text={visibleText} />;
       }
       return (
         <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
           {isUser ? (
             <UserBubble>
-              <span className="whitespace-pre-wrap">{renderBoldText(message.content)}</span>
+              <span className="whitespace-pre-wrap">{renderBoldText(visibleText)}</span>
             </UserBubble>
           ) : (
-            <AssistantBlock content={message.content} />
+            <AssistantBlock content={visibleText} />
           )}
         </div>
       );
@@ -474,6 +484,254 @@ function RetrievalResultsRenderer({
             ))
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function LeadResearchResultsRenderer({
+  message,
+  onAction,
+}: {
+  message: LeadResearchResultsMessage;
+  onAction: (actionValue: string) => void;
+}) {
+  const ids = message.items.map((item) => item.id).filter((id) => Number.isFinite(id));
+  const saveAllAction = ids.length > 0 ? `lead_research_save:${ids.join(',')}` : '';
+  const exportAction = `lead_research_export:${message.runId}`;
+  const visibleItems = message.items.slice(0, 25);
+  const [selectedRows, setSelectedRows] = useState<Record<number, boolean>>({});
+  const selectedIds = useMemo(
+    () => visibleItems.map((item) => item.id).filter((id) => selectedRows[id]),
+    [selectedRows, visibleItems]
+  );
+  const allVisibleSelected = visibleItems.length > 0 && selectedIds.length === visibleItems.length;
+  const hasSelection = selectedIds.length > 0;
+  const saveSelectedAction = hasSelection ? `lead_research_save:${selectedIds.join(',')}` : '';
+  const exportSelectedAction = hasSelection ? `lead_research_export_ids:${selectedIds.join(',')}` : '';
+  const crmLeadIds = (hasSelection ? selectedIds : ids).slice(0, 200);
+  const hubspotAction = crmLeadIds.length > 0 ? `lead_research_crm:hubspot:${crmLeadIds.join(',')}` : '';
+  const pipedriveAction = crmLeadIds.length > 0 ? `lead_research_crm:pipedrive:${crmLeadIds.join(',')}` : '';
+
+  return (
+    <div className="flex justify-start">
+      <div className="max-w-[95%] rounded-lg border border-border bg-surface overflow-hidden">
+        <div className="px-3 py-2 border-b border-border bg-bg flex items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-text">Lead Research Results</p>
+            <p className="text-[11px] text-text-dim truncate">
+              {message.total} leads for "{message.prompt}"
+            </p>
+            {message.credits ? (
+              <p className="text-[10px] text-text-dim">
+                Credits: {message.credits.remaining} remaining / {message.credits.monthly_limit} this month
+                {typeof message.credits.charged === 'number' ? ` (charged ${message.credits.charged})` : ''}
+              </p>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => onAction(exportAction)}
+              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px] text-text-muted hover:bg-surface-hover hover:text-text"
+            >
+              <Download className="h-3 w-3" />
+              Export CSV
+            </button>
+            <button
+              type="button"
+              disabled={!saveAllAction}
+              onClick={() => saveAllAction && onAction(saveAllAction)}
+              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px] text-text-muted hover:bg-surface-hover hover:text-text disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Plus className="h-3 w-3" />
+              Save All
+            </button>
+            <button
+              type="button"
+              disabled={!saveSelectedAction}
+              onClick={() => saveSelectedAction && onAction(saveSelectedAction)}
+              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px] text-text-muted hover:bg-surface-hover hover:text-text disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Check className="h-3 w-3" />
+              Save Selected
+            </button>
+            <button
+              type="button"
+              disabled={!exportSelectedAction}
+              onClick={() => exportSelectedAction && onAction(exportSelectedAction)}
+              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px] text-text-muted hover:bg-surface-hover hover:text-text disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Download className="h-3 w-3" />
+              Export Selected
+            </button>
+            <button
+              type="button"
+              disabled={!hubspotAction}
+              onClick={() => hubspotAction && onAction(hubspotAction)}
+              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px] text-text-muted hover:bg-surface-hover hover:text-text disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Send HubSpot
+            </button>
+            <button
+              type="button"
+              disabled={!pipedriveAction}
+              onClick={() => pipedriveAction && onAction(pipedriveAction)}
+              className="inline-flex items-center gap-1 rounded border border-border px-2 py-1 text-[11px] text-text-muted hover:bg-surface-hover hover:text-text disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Send Pipedrive
+            </button>
+          </div>
+        </div>
+        <div className="max-h-72 overflow-auto">
+          <table className="w-full text-left">
+            <thead className="sticky top-0 bg-surface z-10 border-b border-border">
+              <tr className="text-[10px] uppercase tracking-wide text-text-dim">
+                <th className="px-3 py-1.5 font-medium w-8">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setSelectedRows((prev) => {
+                        const next = { ...prev };
+                        for (const row of visibleItems) next[row.id] = checked;
+                        return next;
+                      });
+                    }}
+                  />
+                </th>
+                <th className="px-3 py-1.5 font-medium">Company</th>
+                <th className="px-3 py-1.5 font-medium">Contact</th>
+                <th className="px-3 py-1.5 font-medium">Source</th>
+                <th className="px-3 py-1.5 font-medium">Rating</th>
+                <th className="px-3 py-1.5 font-medium">Reviews</th>
+                <th className="px-3 py-1.5 font-medium">Score</th>
+                <th className="px-3 py-1.5 font-medium w-16">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibleItems.map((lead) => (
+                <tr key={lead.id} className="border-b border-border/60 text-[12px] text-text">
+                  <td className="px-3 py-1.5 align-top">
+                    <input
+                      type="checkbox"
+                      checked={!!selectedRows[lead.id]}
+                      onChange={(e) => setSelectedRows((prev) => ({ ...prev, [lead.id]: e.target.checked }))}
+                    />
+                  </td>
+                  <td className="px-3 py-1.5 align-top">
+                    <div className="font-medium">{lead.company_name || 'Unknown company'}</div>
+                    {lead.domain ? (
+                      <a
+                        href={ensureProtocol(lead.domain)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-accent hover:text-accent-hover"
+                      >
+                        {lead.domain}
+                      </a>
+                    ) : null}
+                  </td>
+                  <td className="px-3 py-1.5 align-top">
+                    <div>{lead.name || '-'}</div>
+                    <div className="text-[11px] text-text-dim">{lead.email || lead.phone || '-'}</div>
+                  </td>
+                  <td className="px-3 py-1.5 align-top text-[11px] text-text-muted">{lead.source_type || '-'}</td>
+                  <td className="px-3 py-1.5 align-top text-[11px] text-text-muted">
+                    {typeof lead.rating === 'number' ? lead.rating.toFixed(1) : '-'}
+                  </td>
+                  <td className="px-3 py-1.5 align-top text-[11px] text-text-muted">
+                    {typeof lead.review_count === 'number' ? lead.review_count : '-'}
+                  </td>
+                  <td className="px-3 py-1.5 align-top text-[11px] text-text-muted">
+                    {typeof lead.score_total === 'number' ? lead.score_total.toFixed(2) : '-'}
+                  </td>
+                  <td className="px-3 py-1.5 align-top">
+                    <button
+                      type="button"
+                      onClick={() => onAction(`lead_research_save:${lead.id}`)}
+                      className="rounded border border-border px-1.5 py-0.5 text-[10px] text-text-muted hover:bg-surface-hover hover:text-text"
+                    >
+                      Save
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {visibleItems.length === 0 ? (
+                <tr>
+                  <td className="px-3 py-3 text-xs text-text-dim" colSpan={8}>No leads found.</td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+        {(message.traces && message.traces.length > 0) || (message.evidence && message.evidence.length > 0) ? (
+          <div className="border-t border-border px-3 py-2 space-y-2">
+            {message.traces && message.traces.length > 0 ? (
+              <details className="rounded border border-border bg-bg px-2 py-1">
+                <summary className="cursor-pointer text-[11px] font-medium text-text">
+                  Run Trace ({message.traces.length} steps)
+                </summary>
+                <div className="mt-1.5 space-y-1.5">
+                  {message.traces.slice(0, 8).map((trace, idx) => (
+                    <div key={`${trace.step}-${idx}`} className="rounded border border-border/70 px-2 py-1">
+                      <p className="text-[11px] font-medium text-text">{trace.step}</p>
+                      {trace.summary ? <p className="text-[11px] text-text-dim">{trace.summary}</p> : null}
+                      {trace.sources && trace.sources.length > 0 ? (
+                        <div className="mt-1 space-y-0.5">
+                          {trace.sources.slice(0, 3).map((src, sIdx) => (
+                            src.url ? (
+                              <a
+                                key={`${src.url || src.title}-${sIdx}`}
+                                href={ensureProtocol(src.url)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block text-[10px] text-accent hover:text-accent-hover truncate"
+                              >
+                                {(src.title || src.url || 'source').trim()}
+                              </a>
+                            ) : (
+                              <p key={`${src.url || src.title}-${sIdx}`} className="text-[10px] text-text-dim truncate">
+                                {(src.title || 'source').trim()}
+                              </p>
+                            )
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              </details>
+            ) : null}
+            {message.evidence && message.evidence.length > 0 ? (
+              <details className="rounded border border-border bg-bg px-2 py-1">
+                <summary className="cursor-pointer text-[11px] font-medium text-text">
+                  Evidence ({message.evidence.length})
+                </summary>
+                <div className="mt-1.5 space-y-0.5">
+                  {message.evidence.slice(0, 10).map((ev, idx) =>
+                    ev.url ? (
+                      <a
+                        key={`${ev.url || ev.title}-${idx}`}
+                        href={ensureProtocol(ev.url)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-[10px] text-accent hover:text-accent-hover truncate"
+                      >
+                        {(ev.title || ev.url || 'evidence').trim()}
+                      </a>
+                    ) : (
+                      <p key={`${ev.url || ev.title}-${idx}`} className="text-[10px] text-text-dim truncate">
+                        {(ev.title || 'evidence').trim()}
+                      </p>
+                    )
+                  )}
+                </div>
+              </details>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );

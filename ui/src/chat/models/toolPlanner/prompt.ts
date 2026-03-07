@@ -40,6 +40,18 @@ export function buildTieredSystemPrompt(
     modelProfile?: 'gemma' | 'strong';
   } = {}
 ): string {
+  const assistantGuideRules =
+    `Assistant guidance overlay:\n` +
+    `- When the user wants help performing an action in the existing UI, prefer assistant_ui_start_flow for durable multi-step UI workflows and assistant_ui_set_target / assistant_ui_clear for single-target guidance.\n` +
+    `- assistant_ui_start_flow uses this shape: {"type":"assistant_ui_start_flow","flowId":"create_contact"}.\n` +
+    `- assistant_ui_set_target uses this shape: {"type":"assistant_ui_set_target","targetId":"...","scrollTargetId":"...","instruction":"...","interaction":"highlight|click","pointerMode":"passthrough|interactive","autoClick":true|false}.\n` +
+    `- Legacy assistant_guide / assistant_guide_clear are still accepted, but assistant_ui_start_flow / assistant_ui_set_target / assistant_ui_clear are preferred.\n` +
+    `- For walkthroughs, use interaction="click" with autoClick=false so the cursor demonstrates the click without taking the action for the user.\n` +
+    `- Use autoClick=true only when the user explicitly wants the assistant to perform the real click.\n` +
+    `- Use pointerMode="passthrough" for controls the user must click underneath the chat overlay, and pointerMode="interactive" for form/panel guidance where the chat must remain scrollable.\n` +
+    `- For create-contact guidance, prefer: contacts.navigate plus assistant_ui_start_flow with flowId="create_contact".\n` +
+    `- After the form opens, guide the form container first using contact-create-panel, then narrower fields like contact-name-input or contact-company-input as needed.\n` +
+    `- Do not invent panels or wizard UI. Only guide existing elements.\n`;
   const modelProfile = opts.modelProfile || 'gemma';
   const strongModelTaskHints =
     modelProfile === 'strong'
@@ -69,6 +81,7 @@ export function buildTieredSystemPrompt(
       `Preserve exact spelling from user message. Do not autocorrect names.\n` +
       `Return minimal plan: 0-2 ui_actions and 0-2 tool_calls.\n` +
       `For in-app CRM navigation/actions, prefer ui_actions from UI capability reference instead of browser_* tools.\n` +
+      assistantGuideRules +
       `Use browser_* only for external URLs or live website automation.\n` +
       `If you have a concrete tab id like "tab-0" (from BROWSER_SESSION), use it. Otherwise omit tab_id. Do NOT use "current"/"active" as tab_id.\n` +
       `Tools:\n${schemaBlock}` +
@@ -91,6 +104,7 @@ export function buildTieredSystemPrompt(
       `Plan with tool-schema awareness: only use args that exist in each tool schema.\n` +
       `If you have a concrete tab id like "tab-0" (from BROWSER_SESSION), use it. Otherwise omit tab_id. Do NOT use "current"/"active" as tab_id.\n` +
       `For CRM page navigation/actions, use ui_actions from UI capability reference first.\n` +
+      assistantGuideRules +
       `Do NOT use browser_navigate for internal relative routes like "/campaigns"; use ui action (e.g., email.campaigns.navigate).\n` +
       `Only use browser_navigate for absolute external URLs (http/https).\n` +
       `For person/contact/company lookup requests, start with hybrid_search.\n` +
@@ -114,6 +128,8 @@ export function buildTieredSystemPrompt(
       `Do NOT use search_contacts/search_companies/hybrid_search for that.\n` +
       `Canonical examples:\n` +
       `- "Show me my email campaigns on the page" => {"ui_actions":[{"action":"email.campaigns.navigate"}],"tool_calls":[]}\n` +
+      `- "Create a contact" => {"ui_actions":[{"action":"contacts.navigate"},{"type":"assistant_ui_start_flow","flowId":"create_contact"}],"tool_calls":[]}\n` +
+      `- "Help me fill the contact form" => {"ui_actions":[{"type":"assistant_ui_set_target","targetId":"contact-create-panel","scrollTargetId":"contact-create-panel","instruction":"Use this form to add the new contact details","pointerMode":"interactive"}],"tool_calls":[]}\n` +
       `- "Find Lucas Raza" => [{"name":"hybrid_search","args":{"query":"Lucas Raza","entity_types":["contact"],"k":10}}]\n` +
       `- "What does UnitFlow_Workflow_Document_V1.2.docx say about workflow stages?" => [{"name":"ask_documents","args":{"question":"What are the workflow stages in UnitFlow_Workflow_Document_V1.2.docx?"}}]\n` +
       `- "Find construction companies" => [{"name":"search_companies","args":{"vertical":"Construction"}}]\n` +
@@ -142,6 +158,7 @@ export function buildTieredSystemPrompt(
     `For browser/salesnav tools, if you have a concrete tab id like "tab-0" (from BROWSER_SESSION), use it. Otherwise omit tab_id. Do NOT use "current"/"active" as tab_id.\n` +
     `For browser navigation tasks (open/go to/click/type/snapshot/screenshot/tab navigation), use browser_* tools.\n` +
     `For CRM in-app navigation/actions, prefer ui_actions from UI capability reference over browser_* tools.\n` +
+    assistantGuideRules +
     `Do NOT use browser_navigate for internal relative routes like "/campaigns".\n` +
     `browser_navigate requires absolute external URL (http/https).\n` +
     `Do NOT use browser automation tools unless the user explicitly requests browser automation, mentions Sales Navigator/LinkedIn, or provides a URL.\n` +
@@ -191,6 +208,8 @@ export function buildTieredSystemPrompt(
     `If the user asks to "find and return" a contact, use tool_calls (and optional ui_actions if they asked to show it on page).\n` +
     `Canonical examples:\n` +
     `- "Show me my email campaigns on the page" => {"ui_actions":[{"action":"email.campaigns.navigate"}],"tool_calls":[]}\n` +
+    `- "Create a contact" => {"ui_actions":[{"action":"contacts.navigate"},{"type":"assistant_ui_start_flow","flowId":"create_contact"}],"tool_calls":[]}\n` +
+    `- "Guide me through the contact form" => {"ui_actions":[{"type":"assistant_ui_set_target","targetId":"contact-create-panel","scrollTargetId":"contact-create-panel","instruction":"Use this form to add the new contact details","pointerMode":"interactive"}],"tool_calls":[]}\n` +
     `- "Find Lucas Raza" => [{"name":"hybrid_search","args":{"query":"Lucas Raza","entity_types":["contact"],"k":10}}]\n` +
     `- "What does UnitFlow_Workflow_Document_V1.2.docx say about workflow stages?" => [{"name":"ask_documents","args":{"question":"What are the workflow stages in UnitFlow_Workflow_Document_V1.2.docx?"}}]\n` +
     `- "Find construction companies" => [{"name":"search_companies","args":{"vertical":"Construction"}}]\n` +

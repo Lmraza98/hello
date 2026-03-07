@@ -1,0 +1,39 @@
+# Data Table Patterns
+
+This note captures internal table patterns for Contacts-style data views.
+
+## Toolbar
+
+- Keep search, quick filters, and batch actions in one predictable toolbar row.
+- Use compact controls and preserve space for table content on narrow desktop widths.
+- Keep filter chips and active counts visible when data is filtered.
+
+## Filters
+
+- Filter state is controlled and reflected in URL or page-level state when possible.
+- Clear filters should preserve sort state unless explicitly reset.
+- Show clear affordances for active filter scopes.
+
+## Column Toggles
+
+- Use a column menu to hide or show optional columns.
+- Lock required identity columns so they cannot be hidden.
+- Persist user visibility preferences when a storage layer already exists.
+
+## Selection
+
+- Header checkbox selects only currently filter-matched rows unless product requirements say global.
+- Row checkbox clicks never trigger row open.
+- Show selected count and bulk actions in a dedicated strip.
+
+## Row Actions
+
+- Row actions live in an explicit action cell or contextual menu.
+- Action controls must stop propagation to avoid accidental detail open.
+- Destructive actions require confirmation.
+
+## Width and Density
+
+- Share a single column sizing model across header and rows.
+- Keep row height stable for virtualization accuracy.
+- Favor truncation with tooltips over multi-line cell growth in dense views.

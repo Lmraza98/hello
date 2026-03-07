@@ -73,6 +73,67 @@ function validateToolArgs(name: string, args: Record<string, unknown>): { ok: tr
   return { ok: true };
 }
 
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  return value as Record<string, unknown>;
+}
+
+function firstString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return '';
+}
+
+function summarizeItem(item: unknown): string {
+  const row = asObject(item);
+  if (!row) return '';
+  const name = firstString(row.contact_name, row.name, row.title);
+  const title = firstString(row.contact_title, row.headline, row.role, row.position);
+  const company = firstString(row.company_name, row.company, row.account_name);
+  const email = firstString(row.contact_email, row.email);
+  const phone = firstString(row.phone, row.phone_number);
+  const parts = [name];
+  if (title) parts.push(title);
+  if (company) parts.push(company);
+  if (email) parts.push(email);
+  if (phone) parts.push(phone);
+  return parts.filter(Boolean).join(' | ');
+}
+
+function summarizeDataResult(item: ToolDispatchItem): string | null {
+  const result = asObject(item.result);
+  if (!result) return null;
+
+  if (String(result.status || '').toLowerCase() === 'pending' && typeof result.task_id === 'string') {
+    return `Started ${item.name}. Long task running in background. Check status with task_id=${result.task_id}.`;
+  }
+
+  const items = Array.isArray(result.items) ? result.items : null;
+  if (items && items.length > 0) {
+    const count = typeof result.count === 'number' && Number.isFinite(result.count) ? result.count : items.length;
+    const lines = items
+      .map((row) => summarizeItem(row))
+      .filter((line) => line.length > 0)
+      .slice(0, 5);
+    const header = `Found ${count} result${count === 1 ? '' : 's'} via ${item.name}.`;
+    return lines.length > 0 ? `${header}\n${lines.map((line) => `- ${line}`).join('\n')}` : header;
+  }
+
+  const results = Array.isArray(result.results) ? result.results : null;
+  if (results && results.length > 0) {
+    const count = results.length;
+    const lines = results
+      .map((row) => summarizeItem(row))
+      .filter((line) => line.length > 0)
+      .slice(0, 5);
+    const header = `Found ${count} result${count === 1 ? '' : 's'} via ${item.name}.`;
+    return lines.length > 0 ? `${header}\n${lines.map((line) => `- ${line}`).join('\n')}` : header;
+  }
+
+  return null;
+}
+
 function summarizeDispatch(items: ToolDispatchItem[]): string {
   if (items.length === 0) return 'No tool calls were executed.';
 
@@ -107,7 +168,11 @@ function summarizeDispatch(items: ToolDispatchItem[]): string {
     return `Tool ${first.name} failed${result?.status ? ` (${result.status})` : ''}: ${msg}`;
   }
 
-  if (ok.length === 1) return `Executed ${ok[0].name}.`;
+  if (ok.length === 1) {
+    const dataSummary = summarizeDataResult(ok[0]);
+    if (dataSummary) return dataSummary;
+    return `Executed ${ok[0].name}.`;
+  }
   return `Executed ${ok.length} tool calls: ${ok.map((x) => x.name).join(', ')}.`;
 }
 

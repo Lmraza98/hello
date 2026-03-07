@@ -1,4 +1,4 @@
-import type { ChatMessage } from '../../types/chat';
+﻿import type { ChatMessage } from '../../types/chat';
 import { textMsg } from '../../services/messageHelpers';
 import { executeTool } from '../toolExecutor';
 import { TOOLS } from '../tools';
@@ -41,7 +41,7 @@ const START_FUNCTION_RESPONSE = '<start_function_response>';
 const ALLOWED_TOOL_NAMES = new Set(TOOLS.map((tool) => tool.function.name));
 const TOOL_SHORTLIST_SIZE = 6;
 const FUNCTIONGEMMA_HISTORY_TURNS = Number.parseInt(
-  import.meta.env.VITE_FUNCTIONGEMMA_HISTORY_TURNS || '0',
+  process.env.NEXT_PUBLIC_FUNCTIONGEMMA_HISTORY_TURNS || '0',
   10
 );
 const STOPWORDS = new Set([
@@ -804,3 +804,4 @@ export async function runFunctionGemma(
     },
   };
 }
+

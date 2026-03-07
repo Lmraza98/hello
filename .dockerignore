@@ -1,0 +1,16 @@
+.git
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite
+*.db
+*.log
+.env
+data/tmp/
+data/pytest_tmp/
+ui/node_modules/
+launcher_frontend/node_modules/
+ui/dist/
+launcher_frontend/dist/

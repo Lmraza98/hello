@@ -1,4 +1,4 @@
-// ── Task Handler ────────────────────────────────────────────
+﻿// â”€â”€ Task Handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Bridge between the task state machine and the chat engine.
 // Handles active-task routing: param collection, confirmation,
 // cancellation, and execution hand-off.
@@ -9,12 +9,13 @@ import type { ChatCompletionMessageParam } from './chatEngineTypes';
 import type { Task, DataSource } from './taskState';
 import { collectParam, transitionTask } from './taskState';
 import { classifyTaskRelevance, extractTaskParams } from './taskClassifiers';
+import { stripPlannerHeuristicContext } from './models/toolPlanner/sessionBlocks';
 import { textMsg } from '../services/messageHelpers';
 import { ollamaChat } from './models/ollamaClient';
 
 const RESPONSE_MODEL =
-  import.meta.env.VITE_PLANNER_BACKEND ||
-  import.meta.env.VITE_TOOL_BRAIN ||
+  process.env.NEXT_PUBLIC_PLANNER_BACKEND ||
+  process.env.NEXT_PUBLIC_TOOL_BRAIN ||
   'gemma3:12b';
 
 /**
@@ -60,7 +61,7 @@ export async function handleActiveTask(
     };
   }
 
-  // ── Continuation ──────────────────────────────────────────
+  // â”€â”€ Continuation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   if (task.status === 'collecting') {
     return await handleParamCollection(userMessage, task, history, options);
@@ -70,7 +71,7 @@ export async function handleActiveTask(
     return await handleConfirmation(userMessage, task, history, options);
   }
 
-  // For other statuses (executing, etc.), treat as acknowledgment — let caller handle
+  // For other statuses (executing, etc.), treat as acknowledgment â€” let caller handle
   return null;
 }
 
@@ -82,6 +83,29 @@ async function handleParamCollection(
 ): Promise<{ result: ChatEngineResult; updatedTask: Task }> {
   // Extract params from the user message
   const extracted = await extractTaskParams(userMessage, task);
+  if (String(task.params.clarification_kind || '') === 'salesnav_employee_details') {
+    if (extracted.contact_count == null) {
+      const countMatch = userMessage.match(/\b(\d{1,3})\b/);
+      if (countMatch) {
+        extracted.contact_count = Number(countMatch[1]);
+      }
+    }
+    if (extracted.detail_fields == null) {
+      if (/\ball\b/i.test(userMessage) && /\bdetails?\b/i.test(userMessage)) {
+        extracted.detail_fields = 'LinkedIn URL, title, email, phone';
+      } else {
+        const requested = [
+          /\blinkedin\b/i.test(userMessage) ? 'LinkedIn URL' : '',
+          /\btitle|titles\b/i.test(userMessage) ? 'title' : '',
+          /\bemail|emails\b/i.test(userMessage) ? 'email' : '',
+          /\bphone|phones|mobile|direct dial\b/i.test(userMessage) ? 'phone' : '',
+        ].filter(Boolean);
+        if (requested.length > 0) {
+          extracted.detail_fields = requested.join(', ');
+        }
+      }
+    }
+  }
   let updated = { ...task };
 
   const now = Date.now();
@@ -98,7 +122,7 @@ async function handleParamCollection(
   const stillRequired = updated.missingParams.filter((p) => p.required);
 
   if (stillRequired.length === 0) {
-    // All params collected — transition to ready
+    // All params collected â€” transition to ready
     if (updated.status !== 'ready') {
       updated = transitionTask(updated, 'ready', 'all_required_params_collected');
     }
@@ -117,7 +141,7 @@ async function handleParamCollection(
     };
   }
 
-  // Still missing params — ask for them
+  // Still missing params â€” ask for them
   const askText = await generateParamRequest(updated);
   return {
     result: {
@@ -171,7 +195,7 @@ async function handleConfirmation(
 
     const syntheticMessage =
       `${nextIntent}\n\n` +
-      `IMPORTANT — Results from previous steps (use these values for your tool call arguments):\n` +
+      `IMPORTANT â€” Results from previous steps (use these values for your tool call arguments):\n` +
       contextLines.join('\n');
 
     updated.params = {
@@ -180,9 +204,31 @@ async function handleConfirmation(
     };
   }
 
+  if (String(task.params.clarification_kind || '') === 'salesnav_employee_details') {
+    const companyName = stripPlannerHeuristicContext(
+      typeof task.params.company_name === 'string' ? task.params.company_name.trim() : ''
+    );
+    const contactCount = typeof task.params.contact_count === 'number'
+      ? task.params.contact_count
+      : (typeof task.params.contact_count === 'string' && task.params.contact_count.trim()
+          ? Number(task.params.contact_count)
+          : null);
+    const detailFields = typeof task.params.detail_fields === 'string' ? task.params.detail_fields.trim() : '';
+    const detailText = detailFields || 'LinkedIn URL, title, email, phone';
+    const countText = Number.isFinite(contactCount as number) && (contactCount as number) > 0
+      ? String(contactCount)
+      : '10';
+    const reconstructedMessage =
+      `Find ${countText} employees of ${companyName || 'the company'} on SalesNavigator and collect ${detailText}.`;
+    updated.params = {
+      ...updated.params,
+      _syntheticMessage: reconstructedMessage,
+    };
+  }
+
   return {
     result: {
-      // Sentinel — the caller (processMessage) replaces this with actual execution
+      // Sentinel â€” the caller (processMessage) replaces this with actual execution
       response: EXECUTE_TASK_SENTINEL,
       updatedHistory: history,
       messages: [],
@@ -221,7 +267,7 @@ async function generateParamRequest(task: Task): Promise<string> {
             'Rules:\n' +
             '- Acknowledge any params that were just provided.\n' +
             '- Ask for the remaining required params.\n' +
-            '- Be concise — 2-3 sentences max.\n' +
+            '- Be concise â€” 2-3 sentences max.\n' +
             '- Do not use bullet points or numbered lists unless there are 4+ missing items.',
         },
         {
@@ -246,3 +292,4 @@ async function generateParamRequest(task: Task): Promise<string> {
 
 // Re-export for use by chatEngine when creating tasks from analyzeTaskRequirements
 export { generateParamRequest };
+

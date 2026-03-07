@@ -18,17 +18,21 @@ class ContactCreateRequest(BaseModel):
     company_name: str
     name: str
     domain: Optional[str] = None
+    location: Optional[str] = None
     title: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
     linkedin_url: Optional[str] = None
     salesforce_url: Optional[str] = None
+    lead_source: Optional[str] = None
+    ingest_batch_id: Optional[str] = None
 
 
 class ContactRecord(BaseModel):
     id: int
     company_name: str
     domain: Optional[str] = None
+    location: Optional[str] = None
     name: str
     title: Optional[str] = None
     email: Optional[str] = None
@@ -41,8 +45,12 @@ class ContactRecord(BaseModel):
     linkedin_url: Optional[str] = None
     salesforce_url: Optional[str] = None
     salesforce_status: Optional[str] = None
+    salesforce_sync_status: Optional[str] = None
     salesforce_uploaded_at: Optional[str] = None
     salesforce_upload_batch: Optional[str] = None
+    engagement_status: Optional[str] = None
+    lead_source: Optional[str] = None
+    ingest_batch_id: Optional[str] = None
     scraped_at: Optional[str] = None
     vertical: Optional[str] = None
 
@@ -51,12 +59,15 @@ class ContactCreateResponse(BaseModel):
     id: int
     company_name: str
     domain: Optional[str] = None
+    location: Optional[str] = None
     name: str
     title: Optional[str] = None
     email: Optional[str] = None
     linkedin_url: Optional[str] = None
     salesforce_url: Optional[str] = None
     salesforce_status: Optional[str] = None
+    lead_source: Optional[str] = None
+    ingest_batch_id: Optional[str] = None
 
 
 class ContactDeleteResponse(BaseModel):
@@ -125,6 +136,13 @@ class BulkCollectPhoneResponse(BaseModel):
     enriched: int
     total: int
     searched: int
+    message: str
+
+
+class BulkMarkReviewedResponse(BaseModel):
+    success: bool
+    updated: int
+    total: int
     message: str
 
 

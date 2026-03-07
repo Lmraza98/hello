@@ -16,7 +16,7 @@ export function TemplateEditorModal({ campaign, onClose, onSave }: TemplateEdito
       const existing = campaign.templates?.find(tmpl => tmpl.step_number === i + 1);
       t.push({
         subject: existing?.subject_template || `Follow up - {company}`,
-        body: existing?.body_template || `Hi {name},\n\nJust following up on my previous email.\n\n{personalization}\n\nBest regards`
+        body: existing?.body_template || `Hi {firstName},\n\nJust following up on my previous email.\n\n{personalization}\n\nBest regards`
       });
     }
     return t;
@@ -69,8 +69,12 @@ export function TemplateEditorModal({ campaign, onClose, onSave }: TemplateEdito
     >
       <div className="bg-bg rounded-lg p-3 text-sm text-text-muted">
         <strong className="text-text">Variables:</strong> Use <code className="bg-surface-hover px-1.5 py-0.5 rounded text-xs">{'{name}'}</code>,{' '}
+        <code className="bg-surface-hover px-1.5 py-0.5 rounded text-xs">{'{firstName}'}</code>,{' '}
+        <code className="bg-surface-hover px-1.5 py-0.5 rounded text-xs">{'{lastName}'}</code>,{' '}
         <code className="bg-surface-hover px-1.5 py-0.5 rounded text-xs">{'{company}'}</code>,{' '}
         <code className="bg-surface-hover px-1.5 py-0.5 rounded text-xs">{'{title}'}</code>,{' '}
+        <code className="bg-surface-hover px-1.5 py-0.5 rounded text-xs">{'{industry}'}</code>,{' '}
+        <code className="bg-surface-hover px-1.5 py-0.5 rounded text-xs">{'{location}'}</code>,{' '}
         <code className="bg-surface-hover px-1.5 py-0.5 rounded text-xs">{'{personalization}'}</code> in your templates.
       </div>
 

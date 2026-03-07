@@ -1,4 +1,4 @@
-export type ModelRoute = 'qwen3' | 'gemma' | 'deepseek' | 'openai';
+﻿export type ModelRoute = 'qwen3' | 'gemma' | 'deepseek' | 'openai';
 
 export interface RouteDecision {
   model: ModelRoute;
@@ -6,7 +6,7 @@ export interface RouteDecision {
 }
 
 const ENABLE_OPENAI_ROUTE =
-  (import.meta.env.VITE_CHAT_ENABLE_OPENAI_ROUTE || 'false').toLowerCase() === 'true';
+  (process.env.NEXT_PUBLIC_CHAT_ENABLE_OPENAI_ROUTE || 'false').toLowerCase() === 'true';
 
 const PLANNER_PATTERNS: RegExp[] = [
   /\bthen\b.*\bthen\b/i,
@@ -122,3 +122,4 @@ export function shouldFallback(result: {
   const lower = result.response.toLowerCase();
   return confusionSignals.some((signal) => lower.includes(signal));
 }
+

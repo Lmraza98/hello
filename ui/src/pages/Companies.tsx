@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useSearchParams } from 'next/navigation';
 import { usePageContext } from '../contexts/PageContextProvider';
 import { normalizeQueryFilterParam } from '../utils/filterNormalization';
 import {
@@ -22,6 +22,7 @@ import { CompaniesFilterPanel } from '../components/companies/CompaniesFilterPan
 import { CompanyCard } from '../components/companies/CompanyCard';
 import { SearchToolbar } from '../components/shared/SearchToolbar';
 import { PageHeader } from '../components/shared/PageHeader';
+import { HeaderActionButton } from '../components/shared/HeaderActionButton';
 import { EmptyState } from '../components/shared/EmptyState';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { ConfirmDialog } from '../components/shared/ConfirmDialog';
@@ -32,14 +33,14 @@ import { getPageCapability } from '../capabilities/catalog';
 
 /* ── Constants ─────────────────────────── */
 
-const ROW_HEIGHT = 44;
+const ROW_HEIGHT = 42;
 const EXPANDED_HEIGHT = 160;
 
 /* ── Main Component ────────────────────────────────────── */
 
 export default function Companies({ openAddModal, onModalOpened }: { openAddModal?: boolean; onModalOpened?: () => void }) {
   const isMobile = useIsMobile();
-  const location = useLocation();
+  const searchParams = useSearchParams();
   const { setPageContext } = usePageContext();
   const {
     companies,
@@ -74,7 +75,7 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
   }, [openAddModal, onModalOpened]);
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
     setGlobalFilter(params.get('q') || '');
     const nextFilters: ColumnFiltersState = [];
     const company = normalizeQueryFilterParam('company', params.get('company'));
@@ -84,7 +85,7 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
     if (vertical) nextFilters.push({ id: 'vertical', value: vertical });
     if (tier) nextFilters.push({ id: 'tier', value: tier });
     setColumnFilters(nextFilters);
-  }, [location.search]);
+  }, [searchParams]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -192,14 +193,14 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
   ) : null;
 
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
+    const params = new URLSearchParams(searchParams?.toString() ?? '');
     const selectedCompanyId = Number(params.get('selectedCompanyId'));
     setPageContext({
       listContext: 'companies',
       selected: Number.isFinite(selectedCompanyId) ? { companyId: selectedCompanyId } : {},
       loadedIds: { companyIds: companies.slice(0, 200).map((c) => c.id) },
     });
-  }, [companies, location.search, setPageContext]);
+  }, [companies, searchParams, setPageContext]);
 
   /* ── Render ── */
 
@@ -207,47 +208,54 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
     <div className="h-full flex flex-col bg-surface">
       {/* Header */}
       <div className="sticky top-0 z-10 pb-2 md:pb-4">
-        <div className="pt-3 px-3 md:pt-4 md:px-6">
+        <div className="pt-3 px-3 md:pt-4 md:px-4">
           <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileUpload} className="hidden" />
           <PageHeader
             title="Companies"
             subtitle={`${companies.length} companies${filteredCount !== companies.length ? ` · ${filteredCount} shown` : ''}`}
             desktopActions={
               <>
-                <button
+                <HeaderActionButton
                   onClick={() => setShowResetConfirm(true)}
-                  className="inline-flex h-8 items-center gap-1.5 px-3 border border-border text-text-muted rounded-md text-xs font-medium hover:bg-surface-hover transition-colors"
+                  variant="secondary"
+                  icon={<RotateCcw className="w-3.5 h-3.5" />}
                 >
-                  <RotateCcw className="w-3.5 h-3.5" /> Reset All
-                </button>
-                <button
-                  onClick={() => setShowAddModal(true)}
-                  className="inline-flex h-8 items-center gap-1.5 px-3 border border-border text-text rounded-md text-xs font-medium hover:bg-surface-hover transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Add
-                </button>
-                <button
+                  Reset All
+                </HeaderActionButton>
+                <HeaderActionButton
                   onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex h-8 items-center gap-1.5 px-3 bg-accent text-white rounded-md text-xs font-medium hover:bg-accent-hover transition-colors"
+                  variant="secondary"
+                  icon={<Upload className="w-3.5 h-3.5" />}
                 >
-                  <Upload className="w-3.5 h-3.5" /> Import CSV
-                </button>
+                  Import CSV
+                </HeaderActionButton>
+                <HeaderActionButton
+                  onClick={() => setShowAddModal(true)}
+                  variant="primary"
+                  icon={<Plus className="w-3.5 h-3.5" />}
+                >
+                  New Company
+                </HeaderActionButton>
               </>
             }
             mobileActions={
               <>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-1.5 bg-accent text-white rounded-md hover:bg-accent-hover transition-colors"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                </button>
-                <button
+                <HeaderActionButton
                   onClick={() => setShowAddModal(true)}
-                  className="p-1.5 border border-border text-text rounded-md hover:bg-surface-hover transition-colors"
+                  variant="primary"
+                  compact
+                  icon={<Plus className="w-3.5 h-3.5" />}
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
+                  New
+                </HeaderActionButton>
+                <HeaderActionButton
+                  onClick={() => fileInputRef.current?.click()}
+                  variant="secondary"
+                  compact
+                  icon={<Upload className="w-3.5 h-3.5" />}
+                >
+                  Import
+                </HeaderActionButton>
               </>
             }
           />
@@ -319,11 +327,11 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
       )}
 
       {/* Virtualized Table / List */}
-      <div className="flex-1 min-h-0 px-3 md:px-6 pb-3 md:pb-6">
+      <div className="flex-1 min-h-0 px-3 pb-3 md:px-4 md:pb-4">
         {isLoading ? (
           <LoadingSpinner />
         ) : (
-          <div className="bg-surface border border-border rounded-lg overflow-hidden flex flex-col h-full">
+          <div className="bg-surface overflow-hidden flex flex-col h-full">
             {/* Desktop: fixed thead — ONLY on desktop */}
             {!isMobile && (
               <div className="shrink-0">
@@ -352,7 +360,7 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
                   icon={Building2}
                   title="No companies found"
                   description="Try adjusting your filters or add a new company"
-                  action={{ label: 'Add Company', icon: Plus, onClick: () => setShowAddModal(true) }}
+                  action={{ label: 'New Company', icon: Plus, onClick: () => setShowAddModal(true) }}
                 />
               ) : (
                 <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
@@ -398,7 +406,7 @@ export default function Companies({ openAddModal, onModalOpened }: { openAddModa
                                 }}
                               >
                                 {row.getVisibleCells().map((cell) => (
-                                  <td key={cell.id} className="px-3 py-2 leading-tight">
+                                  <td key={cell.id} className="px-3 py-1.5 leading-tight">
                                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                   </td>
                                 ))}

@@ -16,7 +16,8 @@ from api.observability import compute_openai_cost_usd, record_cost
 
 _FENCE_START = re.compile(r"^```(?:json)?\s*", re.IGNORECASE)
 _FENCE_END = re.compile(r"\s*```$", re.IGNORECASE)
-_VALID_NAME_CHARS = re.compile(r"[^A-Za-z\u00C0-\u024F'\-\s]")
+# Keep digits to preserve legitimate stylized names (for example "Gr3g").
+_VALID_NAME_CHARS = re.compile(r"[^0-9A-Za-z\u00C0-\u024F'\-\s]")
 _KNOWN_PREFIXES = {"mr", "mrs", "ms", "miss", "dr", "prof", "rev", "sir", "dame"}
 _KNOWN_SUFFIXES = {
     "md",
@@ -203,4 +204,3 @@ def _classify_cached(raw_name: str) -> ClassifiedName:
 def classify_name(raw_name: str) -> ClassifiedName:
     """Classify and normalize a person name for ingestion."""
     return _classify_cached(raw_name)
-

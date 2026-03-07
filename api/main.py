@@ -34,6 +34,7 @@ from api.routes import (
     documents,
     emails,
     google,
+    leads,
     notes,
     pipeline,
     research,
@@ -44,6 +45,7 @@ from api.routes import (
     workflows,
 )
 from services.web_automation.salesforce.lookup_queue import (
+    enqueue_pending_inbound_salesforce_creates,
     start_salesforce_lookup_worker,
     stop_salesforce_lookup_worker,
 )
@@ -51,6 +53,7 @@ from services.web_automation.salesforce.auth_manager import (
     start_session_health_worker,
     stop_session_health_worker,
 )
+from services.leadforge.store import ensure_leadforge_tables
 
 try:
     from api.routes import langgraph as langgraph_route
@@ -88,22 +91,24 @@ def _setup_scheduler():
         
         scheduler.add_job(_prepare_batch, CronTrigger(hour=7, minute=0), id='daily_batch')
         
-        # Poll Salesforce tracking every 90 minutes during business hours (8am-5pm)
-        async def _poll_tracking():
-            try:
-                from services.email.salesforce_tracker import poll_salesforce_tracking
-                result = await poll_salesforce_tracking()
-                print(f"[Scheduler] Tracking poll: {result.get('message', '')}")
-            except Exception as e:
-                print(f"[Scheduler] Tracking poll error: {e}")
+        if config.LEADFORGE_SALESFORCE_ENABLED:
+            # Poll Salesforce tracking every 90 minutes during business hours (8am-5pm)
+            async def _poll_tracking():
+                try:
+                    from services.email.salesforce_tracker import poll_salesforce_tracking
+                    result = await poll_salesforce_tracking()
+                    print(f"[Scheduler] Tracking poll: {result.get('message', '')}")
+                except Exception as e:
+                    print(f"[Scheduler] Tracking poll error: {e}")
+            
+            scheduler.add_job(
+                _poll_tracking,
+                IntervalTrigger(minutes=90),
+                id='tracking_poll'
+            )
         
-        scheduler.add_job(
-            _poll_tracking,
-            IntervalTrigger(minutes=90),
-            id='tracking_poll'
-        )
-        
-        # Poll Outlook inbox for replies every 10 minutes
+        # Poll Outlook inbox for replies/leads every N minutes (default: 1)
+        outlook_poll_minutes = max(1, int(db.get_config("outlook_poll_interval_minutes", "1") or "1"))
         async def _poll_outlook_replies():
             try:
                 from services.email.graph_auth import is_authenticated
@@ -111,7 +116,7 @@ def _setup_scheduler():
                     return  # Skip silently if not authed yet
                 from services.email.outlook_monitor import poll_outlook_replies
                 result = await poll_outlook_replies(minutes_back=15)
-                if result.get('new_replies', 0) > 0:
+                if result.get('new_replies', 0) > 0 or result.get('new_leads', 0) > 0:
                     print(f"[Scheduler] Outlook replies: {result.get('message', '')}")
             except ImportError:
                 pass  # MSAL not installed — skip silently
@@ -120,7 +125,7 @@ def _setup_scheduler():
         
         scheduler.add_job(
             _poll_outlook_replies,
-            IntervalTrigger(minutes=10),
+            IntervalTrigger(minutes=outlook_poll_minutes),
             id='outlook_reply_poll'
         )
         
@@ -136,11 +141,19 @@ def _setup_scheduler():
 async def lifespan(app: FastAPI):
     """Application lifespan: start scheduler on startup, stop on shutdown."""
     _setup_scheduler()
-    await start_salesforce_lookup_worker()
-    await start_session_health_worker()
+    if config.LEADFORGE_SALESFORCE_ENABLED:
+        await start_salesforce_lookup_worker()
+        await start_session_health_worker()
+        try:
+            queued = enqueue_pending_inbound_salesforce_creates(limit=1000)
+            if queued > 0:
+                print(f"[startup] queued {queued} existing inbound contacts for Salesforce create")
+        except Exception as exc:
+            print(f"[startup] inbound Salesforce queue backfill failed: {exc}")
     yield
-    await stop_session_health_worker()
-    await stop_salesforce_lookup_worker()
+    if config.LEADFORGE_SALESFORCE_ENABLED:
+        await stop_session_health_worker()
+        await stop_salesforce_lookup_worker()
     if scheduler:
         scheduler.shutdown(wait=False)
         print("[Scheduler] Background scheduler stopped")
@@ -257,6 +270,7 @@ FRONTEND_DIR = config.BASE_DIR / "ui" / "dist"
 
 # Initialize database
 db.init_database()
+ensure_leadforge_tables()
 if langgraph_route is not None:
     from services.langgraph.state_store import init_state_store
 
@@ -278,10 +292,12 @@ app.include_router(browser_stream.router)
 app.include_router(browser_nav.router)
 app.include_router(browser_skills.router)
 app.include_router(browser_workflows.router)
-app.include_router(salesforce.router)
+if config.LEADFORGE_SALESFORCE_ENABLED:
+    app.include_router(salesforce.router)
 app.include_router(research.router)
 app.include_router(google.router)
 app.include_router(search.router)
+app.include_router(leads.router)
 app.include_router(chat.router)
 app.include_router(admin.router)
 app.include_router(admin_launcher.router)

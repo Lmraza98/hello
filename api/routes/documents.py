@@ -39,6 +39,69 @@ class SearchDocumentsRequest(BaseModel):
     limit: int = 10
 
 
+class CreateFolderRequest(BaseModel):
+    name: str
+    parent_path: str = ""
+
+
+class MoveFolderRequest(BaseModel):
+    from_path: str
+    to_parent_path: str = ""
+
+
+class MoveDocumentRequest(BaseModel):
+    to_folder_path: str = ""
+
+
+class RenameFolderRequest(BaseModel):
+    name: str
+
+
+class RenameDocumentRequest(BaseModel):
+    name: str
+
+
+def _normalize_folder_path(path: str | None) -> str:
+    raw = (path or "").strip().replace("\\", "/")
+    if not raw:
+        return ""
+    parts = [seg.strip() for seg in raw.split("/") if seg.strip() and seg.strip() not in {".", ".."}]
+    return "/".join(parts)
+
+
+def _folder_name(path: str) -> str:
+    normalized = _normalize_folder_path(path)
+    if not normalized:
+        return ""
+    return normalized.split("/")[-1]
+
+
+def _is_descendant(path: str, candidate_ancestor: str) -> bool:
+    if not candidate_ancestor:
+        return True
+    return path == candidate_ancestor or path.startswith(f"{candidate_ancestor}/")
+
+
+def _ensure_folder_chain(cursor, path: str):
+    normalized = _normalize_folder_path(path)
+    if not normalized:
+        return
+    current = ""
+    for part in normalized.split("/"):
+        parent = current
+        current = f"{current}/{part}" if current else part
+        exists = cursor.execute("SELECT 1 FROM document_folders WHERE path = ?", (current,)).fetchone()
+        if exists:
+            continue
+        cursor.execute(
+            """
+            INSERT INTO document_folders (path, parent_path, name)
+            VALUES (?, ?, ?)
+            """,
+            (current, parent, part),
+        )
+
+
 @router.post("/upload", responses=COMMON_ERROR_RESPONSES)
 async def upload_document(
     file: UploadFile = File(...),
@@ -132,6 +195,214 @@ def list_documents(
     return {"count": total, "documents": rows}
 
 
+@router.get("/folders", responses=COMMON_ERROR_RESPONSES)
+def list_document_folders():
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        rows = cursor.execute(
+            """
+            SELECT path, parent_path, name, created_at, updated_at
+            FROM document_folders
+            ORDER BY path ASC
+            """
+        ).fetchall()
+    return {"count": len(rows), "folders": [dict(r) for r in rows]}
+
+
+@router.post("/folders", responses=COMMON_ERROR_RESPONSES)
+def create_document_folder(request: CreateFolderRequest):
+    name = request.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail={"code": "invalid_name", "message": "Folder name is required"})
+    if "/" in name or "\\" in name:
+        raise HTTPException(status_code=400, detail={"code": "invalid_name", "message": "Folder name cannot contain slashes"})
+
+    parent = _normalize_folder_path(request.parent_path)
+    path = _normalize_folder_path(f"{parent}/{name}" if parent else name)
+
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        if parent:
+            parent_exists = cursor.execute("SELECT 1 FROM document_folders WHERE path = ?", (parent,)).fetchone()
+            if not parent_exists:
+                raise HTTPException(status_code=404, detail={"code": "parent_not_found", "message": "Parent folder not found"})
+        exists = cursor.execute("SELECT 1 FROM document_folders WHERE path = ?", (path,)).fetchone()
+        if exists:
+            raise HTTPException(status_code=409, detail={"code": "already_exists", "message": "Folder already exists"})
+
+        cursor.execute(
+            """
+            INSERT INTO document_folders (path, parent_path, name)
+            VALUES (?, ?, ?)
+            """,
+            (path, parent, name),
+        )
+
+    return {"success": True, "path": path, "parent_path": parent, "name": name}
+
+
+@router.post("/folders/move", responses=COMMON_ERROR_RESPONSES)
+def move_document_folder(request: MoveFolderRequest):
+    from_path = _normalize_folder_path(request.from_path)
+    to_parent = _normalize_folder_path(request.to_parent_path)
+    if not from_path:
+        raise HTTPException(status_code=400, detail={"code": "invalid_source", "message": "Source folder is required"})
+
+    base_name = _folder_name(from_path)
+    target_path = _normalize_folder_path(f"{to_parent}/{base_name}" if to_parent else base_name)
+    if target_path == from_path:
+        return {"success": True, "path": from_path}
+    if _is_descendant(to_parent, from_path):
+        raise HTTPException(status_code=400, detail={"code": "invalid_move", "message": "Cannot move folder into itself"})
+
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+
+        explicit_src = cursor.execute("SELECT 1 FROM document_folders WHERE path = ?", (from_path,)).fetchone()
+        docs_src = cursor.execute(
+            "SELECT 1 FROM documents WHERE folder_path = ? OR folder_path LIKE ? LIMIT 1",
+            (from_path, f"{from_path}/%"),
+        ).fetchone()
+        if not explicit_src and not docs_src:
+            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Folder not found"})
+
+        if to_parent:
+            _ensure_folder_chain(cursor, to_parent)
+
+        clash = cursor.execute("SELECT 1 FROM document_folders WHERE path = ?", (target_path,)).fetchone()
+        if clash:
+            raise HTTPException(status_code=409, detail={"code": "already_exists", "message": "A folder already exists at destination"})
+
+        rows = cursor.execute(
+            "SELECT path FROM document_folders WHERE path = ? OR path LIKE ? ORDER BY LENGTH(path) ASC",
+            (from_path, f"{from_path}/%"),
+        ).fetchall()
+        for row in rows:
+            old_path = row["path"]
+            suffix = old_path[len(from_path):]
+            new_path = f"{target_path}{suffix}"
+            new_parent = _normalize_folder_path(new_path.rsplit("/", 1)[0] if "/" in new_path else "")
+            new_name = _folder_name(new_path)
+            cursor.execute(
+                """
+                UPDATE document_folders
+                SET path = ?, parent_path = ?, name = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE path = ?
+                """,
+                (new_path, new_parent, new_name, old_path),
+            )
+
+        doc_rows = cursor.execute(
+            "SELECT id, folder_path FROM documents WHERE folder_path = ? OR folder_path LIKE ?",
+            (from_path, f"{from_path}/%"),
+        ).fetchall()
+        for row in doc_rows:
+            old = _normalize_folder_path(row["folder_path"])
+            suffix = old[len(from_path):]
+            new_doc_path = _normalize_folder_path(f"{target_path}{suffix}")
+            cursor.execute("UPDATE documents SET folder_path = ? WHERE id = ?", (new_doc_path, row["id"]))
+
+    return {"success": True, "path": target_path}
+
+
+@router.post("/{document_id}/move", responses=COMMON_ERROR_RESPONSES)
+def move_document(document_id: str, request: MoveDocumentRequest):
+    to_folder = _normalize_folder_path(request.to_folder_path)
+
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        doc = cursor.execute("SELECT id FROM documents WHERE id = ?", (document_id,)).fetchone()
+        if not doc:
+            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Document not found"})
+        if to_folder:
+            _ensure_folder_chain(cursor, to_folder)
+        cursor.execute("UPDATE documents SET folder_path = ? WHERE id = ?", (to_folder, document_id))
+
+    return {"success": True, "document_id": document_id, "folder_path": to_folder}
+
+
+@router.delete("/folders/{folder_path:path}", responses=COMMON_ERROR_RESPONSES)
+def delete_document_folder(folder_path: str):
+    path = _normalize_folder_path(folder_path)
+    if not path:
+        raise HTTPException(status_code=400, detail={"code": "invalid_path", "message": "Folder path is required"})
+
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        folder = cursor.execute("SELECT 1 FROM document_folders WHERE path = ?", (path,)).fetchone()
+        if not folder:
+            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Folder not found"})
+
+        child_folder = cursor.execute("SELECT 1 FROM document_folders WHERE parent_path = ? LIMIT 1", (path,)).fetchone()
+        if child_folder:
+            raise HTTPException(status_code=409, detail={"code": "not_empty", "message": "Folder has subfolders"})
+
+        doc_ref = cursor.execute("SELECT 1 FROM documents WHERE folder_path = ? LIMIT 1", (path,)).fetchone()
+        if doc_ref:
+            raise HTTPException(status_code=409, detail={"code": "not_empty", "message": "Folder has documents"})
+
+        cursor.execute("DELETE FROM document_folders WHERE path = ?", (path,))
+
+    return {"success": True, "path": path}
+
+
+@router.patch("/folders/{folder_path:path}/rename", responses=COMMON_ERROR_RESPONSES)
+def rename_document_folder(folder_path: str, request: RenameFolderRequest):
+    from_path = _normalize_folder_path(folder_path)
+    next_name = request.name.strip()
+    if not from_path:
+        raise HTTPException(status_code=400, detail={"code": "invalid_path", "message": "Folder path is required"})
+    if not next_name:
+        raise HTTPException(status_code=400, detail={"code": "invalid_name", "message": "Folder name is required"})
+    if "/" in next_name or "\\" in next_name:
+        raise HTTPException(status_code=400, detail={"code": "invalid_name", "message": "Folder name cannot contain slashes"})
+
+    parent = _normalize_folder_path(from_path.rsplit("/", 1)[0] if "/" in from_path else "")
+    target_path = _normalize_folder_path(f"{parent}/{next_name}" if parent else next_name)
+    if target_path == from_path:
+        return {"success": True, "path": from_path, "name": _folder_name(from_path)}
+
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        src = cursor.execute("SELECT 1 FROM document_folders WHERE path = ?", (from_path,)).fetchone()
+        if not src:
+            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Folder not found"})
+        clash = cursor.execute("SELECT 1 FROM document_folders WHERE path = ?", (target_path,)).fetchone()
+        if clash:
+            raise HTTPException(status_code=409, detail={"code": "already_exists", "message": "A folder already exists at destination"})
+
+        rows = cursor.execute(
+            "SELECT path FROM document_folders WHERE path = ? OR path LIKE ? ORDER BY LENGTH(path) ASC",
+            (from_path, f"{from_path}/%"),
+        ).fetchall()
+        for row in rows:
+            old_path = row["path"]
+            suffix = old_path[len(from_path):]
+            new_path = f"{target_path}{suffix}"
+            new_parent = _normalize_folder_path(new_path.rsplit("/", 1)[0] if "/" in new_path else "")
+            new_name = _folder_name(new_path)
+            cursor.execute(
+                """
+                UPDATE document_folders
+                SET path = ?, parent_path = ?, name = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE path = ?
+                """,
+                (new_path, new_parent, new_name, old_path),
+            )
+
+        doc_rows = cursor.execute(
+            "SELECT id, folder_path FROM documents WHERE folder_path = ? OR folder_path LIKE ?",
+            (from_path, f"{from_path}/%"),
+        ).fetchall()
+        for row in doc_rows:
+            old = _normalize_folder_path(row["folder_path"])
+            suffix = old[len(from_path):]
+            new_doc_path = _normalize_folder_path(f"{target_path}{suffix}")
+            cursor.execute("UPDATE documents SET folder_path = ? WHERE id = ?", (new_doc_path, row["id"]))
+
+    return {"success": True, "path": target_path, "name": next_name}
+
+
 @router.get("/{document_id}", responses=COMMON_ERROR_RESPONSES)
 def get_document(document_id: str):
     with db.get_db() as conn:
@@ -177,6 +448,42 @@ def get_document(document_id: str):
         "contacts": [dict(r) for r in contacts],
         "chunk_count": int(chunk_count),
     }
+
+
+@router.patch("/{document_id}/rename", responses=COMMON_ERROR_RESPONSES)
+def rename_document(document_id: str, request: RenameDocumentRequest):
+    next_name = request.name.strip()
+    if not next_name:
+        raise HTTPException(status_code=400, detail={"code": "invalid_name", "message": "Document name is required"})
+    if "/" in next_name or "\\" in next_name:
+        raise HTTPException(status_code=400, detail={"code": "invalid_name", "message": "Document name cannot contain slashes"})
+
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        row = cursor.execute("SELECT filename, storage_path FROM documents WHERE id = ?", (document_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Document not found"})
+
+        old_filename = str(row["filename"] or "").strip()
+        storage_path = str(row["storage_path"] or "")
+        new_storage_path = storage_path
+        if old_filename and storage_path:
+            normalized_storage = storage_path.replace("\\", "/")
+            if normalized_storage.lower().endswith(f"/{old_filename.lower()}"):
+                new_storage_path = f"{normalized_storage[:-(len(old_filename))]}{next_name}"
+
+        cursor.execute(
+            """
+            UPDATE documents
+            SET filename = ?,
+                storage_path = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            (next_name, new_storage_path, document_id),
+        )
+
+    return {"success": True, "document_id": document_id, "filename": next_name}
 
 
 @router.post("/link", responses=COMMON_ERROR_RESPONSES)

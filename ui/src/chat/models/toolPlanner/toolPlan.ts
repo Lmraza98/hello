@@ -1,5 +1,5 @@
 import type { ParsedToolCall } from '../../toolExecutor';
-import type { UIAction } from '../../../capabilities/generated/schema';
+import type { ChatAction } from '../../actions';
 import type { LocalChatMessage } from '../ollamaClient';
 import { createPlannerAskFn, type PlannerRoute } from '../plannerBackends';
 import { appendTokenStreamChunk, finalizeTokenStream, resetTokenStream } from '../../../services/chatRunLog';
@@ -22,13 +22,14 @@ import { ACTIVE_MODEL_CONFIG, MODEL_ID_HINTS, MODEL_PROVIDER_HINTS } from '../..
 export interface ToolPlanResult {
   success: boolean;
   plannedCalls: ParsedToolCall[];
-  plannedUiActions: UIAction[];
+  plannedUiActions: ChatAction[];
   selectedTools: string[];
   rawContent: string | null;
   planRationale: string[];
   constraintWarnings: string[];
   constraintRisk?: 'low' | 'medium' | 'high';
   failureReason?: string;
+  clarificationQuestion?: string;
 }
 
 export interface RunToolPlanOptions {
@@ -36,6 +37,7 @@ export interface RunToolPlanOptions {
   onToken?: (token: string) => void;
   requiresDecomposition?: boolean;
   isRetry?: boolean;
+  plannerRouteOverride?: PlannerRoute;
 }
 
 interface CoverageAudit {
@@ -291,6 +293,13 @@ export async function runToolPlan(
   const tier: QueryTier = naturalTier;
   emit(`Query tier: ${tier}${quickMode ? ' (quick mode)' : ''}.`);
   const plannerRoute = resolvePlannerRoute(selectionMessage, options);
+  if (options.plannerRouteOverride?.model || options.plannerRouteOverride?.provider || options.plannerRouteOverride?.backend) {
+    plannerRoute.route = {
+      ...plannerRoute.route,
+      ...options.plannerRouteOverride,
+    };
+    emit(`Planner override applied: provider=${plannerRoute.route.provider} model=${plannerRoute.route.model}.`);
+  }
   emit(
     `Complexity assessment: ${plannerRoute.complexity.level} (${plannerRoute.complexity.signals.join(', ') || 'none'}).`
   );
@@ -299,7 +308,7 @@ export async function runToolPlan(
   }
   emit(`Planner model route: provider=${plannerRoute.route.provider} model=${plannerRoute.route.model}.`);
 
-  const selectedToolDefs = selectToolsForMessage(selectionMessage, allowedToolNames, tier);
+  const selectedToolDefs = selectToolsForMessage(userMessage, allowedToolNames, tier);
   const selectedTools = selectedToolDefs.map((t) => t.function.name);
   emit(`Loaded ${selectedTools.length} tools for planning (tier=${tier}).`);
 
@@ -362,7 +371,7 @@ export async function runToolPlan(
 
   let rawContent: string | null = null;
   let calls: ParsedToolCall[] = [];
-  let uiActions: UIAction[] = [];
+  let uiActions: ChatAction[] = [];
   let recoveredByLocalRetry = false;
   const fastFailJsonRecovery = isLikelyReadOnlyRequest(selectionMessage);
 
@@ -559,7 +568,20 @@ export async function runToolPlan(
     }
   }
 
-  let normalizedPlan = normalizePlannedCalls(calls, selectionMessage, selectedTools);
+  let normalizedPlan = normalizePlannedCalls(calls, userMessage, selectedTools);
+  if (normalizedPlan.clarificationQuestion) {
+    return {
+      success: false,
+      plannedCalls: [],
+      plannedUiActions: [],
+      selectedTools,
+      rawContent,
+      planRationale: [...normalizedPlan.notes],
+      constraintWarnings: [],
+      failureReason: 'clarification_needed',
+      clarificationQuestion: normalizedPlan.clarificationQuestion,
+    };
+  }
   calls = normalizedPlan.calls;
   const requiresLinkedInRecencyVerification =
     /\b(linkedin)\b/.test(selectionMessage.toLowerCase()) &&
@@ -585,7 +607,7 @@ export async function runToolPlan(
       if (candidate) {
         const repaired = normalizeParsedPlan(JSON.parse(candidate));
         uiActions = repaired.uiActions;
-        normalizedPlan = normalizePlannedCalls(repaired.toolCalls, selectionMessage, selectedTools);
+        normalizedPlan = normalizePlannedCalls(repaired.toolCalls, userMessage, selectedTools);
         calls = normalizedPlan.calls;
       }
     } catch {
@@ -599,7 +621,7 @@ export async function runToolPlan(
   ) {
     emit('Repair did not produce browser verification calls; injecting deterministic Sales Navigator fallback plan.');
     calls = buildLinkedInVerificationFallbackCalls(selectionMessage);
-    normalizedPlan = normalizePlannedCalls(calls, selectionMessage, selectedTools);
+    normalizedPlan = normalizePlannedCalls(calls, userMessage, selectedTools);
     calls = normalizedPlan.calls;
   }
   if (
@@ -615,7 +637,7 @@ export async function runToolPlan(
         args: { spec: buildCompoundWorkflowSpecFromQuery(selectionMessage) },
       },
     ];
-    normalizedPlan = normalizePlannedCalls(calls, selectionMessage, selectedTools);
+    normalizedPlan = normalizePlannedCalls(calls, userMessage, selectedTools);
     calls = normalizedPlan.calls;
   }
   emit(`Validated ${calls.length} schema-compliant tool call(s) and ${uiActions.length} ui action(s).`);

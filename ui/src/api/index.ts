@@ -45,14 +45,23 @@ import type {
   CreateContactInput,
   DocumentAnswerResponse,
   DocumentDetailsResponse,
+  DocumentFolderRecord,
   DocumentListResponse,
   DocumentRecord,
   EmailDashboardMetrics,
   GeneratedEmail,
   GetAdminLogsParams,
+  InboundLeadAlerts,
+  InboundLeadEvent,
+  InboundLeadMarkSeenResponse,
   LangGraphRunListResponse,
   LangGraphRunStatus,
+  LeadResearchLead,
+  LeadCreditsSummary,
+  LeadCrmExportResponse,
+  LeadResearchRunRequest,
   OutlookAuthStatus,
+  OutlookPollStatus,
   PipelineStatus,
   ReplyPreview,
   SalesforceAuthStatus,
@@ -156,6 +165,19 @@ export const api = {
       if (params?.status) sp.set('status', params.status);
       return fetchJson<LangGraphRunListResponse>(`/langgraph/runs${sp.toString() ? `?${sp.toString()}` : ''}`);
     },
+    createLeadResearchRun: (payload: LeadResearchRunRequest) =>
+      fetchJson<{ ok: boolean; run_id: string; status: string }>('/langgraph/runs/lead-research', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    getLeadResults: (runId: string) =>
+      fetchJson<{ run_id: string; total: number; items: LeadResearchLead[]; summary: Record<string, unknown> }>(
+        `/langgraph/runs/${encodeURIComponent(runId)}/lead-results`
+      ),
+    getLeadEvidence: (runId: string) =>
+      fetchJson<{ run_id: string; count: number; items: Array<Record<string, unknown>> }>(
+        `/langgraph/runs/${encodeURIComponent(runId)}/evidence`
+      ),
   },
 
   // ── Stats ─────────────────────────────────────────────────
@@ -214,6 +236,61 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  listDocumentFolders: () =>
+    fetchJson<{ count: number; folders: DocumentFolderRecord[] }>('/documents/folders'),
+  createDocumentFolder: (payload: { name: string; parent_path?: string }) =>
+    fetchJson<{ success: boolean; path: string; parent_path: string; name: string }>('/documents/folders', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  moveDocumentFolder: (payload: { from_path: string; to_parent_path?: string }) =>
+    fetchJson<{ success: boolean; path: string }>('/documents/folders/move', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  renameDocumentFolder: (folderPath: string, payload: { name: string }) =>
+    fetchJson<{ success: boolean; path: string; name: string }>(`/documents/folders/${encodeURIComponent(folderPath)}/rename`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+  deleteDocumentFolder: (folderPath: string) =>
+    fetchJson<{ success: boolean; path: string }>(`/documents/folders/${encodeURIComponent(folderPath)}`, {
+      method: 'DELETE',
+    }),
+  moveDocumentToFolder: (documentId: string, payload: { to_folder_path?: string }) =>
+    fetchJson<{ success: boolean; document_id: string; folder_path: string }>(`/documents/${encodeURIComponent(documentId)}/move`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  renameDocument: (documentId: string, payload: { name: string }) =>
+    fetchJson<{ success: boolean; document_id: string; filename: string }>(`/documents/${encodeURIComponent(documentId)}/rename`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+
+  leads: {
+    exportCsv: (payload: { run_id?: string; lead_ids?: number[] }) =>
+      fetch(API_BASE + '/leads/export/csv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }).then(async (res) => {
+        if (!res.ok) throw new Error(`Export failed (${res.status})`);
+        return res.text();
+      }),
+    save: (payload: { lead_ids: number[]; target?: 'contacts' }) =>
+      fetchJson<{ ok: boolean; saved: number; skipped: number; duplicates: number }>('/leads/save', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    exportCrm: (payload: { provider: 'hubspot' | 'pipedrive'; run_id?: string; lead_ids?: number[] }) =>
+      fetchJson<LeadCrmExportResponse>('/leads/export/crm', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
+    getCredits: (userId?: string) =>
+      fetchJson<LeadCreditsSummary>(`/leads/credits${userId ? `?user_id=${encodeURIComponent(userId)}` : ''}`),
+  },
 
   // ── Browser Skills ────────────────────────────────────────
   listBrowserSkills: (params?: { url?: string; task?: string; query?: string }) => {
@@ -494,9 +571,21 @@ export const api = {
     fetchJson<{ success: boolean }>('/emails/outlook/logout', { method: 'POST' }),
 
   pollOutlookReplies: (minutesBack = 15) =>
-    fetchJson<{ success: boolean; checked: number; new_replies: number; message: string }>(
+    fetchJson<{ success: boolean; checked: number; new_replies: number; new_leads: number; message: string }>(
       `/emails/outlook/poll-replies?minutes_back=${minutesBack}`, { method: 'POST' }
     ),
+
+  getOutlookPollStatus: () =>
+    fetchJson<OutlookPollStatus>('/emails/outlook/poll-status'),
+
+  getInboundLeadAlerts: () =>
+    fetchJson<InboundLeadAlerts>('/emails/outlook/inbound-leads/alerts'),
+
+  markInboundLeadsSeen: () =>
+    fetchJson<InboundLeadMarkSeenResponse>('/emails/outlook/inbound-leads/mark-seen', { method: 'POST' }),
+
+  getRecentInboundLeads: (limit = 20) =>
+    fetchJson<InboundLeadEvent[]>(`/emails/outlook/inbound-leads/recent?limit=${limit}`),
 
   getActiveConversations: (days = 30, limit = 50) =>
     fetchJson<ReplyPreview[]>(`/emails/active-conversations?days=${days}&limit=${limit}`),
@@ -506,6 +595,20 @@ export const api = {
 
   getConversationThread: (contactId: number) =>
     fetchJson<ConversationThread>(`/emails/conversations/${contactId}/thread`),
+  getContactCampaignEnrollments: (contactId: number) =>
+    fetchJson<
+      Array<{
+        id: number;
+        campaign_id: number;
+        campaign_name?: string | null;
+        status?: string | null;
+        current_step?: number | null;
+        next_email_at?: string | null;
+        enrolled_at?: string | null;
+      }>
+    >(
+      `/emails/contacts/${contactId}/campaign-enrollments`
+    ),
 
   getScheduledEmailsForDashboard: () =>
     fetchJson<ScheduledEmailPreview[]>('/emails/scheduled-emails?limit=5'),
@@ -743,3 +846,4 @@ export const api = {
       }),
   },
 };
+

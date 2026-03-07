@@ -1,13 +1,13 @@
-import type { ChatMessage } from '../../types/chat';
+﻿import type { ChatMessage } from '../../types/chat';
 import { statusMsg, textMsg } from '../../services/messageHelpers';
 import { executeTool } from '../toolExecutor';
 import { TOOLS } from '../tools';
 import type { ChatCompletionMessageParam, ToolCall } from '../chatEngineTypes';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 const OPENAI_CHAT_MODEL =
-  import.meta.env.VITE_OPENAI_CHAT_MODEL ||
-  import.meta.env.VITE_OPENAI_SYNTHESIS_MODEL ||
+  process.env.NEXT_PUBLIC_OPENAI_CHAT_MODEL ||
+  process.env.NEXT_PUBLIC_OPENAI_SYNTHESIS_MODEL ||
   'gpt-4o-mini';
 const MAX_TOOL_ROUNDS = 10;
 
@@ -29,14 +29,14 @@ type ChatProxyResponse = {
   usage?: Record<string, unknown>;
 };
 
-async function requestCompletion(messages: ChatCompletionMessageParam[]) {
+async function requestCompletion(messages: ChatCompletionMessageParam[], modelOverride?: string) {
   const res = await fetch(`${API_BASE}/api/chat/completions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       messages,
       tools: TOOLS,
-      model: OPENAI_CHAT_MODEL,
+      model: modelOverride || OPENAI_CHAT_MODEL,
       temperature: 0.3,
     }),
   });
@@ -61,8 +61,10 @@ export async function runOpenAI(
   userMessage: string,
   conversationHistory: ChatCompletionMessageParam[],
   onToolCall?: (name: string) => void,
+  modelOverride?: string,
   _onToken?: (token: string) => void,
 ): Promise<OpenAIResult> {
+  const attemptedModel = modelOverride || OPENAI_CHAT_MODEL;
   const toolsUsed: string[] = [];
   const messages: ChatCompletionMessageParam[] = [
     { role: 'system', content: SYSTEM_PROMPT },
@@ -73,7 +75,7 @@ export async function runOpenAI(
   let round = 0;
   while (round < MAX_TOOL_ROUNDS) {
     try {
-      const completion = await requestCompletion(messages);
+      const completion = await requestCompletion(messages, modelOverride);
       const assistantMessage: ChatCompletionMessageParam = {
         role: 'assistant',
         content: completion.message.content,
@@ -122,12 +124,12 @@ export async function runOpenAI(
       round += 1;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
-    return {
-      response: `API error: ${message}`,
-      messages: [statusMsg(`Failed to reach OpenAI chat model (${OPENAI_CHAT_MODEL}): ${message}`, 'error')],
-      toolsUsed,
-      success: false,
-    };
+      return {
+        response: `API error: ${message}`,
+        messages: [statusMsg(`Failed to reach OpenAI chat model (${attemptedModel}): ${message}`, 'error')],
+        toolsUsed,
+        success: false,
+      };
   }
   }
 
@@ -138,3 +140,4 @@ export async function runOpenAI(
     success: true,
   };
 }
+

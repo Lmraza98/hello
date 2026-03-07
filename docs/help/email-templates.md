@@ -21,12 +21,29 @@ The app now includes a standalone `Templates` tab (`/templates`) for reusable em
 - Export/import template JSON.
 - View revisions and revert to a prior revision.
 
+## Workspace Interaction
+
+- The Templates page now follows the Contacts interaction model.
+- The template list uses the same table styling pattern as Contacts.
+- The Templates workspace hides the redundant page title and uses a single inline controls row for search, status filtering, and actions.
+- Selecting a template opens an editor/details pane on the right (desktop) or a bottom drawer (mobile).
+- Creating a template opens the same pane immediately.
+- Updating via assistant actions (`templates.update`, `templates.test_send`, etc.) routes with `selectedTemplateId` and opens that template in the pane.
+
+## Email Workspace Tabs
+
+- The `Review`, `Scheduled`, and `Sent History` tabs under `/email` now use the same standardized table-and-details layout as the Contacts and Templates pages.
+- Selecting a row opens email details in the right-side panel on desktop or a bottom drawer on mobile.
+- The selected email is tracked in the route with `selectedEmailId`, so tab state and detail state stay aligned with the URL.
+- Approving from `Review` immediately refreshes the `Scheduled` table state, and send/reschedule actions refresh both `Scheduled` and `Sent History` data.
+- The email workspace hides the redundant page title and uses a single inline controls row for search plus tab-specific actions.
+
 ## Token Syntax
 
 Supported tokens:
 
 - `{{firstName}}`, `{{lastName}}`, `{{fullName}}`
-- `{{email}}`, `{{company}}`, `{{title}}`
+- `{{email}}`, `{{company}}`, `{{title}}`, `{{industry}}`, `{{location}}`
 - `{{unsubscribeUrl}}`, `{{viewInBrowserUrl}}`, `{{trackingPixel}}`, `{{campaignName}}`
 
 Fallback syntax:

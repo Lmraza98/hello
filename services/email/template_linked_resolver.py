@@ -20,6 +20,8 @@ def _contact_vars(contact: Dict[str, Any]) -> Dict[str, Any]:
         "email": contact.get("email") or "",
         "company": contact.get("company_name") or "",
         "title": contact.get("title") or "",
+        "industry": contact.get("industry") or contact.get("vertical") or "",
+        "location": contact.get("location") or "",
         "campaignName": contact.get("campaign_name") or "",
         "unsubscribeUrl": f"{app_url}/unsubscribe?contact={contact_id}",
         "viewInBrowserUrl": f"{app_url}/email/view/{contact_id}",

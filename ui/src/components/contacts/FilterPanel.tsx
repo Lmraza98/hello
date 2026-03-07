@@ -33,6 +33,8 @@ export function FilterPanel({
 
   const setFilter = (id: string, value: string) => {
     setColumnFilters((prev) => {
+      const existing = (prev.find((f) => f.id === id)?.value as string | undefined) ?? '';
+      if (existing === value) return prev;
       const next = prev.filter((f) => f.id !== id);
       if (value) next.push({ id, value });
       return next;
@@ -95,6 +97,7 @@ export function FilterPanel({
             { label: 'No email', value: 'no' },
           ].map((opt) => (
             <button
+              type="button"
               key={opt.value}
               onClick={() => setFilter('hasEmail', opt.value)}
               className={`flex-1 px-2 py-2 md:py-1.5 rounded-lg text-xs font-medium transition-colors ${
@@ -109,17 +112,21 @@ export function FilterPanel({
         </div>
       </div>
       <div>
-        <label className="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wider">Salesforce</label>
+        <label className="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wider">Status</label>
         <select
-          value={getFilterValue('salesforce_status')}
-          onChange={(e) => setFilter('salesforce_status', e.target.value)}
+          value={getFilterValue('engagement_status')}
+          onChange={(e) => setFilter('engagement_status', e.target.value)}
           className={selectClass}
         >
           <option value="">All</option>
-          <option value="pending">Pending</option>
-          <option value="uploaded">Uploaded</option>
+          <option value="replied">Replied</option>
+          <option value="failed">Failed</option>
           <option value="completed">Completed</option>
-          <option value="denied">Denied</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="in_sequence">In Sequence</option>
+          <option value="enrolled">Enrolled</option>
+          <option value="synced">Synced to Salesforce</option>
+          <option value="needs_sync">Needs Sync</option>
         </select>
       </div>
       <div>

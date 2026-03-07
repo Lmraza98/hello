@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import {
   Maximize2,
   Minimize2,
@@ -143,9 +143,10 @@ function resolveBrowserStreamUrl(): string {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
 
   // In dev, Vite typically serves UI on :5173 and API on :8000.
-  if (import.meta.env.DEV) {
+  if (process.env.NODE_ENV !== 'production') {
     return `${wsProtocol}://${window.location.hostname}:8000/ws/browser-stream`;
   }
 
   return `${wsProtocol}://${window.location.host}/ws/browser-stream`;
 }
+

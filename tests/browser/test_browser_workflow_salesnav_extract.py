@@ -2,6 +2,7 @@ import asyncio
 import types
 
 from services.web_automation.browser.core.workflow import BrowserWorkflow
+from services.web_automation.browser.workflows import recipes
 
 
 def _run(coro):
@@ -187,3 +188,167 @@ def test_extract_uses_salesnav_dom_lead_cards_when_skill_matches():
     assert john["public_url"] is None
     assert john["linkedin_url"].startswith("https://www.linkedin.com/sales/lead/ACwAAACCCC")
     assert john["has_public_url"] is False
+
+
+def test_list_sub_items_requires_parent_click_for_salesnav_employee_lookup(monkeypatch):
+    class _FakeWorkflow:
+        def __init__(self, tab_id=None):
+            self.tab_id = tab_id or "tab-0"
+            self.skill_id = "linkedin-salesnav-accounts"
+            self.skill_meta = {"match_score": 99}
+            self.frontmatter = {
+                "extract_lead_label_field": "name",
+                "extract_lead_url_field": "linkedin_url",
+            }
+
+    async def fake_search_and_extract(**_kwargs):
+        return {
+            "ok": True,
+            "tab_id": "tab-0",
+            "url": "https://www.linkedin.com/sales/search/company",
+            "click": {"clicked": False, "ambiguous": False, "candidates": []},
+        }
+
+    monkeypatch.setattr(recipes, "BrowserWorkflow", _FakeWorkflow)
+    monkeypatch.setattr(recipes, "search_and_extract", fake_search_and_extract)
+
+    out = _run(
+        recipes.list_sub_items(
+            task="salesnav_list_employees",
+            tab_id="tab-0",
+            parent_query="Zco Corporation",
+            parent_task="salesnav_search_account",
+            extract_type="lead",
+            limit=25,
+        )
+    )
+
+    assert out["ok"] is False
+    assert out["error"]["code"] == "parent_not_opened"
+
+
+def test_list_sub_items_fails_if_employee_results_page_was_not_opened(monkeypatch):
+    class _FakeWorkflow:
+        def __init__(self, tab_id=None):
+            self.tab_id = tab_id or "tab-0"
+            self.skill_id = "linkedin-salesnav-accounts"
+            self.skill_meta = {"match_score": 99}
+            self.frontmatter = {
+                "extract_lead_label_field": "name",
+                "extract_lead_url_field": "linkedin_url",
+            }
+            self._urls = iter(
+                [
+                    "https://www.linkedin.com/sales/company/123",
+                    "https://www.linkedin.com/sales/home",
+                ]
+            )
+
+        async def current_url(self):
+            return next(self._urls, "https://www.linkedin.com/sales/home")
+
+        async def bind_skill(self, **_kwargs):
+            return True
+
+        async def dismiss_common_overlays(self, **_kwargs):
+            return None
+
+        async def click_and_follow_tab(self, *_args, **_kwargs):
+            return True
+
+    async def fake_search_and_extract(**_kwargs):
+        return {
+            "ok": True,
+            "tab_id": "tab-0",
+            "url": "https://www.linkedin.com/sales/company/123",
+            "click": {"clicked": True, "ambiguous": False},
+        }
+
+    async def fake_wait(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(recipes, "BrowserWorkflow", _FakeWorkflow)
+    monkeypatch.setattr(recipes, "search_and_extract", fake_search_and_extract)
+    monkeypatch.setattr(recipes, "_guard_with_timeout", fake_wait)
+    monkeypatch.setattr(recipes, "_wait_ui_settle", fake_wait)
+
+    out = _run(
+        recipes.list_sub_items(
+            task="salesnav_list_employees",
+            tab_id="tab-0",
+            parent_query="Zco Corporation",
+            parent_task="salesnav_search_account",
+            extract_type="lead",
+            limit=25,
+        )
+    )
+
+    assert out["ok"] is False
+    assert out["error"]["code"] == "employee_results_not_opened"
+    assert out["url"] == "https://www.linkedin.com/sales/home"
+
+
+def test_list_sub_items_fails_validation_on_empty_salesnav_employee_results(monkeypatch):
+    class _FakeWorkflow:
+        def __init__(self, tab_id=None):
+            self.tab_id = tab_id or "tab-0"
+            self.skill_id = "linkedin-salesnav-accounts"
+            self.skill_meta = {"match_score": 99}
+            self.frontmatter = {
+                "extract_lead_label_field": "name",
+                "extract_lead_url_field": "linkedin_url",
+            }
+            self._urls = iter(
+                [
+                    "https://www.linkedin.com/sales/company/123",
+                    "https://www.linkedin.com/sales/search/people?query=(keywords:Zco)",
+                    "https://www.linkedin.com/sales/search/people?query=(keywords:Zco)",
+                ]
+            )
+
+        async def current_url(self):
+            return next(self._urls, "https://www.linkedin.com/sales/search/people?query=(keywords:Zco)")
+
+        async def bind_skill(self, **_kwargs):
+            return True
+
+        async def dismiss_common_overlays(self, **_kwargs):
+            return None
+
+        async def click_and_follow_tab(self, *_args, **_kwargs):
+            return True
+
+        async def paginate_and_extract(self, *_args, **_kwargs):
+            return []
+
+    async def fake_search_and_extract(**_kwargs):
+        return {
+            "ok": True,
+            "tab_id": "tab-0",
+            "url": "https://www.linkedin.com/sales/company/123",
+            "click": {"clicked": True, "ambiguous": False},
+        }
+
+    async def fake_wait(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr(recipes, "BrowserWorkflow", _FakeWorkflow)
+    monkeypatch.setattr(recipes, "search_and_extract", fake_search_and_extract)
+    monkeypatch.setattr(recipes, "_guard_with_timeout", fake_wait)
+    monkeypatch.setattr(recipes, "_wait_ui_settle", fake_wait)
+    monkeypatch.setattr(recipes, "_extract_salesnav_employees_with_public_urls", fake_wait)
+
+    out = _run(
+        recipes.list_sub_items(
+            task="salesnav_list_employees",
+            tab_id="tab-0",
+            parent_query="Zco Corporation",
+            parent_task="salesnav_search_account",
+            extract_type="lead",
+            limit=25,
+        )
+    )
+
+    assert out["ok"] is False
+    assert out["error"]["code"] == "validation_failed"
+    assert out["stop_reason"] == "STOP_VALIDATION_FAILED"

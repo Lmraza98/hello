@@ -106,6 +106,23 @@ export function isBrowserFollowUpIntent(message: string): boolean {
   return strong.some((x) => lower.includes(x));
 }
 
+export function isExplicitBrowserAutomationIntent(message: string): boolean {
+  const lower = message.toLowerCase();
+  if (!lower.trim()) return false;
+  const hasBrowserActionWords =
+    /\b(browser|tab|screenshot|snapshot|navigate|open|visit|go\s+to|click|type|fill|scroll)\b/.test(lower);
+  const hasSiteMention = /\b(sales\s*navigator|salesnav|linkedin|youtube|twitter|reddit|google)\b/.test(lower);
+  const hasOnSitePhrase = /\b(on\s+salesnav|on\s+sales\s*navigator|on\s+linkedin)\b/.test(lower);
+  const hasLookupVerb = /\b(search|find|look|show|get|list|tell\s+me|who\s+works|employees|people\s+at)\b/.test(lower);
+
+  if (isLikelyInternalUiIntent(lower)) return false;
+  if (/https?:\/\//.test(lower)) return true;
+  if (hasBrowserActionWords) return true;
+  if (hasOnSitePhrase) return true;
+  if (hasSiteMention && hasLookupVerb) return true;
+  return false;
+}
+
 export function isLikelyInternalUiIntent(message: string): boolean {
   const lower = message.toLowerCase();
   if (!lower.trim()) return false;

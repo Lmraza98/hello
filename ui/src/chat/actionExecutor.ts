@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { UIAction } from '../capabilities/generated/schema';
 import { capabilityRegistry } from '../capabilities/registry';
 import type { ActionParamSchema, ConditionSchema } from '../capabilities/types';
@@ -36,6 +36,18 @@ export interface ActionExecutorOptions {
       }
     ) => void;
     clearInteraction: () => void;
+  };
+  guidance?: {
+    startFlow: (flowId: 'create_contact') => void;
+    highlight: (options: {
+      elementId: string;
+      scrollTargetId?: string | null;
+      activeStep?: string | null;
+      interaction?: 'highlight' | 'click';
+      pointerMode?: 'passthrough' | 'interactive';
+      autoClick?: boolean;
+    }) => void;
+    clearHighlight: () => void;
   };
 }
 
@@ -90,13 +102,21 @@ function checkConditions(action: UIAction, conditions: ConditionSchema[] | undef
 }
 
 export function useActionExecutor(options: ActionExecutorOptions = {}) {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname() ?? '';
+  const searchParams = useSearchParams();
 
   const executeActions = useCallback(
     async (actions: ChatAction[]) => {
-      let currentPath = location.pathname;
-      let currentParams = new URLSearchParams(location.search);
+      let currentPath = pathname;
+      let currentParams = new URLSearchParams(searchParams?.toString() ?? '');
+      const go = (to: string, replace = false) => {
+        if (replace) {
+          router.replace(to, { scroll: false });
+          return;
+        }
+        router.push(to, { scroll: false });
+      };
 
       const applyRoute = (
         to: string,
@@ -149,9 +169,9 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
             }
           );
         }
-        navigate(
+        go(
           `${currentPath}${currentParams.toString() ? `?${currentParams.toString()}` : ''}`,
-          { replace: optionsForRoute.replace ?? false }
+          optionsForRoute.replace ?? false
         );
       };
 
@@ -300,13 +320,12 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
           }
           options.workspace?.setWorkspaceSource('chat');
           options.workspace?.clearInteraction();
-          navigate(`${currentPath}${currentParams.toString() ? `?${currentParams.toString()}` : ''}`, { replace: true });
+          go(`${currentPath}${currentParams.toString() ? `?${currentParams.toString()}` : ''}`, true);
           return { success: true };
         }
 
         if (registration.action.id === 'companies.expand_row') {
-          const companyId = Number(actionRecord.company_id);
-          applyRoute(`/companies?selectedCompanyId=${companyId}`);
+          applyRoute('/contacts');
           return { success: true };
         }
         if (registration.action.id === 'contacts.select_row') {
@@ -496,11 +515,12 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
           if (normalized === null) currentParams.delete(action.key);
           else currentParams.set(action.key, normalized);
           const nextUrl = `${currentPath}${currentParams.toString() ? `?${currentParams.toString()}` : ''}`;
-          const currentUrl = `${location.pathname}${location.search || ''}`;
+          const currentQuery = searchParams?.toString() ?? '';
+          const currentUrl = `${pathname}${currentQuery ? `?${currentQuery}` : ''}`;
           if (nextUrl !== currentUrl) {
             options.workspace?.setWorkspaceSource('chat');
             options.workspace?.clearInteraction();
-            navigate(nextUrl, { replace: true });
+            go(nextUrl, true);
           }
           continue;
         }
@@ -511,7 +531,56 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
         }
 
         if (action.type === 'select_company') {
-          applyRoute(`/companies?selectedCompanyId=${action.companyId}`);
+          applyRoute('/contacts');
+          continue;
+        }
+
+        if (action.type === 'assistant_guide') {
+          const elementId = String(action.highlightedElementId || '').trim();
+          if (!elementId) {
+            options.guidance?.clearHighlight();
+          } else {
+            options.guidance?.highlight({
+              elementId,
+              scrollTargetId: action.scrollTargetId,
+              activeStep: action.activeStep,
+              interaction: action.interaction,
+              pointerMode: action.pointerMode,
+              autoClick: action.autoClick,
+            });
+          }
+          continue;
+        }
+
+        if (action.type === 'assistant_guide_clear') {
+          options.guidance?.clearHighlight();
+          continue;
+        }
+
+        if (action.type === 'assistant_ui_set_target') {
+          const elementId = String(action.targetId || '').trim();
+          if (!elementId) {
+            options.guidance?.clearHighlight();
+          } else {
+            options.guidance?.highlight({
+              elementId,
+              scrollTargetId: action.scrollTargetId,
+              activeStep: action.instruction,
+              interaction: action.interaction,
+              pointerMode: action.pointerMode,
+              autoClick: action.autoClick,
+            });
+          }
+          continue;
+        }
+
+        if (action.type === 'assistant_ui_start_flow') {
+          options.guidance?.startFlow(action.flowId);
+          continue;
+        }
+
+        if (action.type === 'assistant_ui_clear') {
+          options.guidance?.clearHighlight();
           continue;
         }
 
@@ -547,7 +616,7 @@ export function useActionExecutor(options: ActionExecutorOptions = {}) {
         }
       }
     },
-    [location.pathname, location.search, navigate, options]
+    [pathname, searchParams, router, options]
   );
 
   return { executeActions };

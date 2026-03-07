@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Adapter layer between the chat engine pipeline and the ReAct loop/tool execution.
  *
  * This module primarily moves logic out of `chatEngine.ts` with minimal changes.
@@ -27,8 +27,11 @@ export function buildReActConfig(
     onReasoningEvent: options.onPlannerEvent,
     requireWriteConfirmation: options.requireToolConfirmation ?? true,
     ...(sessionContext ? { memoryContext: sessionContext } : {}),
-    memoryDir: import.meta.env.VITE_CHAT_MEMORY_DIR || 'crm-assistant',
+    memoryDir: process.env.NEXT_PUBLIC_CHAT_MEMORY_DIR || 'crm-assistant',
     pageContext: pageContext || undefined,
+    ...(options.plannerModelOverride
+      ? { plannerRouteOverride: { provider: 'ollama', model: options.plannerModelOverride } }
+      : (options.plannerRouteOverride ? { plannerRouteOverride: options.plannerRouteOverride } : {})),
   };
 }
 
@@ -145,4 +148,5 @@ export async function handleToolRoute(params: {
   );
   return await reactResultToChatResult(result, userMessage, history, modelSwitches, includeDebugTrace, includeHeavyDebug, timings, meta, previousSessionState);
 }
+
 

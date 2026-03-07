@@ -16,6 +16,126 @@ from api.routes.contact_routes.models import ContactRecord
 router = APIRouter()
 
 
+def _compute_engagement_status(
+    salesforce_status: Optional[str],
+    salesforce_url: Optional[str],
+    snapshot: dict,
+) -> str:
+    reply_count = int(snapshot.get("reply_count") or 0)
+    latest_sent_status = str(snapshot.get("latest_sent_status") or "").strip().lower()
+    has_completed = bool(snapshot.get("has_completed"))
+    has_upcoming = bool(snapshot.get("has_upcoming"))
+    has_active = bool(snapshot.get("has_active"))
+    enroll_count = int(snapshot.get("enroll_count") or 0)
+    sent_count = int(snapshot.get("sent_count") or 0)
+
+    if reply_count > 0:
+        return "replied"
+    if latest_sent_status.startswith("failed"):
+        return "failed"
+    if has_completed:
+        return "completed"
+    if has_upcoming:
+        return "scheduled"
+    if has_active and sent_count > 0:
+        return "in_sequence"
+    if enroll_count > 0:
+        return "enrolled"
+    if (salesforce_url or "").strip():
+        return "synced"
+
+    sf = (salesforce_status or "").strip().lower()
+    if sf in {"uploaded", "completed"}:
+        return "synced"
+    if sf in {"pending", "queued", "checking"}:
+        return "needs_sync"
+    return "needs_sync"
+
+
+def _load_engagement_snapshots(cursor, contact_ids: list[int]) -> dict[int, dict]:
+    if not contact_ids:
+        return {}
+
+    placeholders = ",".join(["?"] * len(contact_ids))
+    snapshots: dict[int, dict] = {int(cid): {} for cid in contact_ids}
+
+    cursor.execute(
+        f"""
+        SELECT
+            contact_id,
+            COUNT(*) AS enroll_count,
+            MAX(CASE WHEN lower(COALESCE(status, '')) = 'active' THEN 1 ELSE 0 END) AS has_active,
+            MAX(CASE WHEN lower(COALESCE(status, '')) = 'completed' THEN 1 ELSE 0 END) AS has_completed,
+            MAX(
+                CASE
+                    WHEN lower(COALESCE(status, '')) = 'active'
+                     AND COALESCE(NULLIF(next_email_at, ''), '') <> ''
+                    THEN 1 ELSE 0
+                END
+            ) AS has_upcoming
+        FROM campaign_contacts
+        WHERE contact_id IN ({placeholders})
+        GROUP BY contact_id
+        """,
+        contact_ids,
+    )
+    for row in cursor.fetchall():
+        cid = int(row["contact_id"])
+        snapshots.setdefault(cid, {}).update(
+            {
+                "enroll_count": int(row["enroll_count"] or 0),
+                "has_active": int(row["has_active"] or 0) == 1,
+                "has_completed": int(row["has_completed"] or 0) == 1,
+                "has_upcoming": int(row["has_upcoming"] or 0) == 1,
+            }
+        )
+
+    cursor.execute(
+        f"""
+        SELECT
+            contact_id,
+            SUM(CASE WHEN lower(COALESCE(review_status, '')) = 'sent' THEN 1 ELSE 0 END) AS sent_count,
+            (
+                SELECT lower(COALESCE(se2.review_status, se2.status, ''))
+                FROM sent_emails se2
+                WHERE se2.contact_id = se.contact_id
+                ORDER BY datetime(COALESCE(se2.sent_at, se2.scheduled_send_time)) DESC, se2.id DESC
+                LIMIT 1
+            ) AS latest_sent_status
+        FROM sent_emails se
+        WHERE contact_id IN ({placeholders})
+        GROUP BY contact_id
+        """,
+        contact_ids,
+    )
+    for row in cursor.fetchall():
+        cid = int(row["contact_id"])
+        snapshots.setdefault(cid, {}).update(
+            {
+                "sent_count": int(row["sent_count"] or 0),
+                "latest_sent_status": row["latest_sent_status"] or "",
+            }
+        )
+
+    cursor.execute(
+        f"""
+        SELECT
+            se.contact_id AS contact_id,
+            COUNT(*) AS reply_count
+        FROM email_replies er
+        JOIN sent_emails se ON se.id = er.sent_email_id
+        WHERE se.contact_id IN ({placeholders})
+        GROUP BY se.contact_id
+        """,
+        contact_ids,
+    )
+    for row in cursor.fetchall():
+        cid = int(row["contact_id"])
+        snapshots.setdefault(cid, {}).update({"reply_count": int(row["reply_count"] or 0)})
+
+    return snapshots
+
+
 @router.get("", response_model=list[ContactRecord], responses=COMMON_ERROR_RESPONSES)
 def get_contacts(
     query: Optional[str] = None,
@@ -32,10 +152,14 @@ def get_contacts(
         cursor.execute("PRAGMA table_info(linkedin_contacts)")
         columns = [row[1] for row in cursor.fetchall()]
         has_phone = "phone" in columns
+        has_location = "location" in columns
         has_salesforce = "salesforce_status" in columns
+        has_salesforce_sync = "salesforce_sync_status" in columns
         has_salesforce_url = "salesforce_url" in columns
         has_salesforce_uploaded_at = "salesforce_uploaded_at" in columns
         has_salesforce_upload_batch = "salesforce_upload_batch" in columns
+        has_lead_source = "lead_source" in columns
+        has_ingest_batch_id = "ingest_batch_id" in columns
 
         select_fields = [
             "lc.id",
@@ -47,6 +171,8 @@ def get_contacts(
             "lc.linkedin_url",
             "t.vertical",
         ]
+        if has_location:
+            select_fields.append("lc.location")
 
         has_email_pattern = "email_pattern" in columns
         has_email_confidence = "email_confidence" in columns
@@ -61,12 +187,18 @@ def get_contacts(
             select_fields.extend(["lc.phone", "lc.phone_source", "lc.phone_confidence"])
         if has_salesforce:
             select_fields.append("lc.salesforce_status")
+        if has_salesforce_sync:
+            select_fields.append("lc.salesforce_sync_status")
         if has_salesforce_url:
             select_fields.append("lc.salesforce_url")
         if has_salesforce_uploaded_at:
             select_fields.append("lc.salesforce_uploaded_at")
         if has_salesforce_upload_batch:
             select_fields.append("lc.salesforce_upload_batch")
+        if has_lead_source:
+            select_fields.append("lc.lead_source")
+        if has_ingest_batch_id:
+            select_fields.append("lc.ingest_batch_id")
         select_fields.append("lc.scraped_at")
 
         sql_query = f"""SELECT {', '.join(select_fields)}
@@ -114,7 +246,9 @@ def get_contacts(
         sql_query += " ORDER BY lc.scraped_at DESC"
         cursor.execute(sql_query, params)
         rows = cursor.fetchall()
-        conn.close()
+
+        contact_ids = [int(r[0]) for r in rows if r and r[0] is not None]
+        snapshots = _load_engagement_snapshots(cursor, contact_ids)
 
         result = []
         for r in rows:
@@ -130,6 +264,11 @@ def get_contacts(
             }
 
             idx = 8
+            if has_location:
+                contact["location"] = r[idx] if len(r) > idx else None
+                idx += 1
+            else:
+                contact["location"] = None
             if has_email_pattern:
                 contact["email_pattern"] = r[idx] if len(r) > idx else None
                 idx += 1
@@ -162,6 +301,12 @@ def get_contacts(
             else:
                 contact["salesforce_status"] = None
 
+            if has_salesforce_sync:
+                contact["salesforce_sync_status"] = r[idx] if len(r) > idx and r[idx] else None
+                idx += 1
+            else:
+                contact["salesforce_sync_status"] = None
+
             if has_salesforce_url:
                 contact["salesforce_url"] = r[idx] if len(r) > idx and r[idx] else None
                 idx += 1
@@ -180,9 +325,27 @@ def get_contacts(
             else:
                 contact["salesforce_upload_batch"] = None
 
+            if has_lead_source:
+                contact["lead_source"] = r[idx] if len(r) > idx and r[idx] else None
+                idx += 1
+            else:
+                contact["lead_source"] = None
+
+            if has_ingest_batch_id:
+                contact["ingest_batch_id"] = r[idx] if len(r) > idx and r[idx] else None
+                idx += 1
+            else:
+                contact["ingest_batch_id"] = None
+
             contact["scraped_at"] = str(r[idx]) if len(r) > idx and r[idx] else None
+            contact["engagement_status"] = _compute_engagement_status(
+                contact.get("salesforce_status"),
+                contact.get("salesforce_url"),
+                snapshots.get(int(contact["id"]), {}),
+            )
             result.append(contact)
 
+        conn.close()
         return result
     except Exception as e:
         import traceback
@@ -310,6 +473,7 @@ def get_contact(contact_id: int):
             "id": r.get("id"),
             "company_name": r.get("company_name") or "",
             "domain": r.get("domain"),
+            "location": r.get("location"),
             "name": r.get("name"),
             "title": r.get("title"),
             "email": r.get("email_generated"),
@@ -322,8 +486,16 @@ def get_contact(contact_id: int):
             "linkedin_url": r.get("linkedin_url"),
             "salesforce_url": r.get("salesforce_url"),
             "salesforce_status": r.get("salesforce_status"),
+            "salesforce_sync_status": r.get("salesforce_sync_status"),
             "salesforce_uploaded_at": str(r.get("salesforce_uploaded_at")) if r.get("salesforce_uploaded_at") else None,
             "salesforce_upload_batch": r.get("salesforce_upload_batch"),
+            "engagement_status": _compute_engagement_status(
+                r.get("salesforce_status"),
+                r.get("salesforce_url"),
+                _load_engagement_snapshots(cursor, [contact_id]).get(contact_id, {}),
+            ),
+            "lead_source": r.get("lead_source"),
+            "ingest_batch_id": r.get("ingest_batch_id"),
             "scraped_at": str(r.get("scraped_at")) if r.get("scraped_at") else None,
             "vertical": None,
         }

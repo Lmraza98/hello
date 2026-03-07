@@ -1,4 +1,4 @@
----
+﻿---
 title: "Implementation Summary (2026-02-15)"
 summary: "Summary of changes from the February 15, 2026 implementation session."
 read_when:
@@ -15,16 +15,16 @@ read_when:
 **Solution**: Unified all chat and assistant surfaces into a single `GlobalAssistantPanel` and a strictly controlled `ContextPreviewDrawer`.
 
 **Files created**:
-- `ui/src/components/chat/UnifiedCard.tsx` — Single standardized wrapper for all assistant cards
-- `docs/concepts/assistant-panel-system-proposal.md` — The original proposal defining the architecture and interaction rules
+- `ui/src/components/chat/UnifiedCard.tsx` â€” Single standardized wrapper for all assistant cards
+- `docs/concepts/assistant-panel-system-proposal.md` â€” The original proposal defining the architecture and interaction rules
 
 **Files modified**:
-- `ui/src/components/chat/ActionCard.tsx`, `WorkflowEventCard.tsx`, `InlineConfirmRow.tsx`, `EventRow.tsx`, `PlannedActionsCard.tsx`, `ThinkingMetaCard.tsx`, `WorkflowProgress.tsx` — All refactored to use `UnifiedCard`
-- `ui/src/components/shell/AppShell.tsx` and `ChatFirstShell.tsx` — Removed route-specific assistant panes and fully wired `GlobalAssistantPanel`
-- `ui/src/components/assistant/contextPreviewRules.ts` — Updated `isContextPreviewAllowed` to enforce strict trigger rules for when the context drawer opens (now only opens for drafting/content creation, bulk data review, or deep-dive entity selections)
+- `ui/src/components/chat/ActionCard.tsx`, `WorkflowEventCard.tsx`, `InlineConfirmRow.tsx`, `EventRow.tsx`, `PlannedActionsCard.tsx`, `ThinkingMetaCard.tsx`, `WorkflowProgress.tsx` â€” All refactored to use `UnifiedCard`
+- `ui/src/components/shell/AppShell.tsx` and `ChatFirstShell.tsx` â€” Removed route-specific assistant panes and fully wired `GlobalAssistantPanel`
+- `ui/src/components/assistant/contextPreviewRules.ts` â€” Updated `isContextPreviewAllowed` to enforce strict trigger rules for when the context drawer opens (now only opens for drafting/content creation, bulk data review, or deep-dive entity selections)
 
 **Files deleted**:
-- `ui/src/components/chat/ChatPane.tsx` — Deprecated in favor of the global dock
+- `ui/src/components/chat/ChatPane.tsx` â€” Deprecated in favor of the global dock
 - `ui/src/components/chat/ChatDock.tsx` is now effectively fully managed by `GlobalAssistantPanel`
 
 **Flow**:
@@ -43,15 +43,15 @@ This document summarizes all changes made in today's implementation session, org
 **Solution**: Persistent task state that tracks params and execution state across turns.
 
 **Files created**:
-- `ui/src/chat/taskState.ts` — Core types (Task, TaskStatus, TaskStep, etc.) and pure state transition functions
-- `ui/src/chat/taskClassifiers.ts` — LLM-based classifiers (classifyTaskRelevance, extractTaskParams, analyzeTaskRequirements)
-- `ui/src/chat/taskHandler.ts` — Task lifecycle handler (param collection, confirmation, execution hand-off)
+- `ui/src/chat/taskState.ts` â€” Core types (Task, TaskStatus, TaskStep, etc.) and pure state transition functions
+- `ui/src/chat/taskClassifiers.ts` â€” LLM-based classifiers (classifyTaskRelevance, extractTaskParams, analyzeTaskRequirements)
+- `ui/src/chat/taskHandler.ts` â€” Task lifecycle handler (param collection, confirmation, execution hand-off)
 
 **Files modified**:
-- `ui/src/chat/sessionState.ts` — Added `activeTask` to ChatSessionState
-- `ui/src/chat/chatEngine.ts` — Wired active task routing into processMessage (before coreference resolution)
+- `ui/src/chat/sessionState.ts` â€” Added `activeTask` to ChatSessionState
+- `ui/src/chat/chatEngine.ts` â€” Wired active task routing into processMessage (before coreference resolution)
 
-**Flow**: Task creation gate checks if params are needed → collect params → transition to 'ready' → user confirms → execute with collected params → mark completed.
+**Flow**: Task creation gate checks if params are needed â†’ collect params â†’ transition to 'ready' â†’ user confirms â†’ execute with collected params â†’ mark completed.
 
 ### Compound workflow completion visibility
 
@@ -136,7 +136,7 @@ This document summarizes all changes made in today's implementation session, org
 
 ## 2. Multi-Step Task Execution with Structured Context
 
-**Problem**: Step 2 of a 3-step plan can't see campaign_id from step 1 — planner outputs `campaign_id: null`.
+**Problem**: Step 2 of a 3-step plan can't see campaign_id from step 1 â€” planner outputs `campaign_id: null`.
 
 **Solution**: Thread structured tool results between steps.
 
@@ -146,7 +146,7 @@ This document summarizes all changes made in today's implementation session, org
 - `executeTaskPlan()` collects structured context and persists it as an activeTask on completion
 - Multi-step plans create activeTask with `completedSteps` so follow-ups can resume with full context
 
-**Flow**: Step 1 executes → `executedCalls` captured → summarized into structured context → Step 2 message includes "IMPORTANT — Results from previous steps: campaign_id=42" → planner uses the ID.
+**Flow**: Step 1 executes â†’ `executedCalls` captured â†’ summarized into structured context â†’ Step 2 message includes "IMPORTANT â€” Results from previous steps: campaign_id=42" â†’ planner uses the ID.
 
 ## 3. Semantic Contact Search (Vertical Filtering + Auto-Classification)
 
@@ -155,8 +155,8 @@ This document summarizes all changes made in today's implementation session, org
 **Solution**: Four-layer fix.
 
 **Files created**:
-- `services/linkedin/salesnav/parser/filter_parser.py` — Auto-classify company verticals using deterministic SalesNav industry mapping helpers
-- `services/search/embeddings.py` — Ollama embedding generation (nomic-embed-text) for semantic search
+- `services/linkedin/salesnav/parser/filter_parser.py` â€” Auto-classify company verticals using deterministic SalesNav industry mapping helpers
+- `services/search/embeddings.py` â€” Ollama embedding generation (nomic-embed-text) for semantic search
 
 **Files modified**:
 - `database.py`:
@@ -170,11 +170,11 @@ This document summarizes all changes made in today's implementation session, org
   - Added `query` parameter for free-text search across company_name, name, title, domain, vertical
   - Case-insensitive JOIN on company_name
   - COLLATE NOCASE on vertical LIKE filter
-- `services/linkedin/salesnav/flows/company_collection.py` — Auto-classifies vertical during SalesNav collection
-- `api/routes/company_routes/ingest.py` — Auto-classifies vertical during CSV import
-- `ui/src/chat/tools.ts` — Added `vertical` and `query` params to search_contacts schema
+- `services/linkedin/salesnav/flows/company_collection.py` â€” Auto-classifies vertical during SalesNav collection
+- `api/routes/company_routes/ingest.py` â€” Auto-classifies vertical during CSV import
+- `ui/src/chat/tools.ts` â€” Added `vertical` and `query` params to search_contacts schema
 
-**Flow**: Company added → auto-classify vertical → store in targets → index rebuilds with vertical in keywords → `query="bank"` searches across all fields → finds 116 contacts at banking companies.
+**Flow**: Company added â†’ auto-classify vertical â†’ store in targets â†’ index rebuilds with vertical in keywords â†’ `query="bank"` searches across all fields â†’ finds 116 contacts at banking companies.
 
 ## 4. Filter-Based Bulk Enrollment
 
@@ -183,18 +183,18 @@ This document summarizes all changes made in today's implementation session, org
 **Solution**: Server-side filter-based enrollment + duplicate detection.
 
 **Files modified**:
-- `api/routes/email_routes/models.py` — Added `EnrollContactsByFilterRequest` and `EnrollByFilterResponse`
+- `api/routes/email_routes/models.py` â€” Added `EnrollContactsByFilterRequest` and `EnrollByFilterResponse`
 - `api/routes/email_routes/campaign_management.py`:
   - `create_campaign` checks for duplicates (409 if exists, returns existing campaign)
   - `enroll_contacts_by_filter` endpoint: accepts `query`/`vertical`/`company` filters, uses `hybrid_search` for semantic matching, enrolls all results server-side
-- `ui/src/chat/tools.ts` — Added `enroll_contacts_by_filter` tool
-- `ui/src/chat/toolExecutor.ts` — Wired executor + 409 duplicate handling for create_campaign
-- `ui/src/chat/chatEngine.ts` — Added `enroll_contacts_by_filter` to fast-path allowed tools, added handling in `summarizeToolResult`
-- `ui/src/chat/models/toolPlanner.ts` — Updated decomposer examples to use filter-based enrollment
-- `ui/src/chat/toolExamples.ts` — Added planner rules + curated examples for filter-based enrollment
-- `ui/src/utils/filterNormalization.ts` — Added vertical filter normalization
+- `ui/src/chat/tools.ts` â€” Added `enroll_contacts_by_filter` tool
+- `ui/src/chat/toolExecutor.ts` â€” Wired executor + 409 duplicate handling for create_campaign
+- `ui/src/chat/chatEngine.ts` â€” Added `enroll_contacts_by_filter` to fast-path allowed tools, added handling in `summarizeToolResult`
+- `ui/src/chat/models/toolPlanner.ts` â€” Updated decomposer examples to use filter-based enrollment
+- `ui/src/chat/toolExamples.ts` â€” Added planner rules + curated examples for filter-based enrollment
+- `ui/src/utils/filterNormalization.ts` â€” Added vertical filter normalization
 
-**Flow**: `enroll_contacts_by_filter(campaign_id=3, query="bank")` → backend runs `hybrid_search` → finds all matching contacts → enrolls them → returns `{enrolled: 116, skipped: 0, total_matched: 116}`.
+**Flow**: `enroll_contacts_by_filter(campaign_id=3, query="bank")` â†’ backend runs `hybrid_search` â†’ finds all matching contacts â†’ enrolls them â†’ returns `{enrolled: 116, skipped: 0, total_matched: 116}`.
 
 ## 5. Skill-First Architecture
 
@@ -220,20 +220,20 @@ skills/bdr/campaign-create-and-enroll/
 ```
 
 **Files modified**:
-- `ui/src/main.tsx` — Calls `initAssistantCore()` at app startup
+- `ui/src/main.tsx` â€” Calls `initAssistantCore()` at app startup
 - `ui/src/chat/chatEngine.ts`:
   - Skill routing runs BEFORE conversational early return (question-phrased requests work)
   - Skill confirmation creates `ActiveWorkItem` with `kind: 'skill_plan'`
   - Resume path handles expired work items, idempotency via `executedStepIds`
 
-**Feature flag**: `VITE_ENABLE_SKILL_ROUTER=true` (default on)
+**Feature flag**: `NEXT_PUBLIC_ENABLE_SKILL_ROUTER=true` (default on)
 
-**Flow**: "Create campaign targeting banks and add contacts" → skill matched (0.8 confidence) → extract `{industry: "bank"}` → build 2-step plan → `create_campaign` → [CONFIRM] → `enroll_contacts_by_filter(campaign_id=$prev, query="bank")` → [CONFIRM] → "Created campaign 'Bank Outreach' (ID: 30). Enrolled 116 bank-related contacts."
+**Flow**: "Create campaign targeting banks and add contacts" â†’ skill matched (0.8 confidence) â†’ extract `{industry: "bank"}` â†’ build 2-step plan â†’ `create_campaign` â†’ [CONFIRM] â†’ `enroll_contacts_by_filter(campaign_id=$prev, query="bank")` â†’ [CONFIRM] â†’ "Created campaign 'Bank Outreach' (ID: 30). Enrolled 116 bank-related contacts."
 
 ## 6. Production Hardening
 
 ### Zod Schema Validation
-- `ui/src/assistant-core/skills/paramSchema.ts` — Strips unknown keys, coerces types, normalizes industry tokens (banks → bank)
+- `ui/src/assistant-core/skills/paramSchema.ts` â€” Strips unknown keys, coerces types, normalizes industry tokens (banks â†’ bank)
 - Required field checks against raw input keys (not coerced output)
 
 ### Typed ActiveWorkItem
@@ -274,13 +274,13 @@ skills/bdr/campaign-create-and-enroll/
 
 **Files modified**:
 - `services/browser_workflows/recipes.py`:
-  - `auto_learn_skill()` — snapshots page, sends to LLM, generates SKILL.md, saves it
+  - `auto_learn_skill()` â€” snapshots page, sends to LLM, generates SKILL.md, saves it
   - `search_and_extract` fallback wires auto-learn when `bind_skill` fails
 - `services/browser_workflow.py`:
   - Added evidence fields to extracted items (source_url, extracted_at, skill_id, match_score)
-- `ui/src/assistant-core/domain/types.ts` — Added `browser_skill_learn` work item kind
+- `ui/src/assistant-core/domain/types.ts` â€” Added `browser_skill_learn` work item kind
 
-**Flow**: `browser_search_and_extract` → no skill matches → auto_learn_skill snapshots page → LLM infers pattern → generates SKILL.md → saves → retries with new skill → succeeds.
+**Flow**: `browser_search_and_extract` â†’ no skill matches â†’ auto_learn_skill snapshots page â†’ LLM infers pattern â†’ generates SKILL.md â†’ saves â†’ retries with new skill â†’ succeeds.
 
 ## 9. Tests
 
@@ -308,18 +308,18 @@ skills/bdr/campaign-create-and-enroll/
 
 ## Environment Variables
 
-- `VITE_DECOMPOSE_CLASSIFIER_MODEL=gemma3:12b` — Intent classifier model
-- `VITE_ENABLE_SKILL_ROUTER=true` — Enable skill-first routing (default on)
-- `EMBEDDING_MODEL=nomic-embed-text` — Semantic search embeddings
-- `SKILL_LEARN_MODEL=gemma3:12b` — Browser skill auto-learning
+- `NEXT_PUBLIC_DECOMPOSE_CLASSIFIER_MODEL=gemma3:12b` â€” Intent classifier model
+- `NEXT_PUBLIC_ENABLE_SKILL_ROUTER=true` â€” Enable skill-first routing (default on)
+- `EMBEDDING_MODEL=nomic-embed-text` â€” Semantic search embeddings
+- `SKILL_LEARN_MODEL=gemma3:12b` â€” Browser skill auto-learning
 
 ## Next Steps (Not Implemented)
 
-1. **UI process groups** — React components for skill step visualization with expand/collapse
-2. **Step detail modal** — Show summarized args + raw JSON for each tool call
-3. **Dashboard CTAs** — Empty state improvements (Create campaign, Prepare drafts, Review queue)
-4. **Browser skill learn confirmation** — Wire `browser_skill_learn` work item through handleActiveTask
-5. **Additional skills** — reply-triage, account-research-and-icp, salesnav-search-and-collect
+1. **UI process groups** â€” React components for skill step visualization with expand/collapse
+2. **Step detail modal** â€” Show summarized args + raw JSON for each tool call
+3. **Dashboard CTAs** â€” Empty state improvements (Create campaign, Prepare drafts, Review queue)
+4. **Browser skill learn confirmation** â€” Wire `browser_skill_learn` work item through handleActiveTask
+5. **Additional skills** â€” reply-triage, account-research-and-icp, salesnav-search-and-collect
 
 ## Testing the System
 
@@ -329,16 +329,16 @@ User: "create a campaign targeting banks and add contacts"
 Expected:
 1. Skill matched: campaign-create-and-enroll
 2. Extract params: {industry: "bank"}
-3. Plan: create_campaign → enroll_contacts_by_filter
-4. Confirm create → executes → campaign_id=30
-5. Confirm enroll → enroll_contacts_by_filter(30, query="bank") → 116 enrolled
+3. Plan: create_campaign â†’ enroll_contacts_by_filter
+4. Confirm create â†’ executes â†’ campaign_id=30
+5. Confirm enroll â†’ enroll_contacts_by_filter(30, query="bank") â†’ 116 enrolled
 6. Response: "Created campaign 'Bank Outreach' (ID: 30). Enrolled 116 bank-related contacts."
 ```
 
 **Vertical search**:
 ```
 User: "find contacts in construction"
-Expected: search_contacts(query="construction") → finds contacts at construction companies
+Expected: search_contacts(query="construction") â†’ finds contacts at construction companies
 ```
 
 **Browser auto-learn**:
@@ -346,7 +346,7 @@ Expected: search_contacts(query="construction") → finds contacts at constructi
 User: "on salesnav find textile manufacturers"
 Expected:
 1. browser_search_and_extract(task="salesnav_search_account", query="textile manufacturers")
-2. If no skill: auto_learn_skill() → snapshot page → LLM infers pattern → saves skill → retries
+2. If no skill: auto_learn_skill() â†’ snapshot page â†’ LLM infers pattern â†’ saves skill â†’ retries
 3. Extraction succeeds with the new skill
 ```
 
@@ -366,5 +366,6 @@ ollama pull nomic-embed-text
 
 ## Architecture Docs
 
-- [`docs/assistant-architecture.md`](assistant-architecture.md) — Skill-first design, service modules, migration strategy
-- [`docs/IMPLEMENTATION_SUMMARY.md`](IMPLEMENTATION_SUMMARY.md) — This file
+- [`docs/assistant-architecture.md`](assistant-architecture.md) â€” Skill-first design, service modules, migration strategy
+- [`docs/IMPLEMENTATION_SUMMARY.md`](IMPLEMENTATION_SUMMARY.md) â€” This file
+

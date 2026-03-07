@@ -1366,11 +1366,14 @@ def _startup() -> None:
     except LauncherStartupError as exc:
         _mark_startup_issue(exc.code, exc.message, exc.remediation)
 
+    bridge_required = bool(preflight_checks.get("bridge_required", True))
     runtime["startup"]["phase"] = "launch_bridge"
     bridge_proc = None
     backend_proc = None
     attach_existing_bridge = bool(preflight_checks.get("attach_existing_bridge"))
-    if attach_existing_bridge:
+    if not bridge_required:
+        _log_queue.put("[startup] bridge skipped (BROWSER_GATEWAY_MODE is not leadpilot/openclaw)\n")
+    elif attach_existing_bridge:
         _log_queue.put("[startup] attach_existing_bridge: using already-running bridge on configured port\n")
     else:
         try:
@@ -1391,7 +1394,7 @@ def _startup() -> None:
             _mark_startup_issue(exc.code, exc.message, exc.remediation)
 
     runtime["startup"]["phase"] = "readiness"
-    if (bridge_proc is not None or attach_existing_bridge) and not supervisor.wait_for_bridge_ready(timeout=15):
+    if bridge_required and (bridge_proc is not None or attach_existing_bridge) and not supervisor.wait_for_bridge_ready(timeout=15):
         _mark_startup_issue("readiness_timeout", "bridge readiness probe timed out", "Check bridge logs and node/tsx runtime.")
     if (backend_proc is not None or attach_existing_backend) and not supervisor.wait_for_backend_ready(timeout=20):
         _mark_startup_issue("readiness_timeout", "backend readiness probe timed out", "Check api startup logs and dependencies.")

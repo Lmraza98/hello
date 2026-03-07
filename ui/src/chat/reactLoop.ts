@@ -1,6 +1,7 @@
-import type { PlannedToolCall } from './chatEngineTypes';
+﻿import type { PlannedToolCall } from './chatEngineTypes';
 import type { ChatAction } from './actions';
 import type { LocalChatMessage } from './models/ollamaClient';
+import type { PlannerRoute } from './models/plannerBackends';
 import { TOOLS } from './tools';
 import { classifyQueryTier, runToolPlan, selectToolNamesForMessage } from './models/toolPlanner';
 import { dispatchToolCalls } from './toolExecutor';
@@ -32,6 +33,7 @@ export type ReActConfig = {
   memoryContext?: string;
   memoryDir?: string;
   pageContext?: string;
+  plannerRouteOverride?: PlannerRoute;
 };
 
 export type ReActResult = {
@@ -66,9 +68,9 @@ type Scratchpad = {
 const MEMORY_KEY = 'chat_react_memory_v1';
 const MEMORY_DAILY_KEY = 'chat_react_memory_daily_v1';
 const ENABLE_REACT_MEMORY =
-  (import.meta.env.VITE_CHAT_REACT_MEMORY || 'false').toLowerCase() === 'true';
-const REACT_TRACE_PROMPT_MAX_CHARS = Number.parseInt(import.meta.env.VITE_CHAT_REACT_TRACE_MAX_CHARS || '1600', 10);
-const REACT_STATE_SUMMARY_MAX_CHARS = Number.parseInt(import.meta.env.VITE_CHAT_REACT_STATE_SUMMARY_MAX_CHARS || '900', 10);
+  (process.env.NEXT_PUBLIC_CHAT_REACT_MEMORY || 'false').toLowerCase() === 'true';
+const REACT_TRACE_PROMPT_MAX_CHARS = Number.parseInt(process.env.NEXT_PUBLIC_CHAT_REACT_TRACE_MAX_CHARS || '1600', 10);
+const REACT_STATE_SUMMARY_MAX_CHARS = Number.parseInt(process.env.NEXT_PUBLIC_CHAT_REACT_STATE_SUMMARY_MAX_CHARS || '900', 10);
 
 function hasLocalStorage(): boolean {
   return typeof localStorage !== 'undefined';
@@ -557,7 +559,10 @@ async function runLoopCore(
       // The ReAct iteration prompt already contains rich context (goal, trace, allowed tools).
       // Running the full planner (examples + filter context) with a large toolset is slow and
       // increases failure rates. Quick mode keeps tool planning responsive.
-      plan = await runToolPlan(prompt, localHistory, onReasoningEvent, [...relevantToolNames], { quick: true });
+      plan = await runToolPlan(prompt, localHistory, onReasoningEvent, [...relevantToolNames], {
+        quick: true,
+        ...(config.plannerRouteOverride ? { plannerRouteOverride: config.plannerRouteOverride } : {}),
+      });
       plannerMs += elapsedMs(plannerStartedAt);
     } catch (err) {
       onReasoningEvent?.(`Planner failed at iteration ${i + 1}.`);
@@ -889,3 +894,4 @@ export async function resumeReActLoop(
     },
   };
 }
+

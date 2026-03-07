@@ -23,12 +23,6 @@ export function useContacts() {
     queryFn: () => api.getCompanies()
   });
 
-  const getCampaignContacts = (campaignId: string) => useQuery({
-    queryKey: ['campaignContacts', campaignId],
-    queryFn: () => api.getCampaignContacts(Number(campaignId)),
-    enabled: !!campaignId,
-  });
-
   // Mutations
   const addContact = useMutation({
     mutationFn: (contact: Partial<Contact>) => api.addContact(contact),
@@ -60,6 +54,7 @@ export function useContacts() {
         'linkedin-request': 'LinkedIn Request',
         'send-email': 'Send Email',
         'collect-phone': 'Phone Data Collection',
+        'mark-reviewed': 'Mark Reviewed',
       };
       const actionName = actionNames[variables.action] || variables.action;
       const msg = data.message || `Processed ${data.processed || data.sent || 0} of ${data.total || variables.contactIds.length} contacts`;
@@ -75,6 +70,7 @@ export function useContacts() {
         'linkedin-request': 'LinkedIn Request',
         'send-email': 'Send Email',
         'collect-phone': 'Phone Data Collection',
+        'mark-reviewed': 'Mark Reviewed',
       };
       const actionName = actionNames[variables.action] || variables.action;
       if (variables.notificationId) {
@@ -126,9 +122,10 @@ export function useContacts() {
     // Query data
     contacts: contacts.data || [],
     contactsLoading: contacts.isLoading,
+    contactsError: contacts.error as Error | null,
+    refetchContacts: contacts.refetch,
     campaigns: campaigns.data || [],
     companies: companies.data || [],
-    getCampaignContacts,
 
     // Mutations
     addContact,

@@ -81,9 +81,27 @@ def _load_contact_vars(contact_id: Optional[int]) -> Dict[str, Any]:
     cursor = conn.cursor()
     cursor.execute(
         """
-        SELECT id, name, title, company_name, email_generated
-        FROM linkedin_contacts
-        WHERE id = ?
+        SELECT
+            lc.id,
+            lc.name,
+            lc.title,
+            lc.company_name,
+            lc.email_generated,
+            COALESCE(NULLIF(lc.location, ''), '') AS resolved_location,
+            COALESCE(NULLIF(ile_latest.lead_industry, ''), t.vertical, '') AS resolved_industry
+        FROM linkedin_contacts lc
+        LEFT JOIN targets t ON TRIM(LOWER(lc.company_name)) = TRIM(LOWER(t.company_name))
+        LEFT JOIN (
+            SELECT ile.contact_id, ile.lead_industry
+            FROM inbound_lead_events ile
+            INNER JOIN (
+                SELECT contact_id, MAX(id) AS max_id
+                FROM inbound_lead_events
+                WHERE contact_id IS NOT NULL
+                GROUP BY contact_id
+            ) latest ON latest.max_id = ile.id
+        ) ile_latest ON ile_latest.contact_id = lc.id
+        WHERE lc.id = ?
         """,
         (contact_id,),
     )
@@ -103,6 +121,8 @@ def _load_contact_vars(contact_id: Optional[int]) -> Dict[str, Any]:
         "title": row["title"] or "",
         "company": row["company_name"] or "",
         "email": row["email_generated"] or "",
+        "industry": row["resolved_industry"] or "",
+        "location": row["resolved_location"] or "",
     }
 
 

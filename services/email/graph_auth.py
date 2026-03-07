@@ -5,10 +5,12 @@ Uses device-code flow. Tokens are cached to disk and refreshed automatically.
 A background thread handles the blocking MSAL poll so no HTTP endpoint blocks.
 """
 import atexit
+import os
 import threading
 from typing import Optional, Dict
 
 import msal
+import requests
 
 import config
 
@@ -20,6 +22,29 @@ _token_cache: Optional[msal.SerializableTokenCache] = None
 # Auth flow state
 _auth_thread: Optional[threading.Thread] = None
 _auth_error: Optional[str] = None
+
+
+def _build_http_client() -> requests.Session:
+    """
+    Build an HTTP client for MSAL.
+
+    If env proxy vars point to a known dead local proxy (127.0.0.1:9),
+    disable environment proxy usage so Graph auth can proceed.
+    """
+    session = requests.Session()
+    proxy_candidates = [
+        os.getenv("HTTPS_PROXY"),
+        os.getenv("HTTP_PROXY"),
+        os.getenv("ALL_PROXY"),
+        os.getenv("https_proxy"),
+        os.getenv("http_proxy"),
+        os.getenv("all_proxy"),
+    ]
+    has_dead_local_proxy = any((p or "").strip().startswith("http://127.0.0.1:9") for p in proxy_candidates)
+    if has_dead_local_proxy:
+        session.trust_env = False
+        print("[GraphAuth] Ignoring dead local proxy env (127.0.0.1:9) for Microsoft Graph auth.")
+    return session
 
 
 def _get_token_cache() -> msal.SerializableTokenCache:
@@ -69,6 +94,7 @@ def _get_app() -> msal.PublicClientApplication:
         client_id=config.MS_GRAPH_CLIENT_ID,
         authority=authority,
         token_cache=_get_token_cache(),
+        http_client=_build_http_client(),
     )
     return _app
 

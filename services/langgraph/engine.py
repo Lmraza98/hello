@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from services.langgraph import state_store
 from services.langgraph.graphs.contacts_enrichment import build_contacts_enrichment_graph
+from services.langgraph.graphs.lead_research import build_lead_research_graph
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ GraphBuilder = Callable[[], Any]
 
 GRAPH_REGISTRY: dict[str, GraphBuilder] = {
     "contacts_enrichment": build_contacts_enrichment_graph,
+    "lead_research": build_lead_research_graph,
 }
 
 
@@ -85,7 +87,7 @@ class LangGraphEngine:
         state_store.update_run_status(run_id, "running", started_at=state_store.utcnow_iso())
         state_store.append_event(run_id, "started", {"run_id": run_id, "graph_id": graph_id})
 
-        start_state = resume_state or {"input": input_payload, "progress": {}, "results": {}}
+        start_state = resume_state or {"input": {**input_payload, "run_id": run_id}, "progress": {}, "results": {}}
         last_state: dict[str, Any] | None = None
         step_index = 0
 

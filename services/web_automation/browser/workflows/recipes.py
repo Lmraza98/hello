@@ -103,6 +103,8 @@ def classify_workflow_runtime(
         reasons.append("query_complexity")
     if any(k in (task or "").lower() for k in ("list_", "paginate", "extract")) and int(limit) >= limit_threshold:
         reasons.append("task_complexity")
+    if (task or "").strip().lower() == "salesnav_list_employees":
+        reasons.append("salesnav_profile_enrichment")
     lower_query = (query or "").lower()
     if (
         ("linkedin" in lower_query or "sales navigator" in lower_query or "salesnav" in lower_query)
@@ -287,6 +289,22 @@ def _extract_field_names(wf: BrowserWorkflow, kind: str) -> tuple[str, str]:
     name_field = str(wf.frontmatter.get(f"extract_{k}_label_field") or "name")
     url_field = str(wf.frontmatter.get(f"extract_{k}_url_field") or "url")
     return name_field, url_field
+
+
+def _salesnav_employee_results_url_ready(current_url: str) -> bool:
+    lower_url = _clean_text(current_url).lower()
+    if not lower_url:
+        return False
+    if "linkedin.com/sales/home" in lower_url:
+        return False
+    return any(
+        token in lower_url
+        for token in (
+            "linkedin.com/sales/search/people",
+            "linkedin.com/sales/lead/",
+            "linkedin.com/in/",
+        )
+    )
 
 
 def _evaluate_item_validation(
@@ -828,6 +846,7 @@ async def _resolve_people_current_company_identity(
         tab_id=None,
         limit=3,
         wait_ms=2500,
+        allow_raw_query_on_decomposition_failure=True,
         progress_cb=None,
     )
     if not isinstance(resolved, dict) or not resolved.get("ok"):
@@ -845,6 +864,127 @@ async def _resolve_people_current_company_identity(
     return {"name": exact_name, "urn": f"urn:li:organization:{org_id}", "source": "presearch"}
 
 
+async def _find_salesnav_company_employees_url(
+    wf: BrowserWorkflow,
+    *,
+    company_name: str | None,
+) -> str:
+    page = await wf._raw_page()
+    if page is None:
+        return ""
+    target = _clean_text(company_name).lower()
+    script = """
+(() => {
+  const clean = (v) => (v || "").toString().replace(/\\s+/g, " ").trim();
+  const abs = (href) => {
+    const raw = clean(href);
+    if (!raw) return "";
+    if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+    if (raw.startsWith("/")) return `https://www.linkedin.com${raw}`;
+    return raw;
+  };
+  return Array.from(document.querySelectorAll('li.artdeco-list__item'))
+    .filter((card) => card.querySelector('[data-x-search-result="ACCOUNT"]'))
+    .map((card) => {
+      const name =
+        clean(card.querySelector('a[data-anonymize="company-name"]')?.textContent) ||
+        clean(card.querySelector('.artdeco-entity-lockup__title a')?.textContent);
+      const employeesHref = abs(
+        card.querySelector('a[data-anonymize="company-size"][href*="/sales/search/people?query="]')?.getAttribute('href') ||
+        card.querySelector('a[href*="/sales/search/people?query="]')?.getAttribute('href') ||
+        ""
+      );
+      return { name, employeesHref };
+    });
+})()
+    """.strip()
+    try:
+        rows = await page.evaluate(script)
+    except Exception:
+        return ""
+    candidates = [row for row in rows if isinstance(row, dict)]
+    if not candidates:
+        return ""
+    if target:
+        exact = next(
+            (
+                _clean_text(row.get("employeesHref"))
+                for row in candidates
+                if _clean_text(row.get("name")).lower() == target and _clean_text(row.get("employeesHref"))
+            ),
+            "",
+        )
+        if exact:
+            return exact
+        contains = next(
+            (
+                _clean_text(row.get("employeesHref"))
+                for row in candidates
+                if target in _clean_text(row.get("name")).lower() and _clean_text(row.get("employeesHref"))
+            ),
+            "",
+        )
+        if contains:
+            return contains
+    return next((_clean_text(row.get("employeesHref")) for row in candidates if _clean_text(row.get("employeesHref"))), "")
+
+
+async def _extract_salesnav_employees_with_public_urls(
+    wf: BrowserWorkflow,
+    *,
+    company_name: str | None,
+    limit: int,
+) -> list[dict[str, Any]]:
+    page = await wf._raw_page()
+    if page is None:
+        return []
+    try:
+        from services.web_automation.linkedin.scraper_core import SalesNavigatorScraper
+
+        scraper = SalesNavigatorScraper()
+        scraper.page = page
+        page_context = getattr(page, "context", None)
+        if callable(page_context):
+            page_context = page_context()
+        scraper.context = page_context
+        scraper.is_authenticated = True
+        employees = await scraper.scrape_current_results_with_public_urls(
+            max_employees=max(1, min(int(limit), 200)),
+            extract_public_urls=True,
+        )
+    except Exception:
+        logger.debug("salesnav public-url enrichment failed", exc_info=True)
+        return []
+
+    normalized: list[dict[str, Any]] = []
+    for row in employees if isinstance(employees, list) else []:
+        if not isinstance(row, dict):
+            continue
+        name = _clean_text(row.get("name"))
+        if not name:
+            continue
+        sales_nav_url = _clean_text(row.get("sales_nav_url"))
+        public_url = _clean_text(row.get("public_url"))
+        normalized.append(
+            {
+                **row,
+                "name": name,
+                "contact_name": name,
+                "title": _clean_text(row.get("title")) or None,
+                "contact_title": _clean_text(row.get("title")) or None,
+                "company_name": _clean_text(company_name) or None,
+                "linkedin_url": public_url or sales_nav_url or "",
+                "public_url": public_url or None,
+                "sales_nav_url": sales_nav_url or None,
+                "has_public_url": bool(public_url),
+                "source_url": (public_url or sales_nav_url).split("?", 1)[0] if (public_url or sales_nav_url) else "",
+            }
+        )
+        if len(normalized) >= limit:
+            break
+    return normalized[:limit]
+
+
 async def search_and_extract(
     *,
     task: str,
@@ -857,6 +997,7 @@ async def search_and_extract(
     limit: int = 25,
     wait_ms: int = 1500,
     compound_lead_mode: bool = False,
+    allow_raw_query_on_decomposition_failure: bool = False,
     progress_cb: ProgressCallback = None,
 ) -> dict[str, Any]:
     wf = BrowserWorkflow(tab_id=tab_id)
@@ -1005,8 +1146,11 @@ async def search_and_extract(
         # Do not inject the entire natural-language prompt into SalesNav keywords
         # when the parser is unavailable (for example model/API connectivity issues).
         # If we already have structured filters, run filter-only search; otherwise fail fast.
-        effective_query = ""
-        if not effective_filters:
+        if allow_raw_query_on_decomposition_failure:
+            effective_query = _clean_text(query)
+        else:
+            effective_query = ""
+        if not effective_filters and not effective_query:
             return error_result(
                 wf,
                 "salesnav_decomposition_unavailable",
@@ -1453,6 +1597,7 @@ async def list_sub_items(
             tab_id=tab_id,
             limit=5,
             wait_ms=3500,
+            allow_raw_query_on_decomposition_failure=(parent_task == "salesnav_search_account"),
             progress_cb=progress_cb,
         )
         if not parent.get("ok"):
@@ -1467,6 +1612,18 @@ async def list_sub_items(
                 "Multiple close parent matches found. Provide a more specific name.",
                 candidates=click.get("candidates") or [],
             )
+        if parent_query:
+            clicked_parent = bool(isinstance(click, dict) and click.get("clicked"))
+            if not clicked_parent:
+                return error_result(
+                    wf,
+                    "parent_not_opened",
+                    "Could not open the requested parent item before listing sub-items.",
+                    parent_query=parent_query,
+                    parent_task=parent_task,
+                    parent_click=click,
+                    url=parent.get("url") if isinstance(parent, dict) else "",
+                )
 
     current_url = await wf.current_url()
     if not await wf.bind_skill(task=task, url=current_url, query=parent_query):
@@ -1484,7 +1641,18 @@ async def list_sub_items(
 
     await _emit_progress(progress_cb, 40, "open_entrypoint", {"tab_id": wf.tab_id})
     before_tab = wf.tab_id
-    ok = await wf.click_and_follow_tab(entrypoint_action, wait_ms=wait_ms)
+    ok = False
+    current_url = (await wf.current_url()) or ""
+    if task == "salesnav_list_employees" and "linkedin.com/sales/search/company" in current_url.lower():
+        try:
+            employees_url = await _find_salesnav_company_employees_url(wf, company_name=parent_query)
+            if employees_url:
+                await wf.navigate(employees_url, timeout_ms=max(5_000, int(wait_ms) * 4))
+                ok = True
+        except Exception:
+            logger.debug("salesnav employee entrypoint URL fallback failed", exc_info=True)
+    if not ok:
+        ok = await wf.click_and_follow_tab(entrypoint_action, wait_ms=wait_ms)
     if not ok:
         return error_result(wf, "entrypoint_not_found", f"Action '{entrypoint_action}' not found (skill drift).")
 
@@ -1501,15 +1669,46 @@ async def list_sub_items(
     if guard:
         return guard
 
+    current_url = (await wf.current_url()) or ""
+    if task == "salesnav_list_employees" and not _salesnav_employee_results_url_ready(current_url):
+        return error_result(
+            wf,
+            "employee_results_not_opened",
+            "Employee listing did not reach a Sales Navigator people results page.",
+            task=task,
+            parent_query=parent_query,
+            opened_new_tab=opened_new_tab,
+            url=current_url,
+        )
+
     max_rows = max(1, min(int(limit), 200))
     await _emit_progress(progress_cb, 75, "extracting_sub_items", {"max_rows": max_rows, "tab_id": wf.tab_id})
-    items = await wf.paginate_and_extract(
-        extract_type,
-        max_rows,
-        next_action="pagination_next",
-        max_pages=12,
-        page_wait_ms=900,
-    )
+    if task == "salesnav_list_employees":
+        try:
+            items = await _extract_salesnav_employees_with_public_urls(
+                wf,
+                company_name=parent_query,
+                limit=max_rows,
+            )
+        except Exception:
+            logger.debug("salesnav employee public-url enrichment crashed; falling back to generic extraction", exc_info=True)
+            items = []
+        if not items:
+            items = await wf.paginate_and_extract(
+                extract_type,
+                max_rows,
+                next_action="pagination_next",
+                max_pages=12,
+                page_wait_ms=900,
+            )
+    else:
+        items = await wf.paginate_and_extract(
+            extract_type,
+            max_rows,
+            next_action="pagination_next",
+            max_pages=12,
+            page_wait_ms=900,
+        )
 
     result = ok_result(
         wf,
@@ -1519,5 +1718,31 @@ async def list_sub_items(
         count=len(items),
         opened_new_tab=opened_new_tab,
     )
+    if task == "salesnav_list_employees":
+        name_field, url_field = _extract_field_names(wf, extract_type)
+        item_validation = _evaluate_item_validation(
+            items=items,
+            name_field=name_field,
+            url_field=url_field,
+            min_items=1,
+            max_items=max_rows,
+            required_fields=[name_field, url_field],
+            min_unique_url_fraction=0.7,
+        )
+        result["item_validation"] = item_validation
+        if not bool(item_validation.get("ok")):
+            return error_result(
+                wf,
+                "validation_failed",
+                "Employee extraction failed deterministic validation checks.",
+                task=task,
+                parent_query=parent_query,
+                stop_reason="STOP_VALIDATION_FAILED",
+                item_validation=item_validation,
+                partial_items=items[:10],
+                count=len(items),
+                opened_new_tab=opened_new_tab,
+                url=result.get("url") or "",
+            )
     await _emit_progress(progress_cb, 100, "finished", {"count": len(items), "tab_id": wf.tab_id})
     return result

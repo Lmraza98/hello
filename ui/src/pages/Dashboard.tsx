@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useRouter } from 'next/navigation';
 import { Building2, Mail, MessageCircle, Users } from 'lucide-react';
 import type { ReplyPreview } from '../api';
 import type { EmailCampaign, SentEmail } from '../types/email';
@@ -12,15 +12,15 @@ import { usePageContext } from '../contexts/PageContextProvider';
 import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
 import { getPageCapability } from '../capabilities/catalog';
 import { getOllamaReadyFast } from '../chat/ollamaStatus';
-import { SystemStatusStrip } from './dashboard/SystemStatusStrip';
-import { type Timeframe } from './dashboard/TimeframeToggle';
-import { type PerformanceSummary } from './dashboard/CampaignSummaryStrip';
-import { type PerformanceMode } from './dashboard/PerformanceModeToggle';
-import { SlideOverPanel } from './dashboard/SlideOverPanel';
-import { EmailPerformanceSection } from './dashboard/EmailPerformanceSection';
-import { PerformanceDrilldownContent } from './dashboard/PerformanceDrilldownContent';
-import { DashboardStatsGrid } from './dashboard/DashboardStatsGrid';
-import { DashboardWorkspaceGrid } from './dashboard/DashboardWorkspaceGrid';
+import { SystemStatusStrip } from '../components/dashboard/page/SystemStatusStrip';
+import { type Timeframe } from '../components/dashboard/page/TimeframeToggle';
+import { type PerformanceSummary } from '../components/dashboard/page/CampaignSummaryStrip';
+import { type PerformanceMode } from '../components/dashboard/page/PerformanceModeToggle';
+import { SlideOverPanel } from '../components/dashboard/page/SlideOverPanel';
+import { EmailPerformanceSection } from '../components/dashboard/page/EmailPerformanceSection';
+import { PerformanceDrilldownContent } from '../components/dashboard/page/PerformanceDrilldownContent';
+import { DashboardStatsGrid } from '../components/dashboard/page/DashboardStatsGrid';
+import { DashboardWorkspaceGrid } from '../components/dashboard/page/DashboardWorkspaceGrid';
 import {
   aggregateEntities,
   buildDailyForEntity,
@@ -30,10 +30,10 @@ import {
   formatPercent,
   inLastDays,
   normalizeTemplateName,
-} from './dashboard/performanceUtils';
+} from '../components/dashboard/page/performanceUtils';
 
 export default function Dashboard() {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { setPageContext } = usePageContext();
   const [selectedConversation, setSelectedConversation] = useState<ReplyPreview | null>(null);
   const [performanceMode, setPerformanceMode] = useState<PerformanceMode>('overall');
@@ -226,33 +226,33 @@ export default function Dashboard() {
         value: stats?.total_companies ?? 0,
         delta: '--',
         icon: Building2,
-        onClick: () => navigate('/companies'),
+        onClick: () => router.push('/contacts'),
       },
       {
         label: 'Contacts',
         value: stats?.total_contacts ?? 0,
         delta: '--',
         icon: Users,
-        onClick: () => navigate('/contacts'),
+        onClick: () => router.push('/contacts'),
       },
       {
         label: 'Reply Rate',
         value: formatPercent(replyRate),
         delta: replyRateDelta,
         icon: Mail,
-        onClick: () => navigate('/email?view=history'),
+        onClick: () => router.push('/email?view=history'),
       },
       {
         label: 'Active Conversations',
         value: activeConversations,
         delta: '--',
         icon: MessageCircle,
-        onClick: () => navigate('/email?view=review'),
+        onClick: () => router.push('/email?view=review'),
       },
     ];
   }, [
     activeConversations,
-    navigate,
+    router,
     replyRate,
     replyRateDelta,
     stats?.total_companies,
@@ -291,7 +291,7 @@ export default function Dashboard() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="px-4 pb-5 pt-3 md:px-8 md:pb-6 md:pt-3">
+      <div className="pt-3 px-3 pb-3 md:pt-4 md:px-4 md:pb-4">
 
 
         <div className="space-y-4">
@@ -307,7 +307,7 @@ export default function Dashboard() {
             timeframe={timeframe}
             onChangeTimeframe={setTimeframe}
             hasCampaigns={campaigns.length > 0}
-            onCreateCampaign={() => navigate('/email?view=campaigns')}
+            onCreateCampaign={() => router.push('/email?view=campaigns')}
             summaryStrip={summaryStrip}
             summaryCollapsed={summaryCollapsed}
             onToggleSummaryCollapse={() => setSummaryCollapsed((prev) => !prev)}
@@ -336,9 +336,9 @@ export default function Dashboard() {
             onMarkDone={handleMarkDone}
             removingIds={Array.from(removingIds)}
             todaysContacts={todaysContacts}
-            onNavigateCompanies={() => navigate('/companies')}
-            onNavigateEmailHome={() => navigate('/email')}
-            onNavigateEmailScheduled={() => navigate('/email?view=scheduled')}
+            onNavigateCompanies={() => router.push('/contacts')}
+            onNavigateEmailHome={() => router.push('/email')}
+            onNavigateEmailScheduled={() => router.push('/email?view=scheduled')}
             nextSends={nextSends}
             totalScheduled={totalScheduled}
           />
@@ -371,7 +371,7 @@ export default function Dashboard() {
             setSelectedEntityKey(match?.key || null);
             setPanelEntityType('campaign');
           }}
-          onOpenEmailCampaigns={() => navigate('/email?view=campaigns')}
+          onOpenEmailCampaigns={() => router.push('/email?view=campaigns')}
         />
       </SlideOverPanel>
 

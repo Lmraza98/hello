@@ -1,10 +1,10 @@
-import type { ChatMessage } from '../../types/chat';
+﻿import type { ChatMessage } from '../../types/chat';
 import { textMsg } from '../../services/messageHelpers';
 import { dispatchToolCalls, type ParsedToolCall } from '../toolExecutor';
 import { TOOLS } from '../tools';
 import { ollamaChat, type LocalChatMessage } from './ollamaClient';
 
-const MODEL = import.meta.env.VITE_OLLAMA_DEEPSEEK_MODEL || 'deepseek-r1:14b';
+const MODEL = process.env.NEXT_PUBLIC_OLLAMA_DEEPSEEK_MODEL || 'deepseek-r1:14b';
 
 const SYSTEM_PROMPT = `You are a sales automation planner for complex multi-step requests.
 
@@ -35,6 +35,7 @@ export async function runDeepseek(
   userMessage: string,
   conversationHistory: LocalChatMessage[],
   onToolCall?: (name: string) => void,
+  modelOverride?: string,
   _onToken?: (token: string) => void,
 ): Promise<DeepseekResult> {
   const ollamaTools = convertToolsForOllama();
@@ -47,7 +48,7 @@ export async function runDeepseek(
 
   try {
     const result = await ollamaChat({
-      model: MODEL,
+      model: modelOverride || MODEL,
       messages,
       tools: ollamaTools,
       temperature: 0.1,
@@ -85,3 +86,4 @@ export async function runDeepseek(
     return { response: '', messages: [], toolsUsed: [], success: false };
   }
 }
+

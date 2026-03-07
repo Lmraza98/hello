@@ -2,7 +2,7 @@ import { Building2, CheckCircle, Cloud, ExternalLink, XCircle } from 'lucide-rea
 import type { Contact } from '../../api';
 import { MobileCard } from '../shared/MobileCard';
 import { ContactDetail } from './ContactDetail';
-import { SalesforceStatusBadge } from './SalesforceStatusBadge';
+import { EngagementStatusBadge } from './SalesforceStatusBadge';
 
 type ContactCardProps = {
   contact: Contact;
@@ -48,7 +48,7 @@ export function ContactCard({
           ) : (
             <XCircle className="w-3.5 h-3.5 text-text-dim/40" />
           )}
-          <SalesforceStatusBadge status={contact.salesforce_status} />
+          <EngagementStatusBadge status={contact.engagement_status} />
         </div>
       </div>
       {contact.title && <p className="text-xs text-text-muted truncate mb-0.5">{contact.title}</p>}

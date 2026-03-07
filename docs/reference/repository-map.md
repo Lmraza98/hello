@@ -12,7 +12,7 @@ title: "Repository Map"
 
 - `api/`: FastAPI app and route modules.
 - `services/`: domain logic (collection, enrichment, outreach workflows).
-- `ui/`: React/Vite frontend.
+- `ui/`: React/Next.js frontend.
 - `data/`: SQLite DBs and runtime artifacts.
 
 ## API Layer (`api/`)

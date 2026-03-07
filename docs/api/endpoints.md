@@ -74,6 +74,7 @@ title: "API Endpoint Catalog"
 | POST | `/api/contacts/bulk-actions/collect-phone` | contacts | Bulk Collect Phone | BulkActionRequest | BulkCollectPhoneResponse |
 | POST | `/api/contacts/bulk-actions/delete` | contacts | Bulk Delete Contacts | BulkActionRequest | BulkDeleteResponse |
 | POST | `/api/contacts/bulk-actions/linkedin-request` | contacts | Bulk Linkedin Request | BulkActionRequest | BulkLinkedInRequestResponse |
+| POST | `/api/contacts/bulk-actions/mark-reviewed` | contacts | Bulk Mark Reviewed | BulkActionRequest | BulkMarkReviewedResponse |
 | POST | `/api/contacts/bulk-actions/salesforce-upload` | contacts | Bulk Upload To Salesforce | BulkActionRequest | BulkSalesforceUploadResponse |
 | POST | `/api/contacts/bulk-actions/send-email` | contacts | Bulk Send Email | BulkActionRequest | BulkSendEmailResponse |
 | GET | `/api/contacts/export` | contacts | Export Contacts | - | - |
@@ -86,10 +87,17 @@ title: "API Endpoint Catalog"
 | POST | `/api/contacts/{contact_id}/salesforce-url` | contacts | Save Salesforce Url | SalesforceUrlRequest | ContactSalesforceUrlResponse |
 | GET | `/api/documents` | documents | List Documents | - | - |
 | POST | `/api/documents/ask` | documents | Ask Documents Route | AskDocumentsRequest | - |
+| GET | `/api/documents/folders` | documents | List Document Folders | - | - |
+| POST | `/api/documents/folders` | documents | Create Document Folder | CreateFolderRequest | - |
+| POST | `/api/documents/folders/move` | documents | Move Document Folder | MoveFolderRequest | - |
+| DELETE | `/api/documents/folders/{folder_path}` | documents | Delete Document Folder | - | - |
+| PATCH | `/api/documents/folders/{folder_path}/rename` | documents | Rename Document Folder | RenameFolderRequest | - |
 | POST | `/api/documents/link` | documents | Link Document To Entities | LinkDocumentRequest | - |
 | POST | `/api/documents/search` | documents | Search Documents | SearchDocumentsRequest | - |
 | POST | `/api/documents/upload` | documents | Upload Document | Body_upload_document_api_documents_upload_post | - |
 | GET | `/api/documents/{document_id}` | documents | Get Document | - | - |
+| POST | `/api/documents/{document_id}/move` | documents | Move Document | MoveDocumentRequest | - |
+| PATCH | `/api/documents/{document_id}/rename` | documents | Rename Document | RenameDocumentRequest | - |
 | POST | `/api/documents/{document_id}/retry` | documents | Retry Document Processing | - | - |
 | GET | `/api/emails/active-conversations` | emails | Get Active Conversations Endpoint | - | array |
 | GET | `/api/emails/campaign-schedule-summary` | emails | Get Campaign Schedule Summary | - | array |
@@ -104,21 +112,30 @@ title: "API Endpoint Catalog"
 | POST | `/api/emails/campaigns/{campaign_id}/enroll` | emails | Enroll Contacts | EnrollContactsRequest | EnrollContactsResponse |
 | POST | `/api/emails/campaigns/{campaign_id}/enroll-by-filter` | emails | Enroll Contacts By Filter | EnrollContactsByFilterRequest | EnrollByFilterResponse |
 | POST | `/api/emails/campaigns/{campaign_id}/pause` | emails | Pause Campaign | - | CampaignStatusResponse |
+| POST | `/api/emails/campaigns/{campaign_id}/reconcile-progress` | emails | Reconcile Campaign Progress | - | CampaignProgressReconcileResponse |
 | POST | `/api/emails/campaigns/{campaign_id}/salesforce-upload` | emails | Upload Campaign To Salesforce | - | CampaignSalesforceUploadResponse |
 | GET | `/api/emails/campaigns/{campaign_id}/stats` | emails | Get Campaign Stats | - | EmailCampaignStatsResponse |
+| POST | `/api/emails/campaigns/{campaign_id}/sync-salesforce-history` | emails | Sync Campaign Salesforce History | - | CampaignSalesforceHistorySyncResponse |
 | PUT | `/api/emails/campaigns/{campaign_id}/template-link` | emails | Link Campaign Template | object | - |
 | GET | `/api/emails/campaigns/{campaign_id}/templates` | emails | Get Templates | - | array |
 | POST | `/api/emails/campaigns/{campaign_id}/templates` | emails | Save Template | EmailTemplateCreate | array |
 | POST | `/api/emails/campaigns/{campaign_id}/templates/bulk` | emails | Save Templates Bulk | array | array |
 | GET | `/api/emails/config` | emails | Get Email Config | - | EmailConfigResponse |
 | PUT | `/api/emails/config` | emails | Update Email Config | EmailConfigUpdateRequest | EmailConfigUpdateResponse |
+| GET | `/api/emails/contacts/{contact_id}/campaign-enrollments` | emails | Get Contact Campaign Enrollments | - | - |
 | GET | `/api/emails/conversations/{contact_id}/thread` | emails | Get Conversation Thread | - | ConversationThreadResponse |
 | POST | `/api/emails/conversations/{reply_id}/mark-handled` | emails | Mark Conversation Handled | - | SuccessResponse |
 | GET | `/api/emails/dashboard-metrics` | emails | Get Dashboard Metrics | - | DashboardMetricsResponse |
 | POST | `/api/emails/outlook/auth` | emails | Start Outlook Auth | - | OutlookAuthStartResponse |
 | GET | `/api/emails/outlook/auth-status` | emails | Get Outlook Auth Status | - | OutlookAuthStatusResponse |
+| GET | `/api/emails/outlook/inbound-leads/alerts` | emails | Get Inbound Lead Alerts | - | InboundLeadAlertsResponse |
+| POST | `/api/emails/outlook/inbound-leads/backfill-details` | emails | Backfill Inbound Lead Details Endpoint | - | InboundLeadBackfillResponse |
+| POST | `/api/emails/outlook/inbound-leads/mark-seen` | emails | Mark Inbound Leads Seen | - | InboundLeadMarkSeenResponse |
+| POST | `/api/emails/outlook/inbound-leads/queue-salesforce` | emails | Queue Inbound Leads For Salesforce | - | InboundLeadQueueSalesforceResponse |
+| GET | `/api/emails/outlook/inbound-leads/recent` | emails | Get Recent Inbound Leads | - | array |
 | POST | `/api/emails/outlook/logout` | emails | Outlook Logout | - | SuccessResponse |
 | POST | `/api/emails/outlook/poll-replies` | emails | Poll Outlook Replies Endpoint | - | OutlookPollRepliesResponse |
+| GET | `/api/emails/outlook/poll-status` | emails | Get Outlook Poll Status | - | OutlookPollStatusResponse |
 | POST | `/api/emails/poll-tracking` | emails | Poll Tracking | - | TrackingPollResponse |
 | POST | `/api/emails/prepare-batch` | emails | Prepare Batch | - | BatchPreparationResponse |
 | POST | `/api/emails/preview` | emails | Preview Email | - | EmailPreviewResponse |
@@ -161,10 +178,18 @@ title: "API Endpoint Catalog"
 | POST | `/api/google/search-browser` | google | Google Search Browser | GoogleSearchBrowserRequest | GoogleSearchBrowserResponse |
 | GET | `/api/langgraph/runs` | langgraph | List Runs | - | object |
 | POST | `/api/langgraph/runs` | langgraph | Create Run | CreateRunRequest | object |
+| POST | `/api/langgraph/runs/lead-research` | langgraph | Create Lead Research Run | CreateLeadResearchRunRequest | object |
 | POST | `/api/langgraph/runs/{run_id}/cancel` | langgraph | Cancel Run | - | object |
 | POST | `/api/langgraph/runs/{run_id}/continue` | langgraph | Continue Run | - | object |
+| GET | `/api/langgraph/runs/{run_id}/evidence` | langgraph | Run Lead Evidence | - | object |
+| GET | `/api/langgraph/runs/{run_id}/lead-results` | langgraph | Run Lead Results | - | object |
 | POST | `/api/langgraph/runs/{run_id}/start` | langgraph | Start Run | - | object |
 | GET | `/api/langgraph/runs/{run_id}/status` | langgraph | Run Status | - | RunStatusResponse |
+| GET | `/api/leads/credits` | leads | Get Lead Credits | - | - |
+| POST | `/api/leads/export/crm` | leads | Export Leads Crm | ExportCrmRequest | - |
+| POST | `/api/leads/export/csv` | leads | Export Leads | ExportLeadsRequest | - |
+| GET | `/api/leads/runs/{run_id}` | leads | Get Run Leads | - | - |
+| POST | `/api/leads/save` | leads | Save Leads | SaveLeadsRequest | - |
 | GET | `/api/notes` | notes | List Notes | - | inline |
 | POST | `/api/notes` | notes | Create Note | CreateNoteRequest | inline |
 | POST | `/api/pipeline/emails` | pipeline | Run Email Discovery | - | PipelineStartedResponse |

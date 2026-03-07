@@ -1,10 +1,19 @@
-# Salesforce Outreach Automation
+﻿# LeadForge - Open-Source Origami.chat Alternative
 
-A complete system for sending tracked emails through Salesforce using Playwright UI automation. No API access required.
+Natural language to real-time AI agent swarm lead research for B2B/local prospecting.
+LeadForge is transparent, self-hostable, evidence-backed, and cost-optimized for local-first LLM usage.
+
+## What LeadForge Does
+
+1. Parse plain-English lead requests into structured criteria.
+2. Run a multi-source research swarm (web, maps, licenses, reviews, jobs).
+3. Enrich, score, deduplicate, and persist leads with evidence.
+4. Stream run progress and source-level trace output.
+5. Export CSV and promote selected leads into Contacts.
 
 ## Overview
 
-This system automates B2B outreach by:
+This system automates lead research and outreach by:
 1. **Crawling** target company websites to find contact information
 2. **Extracting** structured data using LLM (with evidence-backed extraction)
 3. **Scoring & Deduplicating** leads based on fit, contact quality, and confidence
@@ -13,16 +22,16 @@ This system automates B2B outreach by:
 ## Architecture
        
 ```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Crawler   │────▶│  Extractor  │────▶│   Planner   │
-│ (fetch/parse)     │   (LLM)     │     │ (score/plan)│
-└─────────────┘     └─────────────┘     └─────────────┘
-                                               │
-                                               ▼
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  Reporter   │◀────│ SalesforceBot│◀───│ Send Queue  │
-│  (stats/CSV)│     │ (Playwright) │     │  (SQLite)   │
-└─────────────┘     └─────────────┘     └─────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”     â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”     â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚   Crawler   â”‚â”€â”€â”€â”€â–¶â”‚  Extractor  â”‚â”€â”€â”€â”€â–¶â”‚   Planner   â”‚
+â”‚ (fetch/parse)     â”‚   (LLM)     â”‚     â”‚ (score/plan)â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜     â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜     â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                               â”‚
+                                               â–¼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”     â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”     â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚  Reporter   â”‚â—€â”€â”€â”€â”€â”‚ SalesforceBotâ”‚â—€â”€â”€â”€â”‚ Send Queue  â”‚
+â”‚  (stats/CSV)â”‚     â”‚ (Playwright) â”‚     â”‚  (SQLite)   â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜     â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜     â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ## Documentation Architecture
@@ -165,15 +174,15 @@ LLM_MAX_OUTPUT_TOKENS = 120     # Concise outputs
 To switch the local tool-calling/intent-routing model between FunctionGemma and Devstral, set UI env vars in `ui/.env`:
 
 ```env
-VITE_TOOL_BRAIN=functiongemma
+NEXT_PUBLIC_TOOL_BRAIN=functiongemma
 # or
-VITE_TOOL_BRAIN=devstral-small-2
+NEXT_PUBLIC_TOOL_BRAIN=devstral-small-2
 ```
 
 Optional explicit model tag override:
 
 ```env
-VITE_OLLAMA_TOOL_BRAIN_MODEL=devstral-small-2:latest
+NEXT_PUBLIC_OLLAMA_TOOL_BRAIN_MODEL=devstral-small-2:latest
 ```
 
 This model is used for API tool interaction (intent routing, tool selection, structured arguments, and multi-step tool planning).
@@ -181,33 +190,33 @@ This model is used for API tool interaction (intent routing, tool selection, str
 If you run a local `llama.cpp` server (OpenAI-compatible API) instead of Ollama:
 
 ```env
-VITE_OLLAMA_URL=http://127.0.0.1:8080
-VITE_LOCAL_LLM_API=openai
+NEXT_PUBLIC_OLLAMA_URL=http://127.0.0.1:8080
+NEXT_PUBLIC_LOCAL_LLM_API=openai
 ```
 
 Qwen2.5-Coder 32B profile for structured reasoning and extraction:
 
 ```env
-VITE_TOOL_BRAIN=qwen3
-VITE_PLANNER_BACKEND=qwen3
-VITE_DECOMPOSE_CLASSIFIER_MODEL=gemma3:12b
-VITE_OLLAMA_QWEN3_MODEL=qwen2.5:32b-instruct
-VITE_OLLAMA_GEMMA_MODEL=gemma3:12b
+NEXT_PUBLIC_TOOL_BRAIN=qwen3
+NEXT_PUBLIC_PLANNER_BACKEND=qwen3
+NEXT_PUBLIC_DECOMPOSE_CLASSIFIER_MODEL=gemma3:12b
+NEXT_PUBLIC_OLLAMA_QWEN3_MODEL=qwen2.5:32b-instruct
+NEXT_PUBLIC_OLLAMA_GEMMA_MODEL=gemma3:12b
 ```
 
 Single-pass latency benchmark mode (closest to terminal-style prompt timing):
 
 ```env
-VITE_CHAT_BENCHMARK_MODE=true
-VITE_CHAT_BENCHMARK_MODEL=qwen2.5:32b-instruct
-VITE_CHAT_BENCHMARK_NUM_PREDICT=256
+NEXT_PUBLIC_CHAT_BENCHMARK_MODE=true
+NEXT_PUBLIC_CHAT_BENCHMARK_MODEL=qwen2.5:32b-instruct
+NEXT_PUBLIC_CHAT_BENCHMARK_NUM_PREDICT=256
 ```
 
 Saved local llama.cpp profile (Qwen2.5-Coder-32B GGUF):
 
 - Script: `scripts/run_qwen25_coder_32b_llama_cli.ps1`
 - Server script (OpenAI-compatible API for UI): `scripts/run_qwen25_coder_32b_llama_server.ps1`
-- Env path vars: `LLAMA_CPP_TOOL_BRAIN_DIR`, `LLAMA_CPP_TOOL_BRAIN_MODEL_PATH`, `VITE_LLAMA_CPP_TOOL_BRAIN_MODEL_PATH`
+- Env path vars: `LLAMA_CPP_TOOL_BRAIN_DIR`, `LLAMA_CPP_TOOL_BRAIN_MODEL_PATH`, `NEXT_PUBLIC_LLAMA_CPP_TOOL_BRAIN_MODEL_PATH`
 
 Command:
 
@@ -224,11 +233,15 @@ cd C:\llm\llama
 
 ### Chat Workspace Layout (UI)
 
-The app shell is now chat-first with an on-demand manual workspace:
+The app shell uses a unified two-region workspace across pages:
 
-- Chat panel: assistant collapses to input-only when navigating via the left sidebar, and expands again when the user types.
-- Top interaction sheet: contextual UI components slide down from the top during chat-driven workflows; manual sidebar routes render without the workspace header container.
-- Dynamic split: when the top sheet opens, chat shrinks to keep both contexts visible.
+- Main region: route content remains in the top workspace area and scrolls internally.
+- Assistant region: a docked bottom panel is always attached to the workspace shell (not a floating popout or modal).
+- Docked composition: subtle top divider, compact assistant header, lightweight message feed, and toolbar-style composer anchored to the panel bottom.
+- Default sizing: desktop assistant height targets a compact working range (~300-340px) so page content remains visible.
+- Dock controls: top-edge drag handle resizes the assistant from header-only collapsed state up to full workspace height (reaching the page header boundary); minimize snaps to header-only.
+- Composer layout: chat input is a single compact surface (toolbar + textarea + send controls together), and model menus open upward from the dock.
+- Top interaction sheet: contextual UI components can still slide down from the top during chat-driven workflows.
 - Sidebar routes remain separate full page routes (manual navigation still works as before).
 
 Recent UI updates added:
@@ -238,8 +251,8 @@ Recent UI updates added:
 - top-sheet workspace with one-click expand/collapse transitions,
 - live interaction tray defaults to a compact single-row bar (collapsed), can be pinned open, and auto-collapses on completion unless pinned,
 - filter/workflow interactions now show explicit state (`in progress`, `completed`, `failed`) with result labels,
-- chat dock state persistence (expanded/pinned) and trace access from expanded mode,
-- Contacts page now uses a right-side assistant panel on desktop and removes the bottom chat dock from that view,
+- chat dock state persistence (expanded for non-embedded/fallback modes) and trace access,
+- shared shell now renders the assistant as a docked bottom workspace panel across routes,
 - chat-triggered filter/navigation/selection actions render contextual interaction cards (filter chips, target view hints, live progress bars) instead of only a loading indicator,
 - zero-result contact searches now surface an inline create-contact form prefilled from the chat query,
 - full route pages can still be opened explicitly from sidebar navigation or from interaction-card "Open Full Page" actions,
@@ -249,7 +262,7 @@ Recent UI updates added:
 
 Feature flag behavior:
 
-- `VITE_CHAT_FIRST_SHELL=true` enables chat-first shell by default.
+- `NEXT_PUBLIC_CHAT_FIRST_SHELL=true` enables chat-first shell by default.
 - local override key: `hello_feature_chat_first_shell` (`on` / `off`) from Settings.
 - temporary fallback: add `?legacyShell=1` to force legacy split-pane shell.
 
@@ -319,14 +332,14 @@ python main.py status  # Shows projected monthly cost
 The system runs **30 concurrent browser instances** for maximum throughput.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Worker Pool (30)                      │
-├─────────┬─────────┬─────────┬─────────┬────────────────┤
-│Worker 0 │Worker 1 │Worker 2 │  ...    │   Worker 29    │
-│ 🌐 SF   │ 🌐 SF   │ 🌐 SF   │         │    🌐 SF       │
-└────┬────┴────┬────┴────┬────┴─────────┴───────┬────────┘
-     │         │         │                       │
-     ▼         ▼         ▼                       ▼
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚                    Worker Pool (30)                      â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚Worker 0 â”‚Worker 1 â”‚Worker 2 â”‚  ...    â”‚   Worker 29    â”‚
+â”‚ ðŸŒ SF   â”‚ ðŸŒ SF   â”‚ ðŸŒ SF   â”‚         â”‚    ðŸŒ SF       â”‚
+â””â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”´â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”´â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+     â”‚         â”‚         â”‚                       â”‚
+     â–¼         â–¼         â–¼                       â–¼
   [Send 1]  [Send 2]  [Send 3]    ...        [Send N]
 ```
 
@@ -398,28 +411,28 @@ With `--review --workers 30`:
 
 ```
 data/
-├── outreach.db              # SQLite database
-├── salesforce_auth.json     # Browser session
-├── pages/                   # Cached page content
-│   └── {domain}/
-│       ├── {hash}.html
-│       ├── {hash}.txt
-│       └── {hash}.json
-├── screenshots/             # Failure screenshots
-└── reports/
-    ├── daily_report_YYYY-MM-DD.csv
-    └── failures_YYYY-MM-DD/
+â”œâ”€â”€ outreach.db              # SQLite database
+â”œâ”€â”€ salesforce_auth.json     # Browser session
+â”œâ”€â”€ pages/                   # Cached page content
+â”‚   â””â”€â”€ {domain}/
+â”‚       â”œâ”€â”€ {hash}.html
+â”‚       â”œâ”€â”€ {hash}.txt
+â”‚       â””â”€â”€ {hash}.json
+â”œâ”€â”€ screenshots/             # Failure screenshots
+â””â”€â”€ reports/
+    â”œâ”€â”€ daily_report_YYYY-MM-DD.csv
+    â””â”€â”€ failures_YYYY-MM-DD/
 ```
 
 ## Guardrails
 
 The system automatically skips:
-- ❌ Contacts without direct email
-- ❌ Generic inbox emails (info@, contact@)
-- ❌ Irrelevant roles (interns, students)
-- ❌ Low confidence extractions (< 0.6)
-- ❌ Salesforce "Email Opt Out" contacts
-- ❌ Previously contacted emails (deduped)
+- âŒ Contacts without direct email
+- âŒ Generic inbox emails (info@, contact@)
+- âŒ Irrelevant roles (interns, students)
+- âŒ Low confidence extractions (< 0.6)
+- âŒ Salesforce "Email Opt Out" contacts
+- âŒ Previously contacted emails (deduped)
 
 ## Troubleshooting
 
@@ -514,3 +527,4 @@ python main.py report --export-csv
 MIT
 
 "# hello" 
+

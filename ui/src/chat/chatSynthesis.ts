@@ -1,4 +1,4 @@
-import type { ChatCompletionMessageParam } from './chatEngineTypes';
+﻿import type { ChatCompletionMessageParam } from './chatEngineTypes';
 import type { ModelRoute } from './router';
 import { routeMessage } from './router';
 import { getOllamaReadyFast } from './ollamaStatus';
@@ -32,13 +32,13 @@ export type SynthesisResult = {
   synthesized: boolean;
 };
 
-const ENABLE_CHAT_SYNTHESIS = (import.meta.env.VITE_CHAT_SYNTHESIS || 'true').toLowerCase() === 'true';
-const SYNTHESIS_MODEL_OVERRIDE = (import.meta.env.VITE_CHAT_SYNTHESIS_MODEL || '').trim();
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
-const OPENAI_MODEL = import.meta.env.VITE_OPENAI_SYNTHESIS_MODEL || 'gpt-4o-mini';
-const QWEN_MODEL = import.meta.env.VITE_OLLAMA_QWEN3_MODEL || TOOL_BRAIN_MODEL;
-const GEMMA_MODEL = import.meta.env.VITE_OLLAMA_GEMMA_MODEL || 'gemma3:12b';
-const DEEPSEEK_MODEL = import.meta.env.VITE_OLLAMA_DEEPSEEK_MODEL || 'deepseek-r1:14b';
+const ENABLE_CHAT_SYNTHESIS = (process.env.NEXT_PUBLIC_CHAT_SYNTHESIS || 'true').toLowerCase() === 'true';
+const SYNTHESIS_MODEL_OVERRIDE = (process.env.NEXT_PUBLIC_CHAT_SYNTHESIS_MODEL || '').trim();
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+const OPENAI_MODEL = process.env.NEXT_PUBLIC_OPENAI_SYNTHESIS_MODEL || 'gpt-4o-mini';
+const QWEN_MODEL = process.env.NEXT_PUBLIC_OLLAMA_QWEN3_MODEL || TOOL_BRAIN_MODEL;
+const GEMMA_MODEL = process.env.NEXT_PUBLIC_OLLAMA_GEMMA_MODEL || 'gemma3:12b';
+const DEEPSEEK_MODEL = process.env.NEXT_PUBLIC_OLLAMA_DEEPSEEK_MODEL || 'deepseek-r1:14b';
 
 const MAX_CALLS = 8;
 const MAX_STRING = 240;
@@ -258,3 +258,4 @@ export async function synthesizeAnswer(input: SynthesisInput): Promise<Synthesis
     };
   }
 }
+

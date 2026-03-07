@@ -1,73 +1,44 @@
-# React + TypeScript + Vite
+﻿# UI (Next.js + TypeScript)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This frontend runs on Next.js (App Router) with file-based routes under `src/app/(workspace)/*`.
 
-Currently, two official plugins are available:
+## Scripts
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- `npm run dev` - start Next.js dev server
+- `npm run build` - production build
+- `npm run start` - run production server
+- `npm run test` - run Vitest test suite
+- `npm run lint` - run ESLint
+- `npm run generate:capabilities` - regenerate capability artifacts
 
-## React Compiler
+## Environment Variables
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Client-exposed variables must use the `NEXT_PUBLIC_` prefix (previously `VITE_`).
 
-## Expanding the ESLint configuration
+Examples:
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- `NEXT_PUBLIC_API_BASE_URL`
+- `NEXT_PUBLIC_OLLAMA_URL`
+- `NEXT_PUBLIC_TOOL_BRAIN`
+- `NEXT_PUBLIC_CHAT_RUNTIME_ENABLED`
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+See `.env.example` for the full set used by the app.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Routing Model
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Next.js serves each page with file-based routes in `src/app/(workspace)`, and navigation uses Next router APIs from `next/navigation`.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## UI Conventions
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- Base button sizing is standardized globally to match Contacts page controls (`h-8`, `px-3`, `rounded-md`, `text-xs`, `font-medium`).
+- Pages can still override button size locally with explicit Tailwind utility classes when needed.
+- Header action naming convention:
+  - Primary create action: `New <Entity>` (for example: `New Contact`, `New Company`, `New Template`)
+  - Secondary actions: imperative verbs (`Refresh`, `Export CSV`, `Import CSV`, `Upload Document`)
+- Use `HeaderActionButton` for page-header actions so sizing and variants remain uniform.
+- Primary `New <Entity>` header actions use a shared minimum width (`min-w-[9rem]`) for visual uniformity.
+- Header action placement convention:
+  - Place primary action as the rightmost action in `PageHeader.desktopActions`
+  - Place compact equivalents in `PageHeader.mobileActions`
+  - Keep search/filter controls in the header toolbar directly below `PageHeader` (outside data table cards)
+- Use `WorkspacePageShell` for workspace pages to keep sticky header spacing and action alignment identical when switching routes.
