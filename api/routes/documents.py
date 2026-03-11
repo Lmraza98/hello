@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
@@ -53,6 +54,16 @@ class MoveDocumentRequest(BaseModel):
     to_folder_path: str = ""
 
 
+class ReorderFolderRequest(BaseModel):
+    parent_path: str = ""
+    ordered_paths: list[str] = Field(default_factory=list)
+
+
+class ReorderDocumentsRequest(BaseModel):
+    folder_path: str = ""
+    ordered_ids: list[str] = Field(default_factory=list)
+
+
 class RenameFolderRequest(BaseModel):
     name: str
 
@@ -95,11 +106,96 @@ def _ensure_folder_chain(cursor, path: str):
             continue
         cursor.execute(
             """
-            INSERT INTO document_folders (path, parent_path, name)
-            VALUES (?, ?, ?)
+            INSERT INTO document_folders (path, parent_path, name, sort_order)
+            VALUES (
+                ?, ?, ?,
+                COALESCE((SELECT MAX(sort_order) + 1 FROM document_folders WHERE parent_path = ?), 0)
+            )
             """,
-            (current, parent, part),
+            (current, parent, part, parent),
         )
+
+
+def _ensure_document_order_columns(cursor):
+    try:
+        cursor.execute("ALTER TABLE documents ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0")
+    except Exception:
+        pass
+    try:
+        cursor.execute("ALTER TABLE document_folders ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0")
+    except Exception:
+        pass
+    folder_has_custom_order = cursor.execute(
+        "SELECT 1 FROM document_folders WHERE sort_order <> 0 LIMIT 1"
+    ).fetchone()
+    if not folder_has_custom_order:
+        cursor.execute(
+            """
+            UPDATE document_folders
+            SET sort_order = (
+                SELECT COUNT(1)
+                FROM document_folders other
+                WHERE COALESCE(other.parent_path, '') = COALESCE(document_folders.parent_path, '')
+                  AND (
+                    LOWER(other.name) < LOWER(document_folders.name)
+                    OR (LOWER(other.name) = LOWER(document_folders.name) AND other.path <= document_folders.path)
+                  )
+            ) - 1
+            """
+        )
+    document_has_custom_order = cursor.execute(
+        "SELECT 1 FROM documents WHERE sort_order <> 0 LIMIT 1"
+    ).fetchone()
+    if not document_has_custom_order:
+        cursor.execute(
+            """
+            UPDATE documents
+            SET sort_order = (
+                SELECT COUNT(1)
+                FROM documents other
+                WHERE COALESCE(other.folder_path, '') = COALESCE(documents.folder_path, '')
+                  AND (
+                    COALESCE(other.uploaded_at, '') > COALESCE(documents.uploaded_at, '')
+                    OR (
+                      COALESCE(other.uploaded_at, '') = COALESCE(documents.uploaded_at, '')
+                      AND other.id <= documents.id
+                    )
+                  )
+            ) - 1
+            """
+        )
+
+
+def _split_filename_parts(filename: str) -> tuple[str, str]:
+    path = Path(filename.strip())
+    stem = path.stem or filename.strip()
+    suffix = path.suffix or ""
+    return stem, suffix
+
+
+def _folder_has_document_named(cursor, *, folder_path: str, filename: str, exclude_id: str | None = None) -> bool:
+    params: list[Any] = [_normalize_folder_path(folder_path), filename.strip()]
+    query = "SELECT 1 FROM documents WHERE COALESCE(folder_path, '') = ? AND LOWER(filename) = LOWER(?)"
+    if exclude_id:
+        query += " AND id <> ?"
+        params.append(exclude_id)
+    query += " LIMIT 1"
+    return cursor.execute(query, params).fetchone() is not None
+
+
+def _next_available_document_name(cursor, *, folder_path: str, filename: str, exclude_id: str | None = None) -> str:
+    candidate = filename.strip()
+    if not candidate:
+        return candidate
+    if not _folder_has_document_named(cursor, folder_path=folder_path, filename=candidate, exclude_id=exclude_id):
+        return candidate
+    stem, suffix = _split_filename_parts(candidate)
+    index = 2
+    while True:
+        candidate = f"{stem} ({index}){suffix}"
+        if not _folder_has_document_named(cursor, folder_path=folder_path, filename=candidate, exclude_id=exclude_id):
+            return candidate
+        index += 1
 
 
 @router.post("/upload", responses=COMMON_ERROR_RESPONSES)
@@ -165,6 +261,7 @@ def list_documents(
 
     with db.get_db() as conn:
         cursor = conn.cursor()
+        _ensure_document_order_columns(cursor)
         cursor.execute(
             f"""
             SELECT d.*,
@@ -174,7 +271,7 @@ def list_documents(
             FROM documents d
             LEFT JOIN targets t ON t.id = d.linked_company_id
             {where}
-            ORDER BY d.uploaded_at DESC, d.id DESC
+            ORDER BY COALESCE(d.folder_path, '') ASC, d.sort_order ASC, d.uploaded_at DESC, d.id DESC
             LIMIT ? OFFSET ?
             """,
             [*params, max(1, min(int(limit), 500)), max(0, int(offset))],
@@ -199,11 +296,12 @@ def list_documents(
 def list_document_folders():
     with db.get_db() as conn:
         cursor = conn.cursor()
+        _ensure_document_order_columns(cursor)
         rows = cursor.execute(
             """
-            SELECT path, parent_path, name, created_at, updated_at
+            SELECT path, parent_path, name, created_at, updated_at, sort_order
             FROM document_folders
-            ORDER BY path ASC
+            ORDER BY COALESCE(parent_path, '') ASC, sort_order ASC, path ASC
             """
         ).fetchall()
     return {"count": len(rows), "folders": [dict(r) for r in rows]}
@@ -222,6 +320,7 @@ def create_document_folder(request: CreateFolderRequest):
 
     with db.get_db() as conn:
         cursor = conn.cursor()
+        _ensure_document_order_columns(cursor)
         if parent:
             parent_exists = cursor.execute("SELECT 1 FROM document_folders WHERE path = ?", (parent,)).fetchone()
             if not parent_exists:
@@ -232,10 +331,13 @@ def create_document_folder(request: CreateFolderRequest):
 
         cursor.execute(
             """
-            INSERT INTO document_folders (path, parent_path, name)
-            VALUES (?, ?, ?)
+            INSERT INTO document_folders (path, parent_path, name, sort_order)
+            VALUES (
+                ?, ?, ?,
+                COALESCE((SELECT MAX(sort_order) + 1 FROM document_folders WHERE parent_path = ?), 0)
+            )
             """,
-            (path, parent, name),
+            (path, parent, name, parent),
         )
 
     return {"success": True, "path": path, "parent_path": parent, "name": name}
@@ -257,6 +359,7 @@ def move_document_folder(request: MoveFolderRequest):
 
     with db.get_db() as conn:
         cursor = conn.cursor()
+        _ensure_document_order_columns(cursor)
 
         explicit_src = cursor.execute("SELECT 1 FROM document_folders WHERE path = ?", (from_path,)).fetchone()
         docs_src = cursor.execute(
@@ -283,6 +386,21 @@ def move_document_folder(request: MoveFolderRequest):
             new_path = f"{target_path}{suffix}"
             new_parent = _normalize_folder_path(new_path.rsplit("/", 1)[0] if "/" in new_path else "")
             new_name = _folder_name(new_path)
+            if old_path == from_path:
+                next_sort_order_row = cursor.execute(
+                    "SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_sort_order FROM document_folders WHERE parent_path = ?",
+                    (to_parent,),
+                ).fetchone()
+                next_sort_order = int(next_sort_order_row["next_sort_order"])
+                cursor.execute(
+                    """
+                    UPDATE document_folders
+                    SET path = ?, parent_path = ?, name = ?, sort_order = ?, updated_at = CURRENT_TIMESTAMP
+                    WHERE path = ?
+                    """,
+                    (new_path, new_parent, new_name, next_sort_order, old_path),
+                )
+                continue
             cursor.execute(
                 """
                 UPDATE document_folders
@@ -311,12 +429,22 @@ def move_document(document_id: str, request: MoveDocumentRequest):
 
     with db.get_db() as conn:
         cursor = conn.cursor()
-        doc = cursor.execute("SELECT id FROM documents WHERE id = ?", (document_id,)).fetchone()
+        _ensure_document_order_columns(cursor)
+        doc = cursor.execute("SELECT id, filename FROM documents WHERE id = ?", (document_id,)).fetchone()
         if not doc:
             raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Document not found"})
         if to_folder:
             _ensure_folder_chain(cursor, to_folder)
-        cursor.execute("UPDATE documents SET folder_path = ? WHERE id = ?", (to_folder, document_id))
+        if _folder_has_document_named(cursor, folder_path=to_folder, filename=str(doc["filename"] or ""), exclude_id=document_id):
+            raise HTTPException(status_code=409, detail={"code": "already_exists", "message": "A document with this name already exists in the destination folder"})
+        next_sort_order_row = cursor.execute(
+            "SELECT COALESCE(MAX(sort_order) + 1, 0) AS next_sort_order FROM documents WHERE COALESCE(folder_path, '') = ?",
+            (to_folder,),
+        ).fetchone()
+        cursor.execute(
+            "UPDATE documents SET folder_path = ?, sort_order = ? WHERE id = ?",
+            (to_folder, int(next_sort_order_row["next_sort_order"]), document_id),
+        )
 
     return {"success": True, "document_id": document_id, "folder_path": to_folder}
 
@@ -403,6 +531,54 @@ def rename_document_folder(folder_path: str, request: RenameFolderRequest):
     return {"success": True, "path": target_path, "name": next_name}
 
 
+@router.post("/folders/reorder", responses=COMMON_ERROR_RESPONSES)
+def reorder_document_folders(request: ReorderFolderRequest):
+    parent = _normalize_folder_path(request.parent_path)
+    ordered_paths = [_normalize_folder_path(path) for path in request.ordered_paths if _normalize_folder_path(path)]
+    if not ordered_paths:
+        return {"success": True, "count": 0}
+
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        _ensure_document_order_columns(cursor)
+        rows = cursor.execute(
+            "SELECT path FROM document_folders WHERE parent_path = ?",
+            (parent,),
+        ).fetchall()
+        valid_paths = {str(row["path"]) for row in rows}
+        filtered_paths = [path for path in ordered_paths if path in valid_paths]
+        for index, path in enumerate(filtered_paths):
+            cursor.execute(
+                "UPDATE document_folders SET sort_order = ?, updated_at = CURRENT_TIMESTAMP WHERE path = ?",
+                (index, path),
+            )
+    return {"success": True, "count": len(ordered_paths)}
+
+
+@router.post("/reorder", responses=COMMON_ERROR_RESPONSES)
+def reorder_documents(request: ReorderDocumentsRequest):
+    folder_path = _normalize_folder_path(request.folder_path)
+    ordered_ids = [str(item).strip() for item in request.ordered_ids if str(item).strip()]
+    if not ordered_ids:
+        return {"success": True, "count": 0}
+
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        _ensure_document_order_columns(cursor)
+        rows = cursor.execute(
+            "SELECT id FROM documents WHERE COALESCE(folder_path, '') = ?",
+            (folder_path,),
+        ).fetchall()
+        valid_ids = {str(row["id"]) for row in rows}
+        filtered_ids = [document_id for document_id in ordered_ids if document_id in valid_ids]
+        for index, document_id in enumerate(filtered_ids):
+            cursor.execute(
+                "UPDATE documents SET sort_order = ? WHERE id = ?",
+                (index, document_id),
+            )
+    return {"success": True, "count": len(filtered_ids)}
+
+
 @router.get("/{document_id}", responses=COMMON_ERROR_RESPONSES)
 def get_document(document_id: str):
     with db.get_db() as conn:
@@ -450,6 +626,17 @@ def get_document(document_id: str):
     }
 
 
+@router.delete("/{document_id}", responses=COMMON_ERROR_RESPONSES)
+def delete_document(document_id: str):
+    with db.get_db() as conn:
+        cursor = conn.cursor()
+        existing = cursor.execute("SELECT id, filename FROM documents WHERE id = ?", (document_id,)).fetchone()
+        if not existing:
+            raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Document not found"})
+        cursor.execute("DELETE FROM documents WHERE id = ?", (document_id,))
+    return {"success": True, "document_id": document_id, "filename": str(existing["filename"] or "")}
+
+
 @router.patch("/{document_id}/rename", responses=COMMON_ERROR_RESPONSES)
 def rename_document(document_id: str, request: RenameDocumentRequest):
     next_name = request.name.strip()
@@ -460,9 +647,11 @@ def rename_document(document_id: str, request: RenameDocumentRequest):
 
     with db.get_db() as conn:
         cursor = conn.cursor()
-        row = cursor.execute("SELECT filename, storage_path FROM documents WHERE id = ?", (document_id,)).fetchone()
+        row = cursor.execute("SELECT filename, storage_path, COALESCE(folder_path, '') AS folder_path FROM documents WHERE id = ?", (document_id,)).fetchone()
         if not row:
             raise HTTPException(status_code=404, detail={"code": "not_found", "message": "Document not found"})
+        if _folder_has_document_named(cursor, folder_path=str(row["folder_path"] or ""), filename=next_name, exclude_id=document_id):
+            raise HTTPException(status_code=409, detail={"code": "already_exists", "message": "A document with this name already exists in this folder"})
 
         old_filename = str(row["filename"] or "").strip()
         storage_path = str(row["storage_path"] or "")
@@ -476,8 +665,7 @@ def rename_document(document_id: str, request: RenameDocumentRequest):
             """
             UPDATE documents
             SET filename = ?,
-                storage_path = ?,
-                updated_at = CURRENT_TIMESTAMP
+                storage_path = ?
             WHERE id = ?
             """,
             (next_name, new_storage_path, document_id),

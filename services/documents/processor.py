@@ -5,6 +5,7 @@ import json
 import os
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 import database as db
 from services.documents.analysis import analysis_to_db_payload, analyze_document
@@ -46,6 +47,24 @@ def create_document_record(
 ) -> str:
     document_id = str(uuid.uuid4())
     with db.get_db() as conn:
+        candidate_name = filename.strip()
+        existing_names = {
+            str(row["filename"])
+            for row in conn.execute(
+                "SELECT filename FROM documents WHERE COALESCE(folder_path, '') = ''"
+            ).fetchall()
+        }
+        if candidate_name in existing_names:
+            path = Path(candidate_name)
+            stem = path.stem or candidate_name
+            suffix = path.suffix or ""
+            index = 2
+            while True:
+                next_name = f"{stem} ({index}){suffix}"
+                if next_name not in existing_names:
+                    candidate_name = next_name
+                    break
+                index += 1
         conn.execute(
             """
             INSERT INTO documents (
@@ -56,7 +75,7 @@ def create_document_record(
             """,
             (
                 document_id,
-                filename,
+                candidate_name,
                 _normalize_mime(filename, mime_type),
                 int(file_size_bytes),
                 storage_backend,

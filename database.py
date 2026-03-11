@@ -2792,12 +2792,12 @@ def aggregate_costs(range_key: str) -> Dict[str, Any]:
 
 # ============ Review Queue Operations ============
 
-def get_review_queue(limit: int = 50) -> List[Dict]:
+def get_review_queue(limit: int | None = None) -> List[Dict]:
     """Get emails pending review (review_status = 'ready_for_review').
     Joins with linkedin_contacts and email_campaigns for display data."""
     with get_db() as conn:
         cursor = conn.cursor()
-        cursor.execute("""
+        query = """
             SELECT 
                 se.*,
                 lc.name as contact_name,
@@ -2811,8 +2811,12 @@ def get_review_queue(limit: int = 50) -> List[Dict]:
             JOIN email_campaigns ec ON se.campaign_id = ec.id
             WHERE se.review_status = 'ready_for_review'
             ORDER BY se.id ASC
-            LIMIT ?
-        """, (limit,))
+        """
+        params: list[object] = []
+        if limit is not None:
+            query += "\n            LIMIT ?"
+            params.append(limit)
+        cursor.execute(query, params)
         return [dict(row) for row in cursor.fetchall()]
 
 

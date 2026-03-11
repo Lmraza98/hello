@@ -90,12 +90,15 @@ title: "API Endpoint Catalog"
 | GET | `/api/documents/folders` | documents | List Document Folders | - | - |
 | POST | `/api/documents/folders` | documents | Create Document Folder | CreateFolderRequest | - |
 | POST | `/api/documents/folders/move` | documents | Move Document Folder | MoveFolderRequest | - |
+| POST | `/api/documents/folders/reorder` | documents | Reorder Document Folders | ReorderFolderRequest | - |
 | DELETE | `/api/documents/folders/{folder_path}` | documents | Delete Document Folder | - | - |
 | PATCH | `/api/documents/folders/{folder_path}/rename` | documents | Rename Document Folder | RenameFolderRequest | - |
 | POST | `/api/documents/link` | documents | Link Document To Entities | LinkDocumentRequest | - |
+| POST | `/api/documents/reorder` | documents | Reorder Documents | ReorderDocumentsRequest | - |
 | POST | `/api/documents/search` | documents | Search Documents | SearchDocumentsRequest | - |
 | POST | `/api/documents/upload` | documents | Upload Document | Body_upload_document_api_documents_upload_post | - |
 | GET | `/api/documents/{document_id}` | documents | Get Document | - | - |
+| DELETE | `/api/documents/{document_id}` | documents | Delete Document | - | - |
 | POST | `/api/documents/{document_id}/move` | documents | Move Document | MoveDocumentRequest | - |
 | PATCH | `/api/documents/{document_id}/rename` | documents | Rename Document | RenameDocumentRequest | - |
 | POST | `/api/documents/{document_id}/retry` | documents | Retry Document Processing | - | - |
