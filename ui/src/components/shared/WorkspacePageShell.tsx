@@ -33,11 +33,11 @@ export function WorkspacePageShell({
   return (
     <div className="h-full flex flex-col">
       <div className="min-h-0 flex flex-col">
-        <div className="sticky top-0 z-10 pb-2 md:pb-4">
+        <div className="sticky top-0 z-10">
           <div className="relative pt-3 md:pt-4">
             {preHeader ? (
               <div
-                className={`${preHeaderAffectsLayout ? 'mb-2' : 'absolute left-0 right-0 z-20'} ${preHeaderClassName}`.trim()}
+                className={`${preHeaderAffectsLayout ? '' : 'absolute left-0 right-0 z-20'} ${preHeaderClassName}`.trim()}
               >
                 {preHeader}
               </div>
@@ -55,7 +55,7 @@ export function WorkspacePageShell({
           </div>
         </div>
 
-        <div className={`flex-1 min-h-0 flex flex-col pb-3 md:pb-4 ${contentClassName}`.trim()}>
+        <div className={`flex-1 min-h-0 flex flex-col ${contentClassName}`.trim()}>
           {children}
         </div>
       </div>

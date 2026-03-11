@@ -35,6 +35,10 @@ For full historical detail, use git history:
 - Contact rows include both:
   - workflow status (`salesforce_status`, including inbound states)
   - Salesforce sync status (`salesforce_sync_status`)
+- Contact details now prioritize recent activity over profile data:
+  - the header is a minimal identity strip with compact actions
+  - `Activity` is the primary sticky timeline/log region with dense separated rows
+  - secondary metadata moved into a quieter collapsible `Details` section
 - Contact details activity timeline now includes campaign enrollment events.
 - Contacts row activation now follows playbook rules:
   - Enter/Space opens details from a focused row
@@ -111,6 +115,11 @@ For full historical detail, use git history:
   - desktop: shared right-side `SidePanelContainer`
   - mobile: shared `BottomDrawerContainer`
   - editor content extracted into a reusable `CampaignTemplateEditorPane` component.
+- Email review/history/scheduled details and campaign details panels now follow the Contacts inspector visual pattern more closely:
+  - compact sticky top action strip
+  - title/meta plus status chips directly beneath
+  - primary content first in the main scroll region
+  - quieter metadata moved into a collapsible `Details` section
 
 ## Templates (Current Behavior)
 
@@ -263,6 +272,10 @@ For full historical detail, use git history:
 - Contact details timestamps now render in `America/New_York` with explicit zone suffix (`EST`/`EDT`) for consistent activity timeline times.
 - Contact details timestamp parsing now treats timezone-naive backend datetime strings as UTC before rendering in ET, preventing future-time shifts (for example sent rows showing several hours ahead).
 - Contact details Campaigns summary now shows Small Business Expo enrollment status, active/total counts, and a single link to the active campaign for quick navigation to Email campaigns.
+- Email campaigns table rows now use the shared 31px table row height token so they match the Contacts table row density.
+- Email campaigns table custom grid layout now renders the same vertical column separators as the shared desktop tables, so headers and rows read consistently across Email views.
+- Email campaigns now uses the same shared desktop table implementation as Review/Scheduled/History (with a campaigns-specific column menu control), removing the previous custom desktop/tablet table path that drifted in separators and header/body behavior.
+- Email Review desktop rows now flatten Contact, Campaign, and Draft cells to single-line summaries so the shared 31px row height does not read as oversized/double-height.
 - Contacts API now returns a derived `engagement_status` (campaign/activity state) per contact using replies, latest send status, campaign enrollment, and upcoming schedule signals.
 - Contacts UI now uses `engagement_status` as the primary status badge/filter (table, mobile cards, detail panes), while raw Salesforce status remains visible as secondary CRM context.
 - Contact details pane now falls back to timeline-derived engagement status when `engagement_status` is missing/stale from the contacts payload, preventing misleading `Pending` labels when sent/scheduled activities already exist.
@@ -295,6 +308,7 @@ For full historical detail, use git history:
 - Tasks workspace now sorts unified browser + compound rows by most recent heartbeat/update time so newly launched tasks surface at the top instead of being buried below older compound entries.
 - Tasks workspace now hides low-level `browser_automation` primitives (`browser_act`, `browser_wait`, `browser_navigate`, etc.) from the main `/tasks` table so the page stays focused on workflow-level browser tasks instead of listing every underlying action as a separate row.
 - Tasks workspace now enforces the stronger policy that `/tasks` only shows long-running background browser jobs (`browser_workflow_async`) plus compound workflows; short synchronous browser workflows are excluded from the table entirely.
+- Tasks workspace now uses the same shared Airtable-like resizable table foundation as Contacts/Documents/Email on desktop, with explicit column definitions, subtle vertical dividers, header-only resize handles, double-click auto-fit, and persisted widths under `tasks-table`.
 - Browser task result cards in the Tasks details panel now render as compact contact-style summaries with linked names and short action links (`LinkedIn`, `SalesNav`, `Source`) instead of printing full raw URLs inside each card.
 - SalesNav public-profile enrichment now preserves direct public profile URLs when `View profile` opens an actual `linkedin.com/in/...` page, and the batch enrichment path writes that captured public URL back onto each employee row immediately so Tasks/browser results do not collapse both links to the SalesNav lead URL.
 - SalesNav public-profile copying now retries clipboard reads after the `Copy LinkedIn URL` action, re-checks the page HTML after copy, and the Tasks browser-result summary shows how many public profile URLs were actually captured so extraction failures are visible immediately.
@@ -304,6 +318,8 @@ For full historical detail, use git history:
 - SalesNav clarification follow-ups now persist as an active task with required params (`contact_count`, `detail_fields`), so replies like `10 and all the details` resume the original SalesNav request instead of being routed as a fresh standalone `hybrid_search`.
 - SalesNav clarification resume no longer appends raw `Parameters: {...}` JSON into the search text; the active-task confirmation path reconstructs a clean structured request sentence from the collected params so SalesNav account search URLs only contain the company name.
 - Campaigns table Send action now launches review-mode prep for all ready contacts in that campaign (high limit), matching manual backend review-tab launches from `/api/emails/send` with `review_mode=true`.
+- Review queue API no longer hard-caps results to 50 rows; `/api/emails/review-queue` now returns the full `ready_for_review` set by default so the Email review table reflects all pending drafts.
+- Shared medium-width table viewport fitting now pins a leading selector column together with the first visible data column, preventing Email review/campaign tables from showing an empty standalone checkbox column when the details panel is open.
 - Email Campaigns now includes a contact-style campaign details rail (desktop side panel, phone drawer) with high-level campaign metadata and one unified scrollable Contacts manager that combines add/remove actions in a single fixed-height section.
 - Browser Workbench no longer renders the separate `Browser Workbench / Flow: ...` header block above the canvas; the small circular refresh control now lives in the top flow-tab row so the workbench matches the other tab-first pages more closely.
 - Browser Workbench also no longer uses the dedicated left-side `Tab Manager` rail in the main layout; flow tabs now sit on the first row, open browser tabs render as a second nested tab row, and tab search moved into the standard inline toolbar position directly below the tabs.
@@ -314,6 +330,53 @@ For full historical detail, use git history:
 - The shared `WorkspacePageShell` content region no longer adds its own horizontal `px-*` gutter; header/toolbars still align on `px-3 md:px-4`, but the main content area is now flush so table pages do not get doubly inset before their normal cell padding.
 - The shared `WorkspacePageShell` header wrapper is also now flush horizontally: top search/tool rows and tab preheaders no longer sit inside a second `px-3 md:px-4` gutter, so the toolbar width matches the table region below instead of appearing narrower.
 - The chat dock session header is now split into two visual groups: session tabs plus `+` on the left, and muted panel controls on the right (`Trace`, divider, minimize, collapse). The collapse control is icon-only with a rotate animation so it reads as a dock/panel affordance rather than another session action.
+- Contacts now serves as the source-of-truth workspace pattern for the other major table pages: Documents, Email, Templates, and Tasks use the same tab rail treatment, tighter search/action row spacing, square control styling, flush content layout, and shared desktop table row/header height.
+- The leading blank selection column pattern from Contacts is now shared across the other major workspace tables instead of embedding selection controls inside the first data column.
+- Shared medium-width table fitting now supports a pinned trailing `actions` column in addition to the leading `select` column, so Contacts can keep its row ellipsis visible on the right edge while the center columns rotate under narrower widths.
+- Contacts desktop details now uses a draggable split view: users can resize the right-side details/add panel from a left-edge divider, the table shrinks/grows with that drag, and the chosen width persists locally for future opens.
+- Contacts row-level actions now live in a compact right-side ellipsis column (`Add to campaign`, `Open full details`, `Delete`), while the leftmost control column remains dedicated to row selection; this replaces the old `Add to campaign` / `Open full details` buttons in the contact details header.
+- Contacts detail-pane top action strip is removed; contact `Email` and `Phone` actions now live in the row ellipsis menu alongside `Add to campaign`, `Open full details`, and `Delete`, leaving the page-level search/new-contact row as the primary visible action strip.
+- Contacts search/new-contact row now sits above the entire table/details split instead of inside the left table pane, so it spans across the details rail and sits directly above the contact activity area when a details pane is open.
+- Contacts right-side actions column is now tightened to the small ellipsis trigger width and explicitly allows overflow, so the dropdown menu can escape the table cell instead of being clipped behind adjacent cells.
+- Contacts right-side actions column uses a compact fixed utility width again, decoupled from the wider `Columns + arrows` header overlay so the row ellipsis does not regress into an oversized gutter.
+- Contacts right-side actions column remains fixed at `56px`, matching the effective width of the right-edge header controls block closely enough that the row ellipsis column aligns under that utility header region without consuming a full extra data-column slot.
+- Contacts right-side actions column is also now rendered as a sticky right-edge utility column in both header and body, so the ellipsis stays pinned during resize instead of being pushed off-screen and snapping back after the drag settles.
+- Contacts desktop rows no longer render a separate empty body spacer cell immediately before the sticky ellipsis column; the resize boundary now lines up with the real actions cell instead of a blank placeholder slot.
+- Shared fitted-table colgroups/headers now omit the separate filler reservation entirely when a pinned trailing `actions` column is present, so Contacts no longer carries a hidden gutter immediately before the ellipsis column.
+- Contacts body rows likewise omit the filler `<td>` when that pinned actions column is present, keeping the ellipsis hard against the right-side utility edge instead of leaving a blank spacer before it.
+- In that no-filler pinned-actions path, the shared fitter also no longer leaves spare width in the table-width calculation itself; this prevents the browser from redistributing extra space across real columns and keeps earlier dividers visually fixed while the last visible Contacts column is resized.
+- Contacts body rows no longer render a visible filler cell when the sticky ellipsis/actions cell is present; the right-edge gutter is carried by the fixed actions column itself so the body no longer shows a blank spacer column before the ellipsis.
+- Contacts keeps the smaller right-edge viewport-control gutter for stable column-fit behavior, while the header controls overlay now uses extra left-side surface padding so the final divider sits visually behind the filter/arrow cluster without causing columns to disappear early.
+- The shared right-edge `Columns + arrows` overlay now renders as one encapsulated surface block with an extra left-side cover strip, so underlying header dividers do not visually split the columns dropdown from the pager buttons.
+- Shared fitted-table headers now render a dedicated full-height divider immediately before the right-edge `Columns + arrows` control block, giving Contacts a clear visual stop point for the last visible data column before the fixed utility edge.
+- Contacts no longer uses the floating shared right-edge header overlay for `Columns + arrows`; those controls now render inside the actual sticky actions `<th>`, so the row ellipsis column and its header controls share the same fixed utility column.
+- Fitted desktop tables still clamp the actively resized visible column itself against the remaining on-screen width, but no longer run a second pass that silently shrinks a different visible column; in Contacts this restores the expected behavior where resizing the last visible data column before the ellipsis only affects that column.
+- Fitted desktop tables now preserve the logical trailing visible column when the number of visible slots changes during resize, so narrowing a Contacts column pulls the next pushed-off column back into view instead of drifting the ellipsis-side rotation state.
+- Fitted desktop tables now also freeze the current visible scrolling-column set for the duration of an active resize gesture, so growing or shrinking a Contacts column no longer causes an earlier neighbor to be reassigned mid-drag.
+- Shared persistent column sizing now hydrates stored widths once per storage key instead of reapplying them on every render cycle, preventing the `Maximum update depth exceeded` loop in Contacts and other shared tables.
+- During an active fitted-table resize, only the column being dragged is clamped against the remaining visible width; the fitter no longer applies a special rotating-column clamp that could visually mutate a different neighbor.
+- During an active fitted-table resize, the shared fitter now uses the exact last stable visible scrolling-column set and order, instead of recalculating offset/rotation state mid-drag; this keeps Contacts' visible columns stable while one column is being resized.
+- During that same active resize, the shared fitter also preserves the last stable widths of the other visible scrolling columns, so growing a later Contacts column no longer recomputes or visually expands/shrinks earlier visible columns.
+- The shared fitter now exits early into that locked-layout path for the full duration of an active resize gesture, instead of continuing through the normal fit/rotation pass; this keeps Contacts column visibility and neighbor widths stable until the drag ends.
+- The shared fitter now applies the "last visible scrolling column stops before the ellipsis/actions boundary" clamp before it computes which columns fit, so ending a resize on the Contacts last visible data column no longer lets that oversized saved width push the previous column out of view.
+- For fitted tables that already have a pinned trailing `actions` edge plus filler, the data-column fit budget no longer subtracts the separate viewport-controls gutter a second time; this moves the resize stop point back to the real ellipsis boundary instead of clamping a column prematurely.
+- The non-drag fitted-layout clamp for the last visible scrolling column now only subtracts other scrolling-column widths from the scrolling budget, rather than subtracting the pinned selector/actions widths a second time; this keeps the last Contacts data column aligned to the fixed ellipsis edge correctly after resize settles.
+- Fitted desktop tables with a pinned trailing `actions` column now absorb spare container width into the dedicated filler slot immediately before the actions column, keeping the row ellipsis aligned to the right edge without redistributing that extra width into visible data columns.
+- Fitted desktop tables with a pinned trailing `actions` column no longer render a fake filler column at all; the table width is resolved without an empty trailing header/body cell, so Contacts' last real column does not get visually cut by a phantom spacer.
+- The spacer immediately left of the pinned Contacts actions column now renders a divider, so the right-edge ellipsis reads as its own narrow column instead of blending into the filler space used by the fitted table viewport.
+- Contacts toolbar now keeps `Search contacts` and `New Contact` together on a fixed primary row, while selected-row bulk actions wrap on a separate secondary row so opening the details panel no longer drops the main add action below the search field.
+- Contacts now applies that hard resize stop only to the last visible data column before the fixed ellipsis edge. Other visible columns continue to resize normally, while the edge-adjacent column still cannot grow by stealing width from already-visible columns.
+- Contacts desktop tables now stay on the fitter's native fixed-width table style instead of forcing `width: 100%`, which preserves stable column-resize behavior and prevents spare pane width from being redistributed into earlier visible columns.
+- Fitted tables with a pinned trailing `actions` column now absorb spare pane width by extending the last visible data column before that fixed edge, instead of leaving a dead gap on the right or rendering a separate visible filler gutter column.
+- Persistent column sizing now supports min-width initialization, and Contacts uses that mode with a fresh sizing key (`contacts-table-sizing-v2`) so desktop columns load from their minimum widths by default while auto-fit still restores measured content widths on demand.
+- Contacts now exposes `Date Added` in the visible-columns menu as a sortable optional column backed by `scraped_at`, formatted as a compact date and hidden by default until enabled.
+- Contacts row actions now render the open ellipsis menu in a fixed portal above the table stack, so the `Add to campaign` / `Email` / `Phone` dropdown is no longer clipped by sticky headers or neighboring table cells.
+- Contacts no longer reserves right-side body padding for the custom vertical scroll thumb, so the scrollbar overlay no longer changes the effective table width when it appears.
+- Contacts now centers the `Columns + arrows` control cluster inside the sticky actions header cell, so those controls align with the fixed right-edge ellipsis utility column instead of hugging the far right side of the header wrapper.
+- Shared fitted-table headers no longer add an extra `pr-2` nudge inside the inner header flex wrapper, which lets utility-header content like the Contacts right-edge controls center cleanly inside their actual `<th>`.
+- Contact details activity table now resets to a fresh sizing baseline (`contact-activity-table-v3`) with larger default/min widths for `Type`, `Date`, and `Status`, so those support columns open fully by default while only the main `Activity` column continues to truncate.
+- Contact details activity sizing now force-fits the four activity columns as a set inside the details rail during pane resize, shrinking `Activity` first so `Status` does not get pushed off-screen when the details pane narrows.
+- Email Sent History rows now use the same denser two-line compact-row treatment as the other table pages, collapsing extra campaign/company metadata and tightening the footer stats so constrained viewports no longer look oversized.
 
 ## Notes Removed
 

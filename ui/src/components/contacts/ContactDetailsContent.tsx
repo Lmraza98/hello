@@ -1,6 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Check, Copy, ExternalLink, Mail, MoreHorizontal, Phone, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createColumnHelper, flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table';
+import { ExternalLink, Filter } from 'lucide-react';
 import { api, type Contact, type ConversationThread } from '../../api';
+import {
+  SHARED_TABLE_ROW_HEIGHT_CLASS,
+  SharedTableColGroupWithWidths,
+  SharedTableHeader,
+  sharedCellClassName,
+  usePersistentColumnSizing,
+} from '../shared/resizableDataTable';
 import { EngagementStatusBadge } from './SalesforceStatusBadge';
 import { getContactSourceLabel } from './sourceLabel';
 
@@ -54,23 +62,27 @@ type CampaignEnrollmentRow = {
   enrolled_at?: string | null;
 };
 
-function formatDateTime(value?: string | null) {
+const ACTIVITY_SIZING_STORAGE_KEY = 'contact-activity-table-v3';
+const activityColumnHelper = createColumnHelper<ContactActivity>();
+const ACTIVITY_COLUMN_IDS = ['type', 'activity', 'date', 'status'] as const;
+const ACTIVITY_SHRINK_PRIORITY = ['activity', 'date', 'type', 'status'] as const;
+const ACTIVITY_COLUMN_MIN_WIDTHS: Record<(typeof ACTIVITY_COLUMN_IDS)[number], number> = {
+  type: 72,
+  activity: 96,
+  date: 88,
+  status: 84,
+};
+
+function formatCompactDate(value?: string | null) {
   if (!value) return '-';
   const d = parseTimestamp(value);
   if (Number.isNaN(d.getTime())) return '-';
-  const parts = new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat('en-US', {
     timeZone: 'America/New_York',
-    year: 'numeric',
-    month: 'numeric',
+    month: 'short',
     day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true,
-    timeZoneName: 'short',
-  }).formatToParts(d);
-  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value || '';
-  return `${get('month')}/${get('day')}/${get('year')}, ${get('hour')}:${get('minute')}:${get('second')} ${get('dayPeriod')} ${get('timeZoneName')}`.trim();
+    year: 'numeric',
+  }).format(d);
 }
 
 function parseTimestamp(value: string) {
@@ -88,12 +100,12 @@ function toMillis(value?: string | null) {
   return Number.isFinite(ms) ? ms : 0;
 }
 
-function humanActivityLabel(type: ContactActivityType) {
-  if (type === 'email_replied') return 'Email replied';
+function compactActivityLabel(type: ContactActivityType) {
+  if (type === 'email_replied') return 'Replied';
   if (type === 'email_sent') return 'Email sent';
-  if (type === 'email_opened') return 'Email opened';
-  if (type === 'email_scheduled') return 'Email scheduled';
-  if (type === 'status_change') return 'Status update';
+  if (type === 'email_opened') return 'Opened';
+  if (type === 'email_scheduled') return 'Scheduled';
+  if (type === 'status_change') return 'Status';
   return 'Note';
 }
 
@@ -149,37 +161,83 @@ function dedupeActivities(items: ContactActivity[]) {
   return Array.from(map.values());
 }
 
+function buildActivitySummary(item: ContactActivity) {
+  const parts = [];
+  if (item.subject) parts.push(item.subject);
+  if (item.campaignName) parts.push(item.campaignName);
+  return parts.join(' - ') || 'No subject';
+}
+
+function ActivityFilterMenu({
+  open,
+  active,
+  onToggle,
+  children,
+}: {
+  open: boolean;
+  active: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) onToggle();
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [open, onToggle]);
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onToggle();
+        }}
+        aria-label="Filter activity status"
+        className={`inline-flex h-4 w-4 items-center justify-center rounded-none transition-colors ${active ? 'text-text' : 'text-text-dim hover:text-text'}`}
+      >
+        <Filter className="h-3 w-3" />
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-6 z-40 w-36 rounded-none border border-border bg-surface p-2 shadow-lg">
+          {children}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function ContactDetailsContent({
   contact,
   onClose,
   onAddToCampaign,
 }: ContactDetailsContentProps) {
-  const [copiedField, setCopiedField] = useState<string | null>(null);
+  void onClose;
   const [activities, setActivities] = useState<ContactActivity[]>([]);
   const [campaignEnrollments, setCampaignEnrollments] = useState<CampaignEnrollmentRow[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
   const [activityFilter, setActivityFilter] = useState<ActivityStatusFilter>('all');
-  const detailsHref = useMemo(
-    () => contact.salesforce_url || contact.linkedin_url || (contact.domain ? `https://${contact.domain}` : ''),
-    [contact.salesforce_url, contact.linkedin_url, contact.domain]
-  );
-  const titleCompany = useMemo(() => {
-    const title = (contact.title || '').trim();
-    const company = (contact.company_name || '').trim();
-    if (title && company) return `${title} - ${company}`;
-    return title || company || '-';
-  }, [contact.title, contact.company_name]);
-
-  const copyValue = async (text: string, field: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopiedField(field);
-      window.setTimeout(() => setCopiedField(null), 1400);
-    } catch {
-      setCopiedField(null);
-    }
-  };
-
+  const [showActivityFilter, setShowActivityFilter] = useState(false);
+  const activityContainerRef = useRef<HTMLDivElement | null>(null);
+  const [activityContainerWidth, setActivityContainerWidth] = useState(0);
+  useEffect(() => {
+    const element = activityContainerRef.current;
+    if (!element || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      setActivityContainerWidth(Math.round(entry.contentRect.width));
+    });
+    observer.observe(element);
+    setActivityContainerWidth(Math.round(element.getBoundingClientRect().width));
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     let cancelled = false;
     async function loadActivities() {
@@ -337,242 +395,266 @@ export function ContactDetailsContent({
     () => normalizedEnrollments.find((row) => row.normalizedStatus === 'active') || null,
     [normalizedEnrollments]
   );
-
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="sticky top-0 z-10 shrink-0 border-b border-border bg-surface px-4 py-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-text">{contact.name}</h3>
-            <p className="truncate text-xs text-text-muted">{titleCompany}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close contact details"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
+  const activityColumns = useMemo<ColumnDef<ContactActivity, any>[]>(() => [
+    activityColumnHelper.accessor('type', {
+      id: 'type',
+      header: 'Type',
+      cell: ({ row }) => <div className="text-[10px] uppercase tracking-[0.12em] text-text-muted">{compactActivityLabel(row.original.type)}</div>,
+      enableResizing: true,
+      size: 96,
+      minSize: 72,
+      meta: { label: 'Type', minWidth: 72, defaultWidth: 96, resizable: true, align: 'left', measureValue: (row: ContactActivity) => compactActivityLabel(row.type) },
+    }),
+    activityColumnHelper.display({
+      id: 'activity',
+      header: 'Activity',
+      cell: ({ row }) => <div className="truncate text-[12px] leading-4 text-text">{row.original.step ? `${buildActivitySummary(row.original)} - Step ${row.original.step}` : buildActivitySummary(row.original)}</div>,
+      enableResizing: true,
+      size: 160,
+      minSize: 96,
+      meta: { label: 'Activity', minWidth: 96, defaultWidth: 160, resizable: true, align: 'left', grow: 1, measureValue: (row: ContactActivity) => row.step ? `${buildActivitySummary(row)} - Step ${row.step}` : buildActivitySummary(row) },
+    }),
+    activityColumnHelper.accessor('ts', {
+      id: 'date',
+      header: 'Date',
+      cell: ({ row }) => <div className="text-[11px] text-text-muted">{formatCompactDate(row.original.ts)}</div>,
+      enableResizing: true,
+      size: 104,
+      minSize: 88,
+      meta: { label: 'Date', minWidth: 88, defaultWidth: 104, resizable: true, align: 'left', measureValue: (row: ContactActivity) => formatCompactDate(row.ts) },
+    }),
+    activityColumnHelper.display({
+      id: 'status',
+      header: () => (
+        <div className="flex items-center justify-start gap-1">
+          <span className="truncate">Status</span>
+          <ActivityFilterMenu open={showActivityFilter} active={activityFilter !== 'all'} onToggle={() => setShowActivityFilter((v) => !v)}>
+            <div className="space-y-1">
+              {(['all', 'failed', 'sent', 'opened', 'replied', 'scheduled'] as ActivityStatusFilter[]).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => {
+                    setActivityFilter(value);
+                    setShowActivityFilter(false);
+                  }}
+                  className={`block h-7 w-full rounded-none px-2 text-left text-[11px] ${activityFilter === value ? 'bg-surface-hover text-text' : 'text-text-muted hover:bg-surface-hover hover:text-text'}`}
+                >
+                  {value === 'all' ? 'All' : value[0].toUpperCase() + value.slice(1)}
+                </button>
+              ))}
+            </div>
+          </ActivityFilterMenu>
         </div>
-        <div className="mt-2 flex min-w-0 items-center gap-1.5 overflow-x-auto pb-0.5">
-          <EngagementStatusBadge status={effectiveEngagementStatus} />
-          <span className="inline-flex h-5 items-center rounded-full border border-border bg-bg px-2 text-[11px] text-text-muted">
-            {getContactSourceLabel(contact)}
+      ),
+      cell: ({ row }) => (
+        <div className="flex justify-start">
+          <span className={`inline-flex min-h-4.5 shrink-0 items-center rounded-full border px-1 text-[9px] ${activityStatusTone(row.original.status)}`}>
+            {row.original.status || 'logged'}
           </span>
         </div>
-        <div className="mt-2 flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => onAddToCampaign(contact)}
-            className="h-7 rounded-md border border-border bg-bg px-2.5 text-xs text-text hover:bg-surface-hover"
-          >
-            Add to campaign
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (detailsHref) window.open(detailsHref, '_blank', 'noopener,noreferrer');
-            }}
-            disabled={!detailsHref}
-            aria-label="Open external details"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
-            title="More"
-          >
-            <MoreHorizontal className="h-3.5 w-3.5" />
-          </button>
-        </div>
-        <div className="mt-1">
-          {detailsHref ? (
-            <a href={detailsHref} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-accent hover:underline">
-              Open full details <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          ) : (
-            <span className="text-[11px] text-text-dim">Open full details unavailable</span>
-          )}
-        </div>
-      </div>
+      ),
+      enableResizing: true,
+      size: 96,
+      minSize: 84,
+      meta: {
+        label: 'Status',
+        minWidth: 84,
+        defaultWidth: 96,
+        resizable: true,
+        align: 'left',
+        headerClassName: 'px-1.5',
+        cellClassName: 'px-1.5',
+        measureValue: (row: ContactActivity) => row.status || 'logged',
+      },
+    }),
+  ], [activityFilter, showActivityFilter]);
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 text-xs">
-        <section className="space-y-1 rounded-md border border-border bg-bg p-2">
-          <dl className="divide-y divide-border">
-            <div className="flex h-9 items-center justify-between gap-2">
-              <dt className="w-[72px] shrink-0 text-text-muted">Email</dt>
-              <dd className="flex min-w-0 flex-1 items-center justify-between gap-2">
-                <span className="min-w-0 truncate text-text">{contact.email || '-'}</span>
-                <span className="flex items-center gap-1">
-                  {contact.email ? (
-                    <>
-                      <a
-                        href={`mailto:${contact.email}`}
-                        aria-label={`Send email to ${contact.name}`}
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
-                        title="Send email"
-                      >
-                        <Mail className="h-3.5 w-3.5" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => copyValue(contact.email!, 'email')}
-                        aria-label={`Copy email for ${contact.name}`}
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
-                        title="Copy email"
-                      >
-                        {copiedField === 'email' ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-                      </button>
-                    </>
-                  ) : null}
-                </span>
-              </dd>
-            </div>
-            <div className="flex h-9 items-center justify-between gap-2">
-              <dt className="w-[72px] shrink-0 text-text-muted">Phone</dt>
-              <dd className="flex min-w-0 flex-1 items-center justify-between gap-2">
-                <span className="min-w-0 truncate text-text">{contact.phone || '-'}</span>
-                <span className="flex items-center gap-1">
-                  {contact.phone ? (
-                    <>
-                      <a
-                        href={`tel:${contact.phone}`}
-                        aria-label={`Call ${contact.name}`}
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
-                        title="Call"
-                      >
-                        <Phone className="h-3.5 w-3.5" />
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => copyValue(contact.phone!, 'phone')}
-                        aria-label={`Copy phone for ${contact.name}`}
-                        className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
-                        title="Copy phone"
-                      >
-                        {copiedField === 'phone' ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
-                      </button>
-                    </>
-                  ) : null}
-                </span>
-              </dd>
-            </div>
-            <div className="flex h-9 items-center justify-between gap-2">
-              <dt className="w-[72px] shrink-0 text-text-muted">LinkedIn</dt>
-              <dd className="min-w-0 flex-1 truncate text-right text-text">
-                {contact.linkedin_url ? (
-                  <a href={contact.linkedin_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent hover:underline">
-                    Open <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                ) : (
-                  '-'
-                )}
-              </dd>
-            </div>
-            <div className="flex h-9 items-center justify-between gap-2">
-              <dt className="w-[72px] shrink-0 text-text-muted">CRM</dt>
-              <dd className="min-w-0 flex-1 truncate text-right text-text">
-                {contact.salesforce_url ? (
-                  <a href={contact.salesforce_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent hover:underline">
-                    Salesforce <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                ) : (
-                  '-'
-                )}
-              </dd>
-            </div>
-            <div className="flex h-9 items-center justify-between gap-2">
-              <dt className="w-[72px] shrink-0 text-text-muted">Source</dt>
-              <dd className="min-w-0 flex-1 truncate text-right text-text">{getContactSourceLabel(contact)}</dd>
-            </div>
-            <div className="flex h-9 items-center justify-between gap-2">
-              <dt className="w-[72px] shrink-0 text-text-muted">Status</dt>
-              <dd className="flex min-w-0 flex-1 justify-end text-right text-text">
-                <EngagementStatusBadge status={effectiveEngagementStatus} />
-              </dd>
-            </div>
-            <div className="flex h-9 items-center justify-between gap-2">
-              <dt className="w-[72px] shrink-0 text-text-muted">Created</dt>
-              <dd className="min-w-0 flex-1 truncate text-right text-text">{formatDateTime(contact.scraped_at)}</dd>
-            </div>
-            <div className="flex items-start justify-between gap-2 py-2">
-              <dt className="w-[72px] shrink-0 text-text-muted">Campaigns</dt>
-              <dd className="flex min-w-0 flex-1 flex-col items-end gap-1 text-right text-text">
-                {firstActiveEnrollment ? (
-                  <a
-                    href={`/email?view=campaigns&q=${encodeURIComponent(firstActiveEnrollment.displayName)}`}
-                    className="rounded border border-border px-1.5 py-0.5 text-[10px] text-accent hover:bg-surface-hover"
-                    title={`Open ${firstActiveEnrollment.displayName} in Email campaigns`}
-                  >
-                    {firstActiveEnrollment.displayName}
-                  </a>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => onAddToCampaign(contact)}
-                    className="text-[11px] text-accent hover:underline"
-                  >
-                    Not enrolled in any campaign
-                  </button>
-                )}
-              </dd>
-            </div>
-          </dl>
-        </section>
+  const { columnSizing: activityColumnSizing, setColumnSizing: setActivityColumnSizing, autoFitColumn: autoFitActivityColumn } = usePersistentColumnSizing({
+    columns: activityColumns,
+    rows: filteredTimeline,
+    storageKey: ACTIVITY_SIZING_STORAGE_KEY,
+  });
 
-        <section className="mt-4">
-          <div className="mb-2 flex items-center justify-between">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Activities</h4>
-            <select
-              value={activityFilter}
-              onChange={(e) => setActivityFilter(e.target.value as ActivityStatusFilter)}
-              className="h-7 rounded-md border border-border bg-bg px-2 text-[11px] text-text-muted focus:border-accent focus:outline-none"
-              aria-label="Filter activity status"
-            >
-              <option value="all">All</option>
-              <option value="failed">Failed</option>
-              <option value="sent">Sent</option>
-              <option value="opened">Opened</option>
-              <option value="replied">Replied</option>
-              <option value="scheduled">Scheduled</option>
-            </select>
+  const normalizeActivitySizing = useCallback((sizing: Record<string, number>) => {
+    const next = { ...sizing };
+    for (const columnId of ACTIVITY_COLUMN_IDS) {
+      const minWidth = ACTIVITY_COLUMN_MIN_WIDTHS[columnId];
+      const otherMinWidth = ACTIVITY_COLUMN_IDS
+        .filter((id) => id !== columnId)
+        .reduce((sum, id) => sum + ACTIVITY_COLUMN_MIN_WIDTHS[id], 0);
+      const maxWidth =
+        activityContainerWidth > 0 ? Math.max(minWidth, activityContainerWidth - otherMinWidth) : Number.POSITIVE_INFINITY;
+      const width = next[columnId] ?? minWidth;
+      next[columnId] = Math.min(Math.max(width, minWidth), maxWidth);
+    }
+    if (activityContainerWidth > 0) {
+      let totalWidth = ACTIVITY_COLUMN_IDS.reduce((sum, columnId) => sum + (next[columnId] ?? ACTIVITY_COLUMN_MIN_WIDTHS[columnId]), 0);
+      let overflow = Math.max(totalWidth - activityContainerWidth, 0);
+      for (const columnId of ACTIVITY_SHRINK_PRIORITY) {
+        if (overflow <= 0) break;
+        const minWidth = ACTIVITY_COLUMN_MIN_WIDTHS[columnId];
+        const currentWidth = next[columnId] ?? minWidth;
+        const shrinkCapacity = Math.max(currentWidth - minWidth, 0);
+        if (shrinkCapacity <= 0) continue;
+        const shrinkBy = Math.min(shrinkCapacity, overflow);
+        next[columnId] = currentWidth - shrinkBy;
+        overflow -= shrinkBy;
+      }
+    }
+    return next;
+  }, [activityContainerWidth]);
+
+  const handleActivityColumnSizingChange = useCallback((updater: Record<string, number> | ((old: Record<string, number>) => Record<string, number>)) => {
+    setActivityColumnSizing((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      return normalizeActivitySizing(next);
+    });
+  }, [normalizeActivitySizing, setActivityColumnSizing]);
+
+  useEffect(() => {
+    if (activityContainerWidth <= 0) return;
+    setActivityColumnSizing((prev) => {
+      const normalized = normalizeActivitySizing(prev);
+      const changed = ACTIVITY_COLUMN_IDS.some((columnId) => normalized[columnId] !== prev[columnId]);
+      return changed ? normalized : prev;
+    });
+  }, [activityContainerWidth, normalizeActivitySizing, setActivityColumnSizing]);
+
+  const activityTable = useReactTable({
+    data: filteredTimeline,
+    columns: activityColumns,
+    state: { columnSizing: activityColumnSizing },
+    onColumnSizingChange: handleActivityColumnSizingChange,
+    getCoreRowModel: getCoreRowModel(),
+    columnResizeMode: 'onChange',
+    autoResetAll: false,
+  });
+  const activityColumnWidths = Object.fromEntries(
+    activityTable.getVisibleLeafColumns().map((column) => [column.id, column.getSize()])
+  ) as Record<string, number>;
+  const activityVisibleColumnIds = activityTable.getVisibleLeafColumns().map((column) => column.id);
+  const activityBaseTableWidth = useMemo(
+    () => activityVisibleColumnIds.reduce((sum, columnId) => sum + (activityColumnWidths[columnId] ?? 0), 0),
+    [activityColumnWidths, activityVisibleColumnIds]
+  );
+  const activityFillWidth = Math.max(0, activityContainerWidth - activityBaseTableWidth);
+  const activityTableStyle = useMemo(
+    () => ({
+      width: `${activityBaseTableWidth + activityFillWidth}px`,
+      minWidth: `${activityBaseTableWidth + activityFillWidth}px`,
+      tableLayout: 'fixed' as const,
+    }),
+    [activityBaseTableWidth, activityFillWidth]
+  );
+  return (
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <section ref={activityContainerRef} className="min-h-0 flex-1 overflow-x-hidden">
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto text-xs">
+            {loadingActivities ? (
+              <div className="border-b border-border px-3 py-2 text-xs text-text-dim">Loading activity...</div>
+            ) : filteredTimeline.length === 0 ? (
+              <div className="border-b border-border px-3 py-2">
+                <p className="text-xs text-text-dim">No activity for this filter.</p>
+                <button
+                  type="button"
+                  onClick={() => onAddToCampaign(contact)}
+                  className="mt-1 text-xs text-accent hover:underline"
+                >
+                  Add to campaign
+                </button>
+              </div>
+            ) : (
+              <table className="border-collapse" style={activityTableStyle}>
+                <SharedTableColGroupWithWidths table={activityTable} columnWidths={activityColumnWidths} visibleColumnIds={activityVisibleColumnIds} fillerWidth={activityFillWidth} controlWidth={0} />
+                <SharedTableHeader
+                  table={activityTable}
+                  onAutoFitColumn={autoFitActivityColumn}
+                  visibleColumnIds={activityVisibleColumnIds}
+                  columnWidths={activityColumnWidths}
+                  fillerWidth={activityFillWidth}
+                  controlWidth={0}
+                />
+                <tbody>
+                  {activityTable.getRowModel().rows.map((row) => {
+                    const cells = row.getVisibleCells();
+                    return (
+                      <tr key={row.id} className={`${SHARED_TABLE_ROW_HEIGHT_CLASS} border-b border-border-subtle transition-colors`}>
+                        {cells.map((cell, index) => (
+                          <td key={cell.id} className={sharedCellClassName(cell, `${SHARED_TABLE_ROW_HEIGHT_CLASS} ${index === cells.length - 1 ? '__shared-last__' : ''}`)}>
+                            <div className={cell.column.id === 'activity' ? 'min-w-0 truncate' : 'min-w-0'}>
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </div>
+                          </td>
+                        ))}
+                        {activityFillWidth > 0 ? <td aria-hidden="true" className={`${SHARED_TABLE_ROW_HEIGHT_CLASS} px-0 py-0`} /> : null}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
           </div>
-          {loadingActivities ? (
-            <div className="rounded-md border border-border bg-bg px-3 py-2 text-xs text-text-dim">Loading activity...</div>
-          ) : filteredTimeline.length === 0 ? (
-            <div className="rounded-md border border-border bg-bg px-3 py-2">
-              <p className="text-xs text-text-dim">No activity for this filter.</p>
-              <button
-                type="button"
-                onClick={() => onAddToCampaign(contact)}
-                className="mt-1 text-xs text-accent hover:underline"
-              >
-                Add to campaign
-              </button>
-            </div>
-          ) : (
-            <ol className="space-y-2">
-              {filteredTimeline.map((item) => (
-                <li key={item.id} className="rounded-md border border-border bg-bg px-2.5 py-2">
-                  <div className="flex items-start gap-2">
-                    <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-border" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-medium text-text">
-                        {humanActivityLabel(item.type)}: {item.subject || 'No subject'}
-                      </p>
-                      <p className="truncate text-[11px] text-text-muted">
-                        {item.campaignName ? `${item.campaignName} - ` : ''}
-                        {formatDateTime(item.ts)}
-                      </p>
-                    </div>
-                    <span className={`inline-flex h-5 shrink-0 items-center rounded-full border px-2 text-[10px] ${activityStatusTone(item.status)}`}>
-                      {item.status || 'logged'}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          )}
           {/* TODO: migrate to dedicated contact activities API once backend provides unified timeline payload. */}
-        </section>
-      </div>
+        </div>
+      </section>
+
+      <details className="shrink-0 border-t border-border bg-bg/30 px-3 py-1.5 text-xs">
+        <summary className="cursor-pointer list-none text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+          Details
+        </summary>
+        <dl className="mt-1.5 grid grid-cols-[72px_minmax(0,1fr)] gap-x-3 gap-y-1.5">
+          <dt className="text-text-muted">Email</dt>
+          <dd className="min-w-0 truncate text-text">{contact.email || '-'}</dd>
+          <dt className="text-text-muted">Phone</dt>
+          <dd className="min-w-0 truncate text-text">{contact.phone || '-'}</dd>
+          <dt className="text-text-muted">LinkedIn</dt>
+          <dd className="min-w-0 truncate text-text">
+            {contact.linkedin_url ? (
+              <a href={contact.linkedin_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent hover:underline">
+                Open <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            ) : (
+              '-'
+            )}
+          </dd>
+          <dt className="text-text-muted">CRM</dt>
+          <dd className="min-w-0 truncate text-text">
+            {contact.salesforce_url ? (
+              <a href={contact.salesforce_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-accent hover:underline">
+                Salesforce <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            ) : (
+              '-'
+            )}
+          </dd>
+          <dt className="text-text-muted">Created</dt>
+          <dd className="min-w-0 truncate text-text">{formatCompactDate(contact.scraped_at)}</dd>
+          <dt className="text-text-muted">Source</dt>
+          <dd className="min-w-0 truncate text-text">{getContactSourceLabel(contact)}</dd>
+          <dt className="text-text-muted">Status</dt>
+          <dd className="min-w-0 truncate text-text">
+            <EngagementStatusBadge status={effectiveEngagementStatus} />
+          </dd>
+          <dt className="text-text-muted">Campaign</dt>
+          <dd className="min-w-0 truncate text-text">
+            {firstActiveEnrollment ? (
+              <a
+                href={`/email?view=campaigns&q=${encodeURIComponent(firstActiveEnrollment.displayName)}`}
+                className="text-accent hover:underline"
+                title={`Open ${firstActiveEnrollment.displayName} in Email campaigns`}
+              >
+                {firstActiveEnrollment.displayName}
+              </a>
+            ) : (
+              <button type="button" onClick={() => onAddToCampaign(contact)} className="text-accent hover:underline">
+                Not enrolled
+              </button>
+            )}
+          </dd>
+        </dl>
+      </details>
     </div>
   );
 }

@@ -29,8 +29,13 @@
 }
 
 @layer base {
+  * {
+    scrollbar-color: #cbd5e1 transparent;
+  }
+
   body {
     @apply bg-bg text-text antialiased;
+    scrollbar-color: #cbd5e1 transparent;
   }
 
   button {
@@ -43,6 +48,9 @@
     height: 6px;
   }
   ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-corner {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
@@ -118,11 +126,14 @@
     scrollbar-width: auto;
   }
   .scrollbar-native::-webkit-scrollbar {
-    width: initial;
-    height: initial;
+    width: 6px;
+    height: 6px;
   }
   .scrollbar-native::-webkit-scrollbar-track {
-    background: initial;
+    background: transparent;
+  }
+  .scrollbar-native::-webkit-scrollbar-corner {
+    background: transparent;
   }
   .scrollbar-native::-webkit-scrollbar-thumb {
     background: initial;

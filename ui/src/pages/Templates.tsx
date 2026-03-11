@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { flexRender, getCoreRowModel, type ColumnDef, type RowSelectionState, useReactTable } from '@tanstack/react-table';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Archive, Copy, FileText, Plus, RefreshCcw, Send, ShieldAlert, X } from 'lucide-react';
 import { emailApi } from '../api/emailApi';
@@ -16,6 +17,18 @@ import { useTemplateDetailsRouteState } from '../hooks/useTemplateDetailsRouteSt
 import { SidePanelContainer } from '../components/contacts/SidePanelContainer';
 import { BottomDrawerContainer } from '../components/contacts/BottomDrawerContainer';
 import { useRouter } from 'next/navigation';
+import { TableHeaderFilter } from '../components/shared/TableHeaderFilter';
+import {
+  SHARED_SELECTION_COLUMN_WIDTH,
+  SHARED_TABLE_ROW_HEIGHT_CLASS,
+  SharedViewportControlsOverlay,
+  SharedTableColGroupWithWidths,
+  SharedTableHeader,
+  filterCellsByIds,
+  sharedCellClassName,
+  useFittedTableLayout,
+  usePersistentColumnSizing,
+} from '../components/shared/resizableDataTable';
 
 const TOKENS = [
   '{{firstName}}',
@@ -75,6 +88,8 @@ export default function Templates() {
 
   const [search, setSearch] = useState(querySearch);
   const [status, setStatus] = useState<'all' | 'active' | 'archived'>(queryStatus);
+  const [openHeaderFilterId, setOpenHeaderFilterId] = useState<string | null>(null);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [isCreating, setIsCreating] = useState(false);
   const [draft, setDraft] = useState<DraftTemplate>(emptyDraft());
   const [sampleContactId, setSampleContactId] = useState('');
@@ -296,6 +311,178 @@ export default function Templates() {
   };
 
   const listSubtitle = useMemo(() => `${templates.length} templates`, [templates.length]);
+  const templateColumns = useMemo<ColumnDef<EmailLibraryTemplate>[]>(
+    () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <button
+            type="button"
+            aria-label="Select all visible templates"
+            aria-pressed={table.getIsAllRowsSelected()}
+            onClick={() => table.toggleAllRowsSelected(!table.getIsAllRowsSelected())}
+            className="block h-full w-full"
+            data-row-control
+          />
+        ),
+        cell: ({ row }) => (
+          <button
+            type="button"
+            aria-label={`Select template ${row.original.name || row.original.id}`}
+            aria-pressed={row.getIsSelected()}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              row.toggleSelected();
+            }}
+            className="block h-full w-full"
+            data-row-control
+          />
+        ),
+        size: SHARED_SELECTION_COLUMN_WIDTH,
+        minSize: SHARED_SELECTION_COLUMN_WIDTH,
+        maxSize: SHARED_SELECTION_COLUMN_WIDTH,
+        enableResizing: false,
+        meta: {
+          label: 'Select',
+          minWidth: SHARED_SELECTION_COLUMN_WIDTH,
+          defaultWidth: SHARED_SELECTION_COLUMN_WIDTH,
+          maxWidth: SHARED_SELECTION_COLUMN_WIDTH,
+          resizable: false,
+          align: 'center',
+        },
+      },
+      {
+        id: 'name',
+        header: 'Name',
+        accessorFn: (row) => row.name || '-',
+        cell: ({ row }) => <span className="block truncate text-sm text-text">{row.original.name || '-'}</span>,
+        size: 260,
+        minSize: 220,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Name',
+          minWidth: 220,
+          defaultWidth: 260,
+          maxWidth: 420,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: EmailLibraryTemplate) => row.name || '-',
+        },
+      },
+      {
+        id: 'subject',
+        header: 'Subject',
+        accessorFn: (row) => row.subject || '-',
+        cell: ({ row }) => <span className="block truncate text-xs text-text-muted">{row.original.subject || '-'}</span>,
+        size: 340,
+        minSize: 240,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Subject',
+          minWidth: 240,
+          defaultWidth: 340,
+          maxWidth: 520,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: EmailLibraryTemplate) => row.subject || '-',
+        },
+      },
+      {
+        id: 'status',
+        header: () => (
+          <div className="flex items-center gap-1">
+            <span>Status</span>
+            <TableHeaderFilter
+              open={openHeaderFilterId === 'status'}
+              active={status !== 'active'}
+              label="Status"
+              onToggle={() => setOpenHeaderFilterId((value) => (value === 'status' ? null : 'status'))}
+            >
+              <select
+                value={status}
+                onChange={(event) => setStatus(event.target.value as 'all' | 'active' | 'archived')}
+                className="h-7 w-full rounded-none border border-border bg-surface px-2 text-[11px] text-text focus:border-accent focus:outline-none"
+              >
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+                <option value="all">All</option>
+              </select>
+            </TableHeaderFilter>
+          </div>
+        ),
+        accessorFn: (row) => row.status,
+        cell: ({ row }) => (
+          <span
+            className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${
+              row.original.status === 'active'
+                ? 'bg-emerald-500/15 text-emerald-700'
+                : 'bg-amber-500/15 text-amber-700'
+            }`}
+          >
+            {row.original.status}
+          </span>
+        ),
+        size: 108,
+        minSize: 96,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Status',
+          minWidth: 96,
+          defaultWidth: 108,
+          maxWidth: 150,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: EmailLibraryTemplate) => row.status,
+        },
+      },
+      {
+        id: 'updated_at',
+        header: 'Updated',
+        accessorFn: (row) => row.updated_at,
+        cell: ({ row }) => <span className="block truncate text-xs text-text-muted">{formatUpdatedAt(row.original.updated_at)}</span>,
+        size: 132,
+        minSize: 120,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Updated',
+          minWidth: 120,
+          defaultWidth: 132,
+          maxWidth: 180,
+          resizable: true,
+          align: 'right',
+          measureValue: (row: EmailLibraryTemplate) => formatUpdatedAt(row.updated_at),
+        },
+      },
+    ],
+    [openHeaderFilterId, status]
+  );
+  const { columnSizing, setColumnSizing, autoFitColumn } = usePersistentColumnSizing({
+    columns: templateColumns,
+    rows: templates,
+    storageKey: 'templates-table',
+  });
+  const templatesTable = useReactTable({
+    data: templates,
+    columns: templateColumns,
+    state: { columnSizing, rowSelection },
+    onRowSelectionChange: setRowSelection,
+    onColumnSizingChange: setColumnSizing,
+    getRowId: (row) => String(row.id),
+    getCoreRowModel: getCoreRowModel(),
+    columnResizeMode: 'onChange',
+  });
+  const {
+    containerRef: templatesTableRef,
+    columnWidths: templatesColumnWidths,
+    visibleColumnIds: templatesVisibleColumnIds,
+    tableStyle: templatesTableStyle,
+    fillWidth: templatesFillWidth,
+    canShiftLeft: canShiftTemplatesLeft,
+    canShiftRight: canShiftTemplatesRight,
+    shiftLeft: shiftTemplatesLeft,
+    shiftRight: shiftTemplatesRight,
+  } = useFittedTableLayout(templatesTable);
   const emailTabs = useMemo(
     () => [
       { id: 'campaigns', label: 'Campaigns' },
@@ -622,19 +809,10 @@ export default function Templates() {
       preHeaderAffectsLayout
       preHeaderClassName="-mt-3 md:-mt-4 h-14 flex items-end"
       toolbar={
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center">
           <div className="min-w-[220px] flex-1">
             <PageSearchInput value={search} onChange={setSearch} placeholder="Search templates..." />
           </div>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value as 'all' | 'active' | 'archived')}
-            className="h-8 px-2.5 bg-surface border border-border rounded-md text-[12px] text-text"
-          >
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-            <option value="all">All</option>
-          </select>
           <HeaderActionButton onClick={() => setShowImport((v) => !v)} variant="secondary">
             Import JSON
           </HeaderActionButton>
@@ -644,47 +822,44 @@ export default function Templates() {
         </div>
       }
     >
-      <div className="mt-2 bg-surface overflow-hidden flex h-full min-h-0">
-        <section className="flex min-w-0 min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-auto">
-            <table className="w-full min-w-[760px]" style={{ tableLayout: 'fixed' }}>
-              <colgroup>
-                <col style={{ width: '34%' }} />
-                <col style={{ width: '42%' }} />
-                <col style={{ width: '12%' }} />
-                <col style={{ width: '12%' }} />
-              </colgroup>
-              <thead>
-                <tr className="h-9 border-b border-border-subtle bg-surface-hover/30">
-                  <th className="text-left px-3 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide">Name</th>
-                  <th className="text-left px-3 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide">Subject</th>
-                  <th className="text-left px-3 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide">Status</th>
-                  <th className="text-left px-3 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide">Updated</th>
-                </tr>
-              </thead>
+      <div className="bg-surface overflow-hidden flex h-full min-h-0">
+        <section ref={templatesTableRef} className="flex min-w-0 min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+            <div className="sticky top-0 z-[1] relative">
+              <SharedViewportControlsOverlay
+                canShiftLeft={canShiftTemplatesLeft}
+                canShiftRight={canShiftTemplatesRight}
+                onShiftLeft={shiftTemplatesLeft}
+                onShiftRight={shiftTemplatesRight}
+              />
+              <table className="w-full border-collapse" style={templatesTableStyle}>
+                <SharedTableColGroupWithWidths table={templatesTable} columnWidths={templatesColumnWidths} visibleColumnIds={templatesVisibleColumnIds} fillerWidth={templatesFillWidth} />
+                <SharedTableHeader
+                  table={templatesTable}
+                  onAutoFitColumn={autoFitColumn}
+                  visibleColumnIds={templatesVisibleColumnIds}
+                  columnWidths={templatesColumnWidths}
+                  fillerWidth={templatesFillWidth}
+                />
+              </table>
+            </div>
+            <table className="w-full border-collapse" style={templatesTableStyle}>
+              <SharedTableColGroupWithWidths table={templatesTable} columnWidths={templatesColumnWidths} visibleColumnIds={templatesVisibleColumnIds} fillerWidth={templatesFillWidth} />
               <tbody>
-                {templates.map((item) => (
+                {templatesTable.getRowModel().rows.map((row) => (
                   <tr
-                    key={item.id}
-                    className={`group cursor-pointer border-b border-border-subtle transition-colors ${
-                      item.id === selectedId ? 'bg-accent/10' : 'hover:bg-surface-hover/60'
+                    key={row.id}
+                    className={`group ${SHARED_TABLE_ROW_HEIGHT_CLASS} cursor-pointer border-b border-border-subtle transition-colors ${
+                      row.original.id === selectedId ? 'bg-accent/10' : row.getIsSelected() ? 'bg-accent/8' : 'hover:bg-surface-hover/60'
                     }`}
-                    onClick={() => selectTemplate(item)}
+                    onClick={() => selectTemplate(row.original)}
                   >
-                    <td className="px-3 py-2 text-sm text-text truncate">{item.name || '-'}</td>
-                    <td className="px-3 py-2 text-xs text-text-muted truncate">{item.subject || '-'}</td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                          item.status === 'active'
-                            ? 'bg-emerald-500/15 text-emerald-700'
-                            : 'bg-amber-500/15 text-amber-700'
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-xs text-text-muted">{formatUpdatedAt(item.updated_at)}</td>
+                    {filterCellsByIds(row.getVisibleCells(), templatesVisibleColumnIds).map((cell, index, cells) => (
+                      <td key={cell.id} className={sharedCellClassName(cell, `${SHARED_TABLE_ROW_HEIGHT_CLASS} px-3 py-0 ${index === cells.length - 1 ? '__shared-last__' : ''}`)}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                    {templatesFillWidth > 0 ? <td aria-hidden="true" className={`${SHARED_TABLE_ROW_HEIGHT_CLASS} px-0 py-0`} /> : null}
                   </tr>
                 ))}
               </tbody>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { flexRender, getCoreRowModel, type ColumnDef, type RowSelectionState, useReactTable } from '@tanstack/react-table';
 import { RefreshCw, X } from 'lucide-react';
 import { api, type BrowserWorkflowTask, type CompoundWorkflowStatusResponse, type CompoundWorkflowSummary } from '../api';
 import { HeaderActionButton } from '../components/shared/HeaderActionButton';
@@ -14,6 +15,17 @@ import { usePageContext } from '../contexts/PageContextProvider';
 import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
 import { getPageCapability } from '../capabilities/catalog';
 import { useIsMobile } from '../hooks/useIsMobile';
+import {
+  SHARED_SELECTION_COLUMN_WIDTH,
+  SHARED_TABLE_ROW_HEIGHT_CLASS,
+  SharedViewportControlsOverlay,
+  SharedTableColGroupWithWidths,
+  SharedTableHeader,
+  filterCellsByIds,
+  sharedCellClassName,
+  useFittedTableLayout,
+  usePersistentColumnSizing,
+} from '../components/shared/resizableDataTable';
 
 type TasksView = 'all' | 'browser' | 'compound';
 
@@ -358,6 +370,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function taskSourceLabel(source: UnifiedTaskRow['source']) {
+  return source === 'compound' ? 'Compound' : 'Browser';
+}
+
 function parseInternalPromptSections(value: string): Array<{ label: string; content: string }> {
   const text = cleanText(value);
   if (!text) return [];
@@ -663,6 +679,7 @@ export default function TasksPage() {
   const detailsPanelRef = useRef<HTMLDivElement>(null);
   const [showFinished, setShowFinished] = useState(true);
   const [search, setSearch] = useState('');
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const view = useMemo(() => parseTasksView(searchParams?.get('view') ?? null), [searchParams]);
   useRegisterCapabilities(getPageCapability('tasks'));
 
@@ -787,6 +804,237 @@ export default function TasksPage() {
     );
   }, [search, tasks, view]);
 
+  const taskColumns = useMemo<ColumnDef<UnifiedTaskRow>[]>(
+    () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <button
+            type="button"
+            aria-label="Select all visible tasks"
+            aria-pressed={table.getIsAllRowsSelected()}
+            onClick={() => table.toggleAllRowsSelected(!table.getIsAllRowsSelected())}
+            className="block h-full w-full"
+            data-row-control
+          />
+        ),
+        cell: ({ row }) => (
+          <button
+            type="button"
+            aria-label={`Select task ${row.original.id}`}
+            aria-pressed={row.getIsSelected()}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              row.toggleSelected();
+            }}
+            className="block h-full w-full"
+            data-row-control
+          />
+        ),
+        size: SHARED_SELECTION_COLUMN_WIDTH,
+        minSize: SHARED_SELECTION_COLUMN_WIDTH,
+        maxSize: SHARED_SELECTION_COLUMN_WIDTH,
+        enableResizing: false,
+        meta: {
+          label: 'Select',
+          minWidth: SHARED_SELECTION_COLUMN_WIDTH,
+          defaultWidth: SHARED_SELECTION_COLUMN_WIDTH,
+          maxWidth: SHARED_SELECTION_COLUMN_WIDTH,
+          resizable: false,
+          align: 'center',
+        },
+      },
+      {
+        id: 'goal',
+        header: 'Goal',
+        accessorFn: (row) => row.goal,
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <p className="truncate font-medium text-text" title={row.original.goal}>{row.original.goal}</p>
+            {row.original.errorText ? (
+              <p className="mt-0.5 truncate text-xs text-red-600">{row.original.errorText}</p>
+            ) : (
+              <p className="mt-0.5 truncate text-xs text-text-dim">{row.original.tabId ? `Tab ${row.original.tabId}` : 'No tab binding'}</p>
+            )}
+          </div>
+        ),
+        size: 300,
+        minSize: 240,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Goal',
+          minWidth: 240,
+          defaultWidth: 300,
+          maxWidth: 520,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: UnifiedTaskRow) => row.goal,
+        },
+      },
+      {
+        id: 'status',
+        header: 'Status',
+        accessorFn: (row) => row.status,
+        cell: ({ row }) => <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${statusPillClass(row.original.status)}`}>{row.original.status}</span>,
+        size: 120,
+        minSize: 96,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Status',
+          minWidth: 96,
+          defaultWidth: 120,
+          maxWidth: 150,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: UnifiedTaskRow) => row.status,
+        },
+      },
+      {
+        id: 'stage',
+        header: 'Stage',
+        accessorFn: (row) => row.stage,
+        cell: ({ row }) => <span className="block truncate text-xs leading-tight text-text-dim">{row.original.stage}</span>,
+        size: 170,
+        minSize: 130,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Stage',
+          minWidth: 130,
+          defaultWidth: 170,
+          maxWidth: 260,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: UnifiedTaskRow) => row.stage,
+        },
+      },
+      {
+        id: 'progress',
+        header: 'Progress',
+        accessorFn: (row) => row.progressPct,
+        cell: ({ row }) => {
+          const heartbeatText = row.original.status.toLowerCase() === 'running' && typeof row.original.heartbeatAgeMs === 'number'
+            ? ` | hb ${Math.max(0, Math.round(row.original.heartbeatAgeMs / 1000))}s`
+            : '';
+          return <span className="block truncate text-xs leading-tight text-text-dim">{row.original.progressPct}%{heartbeatText}</span>;
+        },
+        size: 130,
+        minSize: 110,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Progress',
+          minWidth: 110,
+          defaultWidth: 130,
+          maxWidth: 170,
+          resizable: true,
+          align: 'right',
+          measureValue: (row: UnifiedTaskRow) => `${row.progressPct}%`,
+        },
+      },
+      {
+        id: 'updated',
+        header: 'Updated',
+        accessorFn: (row) => row.updatedLabel,
+        cell: ({ row }) => <span className="block truncate text-xs leading-tight text-text-dim">{row.original.updatedLabel}</span>,
+        size: 160,
+        minSize: 130,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Updated',
+          minWidth: 130,
+          defaultWidth: 160,
+          maxWidth: 220,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: UnifiedTaskRow) => row.updatedLabel,
+        },
+      },
+      {
+        id: 'operation',
+        header: 'Operation',
+        accessorFn: (row) => row.operation,
+        cell: ({ row }) => <span className="block truncate text-xs leading-tight text-text-dim">{row.original.operation}</span>,
+        size: 150,
+        minSize: 120,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Operation',
+          minWidth: 120,
+          defaultWidth: 150,
+          maxWidth: 220,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: UnifiedTaskRow) => row.operation,
+        },
+      },
+      {
+        id: 'task_id',
+        header: 'Task ID',
+        accessorFn: (row) => row.id,
+        cell: ({ row }) => <span className="block truncate text-xs leading-tight text-text-dim" title={row.original.id}>{row.original.id}</span>,
+        size: 170,
+        minSize: 140,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Task ID',
+          minWidth: 140,
+          defaultWidth: 170,
+          maxWidth: 260,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: UnifiedTaskRow) => row.id,
+        },
+      },
+      {
+        id: 'source',
+        header: 'Source',
+        accessorFn: (row) => row.source,
+        cell: ({ row }) => <span className="block truncate text-xs leading-tight text-text-dim">{taskSourceLabel(row.original.source)}</span>,
+        size: 100,
+        minSize: 90,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Source',
+          minWidth: 90,
+          defaultWidth: 100,
+          maxWidth: 130,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: UnifiedTaskRow) => taskSourceLabel(row.source),
+        },
+      },
+    ],
+    []
+  );
+
+  const { columnSizing, setColumnSizing, autoFitColumn } = usePersistentColumnSizing({
+    columns: taskColumns,
+    rows: filteredTasks,
+    storageKey: 'tasks-table',
+  });
+
+  const tasksTable = useReactTable({
+    data: filteredTasks,
+    columns: taskColumns,
+    state: { columnSizing, rowSelection },
+    onRowSelectionChange: setRowSelection,
+    onColumnSizingChange: setColumnSizing,
+    getRowId: (row) => `${row.source}:${row.id}`,
+    getCoreRowModel: getCoreRowModel(),
+    columnResizeMode: 'onChange',
+  });
+  const {
+    containerRef: tasksTableRef,
+    columnWidths: tasksColumnWidths,
+    visibleColumnIds: tasksVisibleColumnIds,
+    tableStyle: tasksTableStyle,
+    fillWidth: tasksFillWidth,
+    canShiftLeft: canShiftTasksLeft,
+    canShiftRight: canShiftTasksRight,
+    shiftLeft: shiftTasksLeft,
+    shiftRight: shiftTasksRight,
+  } = useFittedTableLayout(tasksTable);
+
   const selectedTask = useMemo(
     () => (selectedTaskId ? tasks.find((task) => task.id === selectedTaskId) ?? null : null),
     [selectedTaskId, tasks]
@@ -908,18 +1156,18 @@ export default function TasksPage() {
       preHeaderAffectsLayout
       preHeaderClassName="-mt-3 md:-mt-4 h-14 flex items-end"
       toolbar={(
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center">
           <div className="min-w-[220px] flex-1">
             <PageSearchInput value={search} onChange={setSearch} placeholder="Search tasks..." />
           </div>
-          <label className="inline-flex h-9 items-center gap-2 rounded-md border border-border bg-surface px-3 text-xs text-text-dim">
+          <label className="inline-flex h-8 items-center gap-2 rounded-none border border-border bg-surface px-3 text-xs text-text-dim">
             <input type="checkbox" checked={showFinished} onChange={(event) => setShowFinished(event.target.checked)} />
             Show finished
           </label>
           <div className="ml-auto flex flex-wrap items-center gap-2 text-[11px] text-text-dim">
-            <span className="inline-flex h-9 items-center rounded-md border border-border bg-surface px-3">Running {runningCount}</span>
-            <span className="inline-flex h-9 items-center rounded-md border border-border bg-surface px-3">Browser {browserCount}</span>
-            <span className="inline-flex h-9 items-center rounded-md border border-border bg-surface px-3">Compound {compoundCount}</span>
+            <span className="inline-flex h-8 items-center rounded-none border border-border bg-surface px-3">Running {runningCount}</span>
+            <span className="inline-flex h-8 items-center rounded-none border border-border bg-surface px-3">Browser {browserCount}</span>
+            <span className="inline-flex h-8 items-center rounded-none border border-border bg-surface px-3">Compound {compoundCount}</span>
           </div>
           <HeaderActionButton
             onClick={() => {
@@ -935,11 +1183,11 @@ export default function TasksPage() {
           </HeaderActionButton>
         </div>
       )}
-      contentClassName="overflow-hidden"
+      contentClassName=""
     >
-      <div className="min-h-0 flex-1 overflow-hidden pt-2">
+      <div className="min-h-0 flex-1 overflow-hidden">
         <div className="flex h-full min-h-0 overflow-hidden bg-surface">
-        <div className="min-w-0 flex-1 overflow-auto">
+        <div ref={tasksTableRef} className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
           {(tasksQ.isLoading || compoundQ.isLoading) && tasks.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <LoadingSpinner />
@@ -949,65 +1197,57 @@ export default function TasksPage() {
               No tasks found.
             </div>
           ) : (
-            <table className="w-full min-w-[1120px] table-fixed">
-              <thead className="sticky top-0 z-10 bg-surface">
-                <tr className="h-9 border-b border-border-subtle bg-surface-hover/30">
-                  <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted w-[20%]">Goal</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted w-[11%]">Status</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted w-[14%]">Stage</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted w-[10%]">Progress</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted w-[12%]">Updated</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted w-[13%]">Operation</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted w-[12%]">Task ID</th>
-                  <th className="px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted w-[8%]">Source</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border-subtle">
-                {filteredTasks.map((task) => {
-                  const isActive = selectedTask?.id === task.id;
-                  const heartbeatText = task.status.toLowerCase() === 'running' && typeof task.heartbeatAgeMs === 'number'
-                    ? ` | hb ${Math.max(0, Math.round(task.heartbeatAgeMs / 1000))}s`
-                    : '';
-                  return (
-                    <tr
-                      key={`${task.source}:${task.id}`}
-                      className={`group h-[42px] cursor-pointer text-sm transition-colors ${isActive ? 'bg-accent/10' : 'hover:bg-surface-hover/60'}`}
-                      onClick={() => openTask(task.id)}
-                      aria-selected={isActive}
-                      tabIndex={0}
-                      aria-label={`Open task details for ${task.goal}`}
-                      onKeyDown={(event) => {
-                        if (event.key !== 'Enter' && event.key !== ' ') return;
-                        event.preventDefault();
-                        openTask(task.id);
-                      }}
-                    >
-                      <td className="h-[42px] px-3 py-0 align-middle leading-tight">
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-text" title={task.goal}>{task.goal}</p>
-                          {task.errorText ? (
-                            <p className="mt-0.5 truncate text-xs text-red-600">{task.errorText}</p>
-                          ) : (
-                            <p className="mt-0.5 truncate text-xs text-text-dim">{task.tabId ? `Tab ${task.tabId}` : 'No tab binding'}</p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="h-[42px] px-3 py-0 align-middle leading-tight">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${statusPillClass(task.status)}`}>{task.status}</span>
-                      </td>
-                      <td className="h-[42px] px-3 py-0 align-middle text-xs leading-tight text-text-dim">{task.stage}</td>
-                      <td className="h-[42px] px-3 py-0 align-middle text-xs leading-tight text-text-dim">{task.progressPct}%{heartbeatText}</td>
-                      <td className="h-[42px] px-3 py-0 align-middle text-xs leading-tight text-text-dim">{task.updatedLabel}</td>
-                      <td className="h-[42px] px-3 py-0 align-middle text-xs leading-tight text-text-dim">{task.operation}</td>
-                      <td className="h-[42px] px-3 py-0 align-middle text-xs leading-tight text-text-dim">
-                        <span className="block truncate" title={task.id}>{task.id}</span>
-                      </td>
-                      <td className="h-[42px] px-3 py-0 align-middle text-xs leading-tight text-text-dim">{task.source}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <>
+              <div className="sticky top-0 z-10 bg-surface relative">
+                <SharedViewportControlsOverlay
+                  canShiftLeft={canShiftTasksLeft}
+                  canShiftRight={canShiftTasksRight}
+                  onShiftLeft={shiftTasksLeft}
+                  onShiftRight={shiftTasksRight}
+                />
+                <table className="w-full border-collapse" style={tasksTableStyle}>
+                  <SharedTableColGroupWithWidths table={tasksTable} columnWidths={tasksColumnWidths} visibleColumnIds={tasksVisibleColumnIds} fillerWidth={tasksFillWidth} />
+                  <SharedTableHeader
+                    table={tasksTable}
+                    onAutoFitColumn={autoFitColumn}
+                    visibleColumnIds={tasksVisibleColumnIds}
+                    columnWidths={tasksColumnWidths}
+                    fillerWidth={tasksFillWidth}
+                  />
+                </table>
+              </div>
+              <table className="w-full border-collapse" style={tasksTableStyle}>
+                <SharedTableColGroupWithWidths table={tasksTable} columnWidths={tasksColumnWidths} visibleColumnIds={tasksVisibleColumnIds} fillerWidth={tasksFillWidth} />
+                <tbody>
+                  {tasksTable.getRowModel().rows.map((row) => {
+                    const task = row.original;
+                    const isActive = selectedTask?.id === task.id;
+                    return (
+                      <tr
+                        key={row.id}
+                        className={`group ${SHARED_TABLE_ROW_HEIGHT_CLASS} cursor-pointer text-sm transition-colors ${isActive ? 'bg-accent/10' : row.getIsSelected() ? 'bg-accent/8' : 'hover:bg-surface-hover/60'}`}
+                        onClick={() => openTask(task.id)}
+                        aria-selected={isActive}
+                        tabIndex={0}
+                        aria-label={`Open task details for ${task.goal}`}
+                        onKeyDown={(event) => {
+                          if (event.key !== 'Enter' && event.key !== ' ') return;
+                          event.preventDefault();
+                          openTask(task.id);
+                        }}
+                      >
+                        {filterCellsByIds(row.getVisibleCells(), tasksVisibleColumnIds).map((cell, index, cells) => (
+                          <td key={cell.id} className={sharedCellClassName(cell, `${SHARED_TABLE_ROW_HEIGHT_CLASS} px-3 py-0 ${index === cells.length - 1 ? '__shared-last__' : ''}`)}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
+                        {tasksFillWidth > 0 ? <td aria-hidden="true" className={`${SHARED_TABLE_ROW_HEIGHT_CLASS} px-0 py-0`} /> : null}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </>
           )}
         </div>
 

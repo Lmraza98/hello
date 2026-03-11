@@ -87,22 +87,30 @@ export function CampaignDetailsPanel({ campaign, onClose, onEditTemplates }: Cam
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <div className="shrink-0 border-b border-border bg-surface px-4 py-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-text">{campaign.name}</h3>
-            <p className="truncate text-xs text-text-muted">{campaign.description || 'Campaign details'}</p>
-          </div>
+      <div className="sticky top-0 z-20 shrink-0 border-b border-border bg-surface">
+        <div className="flex items-center gap-1.5 px-3 py-2">
+          <button
+            type="button"
+            onClick={() => onEditTemplates(campaign)}
+            className="inline-flex h-7 items-center gap-1.5 border border-border bg-bg px-2.5 text-xs text-text hover:bg-surface-hover"
+          >
+            <Edit3 className="h-3.5 w-3.5" />
+            Edit templates
+          </button>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close campaign details"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
+            className="ml-auto inline-flex h-7 w-7 items-center justify-center border border-border text-text-muted hover:bg-surface-hover"
           >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
-        <div className="mt-2 flex items-center gap-1.5">
+        <div className="px-3 pb-2">
+          <h3 className="truncate text-sm font-semibold text-text">{campaign.name}</h3>
+          <p className="truncate text-xs text-text-muted">{campaign.description || 'Campaign details'}</p>
+        </div>
+        <div className="flex items-center gap-1.5 px-3 pb-2">
           <span className="inline-flex h-5 items-center rounded-full border border-border bg-bg px-2 text-[11px] text-text-muted capitalize">
             {campaign.status || 'draft'}
           </span>
@@ -110,51 +118,20 @@ export function CampaignDetailsPanel({ campaign, onClose, onEditTemplates }: Cam
             {campaign.num_emails} steps
           </span>
         </div>
-        <div className="mt-2">
-          <button
-            type="button"
-            onClick={() => onEditTemplates(campaign)}
-            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border bg-bg px-2.5 text-xs text-text hover:bg-surface-hover"
-          >
-            <Edit3 className="h-3.5 w-3.5" />
-            Edit templates
-          </button>
-        </div>
       </div>
 
-      <div className="min-h-0 flex flex-1 flex-col overflow-hidden px-4 py-3 text-xs">
-        <section className="shrink-0 space-y-1 rounded-md border border-border bg-bg p-2">
-          <dl className="divide-y divide-border">
-            <div className="flex h-9 items-center justify-between gap-2">
-              <dt className="w-[92px] shrink-0 text-text-muted">Status</dt>
-              <dd className="min-w-0 flex-1 truncate text-right text-text capitalize">{campaign.status || 'draft'}</dd>
-            </div>
-            <div className="flex h-9 items-center justify-between gap-2">
-              <dt className="w-[92px] shrink-0 text-text-muted">Sequence</dt>
-              <dd className="min-w-0 flex-1 truncate text-right text-text">{campaign.num_emails} emails</dd>
-            </div>
-            <div className="flex h-9 items-center justify-between gap-2">
-              <dt className="w-[92px] shrink-0 text-text-muted">Cadence</dt>
-              <dd className="min-w-0 flex-1 truncate text-right text-text">{campaign.days_between_emails} days</dd>
-            </div>
-            <div className="flex h-9 items-center justify-between gap-2">
-              <dt className="w-[92px] shrink-0 text-text-muted">Enrolled</dt>
-              <dd className="min-w-0 flex-1 truncate text-right text-text tabular-nums">{enrolledContacts.length}</dd>
-            </div>
-          </dl>
-        </section>
-
-        <section className="mt-4 flex min-h-0 flex-1 flex-col space-y-2 overflow-hidden">
+      <div className="min-h-0 flex flex-1 flex-col overflow-hidden px-3 py-3 text-xs">
+        <section className="flex min-h-0 flex-1 flex-col space-y-2 overflow-hidden">
           <h4 className="text-xs font-semibold uppercase tracking-wide text-text-muted">Contacts</h4>
           <input
             value={contactSearch}
             onChange={(e) => setContactSearch(e.target.value)}
             placeholder="Search contacts by name, email, company"
-            className="h-8 w-full rounded-md border border-border bg-bg px-2.5 text-xs text-text"
+            className="h-8 w-full border border-border bg-bg px-2.5 text-xs text-text"
           />
 
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-            <div className="rounded-md border border-border bg-bg">
+            <div className="border border-border bg-bg/30">
               <div className="shrink-0 bg-surface px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
                 Enrolled
               </div>
@@ -172,14 +149,14 @@ export function CampaignDetailsPanel({ campaign, onClose, onEditTemplates }: Cam
                             <p className="truncate text-[11px] font-medium text-text">{item.contact_name}</p>
                             <p className="truncate text-[10px] text-text-muted">{item.email || '-'}</p>
                             <p className="truncate text-[10px] text-text-muted">
-                              Step {item.current_step || 0} - Next {formatNextSend(item.next_email_at)}
+                              Step {item.current_step || 0} · Next {formatNextSend(item.next_email_at)}
                             </p>
                           </div>
                           <button
                             type="button"
                             onClick={() => removeMutation.mutate(item.id)}
                             disabled={removeMutation.isPending}
-                            className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                            className="inline-flex h-6 w-6 shrink-0 items-center justify-center border border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
                             title="Remove contact"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -192,7 +169,7 @@ export function CampaignDetailsPanel({ campaign, onClose, onEditTemplates }: Cam
               </div>
             </div>
 
-            <div className="rounded-md border border-border bg-bg">
+            <div className="border border-border bg-bg/30">
               <div className="bg-surface px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
                 Available to add
               </div>
@@ -213,7 +190,7 @@ export function CampaignDetailsPanel({ campaign, onClose, onEditTemplates }: Cam
                           type="button"
                           onClick={() => enrollMutation.mutate(item.id)}
                           disabled={enrollMutation.isPending}
-                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover disabled:opacity-50"
+                          className="inline-flex h-6 w-6 shrink-0 items-center justify-center border border-border text-text-muted hover:bg-surface-hover disabled:opacity-50"
                           title="Add contact"
                         >
                           <Plus className="h-3.5 w-3.5" />
@@ -226,6 +203,22 @@ export function CampaignDetailsPanel({ campaign, onClose, onEditTemplates }: Cam
             </div>
           </div>
         </section>
+
+        <details className="mt-3 shrink-0 border-t border-border bg-bg/30 px-0 py-1.5 text-xs">
+          <summary className="cursor-pointer list-none text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+            Details
+          </summary>
+          <dl className="mt-1.5 grid grid-cols-[92px_minmax(0,1fr)] gap-x-3 gap-y-1.5">
+            <dt className="text-text-muted">Status</dt>
+            <dd className="min-w-0 truncate text-text capitalize">{campaign.status || 'draft'}</dd>
+            <dt className="text-text-muted">Sequence</dt>
+            <dd className="min-w-0 truncate text-text">{campaign.num_emails} emails</dd>
+            <dt className="text-text-muted">Cadence</dt>
+            <dd className="min-w-0 truncate text-text">{campaign.days_between_emails} days</dd>
+            <dt className="text-text-muted">Enrolled</dt>
+            <dd className="min-w-0 truncate text-text tabular-nums">{enrolledContacts.length}</dd>
+          </dl>
+        </details>
       </div>
     </div>
   );

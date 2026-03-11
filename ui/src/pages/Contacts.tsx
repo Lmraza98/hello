@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+﻿import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { usePageContext } from '../contexts/PageContextProvider';
 import { normalizeQueryFilterParam } from '../utils/filterNormalization';
@@ -8,6 +8,7 @@ import {
   getSortedRowModel,
   flexRender,
   type SortingState,
+  type Updater,
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { api } from '../api';
@@ -19,26 +20,40 @@ import { useContacts } from '../hooks/useContacts';
 import { AddContactPanelContent } from '../components/contacts/AddContactPanelContent';
 import { ContactCard } from '../components/contacts/ContactCard';
 import { ContactDetailsContent } from '../components/contacts/ContactDetailsContent';
-import { SidePanelContainer } from '../components/contacts/SidePanelContainer';
 import { BottomDrawerContainer } from '../components/contacts/BottomDrawerContainer';
+import { ResizableSidePanel } from '../components/contacts/ResizableSidePanel';
 import { HeaderActionButton } from '../components/shared/HeaderActionButton';
 import { PageSearchInput } from '../components/shared/PageSearchInput';
 import { EmptyState } from '../components/shared/EmptyState';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { ConfirmDialog } from '../components/shared/ConfirmDialog';
+import { ColumnVisibilityMenu } from '../components/shared/ColumnVisibilityMenu';
 import { CampaignEnrollmentModal } from '../components/contacts/CampaignEnrollmentModal';
 import { createContactColumns } from '../components/contacts/tableColumns';
 import { EmailTabs } from '../components/email/EmailTabs';
 import { WorkspacePageShell } from '../components/shared/WorkspacePageShell';
 import { getContactSourceLabel } from '../components/contacts/sourceLabel';
+import {
+  FILTERABLE_VIEWPORT_CONTROL_WIDTH,
+  SHARED_TABLE_ROW_HEIGHT_CLASS,
+  SHARED_TABLE_ROW_HEIGHT_PX,
+  SharedTableColGroupWithWidths,
+  SharedTableHeader,
+  filterCellsByIds,
+  sharedCellClassName,
+  useFittedTableLayout,
+  usePersistentColumnSizing,
+} from '../components/shared/resizableDataTable';
+import { usePersistentColumnPreferences } from '../components/shared/usePersistentColumnPreferences';
 import { Users, Download, Loader2, Phone, Plus, RotateCcw, Send, SlidersHorizontal, Target, Trash2, Upload, UserPlus } from 'lucide-react';
 import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
 import { getPageCapability } from '../capabilities/catalog';
 
 /* ── Constants ─────────────────────────── */
 
-const ROW_HEIGHT = 42;
+const ROW_HEIGHT = SHARED_TABLE_ROW_HEIGHT_PX;
 const MOBILE_ROW_HEIGHT = 72;
+const CONTACTS_VIEWPORT_CONTROL_WIDTH = FILTERABLE_VIEWPORT_CONTROL_WIDTH + 20;
 type ContactsView = 'all' | 'sources' | 'pipeline';
 
 function parseContactsView(value: string | null): ContactsView {
@@ -89,9 +104,12 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
   const [companyFilter, setCompanyFilter] = useState('');
   const [emailFilter, setEmailFilter] = useState('');
   const [engagementFilter, setEngagementFilter] = useState('');
+  const [firstNameFilter, setFirstNameFilter] = useState('');
+  const [lastNameFilter, setLastNameFilter] = useState('');
+  const [titleFilter, setTitleFilter] = useState('');
+  const [openHeaderFilterId, setOpenHeaderFilterId] = useState<string | null>(null);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [showFiltersMenu, setShowFiltersMenu] = useState(false);
   const { contactId: selectedContactId, openContact, closeContact, setContactId } = useContactDetailsRouteState();
@@ -99,9 +117,20 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
   useRegisterCapabilities(getPageCapability('contacts'));
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const filtersMenuRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<any>(null);
+  const canShiftLeftRef = useRef(false);
+  const canShiftRightRef = useRef(false);
+  const shiftLeftRef = useRef<() => void>(() => {});
+  const shiftRightRef = useRef<() => void>(() => {});
   const lastFocusedRowRef = useRef<HTMLElement | null>(null);
   const newContactButtonRef = useRef<HTMLButtonElement>(null);
   const detailsPanelRef = useRef<HTMLDivElement>(null);
+  const selectionScrollAnimationRef = useRef<number | null>(null);
+  const [scrollThumb, setScrollThumb] = useState<{ height: number; top: number; visible: boolean }>({
+    height: 0,
+    top: 0,
+    visible: false,
+  });
 
   const closeAddPanel = useCallback((options?: { restoreFocus?: boolean }) => {
     setShowAddPanel(false);
@@ -135,6 +164,44 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     () => Array.from(new Set(contacts.map((contact) => getContactSourceLabel(contact)))).sort((a, b) => a.localeCompare(b)),
     [contacts]
   );
+  const headerFilterState = useMemo(
+    () => ({
+      openFilterId: openHeaderFilterId,
+      setOpenFilterId: setOpenHeaderFilterId,
+      firstName: firstNameFilter,
+      setFirstName: setFirstNameFilter,
+      lastName: lastNameFilter,
+      setLastName: setLastNameFilter,
+      title: titleFilter,
+      setTitle: setTitleFilter,
+      company: companyFilter,
+      setCompany: setCompanyFilter,
+      source: sourceFilter,
+      setSource: setSourceFilter,
+      sourceOptions,
+      status: engagementFilter,
+      setStatus: setEngagementFilter,
+    }),
+    [companyFilter, engagementFilter, firstNameFilter, lastNameFilter, openHeaderFilterId, sourceFilter, sourceOptions, titleFilter]
+  );
+  const headerFiltersRef = useRef<{
+    openFilterId: string | null;
+    setOpenFilterId: (value: string | null) => void;
+    firstName: string;
+    setFirstName: (value: string) => void;
+    lastName: string;
+    setLastName: (value: string) => void;
+    title: string;
+    setTitle: (value: string) => void;
+    company: string;
+    setCompany: (value: string) => void;
+    source: string;
+    setSource: (value: string) => void;
+    sourceOptions: string[];
+    status: string;
+    setStatus: (value: string) => void;
+  } | null>(null);
+  headerFiltersRef.current = headerFilterState;
 
   useEffect(() => {
     if (openAddModal) {
@@ -209,18 +276,10 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     setSourceFilter(source || '');
   }, [filterSearchKey]);
 
-  /* ── Table configuration ── */
-
-  const columns = useMemo(
-    () =>
-      createContactColumns(
-        (id, name) => {
-          setConfirmDeleteSingle({ id, name });
-        },
-        { compact: true }
-      ),
-    []
-  );
+  const handleAddContactToCampaign = useCallback((contact: Contact) => {
+    setRowSelection({ [String(contact.id)]: true });
+    setShowCampaignModal(true);
+  }, []);
 
   const displayContacts = useMemo(() => {
     let data = contacts;
@@ -247,6 +306,12 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
 
     const companyValue = companyFilter.trim().toLowerCase();
     if (companyValue) data = data.filter((c) => c.company_name.toLowerCase().includes(companyValue));
+    const firstNameValue = firstNameFilter.trim().toLowerCase();
+    if (firstNameValue) data = data.filter((c) => (c.first_name?.toLowerCase().includes(firstNameValue) ?? false));
+    const lastNameValue = lastNameFilter.trim().toLowerCase();
+    if (lastNameValue) data = data.filter((c) => (c.last_name?.toLowerCase().includes(lastNameValue) ?? false));
+    const titleValue = titleFilter.trim().toLowerCase();
+    if (titleValue) data = data.filter((c) => (c.title?.toLowerCase().includes(titleValue) ?? false));
     if (emailFilter === 'yes' || emailFilter === 'has') data = data.filter((c) => !!c.email);
     if (emailFilter === 'no') data = data.filter((c) => !c.email);
     if (view !== 'sources' && engagementFilter) {
@@ -260,13 +325,148 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     companyFilter,
     emailFilter,
     engagementFilter,
+    firstNameFilter,
+    lastNameFilter,
+    titleFilter,
     view,
   ]);
+
+  const columnLabelMap: Record<string, string> = {
+    name: 'Name',
+    first_name: 'First Name',
+    last_name: 'Last Name',
+    title: 'Title',
+    company_name: 'Company',
+    email: 'Email',
+    scraped_at: 'Date Added',
+    lead_source: 'Source',
+    engagement_status: 'Status',
+  };
+  const managedColumnIds = useMemo(() => ['name', 'first_name', 'last_name', 'title', 'company_name', 'email', 'scraped_at', 'lead_source', 'engagement_status'], []);
+  const { columnOrder: managedColumnOrder, setColumnOrder: setManagedColumnOrder, columnVisibility, setColumnVisibility } = usePersistentColumnPreferences({
+    storageKey: 'contacts-table',
+    columnIds: managedColumnIds,
+    initialVisibility: { name: true },
+  });
+
+  const handleColumnOrderChange = useCallback((updater: string[] | ((old: string[]) => string[])) => {
+    setManagedColumnOrder((prev) => {
+      const current = ['select', ...prev, 'actions'];
+      const next = typeof updater === 'function' ? updater(current) : updater;
+      const orderedManaged = next.filter((id) => managedColumnIds.includes(id));
+      managedColumnIds.forEach((id) => {
+        if (!orderedManaged.includes(id)) orderedManaged.push(id);
+      });
+      return orderedManaged;
+    });
+  }, [managedColumnIds, setManagedColumnOrder]);
+
+  const moveManagedColumn = useCallback((columnId: string, delta: -1 | 1) => {
+    setManagedColumnOrder((prev) => {
+      const index = prev.indexOf(columnId);
+      const nextIndex = index + delta;
+      if (index < 0 || nextIndex < 0 || nextIndex >= prev.length) return prev;
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.splice(nextIndex, 0, item);
+      return next;
+    });
+  }, [setManagedColumnOrder]);
+
+  const actionsHeader = useMemo(() => (
+    <div className="relative flex h-full w-full items-center justify-center gap-0.5 bg-surface" ref={filtersMenuRef}>
+      <button
+        type="button"
+        onClick={() => setShowFiltersMenu((v) => !v)}
+        className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        title="Columns"
+        aria-label="Open column visibility menu"
+      >
+        <SlidersHorizontal className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => shiftLeftRef.current()}
+        disabled={!canShiftLeftRef.current}
+        aria-label="Show previous columns"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text disabled:opacity-30"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
+          <path d="m15 18-6-6 6-6"></path>
+        </svg>
+      </button>
+      <button
+        type="button"
+        onClick={() => shiftRightRef.current()}
+        disabled={!canShiftRightRef.current}
+        aria-label="Show more columns"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text disabled:opacity-30"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5" aria-hidden="true">
+          <path d="m9 18 6-6-6-6"></path>
+        </svg>
+      </button>
+      {showFiltersMenu ? (
+        <div className="absolute right-0 top-7 z-20 w-[260px] rounded-none border border-border bg-surface p-3 shadow-lg">
+          <ColumnVisibilityMenu
+            items={managedColumnOrder.map((columnId, index) => ({
+              id: columnId,
+              label: columnLabelMap[columnId] ?? columnId,
+              visible: tableRef.current?.getColumn(columnId)?.getIsVisible() ?? true,
+              canHide: columnId !== 'name',
+              canMoveUp: index > 0,
+              canMoveDown: index < managedColumnOrder.length - 1,
+            }))}
+            onToggle={(columnId, visible) => {
+              if (columnId === 'name') return;
+              tableRef.current?.getColumn(columnId)?.toggleVisibility(visible);
+            }}
+            onMoveUp={(columnId) => moveManagedColumn(columnId, -1)}
+            onMoveDown={(columnId) => moveManagedColumn(columnId, 1)}
+          />
+        </div>
+      ) : null}
+    </div>
+  ), [
+    columnLabelMap,
+    managedColumnOrder,
+    moveManagedColumn,
+    showFiltersMenu,
+  ]);
+
+  /* ── Table configuration ── */
+
+  const columns = useMemo(
+    () =>
+      createContactColumns(
+        (id, name) => {
+          setConfirmDeleteSingle({ id, name });
+        },
+        {
+          compact: isCompact,
+          actionsHeader,
+          headerFiltersRef: isCompact ? undefined : headerFiltersRef,
+          onAddToCampaign: handleAddContactToCampaign,
+        }
+      ),
+    [actionsHeader, handleAddContactToCampaign, isCompact]
+  );
 
   const selectedContact = useMemo(
     () => (selectedContactId ? tableData.find((c) => c.id === selectedContactId) ?? null : null),
     [selectedContactId, tableData]
   );
+
+  const { columnSizing, setColumnSizing, autoFitColumn } = usePersistentColumnSizing({
+    columns,
+    rows: tableData,
+    storageKey: 'contacts-table-sizing-v2',
+    initialSizingMode: 'min',
+  });
+  const visibleColumnIdsRef = useRef<string[]>([]);
+  const visibleColumnWidthsRef = useRef<Record<string, number>>({});
+  const fillWidthRef = useRef(0);
+  const resizingColumnIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!selectedContactId) return;
@@ -290,35 +490,56 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
 
   /* ── Table ── */
 
+  const selectedIds = Object.keys(rowSelection).map(Number);
+  const selectedCount = selectedIds.length;
+  const emailCount = contacts.filter(c => c.email).length;
+
+  const handleColumnSizingChange = useCallback((updater: Updater<Record<string, number>>) => {
+    setColumnSizing((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      const resizingColumnId = resizingColumnIdRef.current;
+      if (!resizingColumnId || resizingColumnId === 'select' || resizingColumnId === 'actions') return next;
+
+      const visibleColumnIds = visibleColumnIdsRef.current;
+      if (!visibleColumnIds.includes(resizingColumnId)) return next;
+      const visibleScrollingIds = visibleColumnIds.filter((id) => id !== 'select' && id !== 'actions');
+      const trailingVisibleScrollingId = visibleScrollingIds[visibleScrollingIds.length - 1] ?? null;
+      if (resizingColumnId !== trailingVisibleScrollingId) return next;
+
+      const currentVisibleWidth = visibleColumnWidthsRef.current[resizingColumnId];
+      if (typeof currentVisibleWidth !== 'number' || !Number.isFinite(currentVisibleWidth)) return next;
+
+      const maxVisibleWidth = currentVisibleWidth + Math.max(fillWidthRef.current, 0);
+      const requestedWidth = next[resizingColumnId];
+      if (typeof requestedWidth !== 'number' || !Number.isFinite(requestedWidth)) return next;
+      if (requestedWidth <= maxVisibleWidth) return next;
+
+      return {
+        ...next,
+        [resizingColumnId]: maxVisibleWidth,
+      };
+    });
+  }, [setColumnSizing]);
+
   const table = useReactTable({
     data: tableData,
     columns,
-    state: { sorting, rowSelection, columnVisibility },
+    state: { sorting, rowSelection, columnVisibility, columnSizing, columnOrder: ['select', ...managedColumnOrder, 'actions'] },
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: handleColumnOrderChange,
+    onColumnSizingChange: handleColumnSizingChange,
     getRowId: (row) => String(row.id),
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     autoResetAll: false,
+    columnResizeMode: 'onChange',
   });
+  tableRef.current = table;
 
   const { rows } = table.getRowModel();
   const filteredCount = rows.length;
-  const selectedIds = Object.keys(rowSelection).map(Number);
-  const selectedCount = selectedIds.length;
-  const emailCount = contacts.filter(c => c.email).length;
-  const columnLabelMap: Record<string, string> = {
-    name: 'Name',
-    title: 'Title',
-    company_name: 'Company',
-    email: 'Email',
-    lead_source: 'Source',
-    engagement_status: 'Status',
-  };
-  const toggleableColumns = table
-    .getAllLeafColumns()
-    .filter((column) => column.id !== 'select' && column.id !== 'actions' && column.id !== 'name');
 
   const isInteractiveTarget = useCallback((target: EventTarget | null) => {
     if (!(target instanceof HTMLElement)) return false;
@@ -336,6 +557,97 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     estimateSize: useCallback(() => baseHeight, [baseHeight]),
     overscan: 20,
   });
+
+  useEffect(() => {
+    if (isCompact) return;
+    if (!selectedContactId) return;
+    const element = scrollContainerRef.current;
+    if (!element) return;
+    const index = rows.findIndex((row) => String(row.original.id) === String(selectedContactId));
+    if (index < 0) return;
+    const targetTop = index * baseHeight;
+    const id = window.requestAnimationFrame(() => {
+      const startTop = element.scrollTop;
+      const distance = targetTop - startTop;
+      if (Math.abs(distance) < 2) {
+        element.scrollTop = targetTop;
+        return;
+      }
+      if (selectionScrollAnimationRef.current != null) {
+        window.cancelAnimationFrame(selectionScrollAnimationRef.current);
+        selectionScrollAnimationRef.current = null;
+      }
+      const durationMs = 1000;
+      const startTime = performance.now();
+      const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+      const step = (now: number) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / durationMs, 1);
+        element.scrollTop = startTop + distance * easeInOutCubic(progress);
+        if (progress < 1) {
+          selectionScrollAnimationRef.current = window.requestAnimationFrame(step);
+          return;
+        }
+        selectionScrollAnimationRef.current = null;
+      };
+      selectionScrollAnimationRef.current = window.requestAnimationFrame(step);
+    });
+    return () => {
+      window.cancelAnimationFrame(id);
+      if (selectionScrollAnimationRef.current != null) {
+        window.cancelAnimationFrame(selectionScrollAnimationRef.current);
+        selectionScrollAnimationRef.current = null;
+      }
+    };
+  }, [baseHeight, isCompact, rows, selectedContactId]);
+
+  useEffect(() => {
+    if (isCompact) return;
+    const frameId = window.requestAnimationFrame(() => {
+      rowVirtualizer.measure();
+    });
+    const timeoutId = window.setTimeout(() => {
+      rowVirtualizer.measure();
+    }, 220);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.clearTimeout(timeoutId);
+    };
+  }, [isCompact, rowVirtualizer, selectedContactId, showAddPanel]);
+
+  useEffect(() => {
+    if (isCompact) {
+      setScrollThumb({ height: 0, top: 0, visible: false });
+      return;
+    }
+    const element = scrollContainerRef.current;
+    if (!element) return;
+    let frameId = 0;
+    const updateThumb = () => {
+      const { clientHeight, scrollHeight, scrollTop } = element;
+      if (scrollHeight <= clientHeight + 1) {
+        setScrollThumb({ height: 0, top: 0, visible: false });
+        return;
+      }
+      const ratio = clientHeight / scrollHeight;
+      const thumbHeight = Math.max(40, Math.round(clientHeight * ratio));
+      const maxTop = Math.max(0, clientHeight - thumbHeight);
+      const top = Math.min(maxTop, Math.round((scrollTop / (scrollHeight - clientHeight)) * maxTop));
+      setScrollThumb({ height: thumbHeight, top, visible: true });
+    };
+    const scheduleUpdate = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(updateThumb);
+    };
+    scheduleUpdate();
+    element.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      element.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+    };
+  }, [isCompact, rows.length, selectedContactId, showAddPanel]);
 
 
   /* ── Bulk Action Handlers ── */
@@ -425,11 +737,6 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     });
   };
 
-  const handleAddContactToCampaign = useCallback((contact: Contact) => {
-    setRowSelection({ [String(contact.id)]: true });
-    setShowCampaignModal(true);
-  }, []);
-
   useEffect(() => {
     setPageContext({
       listContext: 'contacts',
@@ -440,13 +747,30 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
 
   /* ── Synced column widths (desktop) ── */
 
-  const colGroup = !isCompact ? (
-    <colgroup>
-      {table.getHeaderGroups()[0]?.headers.map((h) => (
-        <col key={h.id} style={{ width: `${h.getSize()}px` }} />
-      ))}
-    </colgroup>
-  ) : null;
+  const {
+    containerRef: desktopTableRef,
+    columnWidths: desktopColumnWidths,
+    visibleColumnIds: desktopVisibleColumnIds,
+    tableStyle: desktopTableStyle,
+    fillWidth: desktopFillWidth,
+    canShiftLeft: canShiftContactsLeft,
+    canShiftRight: canShiftContactsRight,
+    shiftLeft: shiftContactsLeft,
+    shiftRight: shiftContactsRight,
+  } = useFittedTableLayout(table, { controlWidth: CONTACTS_VIEWPORT_CONTROL_WIDTH });
+
+  canShiftLeftRef.current = canShiftContactsLeft;
+  canShiftRightRef.current = canShiftContactsRight;
+  shiftLeftRef.current = shiftContactsLeft;
+  shiftRightRef.current = shiftContactsRight;
+
+  useEffect(() => {
+    visibleColumnIdsRef.current = desktopVisibleColumnIds;
+    visibleColumnWidthsRef.current = desktopColumnWidths;
+    fillWidthRef.current = desktopFillWidth;
+    const resizingId = table.getState().columnSizingInfo?.isResizingColumn;
+    resizingColumnIdRef.current = typeof resizingId === 'string' ? resizingId : null;
+  }, [desktopColumnWidths, desktopFillWidth, desktopVisibleColumnIds, table]);
 
   /* ── Render ── */
 
@@ -460,76 +784,35 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
   );
 
   const inlineControls = (
-    <div className="flex min-w-0 flex-wrap items-center gap-2">
-      <div className="min-w-[220px] flex-1">
-        <PageSearchInput value={globalFilter} onChange={setGlobalFilter} placeholder="Search contacts..." />
-      </div>
-      {view === 'sources' ? (
-        <select
-          value={sourceFilter}
-          onChange={(e) => setSourceFilter(e.target.value)}
-          className="h-8 rounded-md border border-border bg-surface px-2.5 text-[12px] text-text focus:border-accent focus:outline-none"
-          aria-label="Filter contacts by source"
+    <div className="flex min-w-0 flex-col gap-2">
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <PageSearchInput value={globalFilter} onChange={setGlobalFilter} placeholder="Search contacts..." />
+        </div>
+        <HeaderActionButton
+          data-assistant-id="new-contact-button"
+          ref={newContactButtonRef}
+          onClick={openAddPanel}
+          variant="primary"
+          icon={<Plus className="w-3.5 h-3.5" />}
         >
-          <option value="">All sources</option>
-          {sourceOptions.map((source) => (
-            <option key={source} value={source}>
-              {source}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <select
-          value={engagementFilter}
-          onChange={(e) => setEngagementFilter(e.target.value)}
-          className="h-8 rounded-md border border-border bg-surface px-2.5 text-[12px] text-text focus:border-accent focus:outline-none"
-          aria-label="Filter contacts by status"
-        >
-          <option value="">All statuses</option>
-          <option value="replied">Replied</option>
-          <option value="failed">Failed</option>
-          <option value="completed">Completed</option>
-          <option value="scheduled">Scheduled</option>
-          <option value="in_sequence">In Sequence</option>
-          <option value="enrolled">Enrolled</option>
-          <option value="synced">Synced to Salesforce</option>
-          <option value="needs_sync">Needs Sync</option>
-        </select>
-      )}
-      <div className="relative shrink-0" ref={filtersMenuRef}>
-        <button
-          type="button"
-          onClick={() => setShowFiltersMenu((v) => !v)}
-          className="h-8 w-8 inline-flex items-center justify-center border border-border rounded-md text-text-muted hover:bg-surface-hover"
-          title="Columns"
-          aria-label="Open column visibility menu"
-        >
-          <SlidersHorizontal className="w-4 h-4" />
-        </button>
-        {showFiltersMenu ? (
-          <div className="absolute right-0 top-10 z-20 w-[260px] rounded-md border border-border bg-surface p-3 shadow-lg">
-            <div className="space-y-2">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Visible Columns</p>
-              {toggleableColumns.map((column) => (
-                <label key={column.id} className="flex items-center gap-2 text-[12px] text-text">
-                  <input
-                    type="checkbox"
-                    checked={column.getIsVisible()}
-                    onChange={column.getToggleVisibilityHandler()}
-                    className="w-3.5 h-3.5 rounded border-gray-300 text-accent focus:ring-accent"
-                  />
-                  <span>{columnLabelMap[column.id] ?? column.id}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        ) : null}
+          New Contact
+        </HeaderActionButton>
       </div>
       {selectedCount > 0 ? (
-        <>
-          <span className="inline-flex h-8 items-center rounded-md border border-indigo-200 bg-indigo-50 px-2.5 text-xs font-medium text-indigo-900">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <span className="inline-flex h-8 items-center rounded-none border border-indigo-200 bg-indigo-50 px-2.5 text-xs font-medium text-indigo-900">
             {selectedCount} selected
           </span>
+          <HeaderActionButton
+            compact
+            data-assistant-id="export-contacts-button"
+            onClick={() => api.exportContacts(false)}
+            variant="secondary"
+            icon={<Download className="w-3.5 h-3.5" />}
+          >
+            Export
+          </HeaderActionButton>
           <HeaderActionButton
             compact
             onClick={handleBulkSalesforceUpload}
@@ -584,25 +867,8 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
           >
             Delete
           </HeaderActionButton>
-        </>
+        </div>
       ) : null}
-      <HeaderActionButton
-        data-assistant-id="export-contacts-button"
-        onClick={() => api.exportContacts(false)}
-        variant="secondary"
-        icon={<Download className="w-3.5 h-3.5" />}
-      >
-        Export CSV
-      </HeaderActionButton>
-      <HeaderActionButton
-        data-assistant-id="new-contact-button"
-        ref={newContactButtonRef}
-        onClick={openAddPanel}
-        variant="primary"
-        icon={<Plus className="w-3.5 h-3.5" />}
-      >
-        New Contact
-      </HeaderActionButton>
     </div>
   );
 
@@ -611,7 +877,7 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
       <WorkspacePageShell
         title="Contacts"
         subtitle={`${contacts.length} contacts · ${emailCount} with emails${filteredCount !== contacts.length ? ` · ${filteredCount} shown` : ''}`}
-        contentClassName="overflow-hidden"
+        contentClassName=""
         hideHeader
         preHeader={
           <EmailTabs
@@ -624,39 +890,39 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
         }
         preHeaderAffectsLayout
         preHeaderClassName="-mt-3 md:-mt-4 h-14 flex items-end"
-        toolbar={inlineControls}
       >
-        <div className="min-h-0 flex-1 overflow-hidden pt-2">
-          {isLoading ? (
-            <LoadingSpinner />
-          ) : (
-            <div className="bg-surface overflow-hidden flex h-full min-h-0">
-              {/* min-w-0 prevents table pane overflow from forcing horizontal overflow in split mode. */}
-              {/* min-h-0 allows inner scroll areas to size and scroll correctly inside nested flex containers. */}
-              <div className="flex min-w-0 min-h-0 flex-1 flex-col">
+        <div className="flex h-full min-h-0 flex-col bg-surface">
+          <div className="shrink-0 bg-surface">
+            {inlineControls}
+          </div>
+          <div className="flex min-h-0 flex-1 overflow-hidden bg-surface">
+          {/* min-w-0 prevents table pane overflow from forcing horizontal overflow in split mode. */}
+          {/* min-h-0 allows inner scroll areas to size and scroll correctly inside nested flex containers. */}
+          <div ref={!isCompact ? desktopTableRef : undefined} className="flex min-w-0 min-h-0 flex-1 flex-col">
+            {isLoading ? (
+              <div className="min-h-0 flex-1 overflow-hidden">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <>
                 {!isCompact && (
-                  <div className="shrink-0">
-                    <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
-                      {colGroup}
-                      <thead>
-                        {table.getHeaderGroups().map((headerGroup) => (
-                          <tr key={headerGroup.id} className="h-9 border-b border-border-subtle bg-surface-hover/30">
-                            {headerGroup.headers.map((header) => (
-                              <th
-                                key={header.id}
-                                className="text-left px-3 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide"
-                              >
-                                {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                              </th>
-                            ))}
-                          </tr>
-                        ))}
-                      </thead>
+                  <div className="relative shrink-0">
+                    <table className="w-full border-collapse" style={desktopTableStyle}>
+                      <SharedTableColGroupWithWidths table={table} columnWidths={desktopColumnWidths} visibleColumnIds={desktopVisibleColumnIds} fillerWidth={desktopFillWidth} controlWidth={CONTACTS_VIEWPORT_CONTROL_WIDTH} />
+                      <SharedTableHeader
+                        table={table}
+                        onAutoFitColumn={autoFitColumn}
+                        visibleColumnIds={desktopVisibleColumnIds}
+                        columnWidths={desktopColumnWidths}
+                        fillerWidth={desktopFillWidth}
+                        controlWidth={CONTACTS_VIEWPORT_CONTROL_WIDTH}
+                      />
                     </table>
                   </div>
                 )}
 
-                <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-auto">
+                <div className="relative min-h-0 flex-1">
+                  <div ref={scrollContainerRef} className="no-scrollbar min-h-0 h-full overflow-y-auto overflow-x-hidden">
                   {contactsError ? (
                     <EmptyState
                       icon={Users}
@@ -707,11 +973,11 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
                                 onToggleExpand={() => handleOpenContact(contact.id)}
                               />
                             ) : (
-                              <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
-                                {colGroup}
+                              <table className="w-full border-collapse" style={desktopTableStyle}>
+                                <SharedTableColGroupWithWidths table={table} columnWidths={desktopColumnWidths} visibleColumnIds={desktopVisibleColumnIds} fillerWidth={desktopFillWidth} controlWidth={CONTACTS_VIEWPORT_CONTROL_WIDTH} />
                                 <tbody>
                                   <tr
-                                    className={`group h-[42px] cursor-pointer border-b border-border-subtle transition-colors ${
+                                    className={`group ${SHARED_TABLE_ROW_HEIGHT_CLASS} cursor-pointer border-b border-border-subtle transition-colors ${
                                       isActive ? 'bg-accent/12' : isSelected ? 'bg-accent/8' : 'hover:bg-surface-hover/60'
                                     }`}
                                     onClick={(e) => {
@@ -731,11 +997,49 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
                                     aria-controls={isActive ? 'contact-details-panel' : undefined}
                                     aria-label={`Open details for ${contact.name}`}
                                   >
-                                    {row.getVisibleCells().map((cell) => (
-                                      <td key={cell.id} className="h-[42px] px-3 py-0 align-middle leading-tight">
-                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                      </td>
-                                    ))}
+                                    {(() => {
+                                      const cells = filterCellsByIds(row.getVisibleCells(), desktopVisibleColumnIds);
+                                      const trailingActionsCell = cells.length > 0 && cells[cells.length - 1]?.column.id === 'actions'
+                                        ? cells[cells.length - 1]
+                                        : null;
+                                      const leadingCells = trailingActionsCell ? cells.slice(0, -1) : cells;
+                                      return (
+                                        <>
+                                          {leadingCells.map((cell, index) => (
+                                            <td
+                                              key={cell.id}
+                                              className={sharedCellClassName(cell, `${SHARED_TABLE_ROW_HEIGHT_CLASS} ${index === leadingCells.length - 1 && !trailingActionsCell ? '__shared-last__' : ''}`)}
+                                              onClick={(event) => {
+                                                if (cell.column.id !== 'select') return;
+                                                event.stopPropagation();
+                                                row.toggleSelected();
+                                              }}
+                                            >
+                                              {cell.column.id === 'select' ? null : flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </td>
+                                          ))}
+                                          {desktopFillWidth > 0 && !trailingActionsCell ? (
+                                            <td
+                                              aria-hidden="true"
+                                              className={`${SHARED_TABLE_ROW_HEIGHT_CLASS} px-0 py-0`}
+                                            />
+                                          ) : null}
+                                          {trailingActionsCell ? (
+                                            <td
+                                              key={trailingActionsCell.id}
+                                              className={sharedCellClassName(trailingActionsCell, `${SHARED_TABLE_ROW_HEIGHT_CLASS} __shared-last__`)}
+                                              onClick={(event) => {
+                                                if (trailingActionsCell.column.id !== 'select') return;
+                                                event.stopPropagation();
+                                                row.toggleSelected();
+                                              }}
+                                            >
+                                              {flexRender(trailingActionsCell.column.columnDef.cell, trailingActionsCell.getContext())}
+                                            </td>
+                                          ) : null}
+                                        </>
+                                      );
+                                    })()}
                                   </tr>
                                 </tbody>
                               </table>
@@ -745,38 +1049,54 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
                       })}
                     </div>
                   )}
-                </div>
-              </div>
-              {!isPhone && (showAddPanel || selectedContact) ? (
-                <SidePanelContainer ref={detailsPanelRef}>
-                  {showAddPanel ? (
-                    <div id="contact-details-panel" tabIndex={-1} className="flex h-full min-h-0 flex-col outline-none">
-                      <AddContactPanelContent
-                        companies={companyNames}
-                        isSubmitting={addContact.isPending}
-                        onAdd={(data) => {
-                          addContact.mutate(data, {
-                            onSuccess: () => {
-                              setShowAddPanel(false);
-                            },
-                          });
-                        }}
-                        onClose={() => closeAddPanel()}
-                      />
-                    </div>
-                  ) : selectedContact ? (
-                    <div id="contact-details-panel" tabIndex={-1} className="flex h-full min-h-0 flex-col outline-none">
-                      <ContactDetailsContent
-                        contact={selectedContact}
-                        onClose={closeContact}
-                        onAddToCampaign={handleAddContactToCampaign}
+                  </div>
+                  {!isCompact && scrollThumb.visible ? (
+                    <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-2">
+                      <div
+                        className="absolute right-0 w-1.5 rounded-full bg-slate-200/75"
+                        style={{ top: `${scrollThumb.top}px`, height: `${scrollThumb.height}px` }}
                       />
                     </div>
                   ) : null}
-                </SidePanelContainer>
+                </div>
+              </>
+            )}
+          </div>
+          {!isPhone && (showAddPanel || selectedContact) ? (
+            <ResizableSidePanel
+              ariaLabel="Contact details panel"
+              storageKey="contacts_details_panel_width_v1"
+              defaultWidth={460}
+              minWidth={360}
+              maxWidth={820}
+            >
+              {showAddPanel ? (
+                <div id="contact-details-panel" tabIndex={-1} className="flex h-full min-h-0 flex-col outline-none">
+                  <AddContactPanelContent
+                    companies={companyNames}
+                    isSubmitting={addContact.isPending}
+                    onAdd={(data) => {
+                      addContact.mutate(data, {
+                        onSuccess: () => {
+                          setShowAddPanel(false);
+                        },
+                      });
+                    }}
+                    onClose={() => closeAddPanel()}
+                  />
+                </div>
+              ) : selectedContact ? (
+                <div id="contact-details-panel" tabIndex={-1} className="flex h-full min-h-0 flex-col outline-none">
+                  <ContactDetailsContent
+                    contact={selectedContact}
+                    onClose={closeContact}
+                    onAddToCampaign={handleAddContactToCampaign}
+                  />
+                </div>
               ) : null}
-            </div>
-          )}
+            </ResizableSidePanel>
+          ) : null}
+          </div>
         </div>
       </WorkspacePageShell>
       {isPhone && showAddPanel ? (
@@ -842,6 +1162,3 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     </>
   );
 }
-
-
-

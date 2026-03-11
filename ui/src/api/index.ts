@@ -253,6 +253,11 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(payload),
     }),
+  reorderDocumentFolders: (payload: { parent_path?: string; ordered_paths: string[] }) =>
+    fetchJson<{ success: boolean; count: number }>('/documents/folders/reorder', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
   deleteDocumentFolder: (folderPath: string) =>
     fetchJson<{ success: boolean; path: string }>(`/documents/folders/${encodeURIComponent(folderPath)}`, {
       method: 'DELETE',
@@ -262,9 +267,18 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  deleteDocument: (documentId: string) =>
+    fetchJson<{ success: boolean; document_id: string; filename: string }>(`/documents/${encodeURIComponent(documentId)}`, {
+      method: 'DELETE',
+    }),
   renameDocument: (documentId: string, payload: { name: string }) =>
     fetchJson<{ success: boolean; document_id: string; filename: string }>(`/documents/${encodeURIComponent(documentId)}/rename`, {
       method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+  reorderDocuments: (payload: { folder_path?: string; ordered_ids: string[] }) =>
+    fetchJson<{ success: boolean; count: number }>('/documents/reorder', {
+      method: 'POST',
       body: JSON.stringify(payload),
     }),
 

@@ -1,5 +1,6 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getCoreRowModel, type ColumnDef, type RowSelectionState, useReactTable } from '@tanstack/react-table';
 import {
   ChevronRight,
   FileText,
@@ -23,38 +24,54 @@ import { HeaderActionButton } from '../components/shared/HeaderActionButton';
 import { PageSearchInput } from '../components/shared/PageSearchInput';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { EmptyState } from '../components/shared/EmptyState';
+import { ColumnVisibilityMenu } from '../components/shared/ColumnVisibilityMenu';
 import { SidePanelContainer } from '../components/contacts/SidePanelContainer';
+import { TableHeaderFilter } from '../components/shared/TableHeaderFilter';
 import { BottomDrawerContainer } from '../components/contacts/BottomDrawerContainer';
 import { EmailTabs } from '../components/email/EmailTabs';
 import { WorkspacePageShell } from '../components/shared/WorkspacePageShell';
+import { BaseModal } from '../components/shared/BaseModal';
+import {
+  FILTERABLE_VIEWPORT_CONTROL_WIDTH,
+  SHARED_SELECTION_COLUMN_WIDTH,
+  SHARED_TABLE_ROW_HEIGHT_CLASS,
+  SharedViewportControlsOverlay,
+  SharedTableColGroupWithWidths,
+  SharedTableHeader,
+  useFittedTableLayout,
+  usePersistentColumnSizing,
+} from '../components/shared/resizableDataTable';
+import { usePersistentColumnPreferences } from '../components/shared/usePersistentColumnPreferences';
 import { usePageContext } from '../contexts/PageContextProvider';
 import { useNotificationContext } from '../contexts/NotificationContext';
 import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
 import { getPageCapability } from '../capabilities/catalog';
 
 type DocumentsView = 'all' | 'extracting' | 'chunking' | 'tagging' | 'ready' | 'failed';
-type ColumnId = 'name' | 'type' | 'company' | 'status' | 'updated';
+type TreeOrder = 'files_first' | 'folders_first';
+type ColumnId = 'name' | 'size' | 'type' | 'company' | 'status' | 'updated';
 type FolderNode = { path: string; name: string; folders: Map<string, FolderNode>; docs: DocumentRecord[] };
 type TreeRow =
   | { kind: 'folder'; key: string; depth: number; path: string; name: string; count: number; latest: string | null; explicit: boolean }
   | { kind: 'doc'; key: string; depth: number; doc: DocumentRecord };
 type InspectorActivity = { id: string; label: string; detail?: string; ts?: string };
 
-const COLUMNS: Array<{ id: ColumnId; label: string }> = [
-  { id: 'name', label: 'Name' },
-  { id: 'type', label: 'Type' },
-  { id: 'company', label: 'Company' },
-  { id: 'status', label: 'Status' },
-  { id: 'updated', label: 'Updated' },
+const DOCUMENT_COLUMNS: Array<{
+  id: ColumnId;
+  label: string;
+  minWidth: number;
+  defaultWidth: number;
+  maxWidth: number;
+  resizable?: boolean;
+  align?: 'left' | 'right';
+}> = [
+  { id: 'name', label: 'Name', minWidth: 280, defaultWidth: 420, maxWidth: 720 },
+  { id: 'size', label: 'Size', minWidth: 96, defaultWidth: 108, maxWidth: 140, align: 'right' },
+  { id: 'type', label: 'Type', minWidth: 100, defaultWidth: 112, maxWidth: 180 },
+  { id: 'company', label: 'Company', minWidth: 140, defaultWidth: 176, maxWidth: 280 },
+  { id: 'status', label: 'Status', minWidth: 100, defaultWidth: 120, maxWidth: 180 },
+  { id: 'updated', label: 'Updated', minWidth: 140, defaultWidth: 156, maxWidth: 220, align: 'right' },
 ];
-
-const COLUMN_TRACKS: Record<ColumnId, string> = {
-  name: 'minmax(0, 1fr)',
-  type: '104px',
-  company: '128px',
-  status: '104px',
-  updated: '152px',
-};
 
 const PATH_SEP = '/';
 
@@ -134,7 +151,11 @@ function formatBytes(value?: number | null): string {
 
 function fallbackFolderPath(doc: DocumentRecord): string {
   const p = String(doc.storage_path || '').replace(/\\/g, '/').split('/').filter(Boolean);
-  if (p[p.length - 1]?.toLowerCase() === doc.filename.toLowerCase()) p.pop();
+  const lastSegment = p[p.length - 1] || '';
+  const normalizedFilename = String(doc.filename || '').trim().toLowerCase();
+  const normalizedLastSegment = lastSegment.trim().toLowerCase();
+  const looksLikeFileSegment = /\.[a-z0-9]{1,10}$/i.test(lastSegment);
+  if (normalizedLastSegment === normalizedFilename || looksLikeFileSegment) p.pop();
   return normalizePath(p.join('/'));
 }
 
@@ -142,7 +163,7 @@ function docFolderPath(doc: DocumentRecord): string {
   return normalizePath(doc.folder_path || fallbackFolderPath(doc));
 }
 
-function buildTree(docs: DocumentRecord[], folders: DocumentFolderRecord[], expanded: Record<string, boolean>): TreeRow[] {
+function buildTree(docs: DocumentRecord[], folders: DocumentFolderRecord[], expanded: Record<string, boolean>, treeOrder: TreeOrder): TreeRow[] {
   const root: FolderNode = { path: '', name: '', folders: new Map(), docs: [] };
   const explicitFolders = new Set<string>();
   const folderNodes = new Map<string, FolderNode>([['', root]]);
@@ -171,26 +192,46 @@ function buildTree(docs: DocumentRecord[], folders: DocumentFolderRecord[], expa
 
   const rows: TreeRow[] = [];
   const walk = (node: FolderNode, depth: number) => {
-    const folderList = Array.from(node.folders.values()).sort((a, b) => a.name.localeCompare(b.name));
-    const docList = [...node.docs].sort((a, b) => sortByNewest(a.uploaded_at, b.uploaded_at));
+    const folderOrder = new Map(folders.map((folder) => [normalizePath(folder.path), Number(folder.sort_order ?? 0)]));
+    const folderList = Array.from(node.folders.values()).sort((a, b) => {
+      const byOrder = (folderOrder.get(a.path) ?? 0) - (folderOrder.get(b.path) ?? 0);
+      if (byOrder !== 0) return byOrder;
+      return a.name.localeCompare(b.name);
+    });
+    const docList = [...node.docs].sort((a, b) => {
+      const byOrder = Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0);
+      if (byOrder !== 0) return byOrder;
+      return sortByNewest(a.uploaded_at, b.uploaded_at);
+    });
 
-    for (const folder of folderList) {
-      const stats = collectFolderStats(folder);
-      rows.push({
-        kind: 'folder',
-        key: `folder:${folder.path}`,
-        depth,
-        path: folder.path,
-        name: folder.name,
-        count: stats.count,
-        latest: stats.latest,
-        explicit: explicitFolders.has(folder.path),
-      });
-      if (expanded[folder.path] ?? true) walk(folder, depth + 1);
+    const pushFolders = () => {
+      for (const folder of folderList) {
+        const stats = collectFolderStats(folder);
+        rows.push({
+          kind: 'folder',
+          key: `folder:${folder.path}`,
+          depth,
+          path: folder.path,
+          name: folder.name,
+          count: stats.count,
+          latest: stats.latest,
+          explicit: explicitFolders.has(folder.path),
+        });
+        if (expanded[folder.path] ?? true) walk(folder, depth + 1);
+      }
+    };
+    const pushDocs = () => {
+      for (const doc of docList) {
+        rows.push({ kind: 'doc', key: `doc:${doc.id}`, depth, doc });
+      }
+    };
+    if (treeOrder === 'files_first') {
+      pushDocs();
+      pushFolders();
+      return;
     }
-    for (const doc of docList) {
-      rows.push({ kind: 'doc', key: `doc:${doc.id}`, depth, doc });
-    }
+    pushFolders();
+    pushDocs();
   };
   walk(root, 0);
   return rows;
@@ -222,7 +263,7 @@ type TreeCellProps = {
 };
 
 function TreeCell({ label, depth, kind, isExpanded = false, onToggle, meta, trailing, onLabelDoubleClick }: TreeCellProps) {
-  const indentPx = 12 + depth * 14;
+  const indentPx = depth * 14 + (kind === 'doc' ? 14 : 0);
   return (
     <div className="flex min-w-0 items-center gap-1.5" style={{ paddingLeft: `${indentPx}px` }}>
       {kind === 'folder' ? (
@@ -233,7 +274,7 @@ function TreeCell({ label, depth, kind, isExpanded = false, onToggle, meta, trai
             onToggle?.();
           }}
           aria-label={isExpanded ? `Collapse ${label}` : `Expand ${label}`}
-          className="inline-flex h-5 w-5 items-center justify-center rounded border border-transparent text-text-dim hover:bg-surface-hover"
+          className="inline-flex h-5 items-center justify-center border border-transparent pl-2 text-text-dim hover:text-text"
           data-row-control
         >
           <ChevronRight className={`h-3.5 w-3.5 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
@@ -275,17 +316,26 @@ export default function DocumentsPage() {
   const lastFocusedRowRef = useRef<HTMLElement | null>(null);
   const detailsPanelRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState('');
+  const [treeOrder, setTreeOrder] = useState<TreeOrder>(() => {
+    if (typeof window === 'undefined') return 'files_first';
+    const stored = window.localStorage.getItem('documents-tree-order');
+    return stored === 'folders_first' ? 'folders_first' : 'files_first';
+  });
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [openHeaderFilterId, setOpenHeaderFilterId] = useState<string | null>(null);
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [showFiltersMenu, setShowFiltersMenu] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
-  const [columnVisibility, setColumnVisibility] = useState<Record<ColumnId, boolean>>({ name: true, type: true, company: true, status: true, updated: true });
   const [activeFolderPath, setActiveFolderPath] = useState<string>('');
   const [inlineFolderParentPath, setInlineFolderParentPath] = useState<string | null>(null);
   const [inlineFolderName, setInlineFolderName] = useState('');
   const [draggingItem, setDraggingItem] = useState<{ kind: 'folder'; path: string } | { kind: 'doc'; id: string } | null>(null);
   const [dropTargetFolderPath, setDropTargetFolderPath] = useState<string | null>(null);
+  const [dropTargetRowKey, setDropTargetRowKey] = useState<string | null>(null);
+  const [dropTargetMode, setDropTargetMode] = useState<'reorder' | 'move-folder' | null>(null);
+  const [dropTargetPosition, setDropTargetPosition] = useState<'before' | 'after' | null>(null);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState<DocumentAnswerResponse | null>(null);
   const [askLoading, setAskLoading] = useState(false);
@@ -306,6 +356,9 @@ export default function DocumentsPage() {
   const [showInspectorMenu, setShowInspectorMenu] = useState(false);
   const inspectorMenuRef = useRef<HTMLDivElement>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; filename: string } | null>(null);
+  const [deleteConfirmValue, setDeleteConfirmValue] = useState('');
+  const [deleteSaving, setDeleteSaving] = useState(false);
   const inlineFolderInputRef = useRef<HTMLInputElement>(null);
   const view = useMemo(() => parseDocumentsView(searchParams?.get('view') ?? null), [searchParams]);
 
@@ -337,7 +390,12 @@ export default function DocumentsPage() {
   });
   const companiesQ = useQuery({ queryKey: ['companies', 'for-doc-linking'], queryFn: () => api.getCompanies() });
 
-  const rows = useMemo(() => buildTree(docs, foldersQ.data?.folders || [], expandedFolders), [docs, expandedFolders, foldersQ.data?.folders]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('documents-tree-order', treeOrder);
+  }, [treeOrder]);
+
+  const rows = useMemo(() => buildTree(docs, foldersQ.data?.folders || [], expandedFolders, treeOrder), [docs, expandedFolders, foldersQ.data?.folders, treeOrder]);
   const typeOptions = useMemo(
     () =>
       Array.from(new Set((docsQ.data?.documents || []).map((doc) => String(doc.document_type || '').trim()).filter(Boolean))).sort((a, b) =>
@@ -352,13 +410,6 @@ export default function DocumentsPage() {
       ),
     [docsQ.data?.documents]
   );
-  const visibleColumns = useMemo(() => {
-    const selected = COLUMNS.filter((column) => columnVisibility[column.id] ?? true);
-    return selected.length > 0 ? selected : COLUMNS;
-  }, [columnVisibility]);
-  const rowGridStyle: CSSProperties = {
-    gridTemplateColumns: visibleColumns.map((column) => COLUMN_TRACKS[column.id]).join(' '),
-  };
 
   const updateDocumentsRoute = useCallback(
     (mutate: (params: URLSearchParams) => void, options?: { replace?: boolean }) => {
@@ -820,6 +871,81 @@ export default function DocumentsPage() {
     }
   };
 
+  const reorderDocumentsInFolder = async (folderPath: string, draggedId: string, targetId: string, position: 'before' | 'after') => {
+    const normalizedFolderPath = normalizePath(folderPath);
+    const siblingIds = rows
+      .filter((row): row is Extract<TreeRow, { kind: 'doc' }> => row.kind === 'doc' && docFolderPath(row.doc) === normalizedFolderPath)
+      .map((row) => row.doc.id);
+    const fromIndex = siblingIds.indexOf(draggedId);
+    const toIndex = siblingIds.indexOf(targetId);
+    if (fromIndex < 0 || toIndex < 0) return false;
+    let insertIndex = toIndex + (position === 'after' ? 1 : 0);
+    if (fromIndex < insertIndex) insertIndex -= 1;
+    if (fromIndex === insertIndex) return false;
+    const next = [...siblingIds];
+    const [item] = next.splice(fromIndex, 1);
+    next.splice(insertIndex, 0, item);
+    setErrorMessage(null);
+    try {
+      await api.reorderDocuments({ folder_path: normalizedFolderPath, ordered_ids: next });
+      queryClient.setQueryData<{ count: number; documents: DocumentRecord[] } | undefined>(['documents', baseListParams], (current) => {
+        if (!current) return current;
+        const orderMap = new Map(next.map((id, index) => [id, index]));
+        return {
+          ...current,
+          documents: current.documents.map((doc) =>
+            docFolderPath(doc) === normalizedFolderPath && orderMap.has(doc.id)
+              ? { ...doc, sort_order: orderMap.get(doc.id) ?? doc.sort_order }
+              : doc
+          ),
+        };
+      });
+      await docsQ.refetch();
+      return true;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to reorder files');
+      return false;
+    }
+  };
+
+  const reorderFoldersInParent = async (parentFolderPath: string, draggedPath: string, targetPath: string, position: 'before' | 'after') => {
+    const normalizedParentPath = normalizePath(parentFolderPath);
+    const siblingPaths = rows
+      .filter((row): row is Extract<TreeRow, { kind: 'folder' }> => row.kind === 'folder' && normalizePath(parentPath(row.path)) === normalizedParentPath)
+      .map((row) => normalizePath(row.path));
+    const fromIndex = siblingPaths.indexOf(normalizePath(draggedPath));
+    const toIndex = siblingPaths.indexOf(normalizePath(targetPath));
+    if (fromIndex < 0 || toIndex < 0) return false;
+    let insertIndex = toIndex + (position === 'after' ? 1 : 0);
+    if (fromIndex < insertIndex) insertIndex -= 1;
+    if (fromIndex === insertIndex) return false;
+    const next = [...siblingPaths];
+    const [item] = next.splice(fromIndex, 1);
+    next.splice(insertIndex, 0, item);
+    setErrorMessage(null);
+    try {
+      await api.reorderDocumentFolders({ parent_path: normalizedParentPath, ordered_paths: next });
+      queryClient.setQueryData<{ count: number; folders: DocumentFolderRecord[] } | undefined>(['document-folders'], (current) => {
+        if (!current) return current;
+        const orderMap = new Map(next.map((path, index) => [normalizePath(path), index]));
+        return {
+          ...current,
+          folders: current.folders.map((folder) => {
+            const normalizedPath = normalizePath(folder.path);
+            return orderMap.has(normalizedPath)
+              ? { ...folder, sort_order: orderMap.get(normalizedPath) ?? folder.sort_order }
+              : folder;
+          }),
+        };
+      });
+      await foldersQ.refetch();
+      return true;
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to reorder folders');
+      return false;
+    }
+  };
+
   const handleDropOnFolder = async (targetFolderPath: string) => {
     if (!draggingItem) return;
     if (draggingItem.kind === 'doc') {
@@ -828,6 +954,9 @@ export default function DocumentsPage() {
       await moveFolderByDrop(draggingItem.path, targetFolderPath);
     }
     setDropTargetFolderPath(null);
+    setDropTargetRowKey(null);
+    setDropTargetMode(null);
+    setDropTargetPosition(null);
     setDraggingItem(null);
   };
 
@@ -839,8 +968,72 @@ export default function DocumentsPage() {
       await moveFolderByDrop(draggingItem.path, '');
     }
     setDropTargetFolderPath(null);
+    setDropTargetRowKey(null);
+    setDropTargetMode(null);
+    setDropTargetPosition(null);
     setDraggingItem(null);
   };
+
+  const handleDropOnRow = async (targetRow: TreeRow, position: 'before' | 'after' = 'before') => {
+    if (!draggingItem) return;
+    if (draggingItem.kind === 'doc' && targetRow.kind === 'doc') {
+      const draggedDoc = docs.find((doc) => doc.id === draggingItem.id);
+      if (draggedDoc && docFolderPath(draggedDoc) === docFolderPath(targetRow.doc)) {
+        const reordered = await reorderDocumentsInFolder(docFolderPath(targetRow.doc), draggingItem.id, targetRow.doc.id, position);
+        if (reordered) {
+          setDropTargetFolderPath(null);
+          setDropTargetRowKey(null);
+          setDropTargetMode(null);
+          setDropTargetPosition(null);
+          setDraggingItem(null);
+          return;
+        }
+      }
+    }
+    if (draggingItem.kind === 'folder' && targetRow.kind === 'folder') {
+      const draggedParent = parentPath(draggingItem.path);
+      const targetParent = parentPath(targetRow.path);
+      if (normalizePath(draggedParent) === normalizePath(targetParent)) {
+        const reordered = await reorderFoldersInParent(targetParent, draggingItem.path, targetRow.path, position);
+        if (reordered) {
+          setDropTargetFolderPath(null);
+          setDropTargetRowKey(null);
+          setDropTargetMode(null);
+          setDropTargetPosition(null);
+          setDraggingItem(null);
+          return;
+        }
+      }
+    }
+    if (targetRow.kind === 'folder') {
+      await handleDropOnFolder(targetRow.path);
+    }
+  };
+
+  const getDropIntentForRow = useCallback((targetRow: TreeRow, clientY: number, rowElement: HTMLElement): { rowKey: string | null; mode: 'reorder' | 'move-folder' | null; folderPath: string | null; position: 'before' | 'after' | null } => {
+    if (!draggingItem) {
+      return { rowKey: null, mode: null, folderPath: null, position: null };
+    }
+    const rect = rowElement.getBoundingClientRect();
+    const position: 'before' | 'after' = clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+    if (draggingItem.kind === 'doc' && targetRow.kind === 'doc') {
+      const draggedDoc = docs.find((doc) => doc.id === draggingItem.id);
+      if (draggedDoc && docFolderPath(draggedDoc) === docFolderPath(targetRow.doc)) {
+        return { rowKey: targetRow.key, mode: 'reorder', folderPath: null, position };
+      }
+    }
+    if (draggingItem.kind === 'folder' && targetRow.kind === 'folder') {
+      const draggedParent = parentPath(draggingItem.path);
+      const targetParent = parentPath(targetRow.path);
+      if (normalizePath(draggedParent) === normalizePath(targetParent)) {
+        return { rowKey: targetRow.key, mode: 'reorder', folderPath: null, position };
+      }
+    }
+    if (targetRow.kind === 'folder') {
+      return { rowKey: targetRow.key, mode: 'move-folder', folderPath: targetRow.path, position: null };
+    }
+    return { rowKey: null, mode: null, folderPath: null, position: null };
+  }, [docs, draggingItem]);
 
   const deleteEmptyFolder = async (path: string) => {
     if (!window.confirm(`Delete empty folder "${path}"?`)) return;
@@ -852,6 +1045,44 @@ export default function DocumentsPage() {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to delete folder');
     }
   };
+
+  const requestDeleteDocument = useCallback((documentId: string, filename: string) => {
+    setContextMenu(null);
+    setShowInspectorMenu(false);
+    setDeleteConfirmValue('');
+    setDeleteTarget({ id: documentId, filename });
+  }, []);
+
+  const closeDeleteDialog = useCallback(() => {
+    if (deleteSaving) return;
+    setDeleteTarget(null);
+    setDeleteConfirmValue('');
+  }, [deleteSaving]);
+
+  const confirmDeleteDocument = useCallback(async () => {
+    if (!deleteTarget || deleteSaving || deleteConfirmValue.trim() !== 'confirm delete') return;
+    setDeleteSaving(true);
+    setErrorMessage(null);
+    try {
+      await api.deleteDocument(deleteTarget.id);
+      setRowSelection((prev) => {
+        const next = { ...prev };
+        delete next[`doc:${deleteTarget.id}`];
+        return next;
+      });
+      if (selectedId === deleteTarget.id) {
+        setSelectedId(null);
+        setAnswer(null);
+      }
+      setDeleteTarget(null);
+      setDeleteConfirmValue('');
+      await docsQ.refetch();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to delete document');
+    } finally {
+      setDeleteSaving(false);
+    }
+  }, [deleteConfirmValue, deleteSaving, deleteTarget, docsQ, selectedId]);
 
   const onUploadChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -955,6 +1186,478 @@ export default function DocumentsPage() {
       .slice(0, 20);
   }, [inspectorDocument, linkEvents, qaEvents]);
 
+  const toggleFolderContentsSelection = useCallback((folderPath: string) => {
+    const normalizedFolderPath = normalizePath(folderPath);
+    const fileRowIds = rows
+      .filter((row) => {
+        if (row.kind !== 'doc') return false;
+        const parent = docFolderPath(row.doc);
+        return parent === normalizedFolderPath;
+      })
+      .map((row) => row.key);
+
+    setRowSelection((prev) => {
+      const allSelected = fileRowIds.length > 0 && fileRowIds.every((rowId) => Boolean(prev[rowId]));
+      const next = { ...prev };
+      delete next[`folder:${normalizedFolderPath}`];
+      fileRowIds.forEach((rowId) => {
+        if (allSelected) delete next[rowId];
+        else next[rowId] = true;
+      });
+      return next;
+    });
+  }, [rows]);
+
+  const documentColumns = useMemo<ColumnDef<TreeRow>[]>(
+    () => [
+      {
+        id: 'select',
+        header: ({ table }) => (
+          <button
+            type="button"
+            aria-label="Select all visible documents"
+            aria-pressed={table.getIsAllRowsSelected()}
+            onClick={() => table.toggleAllRowsSelected(!table.getIsAllRowsSelected())}
+            className="block h-full w-full"
+            data-row-control
+          />
+        ),
+        cell: ({ row }) => (
+          <button
+            type="button"
+            aria-label={`Select ${row.original.kind === 'folder' ? 'folder' : 'document'} ${row.original.kind === 'folder' ? row.original.name : row.original.doc.filename}`}
+            aria-pressed={row.getIsSelected()}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              if (row.original.kind === 'folder') {
+                toggleFolderContentsSelection(row.original.path);
+                return;
+              }
+              row.toggleSelected();
+            }}
+            className="block h-full w-full"
+            data-row-control
+          />
+        ),
+        size: SHARED_SELECTION_COLUMN_WIDTH,
+        minSize: SHARED_SELECTION_COLUMN_WIDTH,
+        maxSize: SHARED_SELECTION_COLUMN_WIDTH,
+        enableResizing: false,
+        meta: {
+          label: 'Select',
+          minWidth: SHARED_SELECTION_COLUMN_WIDTH,
+          defaultWidth: SHARED_SELECTION_COLUMN_WIDTH,
+          maxWidth: SHARED_SELECTION_COLUMN_WIDTH,
+          resizable: false,
+          align: 'center',
+        },
+      },
+      {
+        id: 'name',
+        header: 'Name',
+        cell: ({ row: tableRow }) => {
+          const row = tableRow.original;
+          const trailingActions = row.kind === 'folder' ? (
+            <div className="hidden items-center gap-1 group-hover:flex">
+              {row.explicit ? (
+                <button
+                  type="button"
+                  data-row-control
+                  aria-label={`Move folder ${row.path}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void moveFolder(row.path);
+                  }}
+                  className="inline-flex h-6 w-6 items-center justify-center rounded border border-border text-text-muted hover:bg-surface"
+                  title="Move folder"
+                >
+                  <MoveRight className="h-3.5 w-3.5" />
+                </button>
+              ) : null}
+              {row.explicit ? (
+                <button
+                  type="button"
+                  data-row-control
+                  aria-label={`Delete folder ${row.path}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void deleteEmptyFolder(row.path);
+                  }}
+                  className="inline-flex h-6 w-6 items-center justify-center rounded border border-red-200 text-red-600 hover:bg-red-50"
+                  title="Delete empty folder"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              ) : null}
+            </div>
+          ) : (
+            <div className="hidden items-center gap-1 group-hover:flex">
+              <button
+                type="button"
+                data-row-control
+                aria-label={`Move file ${row.doc.filename}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void moveDocument(row.doc.id, docFolderPath(row.doc));
+                }}
+                className="inline-flex h-6 w-6 items-center justify-center rounded border border-border text-text-muted hover:bg-surface"
+                title="Move file"
+              >
+                <MoveRight className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                data-row-control
+                aria-label={`Delete file ${row.doc.filename}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  requestDeleteDocument(row.doc.id, row.doc.filename);
+                }}
+                className="inline-flex h-6 w-6 items-center justify-center rounded border border-red-200 text-red-600 hover:bg-red-50"
+                title="Delete file"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          );
+          return renaming &&
+            ((renaming.kind === 'folder' && row.kind === 'folder' && String(renaming.id) === row.path) ||
+              (renaming.kind === 'doc' && row.kind === 'doc' && String(renaming.id) === row.doc.id)) ? (
+            <div
+              className="flex min-w-0 items-center gap-2"
+              style={{ paddingLeft: `${12 + row.depth * 14}px` }}
+              data-rename-input
+              onClick={(event) => event.stopPropagation()}
+              onDoubleClick={(event) => event.stopPropagation()}
+            >
+              {row.kind === 'folder' ? <Folder className="h-3.5 w-3.5 text-amber-500" /> : <FileText className="h-3.5 w-3.5 text-text-dim" />}
+              <div className="min-w-0 flex-1">
+                <input
+                  ref={renameInputRef}
+                  value={renameValue}
+                  disabled={renameSaving}
+                  onChange={(event) => {
+                    setRenameValue(event.target.value);
+                    if (renameError) setRenameError(null);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void confirmRename();
+                    } else if (event.key === 'Escape') {
+                      event.preventDefault();
+                      cancelRename();
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!renaming) return;
+                    const next = renameValue.trim();
+                    if (next === renaming.originalName.trim()) {
+                      cancelRename();
+                      return;
+                    }
+                    const validationError = validateRename(renameValue, renaming.originalName);
+                    if (validationError) {
+                      setRenameError(validationError);
+                      window.requestAnimationFrame(() => renameInputRef.current?.focus());
+                      return;
+                    }
+                    void confirmRename();
+                  }}
+                  className={`h-7 w-full rounded border bg-surface px-2 text-[12px] text-text focus:outline-none focus:border-accent ${
+                    renameError ? 'border-red-400' : 'border-border'
+                  }`}
+                  data-rename-input
+                />
+                {renameSaving ? <p className="mt-0.5 text-[10px] text-text-dim">Saving...</p> : null}
+                {renameError ? <p className="mt-0.5 text-[10px] text-red-600">{renameError}</p> : null}
+              </div>
+            </div>
+          ) : (
+            <div data-rename-origin>
+              <TreeCell
+                label={row.kind === 'folder' ? row.name : row.doc.filename}
+                depth={row.depth}
+                kind={row.kind}
+                isExpanded={row.kind === 'folder' ? expandedFolders[row.path] ?? true : false}
+                onToggle={
+                  row.kind === 'folder'
+                    ? () => {
+                        setActiveFolderPath(row.path);
+                        setExpandedFolders((prev) => ({ ...prev, [row.path]: !(prev[row.path] ?? true) }));
+                      }
+                    : undefined
+                }
+                onLabelDoubleClick={(event) => {
+                  if (isInteractiveTarget(event.target)) return;
+                  const origin = (event.currentTarget.closest('[data-rename-origin]') as HTMLElement | null) ?? null;
+                  startRename(row, origin);
+                }}
+                trailing={
+                  row.kind === 'folder' ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-text-dim">{row.count}</span>
+                      {trailingActions}
+                    </div>
+                  ) : (
+                    trailingActions
+                  )
+                }
+              />
+            </div>
+          );
+        },
+        size: 420,
+        minSize: 280,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Name',
+          minWidth: 280,
+          defaultWidth: 420,
+          maxWidth: 720,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: TreeRow) => (row.kind === 'folder' ? row.name : row.doc.filename),
+        },
+      },
+      {
+        id: 'size',
+        header: 'Size',
+        cell: ({ row: tableRow }) => {
+          const row = tableRow.original;
+          return <span className="block truncate text-[12px] tabular-nums text-text-dim">{row.kind === 'folder' ? '-' : formatBytes(row.doc.file_size_bytes) || '-'}</span>;
+        },
+        size: 108,
+        minSize: 96,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Size',
+          minWidth: 96,
+          defaultWidth: 108,
+          maxWidth: 140,
+          resizable: true,
+          align: 'right',
+          measureValue: (row: TreeRow) => (row.kind === 'folder' ? '-' : formatBytes(row.doc.file_size_bytes) || '-'),
+        },
+      },
+      {
+        id: 'type',
+        header: () => (
+          <div className="flex items-center gap-1">
+            <span>Type</span>
+            <TableHeaderFilter
+              open={openHeaderFilterId === 'type'}
+              active={Boolean(typeFilter)}
+              label="Type"
+              onToggle={() => setOpenHeaderFilterId((value) => (value === 'type' ? null : 'type'))}
+            >
+              <select
+                value={typeFilter}
+                onChange={(event) => setTypeFilter(event.target.value)}
+                className="h-7 w-full rounded-none border border-border bg-surface px-2 text-[11px] text-text focus:border-accent focus:outline-none"
+              >
+                <option value="">All</option>
+                {typeOptions.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+            </TableHeaderFilter>
+          </div>
+        ),
+        cell: ({ row: tableRow }) => {
+          const row = tableRow.original;
+          return <span className="block truncate text-[12px] text-text-dim">{row.kind === 'folder' ? 'Folder' : row.doc.document_type || '-'}</span>;
+        },
+        size: 112,
+        minSize: 100,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Type',
+          minWidth: 100,
+          defaultWidth: 112,
+          maxWidth: 180,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: TreeRow) => (row.kind === 'folder' ? 'Folder' : row.doc.document_type || '-'),
+        },
+      },
+      {
+        id: 'company',
+        header: 'Company',
+        cell: ({ row: tableRow }) => {
+          const row = tableRow.original;
+          return <span className="block truncate text-[12px] text-text-dim">{row.kind === 'folder' ? '-' : row.doc.linked_company_name || '-'}</span>;
+        },
+        size: 176,
+        minSize: 140,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Company',
+          minWidth: 140,
+          defaultWidth: 176,
+          maxWidth: 280,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: TreeRow) => (row.kind === 'folder' ? '-' : row.doc.linked_company_name || '-'),
+        },
+      },
+      {
+        id: 'status',
+        header: () => (
+          <div className="flex items-center gap-1">
+            <span>Status</span>
+            <TableHeaderFilter
+              open={openHeaderFilterId === 'status'}
+              active={Boolean(statusFilter)}
+              label="Status"
+              onToggle={() => setOpenHeaderFilterId((value) => (value === 'status' ? null : 'status'))}
+            >
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                className="h-7 w-full rounded-none border border-border bg-surface px-2 text-[11px] text-text focus:border-accent focus:outline-none"
+              >
+                <option value="">All</option>
+                {statusOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </TableHeaderFilter>
+          </div>
+        ),
+        cell: ({ row: tableRow }) => {
+          const row = tableRow.original;
+          return row.kind === 'folder' ? (
+            <span className="text-[11px] text-text-dim">-</span>
+          ) : (
+            <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] ${statusBadge(row.doc.status)}`}>{row.doc.status}</span>
+          );
+        },
+        size: 120,
+        minSize: 100,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Status',
+          minWidth: 100,
+          defaultWidth: 120,
+          maxWidth: 180,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: TreeRow) => (row.kind === 'folder' ? '-' : row.doc.status),
+        },
+      },
+      {
+        id: 'updated',
+        header: 'Updated',
+        cell: ({ row: tableRow }) => {
+          const row = tableRow.original;
+          return <span className="block truncate text-[12px] tabular-nums text-text-dim">{row.kind === 'folder' ? prettyDate(row.latest) : prettyDate(row.doc.uploaded_at)}</span>;
+        },
+        size: 156,
+        minSize: 140,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Updated',
+          minWidth: 140,
+          defaultWidth: 156,
+          maxWidth: 220,
+          resizable: true,
+          align: 'right',
+          measureValue: (row: TreeRow) => (row.kind === 'folder' ? prettyDate(row.latest) : prettyDate(row.doc.uploaded_at)),
+        },
+      },
+    ],
+    [
+      cancelRename,
+      confirmRename,
+      deleteEmptyFolder,
+      expandedFolders,
+      moveDocument,
+      moveFolder,
+      renameError,
+      renameSaving,
+      renameValue,
+      renaming,
+      isInteractiveTarget,
+      setActiveFolderPath,
+      startRename,
+      toggleFolderContentsSelection,
+      validateRename,
+    ],
+  );
+
+  const { columnSizing, setColumnSizing, autoFitColumn } = usePersistentColumnSizing({
+    columns: documentColumns,
+    rows,
+    storageKey: 'documents-table',
+  });
+  const managedColumnIds = useMemo(() => DOCUMENT_COLUMNS.map((column) => column.id), []);
+  const { columnOrder: managedColumnOrder, setColumnOrder: setManagedColumnOrder, columnVisibility, setColumnVisibility } = usePersistentColumnPreferences({
+    storageKey: 'documents-table',
+    columnIds: managedColumnIds,
+    initialVisibility: { name: true, size: true, type: true, company: true, status: true, updated: true },
+  });
+
+  const moveManagedColumn = useCallback((columnId: string, delta: -1 | 1) => {
+    setManagedColumnOrder((prev) => {
+      const index = prev.indexOf(columnId);
+      const nextIndex = index + delta;
+      if (index < 0 || nextIndex < 0 || nextIndex >= prev.length) return prev;
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.splice(nextIndex, 0, item);
+      return next;
+    });
+  }, [setManagedColumnOrder]);
+
+  const documentsTable = useReactTable({
+    data: rows,
+    columns: documentColumns,
+    state: {
+      columnVisibility,
+      columnSizing,
+      rowSelection,
+      columnOrder: ['select', ...managedColumnOrder],
+    },
+    onRowSelectionChange: setRowSelection,
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: setManagedColumnOrder,
+    onColumnSizingChange: setColumnSizing,
+    getRowId: (row) => row.key,
+    getCoreRowModel: getCoreRowModel(),
+    columnResizeMode: 'onChange',
+  });
+
+  const {
+    containerRef: documentsTableRef,
+    columnWidths: documentsColumnWidths,
+    visibleColumnIds: documentsVisibleColumnIds,
+    tableStyle: documentRowStyle,
+    fillWidth: documentsFillWidth,
+    canShiftLeft: canShiftDocumentsLeft,
+    canShiftRight: canShiftDocumentsRight,
+    shiftLeft: shiftDocumentsLeft,
+    shiftRight: shiftDocumentsRight,
+  } = useFittedTableLayout(documentsTable, { controlWidth: FILTERABLE_VIEWPORT_CONTROL_WIDTH });
+  const visibleColumns = useMemo(
+    () => documentsTable.getVisibleLeafColumns().filter((column) => documentsVisibleColumnIds.includes(column.id)),
+    [documentsTable, documentsVisibleColumnIds],
+  );
+  const rowGridStyle = useMemo(
+    () => ({
+      gridTemplateColumns: [
+        ...visibleColumns.map((column) => `${documentsColumnWidths[column.id] ?? column.getSize()}px`),
+        ...(documentsFillWidth > 0 ? [`${documentsFillWidth}px`] : []),
+      ].join(' '),
+    }),
+    [documentsColumnWidths, documentsFillWidth, visibleColumns],
+  );
+
   const documentTabs = useMemo(
     () => [
       { id: 'all', label: 'All', count: allDocuments.length },
@@ -968,71 +1671,9 @@ export default function DocumentsPage() {
   );
 
   const inlineControls = (
-    <div className="flex min-w-0 flex-wrap items-center gap-2">
+    <div className="flex min-w-0 flex-wrap items-center">
       <div className="min-w-[240px] flex-1">
         <PageSearchInput value={query} onChange={handleSearchChange} placeholder="Search filename, summary, or content" />
-      </div>
-      <select
-        value={typeFilter}
-        onChange={(e) => setTypeFilter(e.target.value)}
-        className="h-8 shrink-0 rounded-md border border-border bg-surface px-2.5 text-[12px] text-text focus:outline-none focus:border-accent"
-        aria-label="Filter documents by type"
-      >
-        <option value="">All types</option>
-        {typeOptions.map((type) => (
-          <option key={type} value={type}>
-            {type}
-          </option>
-        ))}
-      </select>
-      <select
-        value={statusFilter}
-        onChange={(e) => setStatusFilter(e.target.value)}
-        className="h-8 shrink-0 rounded-md border border-border bg-surface px-2.5 text-[12px] text-text focus:outline-none focus:border-accent"
-        aria-label="Filter documents by status"
-      >
-        <option value="">All statuses</option>
-        {statusOptions.map((status) => (
-          <option key={status} value={status}>
-            {status}
-          </option>
-        ))}
-      </select>
-      <div className="relative shrink-0" ref={filterMenuRef}>
-        <button
-          type="button"
-          onClick={() => setShowFiltersMenu((v) => !v)}
-          className="h-8 w-8 inline-flex items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
-          title="Visible columns"
-          aria-label="Open visible columns menu"
-        >
-          <SlidersHorizontal className="w-4 h-4" />
-        </button>
-        {showFiltersMenu ? (
-          <div className="absolute right-0 top-10 z-20 w-[260px] rounded-md border border-border bg-surface p-3 shadow-lg">
-            <div className="space-y-2">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Visible Columns</p>
-              {COLUMNS.map((column) => (
-                <label key={column.id} className="flex items-center gap-2 text-[12px] text-text">
-                  <input
-                    type="checkbox"
-                    checked={columnVisibility[column.id]}
-                    disabled={column.id === 'name'}
-                    onChange={(event) => {
-                      if (column.id === 'name') return;
-                      setColumnVisibility((prev) => ({ ...prev, [column.id]: event.target.checked }));
-                    }}
-                    className="w-3.5 h-3.5 rounded border-gray-300 text-accent focus:ring-accent"
-                  />
-                  <span>
-                    {column.label}
-                    {column.id === 'name' ? ' (required)' : ''}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </div>
       <HeaderActionButton onClick={() => fileInputRef.current?.click()} variant="primary" icon={<Upload className="h-4 w-4" />}>
         Upload
@@ -1040,6 +1681,14 @@ export default function DocumentsPage() {
       <HeaderActionButton onClick={createFolder} variant="secondary" icon={<Plus className="h-4 w-4" />}>
         New Folder
       </HeaderActionButton>
+      <button
+        type="button"
+        onClick={() => setTreeOrder((value) => (value === 'files_first' ? 'folders_first' : 'files_first'))}
+        className="inline-flex h-8 items-center border border-border bg-surface px-3 text-xs text-text-muted hover:bg-surface-hover"
+        aria-label={`Switch document tree order, currently ${treeOrder === 'files_first' ? 'files first' : 'folders first'}`}
+      >
+        {treeOrder === 'files_first' ? 'Files First' : 'Folders First'}
+      </button>
       <HeaderActionButton onClick={refreshAll} variant="secondary" icon={<RefreshCw className="h-4 w-4" />}>
         Refresh
       </HeaderActionButton>
@@ -1056,7 +1705,7 @@ export default function DocumentsPage() {
             ? `${docs.length} document${docs.length === 1 ? '' : 's'}${query.trim() ? ' matching search' : ''}`
             : `${docs.length} document${docs.length === 1 ? '' : 's'} in ${stageLabel(view).toLowerCase()}${query.trim() ? ' matching search' : ''}`
         }
-        contentClassName="overflow-hidden"
+        contentClassName=""
         hideHeader
         preHeader={
           <EmailTabs
@@ -1074,7 +1723,7 @@ export default function DocumentsPage() {
         toolbar={inlineControls}
       >
         {errorMessage ? <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{errorMessage}</div> : null}
-        <div className={`min-h-0 flex-1 overflow-hidden ${errorMessage ? 'pt-2' : 'pt-2'}`}>
+        <div className="min-h-0 flex-1 overflow-hidden">
           {docsQ.isLoading ? (
             <LoadingSpinner />
           ) : docsQ.isError ? (
@@ -1093,25 +1742,72 @@ export default function DocumentsPage() {
             />
           ) : (
             <div className="bg-surface overflow-hidden flex h-full min-h-0">
-              <div className="flex min-w-0 min-h-0 flex-1 flex-col">
-                <div className="shrink-0 border-b border-border-subtle bg-surface-hover/30">
-                  <div className="grid h-9 items-center" style={rowGridStyle}>
-                    {visibleColumns.map((c) => (
-                      <div
-                        key={`header-${c.id}`}
-                        className={`min-w-0 px-3 py-2 text-[11px] font-medium uppercase tracking-wide ${c.id === 'updated' ? 'text-right text-text-dim' : 'text-text-muted'}`}
-                      >
-                        {c.label}
+              <div ref={documentsTableRef} className="flex min-w-0 min-h-0 flex-1 flex-col">
+                <div className="relative shrink-0">
+                  <SharedViewportControlsOverlay
+                    canShiftLeft={canShiftDocumentsLeft}
+                    canShiftRight={canShiftDocumentsRight}
+                    onShiftLeft={shiftDocumentsLeft}
+                    onShiftRight={shiftDocumentsRight}
+                    leadingControl={
+                      <div className="relative" ref={filterMenuRef}>
+                        <button
+                          type="button"
+                          onClick={() => setShowFiltersMenu((v) => !v)}
+                          className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+                          title="Visible columns"
+                          aria-label="Open visible columns menu"
+                        >
+                          <SlidersHorizontal className="h-3.5 w-3.5" />
+                        </button>
+                        {showFiltersMenu ? (
+                          <div className="absolute right-0 top-7 z-20 w-[260px] rounded-none border border-border bg-surface p-3 shadow-lg">
+                            <ColumnVisibilityMenu
+                              items={managedColumnOrder.map((columnId, index) => {
+                                const column = DOCUMENT_COLUMNS.find((item) => item.id === columnId);
+                                return {
+                                  id: columnId,
+                                  label: column?.label ?? columnId,
+                                  visible: documentsTable.getColumn(columnId)?.getIsVisible() ?? true,
+                                  canHide: columnId !== 'name',
+                                  canMoveUp: index > 0,
+                                  canMoveDown: index < managedColumnOrder.length - 1,
+                                };
+                              })}
+                              onToggle={(columnId, visible) => {
+                                if (columnId === 'name') return;
+                                documentsTable.getColumn(columnId)?.toggleVisibility(visible);
+                              }}
+                              onMoveUp={(columnId) => moveManagedColumn(columnId, -1)}
+                              onMoveDown={(columnId) => moveManagedColumn(columnId, 1)}
+                            />
+                          </div>
+                        ) : null}
                       </div>
-                    ))}
-                  </div>
+                    }
+                  />
+                  <table className="w-full border-collapse" style={documentRowStyle}>
+                    <SharedTableColGroupWithWidths table={documentsTable} columnWidths={documentsColumnWidths} visibleColumnIds={documentsVisibleColumnIds} fillerWidth={documentsFillWidth} controlWidth={FILTERABLE_VIEWPORT_CONTROL_WIDTH} />
+                    <SharedTableHeader
+                      table={documentsTable}
+                      onAutoFitColumn={autoFitColumn}
+                      visibleColumnIds={documentsVisibleColumnIds}
+                      columnWidths={documentsColumnWidths}
+                      fillerWidth={documentsFillWidth}
+                      controlWidth={FILTERABLE_VIEWPORT_CONTROL_WIDTH}
+                    />
+                  </table>
                 </div>
                 <div
-                  className="min-h-0 flex-1 overflow-auto"
+                  className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
                   onDragOver={(e) => {
                     if (!draggingItem) return;
                     if (e.target !== e.currentTarget) return;
                     e.preventDefault();
+                    setDropTargetFolderPath(null);
+                    setDropTargetRowKey(null);
+                    setDropTargetMode(null);
+                    setDropTargetPosition(null);
                   }}
                   onDrop={(e) => {
                     if (e.target !== e.currentTarget) return;
@@ -1122,13 +1818,18 @@ export default function DocumentsPage() {
                   {rows.map((row) => {
                     const isDoc = row.kind === 'doc';
                     const selected = isDoc && row.doc.id === selectedId;
-                    const isDropTarget = row.kind === 'folder' && dropTargetFolderPath === row.path;
+                    const tableRow = documentsTable.getRow(row.key);
+                    const isDropTarget = row.kind === 'folder' && dropTargetMode === 'move-folder' && dropTargetFolderPath === row.path;
+                    const isReorderTarget = dropTargetMode === 'reorder' && dropTargetRowKey === row.key;
                     return (
                       <Fragment key={`row-frag-${row.key}`}>
                         {inlineFolderParentPath === '' && row === rows[0] ? (
                           <div className="grid border-b border-border-subtle bg-accent/5" style={rowGridStyle}>
-                            {visibleColumns.map((column) => (
-                              <div key={`inline-root-${column.id}`} className="min-w-0 px-3 py-2 text-[12px] text-text-dim">
+                            {visibleColumns.map((column, index) => (
+                              <div
+                                key={`inline-root-${column.id}`}
+                                className={`min-w-0 px-3 py-2 text-[12px] text-text-dim ${index === visibleColumns.length - 1 ? '' : 'border-r border-border-subtle/80'}`}
+                              >
                                 {column.id === 'name' ? (
                                   <div className="flex min-w-0 items-center gap-2">
                                     <Folder className="w-3.5 h-3.5 text-amber-500" />
@@ -1148,36 +1849,48 @@ export default function DocumentsPage() {
                                       className="h-7 w-full rounded border border-border bg-surface px-2 text-[12px] text-text focus:outline-none focus:border-accent"
                                     />
                                   </div>
-                                ) : (
+                                ) : column.id === 'select' ? null : (
                                   '-'
                                 )}
                               </div>
                             ))}
+                            {documentsFillWidth > 0 ? <div aria-hidden="true" /> : null}
                           </div>
                         ) : null}
                         <div
                           draggable
                           onDragStart={(e) => {
                             setDraggingItem(row.kind === 'folder' ? { kind: 'folder', path: row.path } : { kind: 'doc', id: row.doc.id });
+                            setDropTargetFolderPath(null);
+                            setDropTargetRowKey(null);
+                            setDropTargetMode(null);
+                            setDropTargetPosition(null);
                             e.dataTransfer.effectAllowed = 'move';
                           }}
                           onDragEnd={() => {
                             setDraggingItem(null);
                             setDropTargetFolderPath(null);
+                            setDropTargetRowKey(null);
+                            setDropTargetMode(null);
+                            setDropTargetPosition(null);
                           }}
                           onDragOver={(e) => {
-                            if (row.kind !== 'folder' || !draggingItem) return;
+                            if (!draggingItem) return;
                             e.preventDefault();
                             e.stopPropagation();
-                            setDropTargetFolderPath(row.path);
+                            const intent = getDropIntentForRow(row, e.clientY, e.currentTarget);
+                            setDropTargetRowKey(intent.rowKey);
+                            setDropTargetMode(intent.mode);
+                            setDropTargetFolderPath(intent.folderPath);
+                            setDropTargetPosition(intent.position);
                           }}
                           onDrop={(e) => {
-                            if (row.kind !== 'folder') return;
                             e.preventDefault();
                             e.stopPropagation();
-                            void handleDropOnFolder(row.path);
+                            const intent = getDropIntentForRow(row, e.clientY, e.currentTarget);
+                            void handleDropOnRow(row, intent.mode === 'reorder' ? (intent.position ?? 'before') : 'before');
                           }}
-                          className={`group grid h-[42px] items-center border-b border-border-subtle ${isDoc ? `${selected ? 'bg-accent/10' : 'hover:bg-surface-hover/60'} cursor-pointer` : 'bg-surface-hover/20'} ${isDropTarget ? 'ring-1 ring-accent' : ''}`}
+                          className={`group relative grid ${SHARED_TABLE_ROW_HEIGHT_CLASS} items-center border-b border-border-subtle ${isDoc ? `${selected ? 'bg-accent/10' : tableRow.getIsSelected() ? 'bg-accent/8' : 'hover:bg-surface-hover/60'} cursor-pointer` : tableRow.getIsSelected() ? 'bg-accent/8' : 'bg-surface-hover/20'} ${isDropTarget ? 'ring-1 ring-accent' : ''} ${isReorderTarget ? 'bg-accent/6' : ''}`}
                           style={rowGridStyle}
                           tabIndex={isDoc ? 0 : -1}
                           aria-expanded={isDoc ? selected : undefined}
@@ -1230,13 +1943,56 @@ export default function DocumentsPage() {
                             }
                           }}
                         >
-                          {visibleColumns.map((column) => {
+                          {isReorderTarget ? (
+                            <span
+                              aria-hidden="true"
+                              className={`pointer-events-none absolute inset-x-0 h-0.5 bg-accent ${dropTargetPosition === 'after' ? 'bottom-0' : 'top-0'}`}
+                            />
+                          ) : null}
+                          {visibleColumns.map((column, index) => {
+                            const hasDivider = index !== visibleColumns.length - 1;
+                            const cellClassName = `min-w-0 overflow-hidden px-3 ${column.id === 'select' ? 'py-0' : 'py-1.5'} ${hasDivider ? 'border-r border-border-subtle/80' : ''}`;
+                            if (column.id === 'select') {
+                              return (
+                                <div
+                                  key={`${row.key}-select`}
+                                  className={`${cellClassName} relative`}
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    if (row.kind === 'folder') {
+                                      toggleFolderContentsSelection(row.path);
+                                      return;
+                                    }
+                                    tableRow.toggleSelected();
+                                  }}
+                                  onMouseDown={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                  }}
+                                  data-row-control
+                                >
+                                  <button
+                                    type="button"
+                                    aria-label={`Select ${row.kind === 'folder' ? 'folder' : 'document'} ${row.kind === 'folder' ? row.name : row.doc.filename}`}
+                                    aria-pressed={tableRow.getIsSelected()}
+                                    onClick={(event) => {
+                                      event.preventDefault();
+                                      event.stopPropagation();
+                                      if (row.kind === 'folder') {
+                                        toggleFolderContentsSelection(row.path);
+                                        return;
+                                      }
+                                      tableRow.toggleSelected();
+                                    }}
+                                    className="block h-full w-full"
+                                    data-row-control
+                                  />
+                                  {hasDivider ? <span aria-hidden="true" className="absolute inset-y-0 right-0 w-px bg-border-subtle/80" /> : null}
+                                </div>
+                              );
+                            }
                             if (column.id === 'name') {
-                              const fileMeta = row.kind === 'doc'
-                                ? [row.doc.document_type || 'Document', formatBytes(row.doc.file_size_bytes), prettyDate(row.doc.uploaded_at)]
-                                    .filter(Boolean)
-                                    .join(' · ')
-                                : undefined;
                               const trailingActions = row.kind === 'folder' ? (
                                 <div className="hidden items-center gap-1 group-hover:flex">
                                   {row.explicit ? (
@@ -1285,10 +2041,23 @@ export default function DocumentsPage() {
                                   >
                                     <MoveRight className="h-3.5 w-3.5" />
                                   </button>
+                                  <button
+                                    type="button"
+                                    data-row-control
+                                    aria-label={`Delete file ${row.doc.filename}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      requestDeleteDocument(row.doc.id, row.doc.filename);
+                                    }}
+                                    className="inline-flex h-6 w-6 items-center justify-center rounded border border-red-200 text-red-600 hover:bg-red-50"
+                                    title="Delete file"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
                                 </div>
                               );
                               return (
-                                <div key={`${row.key}-name`} className="min-w-0 px-3 py-1.5">
+                                <div key={`${row.key}-name`} className={`min-w-0 overflow-hidden py-1.5 ${index === visibleColumns.length - 1 ? '' : 'border-r border-border-subtle/80'} border-l border-border-subtle/80`}>
                                   {renaming &&
                                   ((renaming.kind === 'folder' && row.kind === 'folder' && String(renaming.id) === row.path) ||
                                     (renaming.kind === 'doc' && row.kind === 'doc' && String(renaming.id) === row.doc.id)) ? (
@@ -1357,7 +2126,6 @@ export default function DocumentsPage() {
                                               }
                                             : undefined
                                         }
-                                        meta={fileMeta}
                                         onLabelDoubleClick={(event) => {
                                           if (isInteractiveTarget(event.target)) return;
                                           const origin = (event.currentTarget.closest('[data-rename-origin]') as HTMLElement | null) ?? null;
@@ -1381,36 +2149,47 @@ export default function DocumentsPage() {
                             }
                             if (column.id === 'type') {
                               return (
-                                <div key={`${row.key}-type`} className="min-w-0 px-3 py-1.5 text-[12px] text-text-dim whitespace-nowrap">
+                                <div key={`${row.key}-type`} className={`${cellClassName} text-[12px] text-text-dim whitespace-nowrap`}>
                                   {row.kind === 'folder' ? 'Folder' : row.doc.document_type || '-'}
+                                </div>
+                              );
+                            }
+                            if (column.id === 'size') {
+                              return (
+                                <div key={`${row.key}-size`} className={`${cellClassName} text-right text-[12px] tabular-nums text-text-dim whitespace-nowrap`}>
+                                  {row.kind === 'folder' ? '-' : formatBytes(row.doc.file_size_bytes) || '-'}
                                 </div>
                               );
                             }
                             if (column.id === 'company') {
                               return (
-                                <div key={`${row.key}-company`} className="min-w-0 px-3 py-1.5 text-[12px] text-text-dim truncate">
+                                <div key={`${row.key}-company`} className={`${cellClassName} text-[12px] text-text-dim truncate`}>
                                   {row.kind === 'folder' ? '-' : row.doc.linked_company_name || '-'}
                                 </div>
                               );
                             }
                             if (column.id === 'status') {
                               return (
-                                <div key={`${row.key}-status`} className="min-w-0 px-3 py-1.5">
+                                <div key={`${row.key}-status`} className={cellClassName}>
                                   {row.kind === 'folder' ? <span className="text-[11px] text-text-dim">-</span> : <span className={`rounded px-2 py-0.5 text-[11px] ${statusBadge(row.doc.status)}`}>{row.doc.status}</span>}
                                 </div>
                               );
                             }
                             return (
-                              <div key={`${row.key}-updated`} className="min-w-0 px-3 py-1.5 text-right text-[12px] tabular-nums text-text-dim whitespace-nowrap">
+                              <div key={`${row.key}-updated`} className={`${cellClassName} text-right text-[12px] tabular-nums text-text-dim whitespace-nowrap`}>
                                 {row.kind === 'folder' ? prettyDate(row.latest) : prettyDate(row.doc.uploaded_at)}
                               </div>
                             );
                           })}
+                          {documentsFillWidth > 0 ? <div aria-hidden="true" /> : null}
                         </div>
                         {row.kind === 'folder' && inlineFolderParentPath === row.path ? (
                           <div className="grid border-b border-border-subtle bg-accent/5" style={rowGridStyle}>
-                            {visibleColumns.map((column) => (
-                              <div key={`inline-child-${row.path}-${column.id}`} className="min-w-0 px-3 py-2 text-[12px] text-text-dim">
+                            {visibleColumns.map((column, index) => (
+                              <div
+                                key={`inline-child-${row.path}-${column.id}`}
+                                className={`min-w-0 px-3 py-2 text-[12px] text-text-dim ${index === visibleColumns.length - 1 ? '' : 'border-r border-border-subtle/80'}`}
+                              >
                                 {column.id === 'name' ? (
                                   <div className="flex min-w-0 items-center gap-2" style={{ paddingLeft: `${(row.depth + 1) * 16}px` }}>
                                     <Folder className="w-3.5 h-3.5 text-amber-500" />
@@ -1430,11 +2209,12 @@ export default function DocumentsPage() {
                                       className="h-7 w-full rounded border border-border bg-surface px-2 text-[12px] text-text focus:outline-none focus:border-accent"
                                     />
                                   </div>
-                                ) : (
+                                ) : column.id === 'select' ? null : (
                                   '-'
                                 )}
                               </div>
                             ))}
+                            {documentsFillWidth > 0 ? <div aria-hidden="true" /> : null}
                           </div>
                         ) : null}
                       </Fragment>
@@ -1677,6 +2457,15 @@ export default function DocumentsPage() {
               >
                 Rename
               </button>
+              <button
+                type="button"
+                className="block w-full rounded px-2 py-1 text-left text-xs text-red-600 hover:bg-red-50"
+                onClick={() => {
+                  requestDeleteDocument(contextMenu.row.doc.id, contextMenu.row.doc.filename);
+                }}
+              >
+                Delete
+              </button>
             </>
           ) : (
               <button
@@ -1691,6 +2480,53 @@ export default function DocumentsPage() {
             </button>
           )}
         </div>
+      ) : null}
+      {deleteTarget ? (
+        <BaseModal
+          title="Delete Document"
+          onClose={closeDeleteDialog}
+          maxWidth="max-w-md"
+          footer={
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeDeleteDialog}
+                disabled={deleteSaving}
+                className="inline-flex h-8 items-center border border-border bg-surface px-3 text-xs text-text-muted hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmDeleteDocument()}
+                disabled={deleteSaving || deleteConfirmValue.trim() !== 'confirm delete'}
+                className="inline-flex h-8 items-center border border-red-600 bg-red-600 px-3 text-xs text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {deleteSaving ? 'Deleting...' : 'Delete Document'}
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-3 text-sm text-text">
+            <p>
+              This will permanently delete <span className="font-medium">{deleteTarget.filename}</span>.
+            </p>
+            <p className="text-text-dim">Type <span className="font-medium text-text">confirm delete</span> to continue.</p>
+            <input
+              autoFocus
+              value={deleteConfirmValue}
+              onChange={(event) => setDeleteConfirmValue(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  void confirmDeleteDocument();
+                }
+              }}
+              className="h-9 w-full border border-border bg-surface px-3 text-sm text-text focus:border-accent focus:outline-none"
+              placeholder="confirm delete"
+            />
+          </div>
+        </BaseModal>
       ) : null}
       {isPhone && selectedId ? (
         <BottomDrawerContainer onClose={closeInspector} ariaLabel="Document details drawer">
@@ -1714,7 +2550,16 @@ export default function DocumentsPage() {
                     <div className="absolute right-3 top-10 w-40 rounded-md border border-border bg-surface p-1 shadow-lg">
                       <button type="button" disabled className="block w-full rounded px-2 py-1 text-left text-xs text-text-dim">Rename (coming soon)</button>
                       <button type="button" disabled className="block w-full rounded px-2 py-1 text-left text-xs text-text-dim">Move (coming soon)</button>
-                      <button type="button" disabled className="block w-full rounded px-2 py-1 text-left text-xs text-red-400">Delete (coming soon)</button>
+                      <button
+                        type="button"
+                        className="block w-full rounded px-2 py-1 text-left text-xs text-red-600 hover:bg-red-50"
+                        onClick={() => {
+                          if (!inspectorDocument?.id) return;
+                          requestDeleteDocument(inspectorDocument.id, inspectorDocument.filename || 'Document');
+                        }}
+                      >
+                        Delete
+                      </button>
                     </div>
                   ) : null}
                   <button

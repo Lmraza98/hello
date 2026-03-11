@@ -1,11 +1,17 @@
-import type { KeyboardEvent, ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { getCoreRowModel, type CellContext, type ColumnDef, type RowSelectionState, useReactTable } from '@tanstack/react-table';
+import { SHARED_SELECTION_COLUMN_WIDTH, SharedDataTable, usePersistentColumnSizing, type SharedColumnAlign } from '../shared/resizableDataTable';
 
 export type StandardEmailColumn<T> = {
   key: string;
   label: string;
-  width?: string;
-  className?: string;
+  minWidth: number;
+  defaultWidth: number;
+  maxWidth?: number;
+  resizable?: boolean;
+  align?: SharedColumnAlign;
   render: (item: T) => ReactNode;
+  measureValue?: (item: T) => string | number | null | undefined;
 };
 
 type StandardEmailTableProps<T> = {
@@ -16,9 +22,9 @@ type StandardEmailTableProps<T> = {
   onSelectRow: (item: T, element: HTMLElement) => void;
   getRowAriaLabel: (item: T) => string;
   emptyState: ReactNode;
-  minWidth?: string;
   isCompact?: boolean;
   renderCompactRow?: (item: T, isSelected: boolean) => ReactNode;
+  storageKey: string;
 };
 
 function isInteractiveTarget(target: EventTarget | null) {
@@ -36,105 +42,108 @@ export function StandardEmailTable<T>({
   onSelectRow,
   getRowAriaLabel,
   emptyState,
-  minWidth = '920px',
   isCompact = false,
   renderCompactRow,
+  storageKey,
 }: StandardEmailTableProps<T>) {
-  const handleKeyDown = (event: KeyboardEvent<HTMLTableRowElement>, item: T) => {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    if (isInteractiveTarget(event.target)) return;
-    event.preventDefault();
-    onSelectRow(item, event.currentTarget);
-  };
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const tableColumns = useMemo<ColumnDef<T, any>[]>(
+    () =>
+      [
+        {
+          id: 'select',
+          header: ({ table }) => (
+            <button
+              type="button"
+              aria-label="Select all visible rows"
+              aria-pressed={table.getIsAllRowsSelected()}
+              onClick={() => table.toggleAllRowsSelected(!table.getIsAllRowsSelected())}
+              className="block h-full w-full"
+              data-row-control
+            />
+          ),
+          cell: ({ row }) => (
+            <button
+              type="button"
+              aria-label={`Select row ${String(rowId(row.original))}`}
+              aria-pressed={row.getIsSelected()}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                row.toggleSelected();
+              }}
+              className="block h-full w-full"
+              data-row-control
+            />
+          ),
+          size: SHARED_SELECTION_COLUMN_WIDTH,
+          minSize: SHARED_SELECTION_COLUMN_WIDTH,
+          maxSize: SHARED_SELECTION_COLUMN_WIDTH,
+          enableResizing: false,
+          meta: {
+            label: 'Select',
+            minWidth: SHARED_SELECTION_COLUMN_WIDTH,
+            defaultWidth: SHARED_SELECTION_COLUMN_WIDTH,
+            maxWidth: SHARED_SELECTION_COLUMN_WIDTH,
+            resizable: false,
+            align: 'center',
+          },
+        },
+        ...columns.map((column) => ({
+          id: column.key,
+          header: column.label,
+          cell: ({ row }: CellContext<T, any>) => column.render(row.original),
+          size: column.defaultWidth,
+          minSize: column.minWidth,
+          maxSize: Number.MAX_SAFE_INTEGER,
+          enableResizing: column.resizable !== false,
+          meta: {
+            label: column.label,
+            minWidth: column.minWidth,
+            defaultWidth: column.defaultWidth,
+            maxWidth: column.maxWidth,
+            resizable: column.resizable !== false,
+            align: column.align ?? 'left',
+            measureValue: column.measureValue,
+          },
+        })),
+      ],
+    [columns, rowId],
+  );
+
+  const { columnSizing, setColumnSizing, autoFitColumn } = usePersistentColumnSizing({
+    columns: tableColumns,
+    rows,
+    storageKey,
+  });
+
+  const table = useReactTable({
+    data: rows,
+    columns: tableColumns,
+    state: {
+      columnSizing,
+      rowSelection,
+    },
+    onRowSelectionChange: setRowSelection,
+    onColumnSizingChange: setColumnSizing,
+    getRowId: (row) => String(rowId(row)),
+    getCoreRowModel: getCoreRowModel(),
+    columnResizeMode: 'onChange',
+  });
 
   return (
-    <div className="flex min-w-0 min-h-0 flex-1 flex-col">
-      {!isCompact ? (
-        <div className="shrink-0">
-          <table className="w-full border-collapse" style={{ minWidth, tableLayout: 'fixed' }}>
-            <colgroup>
-              {columns.map((column) => (
-                <col key={column.key} style={column.width ? { width: column.width } : undefined} />
-              ))}
-            </colgroup>
-            <thead>
-              <tr className="h-9 border-b border-border-subtle bg-surface-hover/30">
-                {columns.map((column) => (
-                  <th
-                    key={column.key}
-                    className={`px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted ${column.className ?? ''}`}
-                  >
-                    {column.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-          </table>
-        </div>
-      ) : null}
-
-      <div className="min-h-0 flex-1 overflow-auto">
-        {rows.length === 0 ? (
-          <div className="px-6 py-12">{emptyState}</div>
-        ) : isCompact ? (
-          <div>
-            {rows.map((item) => {
-              const id = rowId(item);
-              const isSelected = selectedId === id;
-              return (
-                <button
-                  key={String(id)}
-                  type="button"
-                  className={`block w-full border-b border-border-subtle px-4 py-3 text-left transition-colors ${
-                    isSelected ? 'bg-accent/10' : 'hover:bg-surface-hover/60 active:bg-surface-hover/60'
-                  }`}
-                  aria-expanded={isSelected}
-                  aria-label={getRowAriaLabel(item)}
-                  onClick={(event) => onSelectRow(item, event.currentTarget)}
-                >
-                  {renderCompactRow ? renderCompactRow(item, isSelected) : columns[0]?.render(item)}
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <table className="w-full border-collapse" style={{ minWidth, tableLayout: 'fixed' }}>
-            <colgroup>
-              {columns.map((column) => (
-                <col key={column.key} style={column.width ? { width: column.width } : undefined} />
-              ))}
-            </colgroup>
-            <tbody>
-              {rows.map((item) => {
-                const id = rowId(item);
-                const isSelected = selectedId === id;
-                return (
-                  <tr
-                    key={String(id)}
-                    className={`group h-[42px] cursor-pointer border-b border-border-subtle transition-colors ${
-                      isSelected ? 'bg-accent/10' : 'hover:bg-surface-hover/60'
-                    }`}
-                    tabIndex={0}
-                    aria-expanded={isSelected}
-                    aria-label={getRowAriaLabel(item)}
-                    onClick={(event) => {
-                      if (isInteractiveTarget(event.target)) return;
-                      onSelectRow(item, event.currentTarget);
-                    }}
-                    onKeyDown={(event) => handleKeyDown(event, item)}
-                  >
-                    {columns.map((column) => (
-                      <td key={`${String(id)}-${column.key}`} className={`h-[42px] px-3 py-0 align-middle leading-tight ${column.className ?? ''}`}>
-                        {column.render(item)}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </div>
+    <SharedDataTable
+      table={table}
+      rows={rows}
+      emptyState={emptyState}
+      selectedRowId={selectedId}
+      onRowClick={onSelectRow}
+      getRowAriaLabel={getRowAriaLabel}
+      isInteractiveTarget={isInteractiveTarget}
+      renderCompactRow={renderCompactRow}
+      isCompact={isCompact}
+      onAutoFitColumn={autoFitColumn}
+      rowClassName={(_, isSelected) => (isSelected ? 'cursor-pointer bg-accent/10' : 'cursor-pointer hover:bg-surface-hover/60')}
+    />
   );
 }

@@ -22,7 +22,7 @@ type EmailDetailsPanelProps = {
 };
 
 function formatDateTime(value?: string | null) {
-  if (!value) return 'Not scheduled';
+  if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString([], {
@@ -36,7 +36,7 @@ function formatDateTime(value?: string | null) {
 function formatStatusTone(status?: string | null) {
   const value = String(status || '').toLowerCase();
   if (value === 'approved' || value === 'sent') return 'bg-emerald-500/15 text-emerald-700';
-  if (value === 'pending' || value === 'queued') return 'bg-amber-500/15 text-amber-700';
+  if (value === 'pending' || value === 'queued' || value === 'scheduled') return 'bg-amber-500/15 text-amber-700';
   if (value === 'rejected' || value === 'failed') return 'bg-red-500/15 text-red-700';
   return 'bg-accent/10 text-accent';
 }
@@ -102,53 +102,78 @@ export function EmailDetailsPanel({
   const sequenceEmails = detail?.sequence_emails || [];
   const reviewStatus = detail?.review_status || email.review_status || '';
   const deliveryStatus = detail?.status || ('status' in email ? email.status || '' : '');
+  const panelStatus = reviewStatus || deliveryStatus || 'draft';
   const sentAt = detail?.sent_at || ('sent_at' in email ? email.sent_at : null);
   const scheduledAt = detail?.scheduled_send_time || ('scheduled_send_time' in email ? email.scheduled_send_time : null);
+  const openCount = detail?.open_count ?? ('open_count' in email ? email.open_count ?? 0 : 0);
+  const hasReply = Boolean(detail?.replied ?? ('replied' in email ? email.replied : 0));
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="sticky top-0 z-10 border-b border-border bg-surface px-4 py-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-text">{email.contact_name}</h3>
-            <p className="truncate text-xs text-text-dim">
-              {contactTitle ? `${contactTitle} · ` : ''}
-              {email.company_name}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close email details"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        </div>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${formatStatusTone(reviewStatus || deliveryStatus)}`}>
-            {reviewStatus || deliveryStatus || 'draft'}
-          </span>
-          <span className="inline-flex rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">
-            {email.campaign_name} · Email {email.step_number}
-          </span>
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="sticky top-0 z-20 shrink-0 border-b border-border bg-surface">
+        <div className="flex items-center gap-1.5 px-3 py-2">
           {contactLinkedIn ? (
             <a
               href={contactLinkedIn}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-7 items-center gap-1 rounded-md border border-border px-2.5 text-xs text-text hover:bg-surface-hover"
+              className="inline-flex h-7 w-7 items-center justify-center border border-border text-text-muted hover:bg-surface-hover"
+              title="Open LinkedIn"
             >
               <ExternalLink className="h-3.5 w-3.5" />
-              LinkedIn
             </a>
           ) : null}
+          {mode === 'scheduled' && scheduledEmail ? (
+            <button
+              type="button"
+              onClick={() => onReschedule?.(scheduledEmail)}
+              disabled={isRescheduling}
+              className="inline-flex h-7 items-center gap-1 border border-border px-2.5 text-xs text-text hover:bg-surface-hover disabled:opacity-60"
+            >
+              {isRescheduling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CalendarClock className="h-3.5 w-3.5" />}
+              Reschedule
+            </button>
+          ) : null}
+          {mode === 'scheduled' && scheduledEmail ? (
+            <button
+              type="button"
+              onClick={() => onSendNow?.(scheduledEmail)}
+              disabled={isSendingNow}
+              className="inline-flex h-7 items-center gap-1 bg-accent px-2.5 text-xs text-white hover:bg-accent-hover disabled:opacity-60"
+            >
+              {isSendingNow ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              Send Now
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close email details"
+            className="ml-auto inline-flex h-7 w-7 items-center justify-center border border-border text-text-muted hover:bg-surface-hover"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="px-3 pb-2">
+          <h3 className="truncate text-sm font-semibold text-text">{email.contact_name}</h3>
+          <p className="truncate text-xs text-text-dim">
+            {contactTitle ? `${contactTitle} · ` : ''}
+            {email.company_name}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2">
+          <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${formatStatusTone(panelStatus)}`}>
+            {panelStatus}
+          </span>
+          <span className="inline-flex rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent">
+            {email.campaign_name} · Email {email.step_number}
+          </span>
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-4 text-sm">
-        <div className="space-y-4">
-          <section className="rounded-lg border border-border bg-bg/40 p-3">
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 text-sm">
+        <div className="space-y-3">
+          <section className="border border-border bg-bg/30 p-3">
             <div className="flex flex-wrap items-center gap-3 text-xs text-text-muted">
               {contactEmail ? <span>{contactEmail}</span> : null}
               {scheduledAt ? (
@@ -173,7 +198,7 @@ export function EmailDetailsPanel({
                 <input
                   value={draftSubject}
                   onChange={(event) => setDraftSubject(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-accent"
+                  className="w-full border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-accent"
                 />
               </div>
               <div>
@@ -182,7 +207,7 @@ export function EmailDetailsPanel({
                   value={draftBody}
                   onChange={(event) => setDraftBody(event.target.value)}
                   rows={14}
-                  className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-accent"
+                  className="w-full resize-y border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-accent"
                 />
               </div>
             </section>
@@ -190,12 +215,12 @@ export function EmailDetailsPanel({
             <>
               <section>
                 <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-text-muted">Subject</p>
-                <div className="rounded-lg border border-border bg-bg/40 p-3 text-text">{subject || 'No subject'}</div>
+                <div className="border border-border bg-bg/30 p-3 text-text">{subject || 'No subject'}</div>
               </section>
 
               <section>
                 <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-text-muted">Body</p>
-                <pre className="whitespace-pre-wrap rounded-lg border border-border bg-bg/40 p-3 font-sans text-text">
+                <pre className="whitespace-pre-wrap border border-border bg-bg/30 p-3 font-sans text-text">
                   {body || 'No body preview available.'}
                 </pre>
               </section>
@@ -205,20 +230,20 @@ export function EmailDetailsPanel({
           {detailQuery.isLoading ? (
             <LoadingSpinner />
           ) : detailQuery.isError ? (
-            <section className="rounded-lg border border-border bg-bg/40 p-3 text-xs text-text-muted">
+            <section className="border border-border bg-bg/30 p-3 text-xs text-text-muted">
               Additional detail could not be loaded. Core row data is still shown here.
             </section>
           ) : null}
 
           {mode === 'history' ? (
             <section className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg border border-border bg-bg/40 p-3">
+              <div className="border border-border bg-bg/30 p-3">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Opened</p>
-                <p className="mt-1 text-sm font-medium text-text">{detail?.open_count ?? email.open_count ?? 0}</p>
+                <p className="mt-1 text-sm font-medium text-text">{openCount}</p>
               </div>
-              <div className="rounded-lg border border-border bg-bg/40 p-3">
+              <div className="border border-border bg-bg/30 p-3">
                 <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Replies</p>
-                <p className="mt-1 text-sm font-medium text-text">{detail?.replied ? 'Yes' : email.replied ? 'Yes' : 'No'}</p>
+                <p className="mt-1 text-sm font-medium text-text">{hasReply ? 'Yes' : 'No'}</p>
               </div>
             </section>
           ) : null}
@@ -232,7 +257,7 @@ export function EmailDetailsPanel({
                   return (
                     <div
                       key={sequenceEmail.id}
-                      className={`rounded-lg border p-3 ${isCurrent ? 'border-accent/30 bg-accent/5' : 'border-border bg-bg/40'}`}
+                      className={`border p-3 ${isCurrent ? 'border-accent/30 bg-accent/5' : 'border-border bg-bg/30'}`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
@@ -257,14 +282,34 @@ export function EmailDetailsPanel({
         </div>
       </div>
 
-      <div className="border-t border-border bg-bg/50 px-4 py-3">
+      <details className="shrink-0 border-t border-border bg-bg/30 px-3 py-1.5 text-xs">
+        <summary className="cursor-pointer list-none text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">
+          Details
+        </summary>
+        <dl className="mt-1.5 grid grid-cols-[80px_minmax(0,1fr)] gap-x-3 gap-y-1.5">
+          <dt className="text-text-muted">Campaign</dt>
+          <dd className="min-w-0 truncate text-text">{email.campaign_name}</dd>
+          <dt className="text-text-muted">Step</dt>
+          <dd className="min-w-0 truncate text-text">{email.step_number}</dd>
+          <dt className="text-text-muted">Email</dt>
+          <dd className="min-w-0 truncate text-text">{contactEmail || '-'}</dd>
+          <dt className="text-text-muted">Scheduled</dt>
+          <dd className="min-w-0 truncate text-text">{formatDateTime(scheduledAt)}</dd>
+          <dt className="text-text-muted">Sent</dt>
+          <dd className="min-w-0 truncate text-text">{formatDateTime(sentAt)}</dd>
+          <dt className="text-text-muted">Status</dt>
+          <dd className="min-w-0 truncate text-text">{panelStatus}</dd>
+        </dl>
+      </details>
+
+      <div className="border-t border-border bg-bg/50 px-3 py-2.5">
         {mode === 'review' ? (
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => onRejectEmail?.(email.id)}
               disabled={isRejecting}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-text hover:bg-surface-hover disabled:opacity-60"
+              className="inline-flex h-8 items-center gap-1.5 border border-border px-3 text-sm font-medium text-text hover:bg-surface-hover disabled:opacity-60"
             >
               {isRejecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
               Reject
@@ -274,7 +319,7 @@ export function EmailDetailsPanel({
               type="button"
               onClick={() => onApproveEmail?.(email.id, draftSubject, draftBody)}
               disabled={isApproving}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+              className="inline-flex h-8 items-center gap-1.5 bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
             >
               {isApproving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
               Approve
@@ -286,7 +331,7 @@ export function EmailDetailsPanel({
               type="button"
               onClick={() => onReschedule?.(scheduledEmail)}
               disabled={isRescheduling}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-text hover:bg-surface-hover disabled:opacity-60"
+              className="inline-flex h-8 items-center gap-1.5 border border-border px-3 text-sm font-medium text-text hover:bg-surface-hover disabled:opacity-60"
             >
               {isRescheduling ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarClock className="h-4 w-4" />}
               Reschedule
@@ -296,7 +341,7 @@ export function EmailDetailsPanel({
               type="button"
               onClick={() => onSendNow?.(scheduledEmail)}
               disabled={isSendingNow}
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-accent px-4 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-60"
+              className="inline-flex h-8 items-center gap-1.5 bg-accent px-4 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-60"
             >
               {isSendingNow ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               Send Now

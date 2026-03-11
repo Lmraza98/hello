@@ -73,7 +73,7 @@ export function AssistantHighlightLayer() {
   const [targetRect, setTargetRect] = useState<Rect | null>(null);
   const [targetVisible, setTargetVisible] = useState(false);
   const [showClickPulse, setShowClickPulse] = useState(false);
-  const [dockRect, setDockRect] = useState<Rect | null>(null);
+  const [dockRect, setDockRect] = useState<Bounds | null>(null);
 
   useEffect(() => {
     if (!active) {

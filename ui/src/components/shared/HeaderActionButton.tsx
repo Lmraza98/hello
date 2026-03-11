@@ -35,7 +35,7 @@ export const HeaderActionButton = forwardRef<HTMLButtonElement, HeaderActionButt
     <button
       ref={ref}
       type={type}
-      className={`inline-flex items-center justify-center gap-1.5 rounded-md font-medium leading-none transition-colors ${sizeClass} ${primaryWidthClass} ${VARIANT_CLASS[variant]} ${className}`.trim()}
+      className={`inline-flex items-center justify-center gap-1.5 rounded-none font-medium leading-none transition-colors ${sizeClass} ${primaryWidthClass} ${VARIANT_CLASS[variant]} ${className}`.trim()}
       {...props}
     >
       {icon}

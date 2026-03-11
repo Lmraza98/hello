@@ -168,6 +168,7 @@ export type ScheduledEmail = {
 export type EmailDetail = ScheduledEmail & {
   current_step: number;
   enrollment_status: string;
+  sent_at?: string | null;
   sequence_emails: Array<{
     id: number;
     step_number: number;

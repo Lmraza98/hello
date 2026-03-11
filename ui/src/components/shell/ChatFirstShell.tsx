@@ -383,7 +383,7 @@ export function ChatFirstShell({ children }: { children: ReactNode }) {
               />
             ) : (
               <AppShellContext.Provider value={{ openAddModalTarget, clearAddModalTarget }}>
-                <main className="h-full min-h-0 overflow-y-auto px-3 pb-3 md:px-4 md:pb-4">{children}</main>
+                <main className="h-full min-h-0 overflow-y-auto">{children}</main>
               </AppShellContext.Provider>
             )}
           </div>

@@ -167,6 +167,8 @@ export type Contact = {
   domain: string | null;
   location: string | null;
   name: string;
+  first_name?: string | null;
+  last_name?: string | null;
   title: string | null;
   email: string | null;
   email_pattern: string | null;
@@ -692,6 +694,7 @@ export type DocumentRecord = {
   source?: string | null;
   conversation_id?: string | null;
   notes?: string | null;
+  sort_order?: number | null;
 };
 
 export type DocumentFolderRecord = {
@@ -700,6 +703,7 @@ export type DocumentFolderRecord = {
   name: string;
   created_at?: string | null;
   updated_at?: string | null;
+  sort_order?: number | null;
 };
 
 export type DocumentListResponse = {

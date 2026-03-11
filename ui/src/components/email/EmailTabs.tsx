@@ -17,14 +17,15 @@ export function EmailTabs({ tabs, activeTab, onSelectTab, className = '' }: Emai
       <div className="inline-flex min-w-full items-end gap-1 border-b border-border">
         {tabs.map((tab) => {
           const active = tab.id === activeTab;
+          const isFirst = tabs[0]?.id === tab.id;
           return (
             <button
               key={tab.id}
               type="button"
               onClick={() => onSelectTab(tab.id)}
-              className={`relative -mb-px inline-flex h-8 items-center gap-1.5 rounded-t-md border px-3 text-[13px] font-medium transition-colors ${
+              className={`relative inline-flex h-8 items-center gap-1.5 rounded-none border px-3 text-[13px] font-medium transition-colors ${
                 active
-                  ? 'border-border border-b-bg bg-bg text-text'
+                  ? `${isFirst ? 'border-l-0' : 'border-l'} border-t border-r border-b-0 border-border bg-bg text-text`
                   : 'border-transparent text-text-muted hover:bg-surface-hover/60 hover:text-text'
               }`}
               aria-current={active ? 'page' : undefined}

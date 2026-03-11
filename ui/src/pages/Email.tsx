@@ -337,13 +337,16 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
       {
         key: 'contact',
         label: 'Contact',
-        width: '28%',
+        minWidth: 220,
+        defaultWidth: 260,
+        maxWidth: 360,
+        measureValue: (item) => `${item.contact_name} ${item.company_name} ${item.contact_title || ''}`.trim(),
         render: (item) => (
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-text">{item.contact_name}</p>
-            <p className="truncate text-xs text-text-muted">
-              {item.company_name}
-              {item.contact_title ? ` · ${item.contact_title}` : ''}
+            <p className="truncate text-xs text-text">
+              <span className="font-medium text-text">{item.contact_name}</span>
+              <span className="text-text-muted">{` · ${item.company_name}`}</span>
+              {item.contact_title ? <span className="text-text-dim">{` · ${item.contact_title}`}</span> : null}
             </p>
           </div>
         ),
@@ -351,12 +354,15 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
       {
         key: 'campaign',
         label: 'Campaign',
-        width: '18%',
+        minWidth: 170,
+        defaultWidth: 190,
+        maxWidth: 260,
+        measureValue: (item) => `${item.campaign_name} Email ${item.step_number} of ${item.num_emails}`,
         render: (item) => (
           <div className="min-w-0">
-            <p className="truncate text-sm text-text">{item.campaign_name}</p>
-            <p className="text-xs text-text-muted">
-              Email {item.step_number} of {item.num_emails}
+            <p className="truncate text-xs text-text">
+              <span>{item.campaign_name}</span>
+              <span className="text-text-muted">{` · Email ${item.step_number} of ${item.num_emails}`}</span>
             </p>
           </div>
         ),
@@ -364,18 +370,27 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
       {
         key: 'subject',
         label: 'Draft',
-        width: '42%',
+        minWidth: 260,
+        defaultWidth: 360,
+        maxWidth: 520,
+        measureValue: (item) => `${item.rendered_subject || item.subject || 'No subject'} ${item.rendered_body || item.body || ''}`.trim(),
         render: (item) => (
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-text">{item.rendered_subject || item.subject || 'No subject'}</p>
-            <p className="truncate text-xs text-text-muted">{item.rendered_body || item.body || 'No preview available.'}</p>
+            <p className="truncate text-xs text-text">
+              <span className="font-medium text-text">{item.rendered_subject || item.subject || 'No subject'}</span>
+              <span className="text-text-muted">{` · ${item.rendered_body || item.body || 'No preview available.'}`}</span>
+            </p>
           </div>
         ),
       },
       {
         key: 'status',
         label: 'Status',
-        width: '12%',
+        minWidth: 110,
+        defaultWidth: 120,
+        maxWidth: 150,
+        resizable: true,
+        measureValue: (item) => item.review_status || 'pending',
         render: (item) => (
           <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${statusTone(item.review_status)}`}>
             {item.review_status || 'pending'}
@@ -391,21 +406,25 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
       {
         key: 'contact',
         label: 'Contact',
-        width: '26%',
+        minWidth: 220,
+        defaultWidth: 250,
+        maxWidth: 340,
+        measureValue: (item) => `${item.contact_name} ${item.company_name} ${item.contact_title || ''}`.trim(),
         render: (item) => (
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-text">{item.contact_name}</p>
-            <p className="truncate text-xs text-text-muted">
-              {item.company_name}
-              {item.contact_title ? ` · ${item.contact_title}` : ''}
-            </p>
-          </div>
+          <p className="truncate text-xs text-text">
+            <span className="font-medium text-text">{item.contact_name}</span>
+            <span className="text-text-muted">{` · ${item.company_name}`}</span>
+            {item.contact_title ? <span className="text-text-dim">{` · ${item.contact_title}`}</span> : null}
+          </p>
         ),
       },
       {
         key: 'campaign',
         label: 'Campaign',
-        width: '18%',
+        minWidth: 170,
+        defaultWidth: 190,
+        maxWidth: 260,
+        measureValue: (item) => `${item.campaign_name} Email ${item.step_number}`,
         render: (item) => (
           <div className="min-w-0">
             <p className="truncate text-sm text-text">{item.campaign_name}</p>
@@ -416,7 +435,10 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
       {
         key: 'subject',
         label: 'Subject',
-        width: '28%',
+        minWidth: 220,
+        defaultWidth: 280,
+        maxWidth: 420,
+        measureValue: (item) => item.rendered_subject || item.subject || 'No subject',
         render: (item) => (
           <p className="truncate text-sm text-text">{item.rendered_subject || item.subject || 'No subject'}</p>
         ),
@@ -424,13 +446,20 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
       {
         key: 'scheduled',
         label: 'Scheduled',
-        width: '16%',
+        minWidth: 140,
+        defaultWidth: 156,
+        maxWidth: 200,
+        align: 'right',
+        measureValue: (item) => formatShortDateTime(item.scheduled_send_time),
         render: (item) => <span className="text-xs text-text-muted">{formatShortDateTime(item.scheduled_send_time)}</span>,
       },
       {
         key: 'status',
         label: 'Status',
-        width: '12%',
+        minWidth: 110,
+        defaultWidth: 120,
+        maxWidth: 150,
+        measureValue: (item) => item.review_status || item.status || 'scheduled',
         render: (item) => (
           <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${statusTone(item.review_status || item.status)}`}>
             {item.review_status || item.status || 'scheduled'}
@@ -446,37 +475,49 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
       {
         key: 'contact',
         label: 'Contact',
-        width: '26%',
+        minWidth: 220,
+        defaultWidth: 250,
+        maxWidth: 320,
+        measureValue: (item) => `${item.contact_name} ${item.company_name}`.trim(),
         render: (item) => (
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-text">{item.contact_name}</p>
-            <p className="truncate text-xs text-text-muted">{item.company_name}</p>
-          </div>
+          <p className="truncate text-xs text-text">
+            <span className="font-medium text-text">{item.contact_name}</span>
+            <span className="text-text-muted">{` · ${item.company_name}`}</span>
+          </p>
         ),
       },
       {
         key: 'campaign',
         label: 'Campaign',
-        width: '18%',
+        minWidth: 170,
+        defaultWidth: 190,
+        maxWidth: 240,
+        measureValue: (item) => `${item.campaign_name} Email ${item.step_number}`,
         render: (item) => (
-          <div className="min-w-0">
-            <p className="truncate text-sm text-text">{item.campaign_name}</p>
-            <p className="text-xs text-text-muted">Email {item.step_number}</p>
-          </div>
+          <p className="truncate text-xs text-text">
+            <span>{item.campaign_name}</span>
+            <span className="text-text-muted">{` · Email ${item.step_number}`}</span>
+          </p>
         ),
       },
       {
         key: 'subject',
         label: 'Subject',
-        width: '30%',
+        minWidth: 220,
+        defaultWidth: 300,
+        maxWidth: 420,
+        measureValue: (item) => item.rendered_subject || item.subject || 'No subject',
         render: (item) => (
-          <p className="truncate text-sm text-text">{item.rendered_subject || item.subject || 'No subject'}</p>
+          <p className="truncate text-xs text-text">{item.rendered_subject || item.subject || 'No subject'}</p>
         ),
       },
       {
         key: 'engagement',
         label: 'Engagement',
-        width: '14%',
+        minWidth: 130,
+        defaultWidth: 140,
+        maxWidth: 200,
+        measureValue: (item) => `${item.open_count || 0} opens ${item.replied ? 'Reply' : ''}`.trim(),
         render: (item) => (
           <div className="flex items-center gap-1.5 text-xs text-text-muted">
             <span>{item.open_count || 0} opens</span>
@@ -487,7 +528,11 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
       {
         key: 'sent',
         label: 'Sent',
-        width: '12%',
+        minWidth: 130,
+        defaultWidth: 144,
+        maxWidth: 190,
+        align: 'right',
+        measureValue: (item) => formatShortDateTime(item.sent_at),
         render: (item) => <span className="text-xs text-text-muted">{formatShortDateTime(item.sent_at)}</span>,
       },
     ],
@@ -567,19 +612,21 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
         <div className="mb-1 flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-text">{item.contact_name}</p>
-            <p className="truncate text-xs text-text-muted">{item.company_name}</p>
+            <p className="truncate text-xs text-text-muted">
+              {item.company_name}
+              {item.company_name && item.campaign_name ? ' - ' : ''}
+              {item.campaign_name}
+            </p>
           </div>
           <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${statusTone(item.review_status || item.status)}`}>
             {item.review_status || item.status || 'sent'}
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-text-muted">
-          <span className="truncate text-accent">{item.campaign_name}</span>
-          <span>·</span>
-          <span>Email {item.step_number}</span>
-        </div>
-        <p className="mt-1 truncate text-sm text-text">{item.rendered_subject || item.subject || 'No subject'}</p>
-        <div className="mt-1 flex items-center gap-3 text-xs text-text-muted">
+        <p className="truncate text-xs text-text">
+          {item.rendered_subject || item.subject || 'No subject'}
+          <span className="ml-1 text-text-muted">- Email {item.step_number}</span>
+        </p>
+        <div className="mt-1 flex items-center gap-2 text-[11px] text-text-muted">
           <span>{item.open_count || 0} opens</span>
           <span>{item.replied ? 'Replied' : 'No reply'}</span>
           <span className="truncate">{formatShortDateTime(item.sent_at)}</span>
@@ -589,7 +636,7 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
   }, []);
 
   const inlineControls = (
-    <div className="flex min-w-0 flex-wrap items-center gap-2">
+    <div className="flex min-w-0 flex-wrap items-center">
       <div className="min-w-[220px] flex-1">
         <PageSearchInput value={emailSearch} onChange={setEmailSearch} placeholder={searchPlaceholder} />
       </div>
@@ -618,7 +665,7 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
           <select
             value={scheduledCampaignFilter ?? ''}
             onChange={(event) => setScheduledCampaignFilter(event.target.value ? Number(event.target.value) : null)}
-            className="h-8 rounded-md border border-border bg-surface px-2.5 text-xs text-text"
+            className="h-8 rounded-none border border-border bg-surface px-2.5 text-xs text-text"
             aria-label="Filter scheduled emails by campaign"
           >
             <option value="">All campaigns</option>
@@ -668,7 +715,7 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
       <WorkspacePageShell
         title="Email"
         subtitle={pageSubtitle}
-        contentClassName="overflow-hidden"
+        contentClassName=""
         hideHeader
         preHeader={
           <EmailTabs
@@ -694,7 +741,7 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
         ) : null}
 
         {view === 'campaigns' && (
-          <div className="min-h-0 flex-1 overflow-hidden pt-2">
+          <div className="min-h-0 flex-1 overflow-hidden">
             <div className="flex h-full min-h-0 overflow-hidden bg-surface">
               <div className="min-h-0 min-w-0 flex-1">
                 <CampaignsView
@@ -744,12 +791,13 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
         )}
 
         {view === 'review' && (
-          <div className="min-h-0 flex-1 overflow-hidden pt-2">
+          <div className="min-h-0 flex-1 overflow-hidden">
             <div className="flex h-full min-h-0 overflow-hidden bg-surface">
               <div className="flex min-w-0 min-h-0 flex-1 flex-col">
                 <StandardEmailTable
                   columns={reviewColumns}
                   rows={filteredReviewQueue}
+                  storageKey="review-table-v2"
                   rowId={(item) => item.id}
                   selectedId={selectedEmailPanel?.mode === 'review' ? selectedEmailPanel.email.id : null}
                   isCompact={isCompact}
@@ -777,12 +825,13 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
         )}
 
         {view === 'history' && (
-          <div className="min-h-0 flex-1 overflow-hidden pt-2">
+          <div className="min-h-0 flex-1 overflow-hidden">
             <div className="flex h-full min-h-0 overflow-hidden bg-surface">
               <div className="flex min-w-0 min-h-0 flex-1 flex-col">
                 <StandardEmailTable
                   columns={historyColumns}
                   rows={filteredSentEmails}
+                  storageKey="history-table"
                   rowId={(item) => item.id}
                   selectedId={selectedEmailPanel?.mode === 'history' ? selectedEmailPanel.email.id : null}
                   isCompact={isCompact}
@@ -810,12 +859,13 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
         )}
 
         {view === 'scheduled' && (
-          <div className="min-h-0 flex-1 overflow-hidden pt-2">
+          <div className="min-h-0 flex-1 overflow-hidden">
             <div className="flex h-full min-h-0 overflow-hidden bg-surface">
               <div className="flex min-w-0 min-h-0 flex-1 flex-col">
                 <StandardEmailTable
                   columns={scheduledColumns}
                   rows={filteredScheduledRows}
+                  storageKey="scheduled-table"
                   rowId={(item) => item.id}
                   selectedId={selectedEmailPanel?.mode === 'scheduled' ? selectedEmailPanel.email.id : null}
                   isCompact={isCompact}
@@ -882,3 +932,4 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
     </>
   );
 }
+

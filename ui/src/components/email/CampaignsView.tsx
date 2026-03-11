@@ -4,7 +4,7 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
-  flexRender,
+  type Column,
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table';
@@ -23,8 +23,16 @@ import {
 import { useIsMobile } from '../../hooks/useIsMobile';
 import type { EmailCampaign, CampaignScheduleSummary } from '../../types/email';
 import { ConfirmDialog } from '../shared/ConfirmDialog';
+import { ColumnVisibilityMenu } from '../shared/ColumnVisibilityMenu';
 import { EmptyState } from '../shared/EmptyState';
 import { LoadingSpinner } from '../shared/LoadingSpinner';
+import {
+  FILTERABLE_VIEWPORT_CONTROL_WIDTH,
+  SHARED_SELECTION_COLUMN_WIDTH,
+  SharedDataTable,
+  usePersistentColumnSizing,
+} from '../shared/resizableDataTable';
+import { usePersistentColumnPreferences } from '../shared/usePersistentColumnPreferences';
 
 type CampaignsViewProps = {
   campaigns: EmailCampaign[];
@@ -60,6 +68,20 @@ function statusBadge(status: string) {
   return 'bg-gray-50 text-gray-700 border-gray-200';
 }
 
+function SortableCampaignHeader({ column, label }: { column: Column<EmailCampaign, unknown>; label: string }) {
+  const sorted = column.getIsSorted();
+  return (
+    <button
+      type="button"
+      className="flex items-center gap-1 truncate text-[11px] font-medium uppercase tracking-wide hover:text-text"
+      onClick={column.getToggleSortingHandler()}
+    >
+      <span className="truncate">{label}</span>
+      <span className={`text-[10px] ${sorted ? 'opacity-100' : 'opacity-35'}`}>{sorted === 'desc' ? '↓' : '↑'}</span>
+    </button>
+  );
+}
+
 export function CampaignsView({
   campaigns,
   campaignScheduleSummary,
@@ -78,14 +100,12 @@ export function CampaignsView({
   onUploadToSalesforce,
   uploadingCampaignId,
 }: CampaignsViewProps) {
-  const isTablet = useIsMobile(1024);
   const isPhone = useIsMobile(640);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleteIds, setDeleteIds] = useState<number[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [openActionsMenuId, setOpenActionsMenuId] = useState<number | null>(null);
   const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const filterRef = useRef<HTMLDivElement>(null);
 
@@ -98,9 +118,9 @@ export function CampaignsView({
     function handleClick(e: MouseEvent) {
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) setShowFilters(false);
     }
-    if (showFilters && !isTablet) document.addEventListener('mousedown', handleClick);
+    if (showFilters) document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [showFilters, isTablet]);
+  }, [showFilters]);
 
   useEffect(() => {
     function handleMenuOutsideClick(e: MouseEvent) {
@@ -120,29 +140,72 @@ export function CampaignsView({
   const columns = useMemo<ColumnDef<EmailCampaign>[]>(
     () => [
       {
-        accessorKey: 'name',
+        id: 'select',
         header: ({ table }) => (
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={table.getIsAllRowsSelected()}
-              ref={(input) => {
-                if (input) input.indeterminate = table.getIsSomeRowsSelected();
-              }}
-              onChange={table.getToggleAllRowsSelectedHandler()}
-              className="w-4 h-4 rounded border-gray-300 text-accent focus:ring-accent"
-            />
-            <span>Campaign</span>
-          </div>
+          <button
+            type="button"
+            aria-label="Select all visible campaigns"
+            aria-pressed={table.getIsAllRowsSelected()}
+            onClick={() => table.toggleAllRowsSelected(!table.getIsAllRowsSelected())}
+            className="block h-full w-full"
+            data-row-control
+          />
         ),
         cell: ({ row }) => (
-          <div className="min-w-0 text-xs font-medium text-text truncate">{row.original.name}</div>
+          <button
+            type="button"
+            aria-label={`Select campaign ${row.original.name}`}
+            aria-pressed={row.getIsSelected()}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              row.toggleSelected();
+            }}
+            className="block h-full w-full"
+            data-row-control
+          />
+        ),
+        size: SHARED_SELECTION_COLUMN_WIDTH,
+        minSize: SHARED_SELECTION_COLUMN_WIDTH,
+        maxSize: SHARED_SELECTION_COLUMN_WIDTH,
+        enableSorting: false,
+        enableResizing: false,
+        meta: {
+          label: 'Select',
+          minWidth: SHARED_SELECTION_COLUMN_WIDTH,
+          defaultWidth: SHARED_SELECTION_COLUMN_WIDTH,
+          maxWidth: SHARED_SELECTION_COLUMN_WIDTH,
+          resizable: false,
+          align: 'center',
+        },
+      },
+      {
+        accessorKey: 'name',
+        header: ({ column }) => <SortableCampaignHeader column={column} label="Campaign" />,
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <p className="truncate text-xs font-medium text-text">{row.original.name}</p>
+            <p className="truncate text-[11px] text-text-dim">
+              Review {summaryMap.get(row.original.id)?.pending_review_count || 0}
+            </p>
+          </div>
         ),
         size: 210,
+        minSize: 220,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Campaign',
+          minWidth: 220,
+          defaultWidth: 260,
+          maxWidth: 360,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: EmailCampaign) => row.name,
+        },
       },
       {
         accessorKey: 'status',
-        header: 'Status',
+        header: ({ column }) => <SortableCampaignHeader column={column} label="Status" />,
         cell: ({ getValue }) => {
           const value = String(getValue() || 'draft');
           return (
@@ -152,38 +215,93 @@ export function CampaignsView({
           );
         },
         size: 90,
+        minSize: 100,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Status',
+          minWidth: 100,
+          defaultWidth: 112,
+          maxWidth: 150,
+          resizable: true,
+          align: 'left',
+          measureValue: (row: EmailCampaign) => row.status || 'draft',
+        },
       },
       {
         id: 'contacts',
-        header: 'Contacts',
+        header: ({ column }) => <SortableCampaignHeader column={column} label="Contacts" />,
         accessorFn: (row) => row.stats?.total_contacts || 0,
         cell: ({ getValue }) => <span className="text-xs text-text tabular-nums">{Number(getValue() || 0)}</span>,
         size: 72,
+        minSize: 88,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Contacts',
+          minWidth: 88,
+          defaultWidth: 96,
+          maxWidth: 120,
+          resizable: true,
+          align: 'right',
+          measureValue: (row: EmailCampaign) => row.stats?.total_contacts || 0,
+        },
       },
       {
         id: 'sent',
-        header: 'Sent',
+        header: ({ column }) => <SortableCampaignHeader column={column} label="Sent" />,
         accessorFn: (row) => row.stats?.total_sent || 0,
         cell: ({ getValue }) => <span className="text-xs text-text tabular-nums">{Number(getValue() || 0)}</span>,
         size: 64,
+        minSize: 72,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Sent',
+          minWidth: 72,
+          defaultWidth: 84,
+          maxWidth: 110,
+          resizable: true,
+          align: 'right',
+          measureValue: (row: EmailCampaign) => row.stats?.total_sent || 0,
+        },
       },
       {
         id: 'pending_review',
-        header: 'Pending Review',
+        header: ({ column }) => <SortableCampaignHeader column={column} label="Pending Review" />,
         accessorFn: (row) => summaryMap.get(row.id)?.pending_review_count || 0,
         cell: ({ getValue }) => <span className="text-xs text-text tabular-nums">{Number(getValue() || 0)}</span>,
         size: 100,
+        minSize: 112,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Pending Review',
+          minWidth: 112,
+          defaultWidth: 126,
+          maxWidth: 150,
+          resizable: true,
+          align: 'right',
+          measureValue: (row: EmailCampaign) => summaryMap.get(row.id)?.pending_review_count || 0,
+        },
       },
       {
         id: 'scheduled_count',
-        header: 'Scheduled',
+        header: ({ column }) => <SortableCampaignHeader column={column} label="Scheduled" />,
         accessorFn: (row) => summaryMap.get(row.id)?.scheduled_count || 0,
         cell: ({ getValue }) => <span className="text-xs text-text tabular-nums">{Number(getValue() || 0)}</span>,
         size: 72,
+        minSize: 96,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Scheduled',
+          minWidth: 96,
+          defaultWidth: 108,
+          maxWidth: 130,
+          resizable: true,
+          align: 'right',
+          measureValue: (row: EmailCampaign) => summaryMap.get(row.id)?.scheduled_count || 0,
+        },
       },
       {
         id: 'next_send',
-        header: 'Next Send',
+        header: ({ column }) => <SortableCampaignHeader column={column} label="Next Send" />,
         accessorFn: (row) => summaryMap.get(row.id)?.next_send_time || '',
         cell: ({ row }) => (
           <span className="block truncate text-[11px] text-text-muted">
@@ -191,21 +309,21 @@ export function CampaignsView({
           </span>
         ),
         size: 150,
+        minSize: 132,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        meta: {
+          label: 'Next Send',
+          minWidth: 132,
+          defaultWidth: 156,
+          maxWidth: 220,
+          resizable: true,
+          align: 'right',
+          measureValue: (row: EmailCampaign) => formatNextSend(summaryMap.get(row.id)?.next_send_time),
+        },
       },
       {
         id: 'actions',
-        header: () => (
-          <div className="flex items-center justify-end">
-            <button
-              type="button"
-              onClick={() => setShowFilters((v) => !v)}
-              className="h-7 w-7 inline-flex items-center justify-center border border-border rounded-md text-text-muted hover:bg-surface-hover"
-              title="Columns"
-            >
-              <SlidersHorizontal className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ),
+        header: () => <div className="text-right">Actions</div>,
         cell: ({ row }) => {
           const campaign = row.original;
           const isActive = campaign.status === 'active';
@@ -260,6 +378,17 @@ export function CampaignsView({
         },
         enableSorting: false,
         size: 198,
+        minSize: 198,
+        maxSize: Number.MAX_SAFE_INTEGER,
+        enableResizing: false,
+        meta: {
+          label: 'Actions',
+          minWidth: 198,
+          defaultWidth: 198,
+          maxWidth: 198,
+          resizable: false,
+          align: 'right',
+        },
       },
     ],
     [
@@ -271,23 +400,69 @@ export function CampaignsView({
       onViewContacts,
       summaryMap,
       uploadingCampaignId,
-      showFilters,
     ],
   );
 
   const tableData = campaigns;
+  const { columnSizing, setColumnSizing, autoFitColumn } = usePersistentColumnSizing({
+    columns,
+    rows: tableData,
+    storageKey: 'campaigns-table',
+  });
+  const columnLabelMap: Record<string, string> = {
+    name: 'Campaign',
+    status: 'Status',
+    contacts: 'Contacts',
+    sent: 'Sent',
+    pending_review: 'Pending Review',
+    scheduled_count: 'Scheduled',
+    next_send: 'Next Send',
+  };
+  const managedColumnIds = useMemo(() => ['name', 'status', 'contacts', 'sent', 'pending_review', 'scheduled_count', 'next_send'], []);
+  const { columnOrder: managedColumnOrder, setColumnOrder: setManagedColumnOrder, columnVisibility, setColumnVisibility } = usePersistentColumnPreferences({
+    storageKey: 'campaigns-table',
+    columnIds: managedColumnIds,
+    initialVisibility: { name: true },
+  });
+
+  const handleColumnOrderChange = (updater: string[] | ((old: string[]) => string[])) => {
+    setManagedColumnOrder((prev) => {
+      const current = [...prev, 'actions'];
+      const next = typeof updater === 'function' ? updater(current) : updater;
+      const orderedManaged = next.filter((id) => managedColumnIds.includes(id));
+      managedColumnIds.forEach((id) => {
+        if (!orderedManaged.includes(id)) orderedManaged.push(id);
+      });
+      return orderedManaged;
+    });
+  };
+
+  const moveManagedColumn = (columnId: string, delta: -1 | 1) => {
+    setManagedColumnOrder((prev) => {
+      const index = prev.indexOf(columnId);
+      const nextIndex = index + delta;
+      if (index < 0 || nextIndex < 0 || nextIndex >= prev.length) return prev;
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.splice(nextIndex, 0, item);
+      return next;
+    });
+  };
 
   const table = useReactTable({
     data: tableData,
     columns,
-    state: { globalFilter: searchQuery, sorting, rowSelection, columnVisibility },
+    state: { globalFilter: searchQuery, sorting, rowSelection, columnVisibility, columnSizing, columnOrder: ['select', ...managedColumnOrder, 'actions'] },
     onSortingChange: setSorting,
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: handleColumnOrderChange,
+    onColumnSizingChange: setColumnSizing,
     getRowId: (row) => String(row.id),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    columnResizeMode: 'onChange',
     globalFilterFn: (row, _id, filterValue) => {
       const q = String(filterValue || '').toLowerCase();
       return (
@@ -304,21 +479,8 @@ export function CampaignsView({
         .getSelectedRowModel()
         .rows.map((row) => row.original.id)
         .filter((id): id is number => typeof id === 'number'),
-    [table, rowSelection],
+    [table],
   );
-  const columnLabelMap: Record<string, string> = {
-    name: 'Campaign',
-    status: 'Status',
-    contacts: 'Contacts',
-    sent: 'Sent',
-    pending_review: 'Pending Review',
-    scheduled_count: 'Scheduled',
-    next_send: 'Next Send',
-  };
-  const toggleableColumns = table
-    .getAllLeafColumns()
-    .filter((column) => column.id !== 'select' && column.id !== 'actions');
-
   const renderActionsMenu = (campaign: EmailCampaign) => {
     const isActive = campaign.status === 'active';
     const isUploading = uploadingCampaignId === campaign.id;
@@ -403,6 +565,63 @@ export function CampaignsView({
     );
   };
 
+  const renderCompactCampaignRow = (campaign: EmailCampaign, isSelected: boolean) => (
+    <div className={`p-3 ${isSelected ? 'bg-accent/10' : ''}`}>
+      <div className="flex items-center gap-2 min-w-0">
+        <input
+          type="checkbox"
+          checked={table.getRow(String(campaign.id))?.getIsSelected() ?? false}
+          onChange={() => table.getRow(String(campaign.id))?.toggleSelected()}
+          className="w-4 h-4 rounded border-gray-300 text-accent focus:ring-accent shrink-0"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium text-text">{campaign.name}</div>
+          <div className="mt-1 inline-flex px-1.5 py-0 text-[10px] font-medium rounded border capitalize text-text-muted">
+            <span className={statusBadge(String(campaign.status || 'draft'))}>{campaign.status || 'draft'}</span>
+          </div>
+        </div>
+        {renderActionsMenu(campaign)}
+      </div>
+      <div className="mt-2 text-[11px] text-text-muted tabular-nums">
+        Contacts {campaign.stats?.total_contacts || 0}  Sent {campaign.stats?.total_sent || 0}  Review {summaryMap.get(campaign.id)?.pending_review_count || 0}
+      </div>
+    </div>
+  );
+
+  const viewportLeadingControl = (
+    <div className="relative" ref={filterRef}>
+      <button
+        type="button"
+        onClick={() => setShowFilters((v) => !v)}
+        className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        title="Columns"
+        aria-label="Open visible columns menu"
+      >
+        <SlidersHorizontal className="h-3.5 w-3.5" />
+      </button>
+      {showFilters ? (
+        <div className="absolute right-0 top-7 z-20 w-[260px] rounded-none border border-border bg-surface p-3 shadow-lg">
+          <ColumnVisibilityMenu
+            items={managedColumnOrder.map((columnId, index) => ({
+              id: columnId,
+              label: columnLabelMap[columnId] ?? columnId,
+              visible: table.getColumn(columnId)?.getIsVisible() ?? true,
+              canHide: columnId !== 'name',
+              canMoveUp: index > 0,
+              canMoveDown: index < managedColumnOrder.length - 1,
+            }))}
+            onToggle={(columnId, visible) => {
+              if (columnId === 'name') return;
+              table.getColumn(columnId)?.toggleVisibility(visible);
+            }}
+            onMoveUp={(columnId) => moveManagedColumn(columnId, -1)}
+            onMoveDown={(columnId) => moveManagedColumn(columnId, 1)}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -437,172 +656,39 @@ export function CampaignsView({
       )}
 
       <div className={`${withinCard ? 'bg-transparent border-0 rounded-none h-full' : 'mt-2 bg-surface h-[calc(100vh-290px)]'} overflow-hidden flex flex-col min-h-0`}>
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative" ref={filterRef}>
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden relative">
           {rows.length === 0 ? (
             <EmptyState
               icon={Mail}
               title="No campaigns found"
               description="Try adjusting your filters."
             />
-          ) : !isTablet ? (
-            <table className="w-full table-fixed">
-              <thead className="sticky top-0 z-[1]">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id} className="h-9 border-b border-border-subtle bg-surface-hover/30">
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
-                        className={`h-9 min-w-0 overflow-hidden whitespace-nowrap align-middle text-left px-3 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide ${
-                          header.column.getCanSort() ? 'cursor-pointer select-none' : ''
-                        }`}
-                        style={{ width: `${header.getSize()}px`, minWidth: `${header.getSize()}px` }}
-                      >
-                        {header.isPlaceholder ? null : (
-                          <div className="min-w-0 truncate">
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                          </div>
-                        )}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody>
-                {rows.map((row) => {
-                  const isSelected = row.getIsSelected();
-                  const isActive = selectedCampaignId === row.original.id;
-                  return (
-                  <tr
-                    key={row.id}
-                    className={`group border-b border-border-subtle transition-colors ${
-                      isActive ? 'bg-accent/12' : isSelected ? 'bg-accent/8' : 'hover:bg-surface-hover/60'
-                    } ${onSelectCampaign ? 'cursor-pointer' : ''}`}
-                    onClick={(e) => {
-                      if (!onSelectCampaign || isInteractiveTarget(e.target)) return;
-                      onSelectCampaign(row.original);
-                    }}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td
-                        key={cell.id}
-                        className="min-w-0 overflow-hidden px-3 py-1.5 align-middle leading-tight"
-                        style={{ width: `${cell.column.getSize()}px`, minWidth: `${cell.column.getSize()}px` }}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          ) : isPhone ? (
-            <div className="divide-y divide-border-subtle">
-              {rows.map((row) => {
-                const campaign = row.original;
-                return (
-                  <div
-                    key={row.id}
-                    className={`p-3 ${selectedCampaignId === campaign.id ? 'bg-accent/10' : ''}`}
-                    onClick={(e) => {
-                      if (!onSelectCampaign || isInteractiveTarget(e.target)) return;
-                      onSelectCampaign(campaign);
-                    }}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <input
-                        type="checkbox"
-                        checked={row.getIsSelected()}
-                        onChange={row.getToggleSelectedHandler()}
-                        className="w-4 h-4 rounded border-gray-300 text-accent focus:ring-accent shrink-0"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="truncate text-sm font-medium text-text">{campaign.name}</div>
-                        <div className="mt-1 inline-flex px-1.5 py-0 text-[10px] font-medium rounded border capitalize text-text-muted">
-                          <span className={statusBadge(String(campaign.status || 'draft'))}>{campaign.status || 'draft'}</span>
-                        </div>
-                      </div>
-                      {renderActionsMenu(campaign)}
-                    </div>
-                    <div className="mt-2 text-[11px] text-text-muted tabular-nums">
-                      Contacts {campaign.stats?.total_contacts || 0}  Sent {campaign.stats?.total_sent || 0}  Review {summaryMap.get(campaign.id)?.pending_review_count || 0}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           ) : (
-            <div>
-              <div className="grid grid-cols-[minmax(0,1fr)_100px_90px_90px_132px] h-9 border-b border-border-subtle bg-surface-hover/30">
-                <div className="flex items-center gap-2 px-3 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide truncate whitespace-nowrap">
-                  <input
-                    type="checkbox"
-                    checked={table.getIsAllRowsSelected()}
-                    ref={(input) => {
-                      if (input) input.indeterminate = table.getIsSomeRowsSelected();
-                    }}
-                    onChange={table.getToggleAllRowsSelectedHandler()}
-                    className="w-4 h-4 rounded border-gray-300 text-accent focus:ring-accent"
-                  />
-                  <span>Campaign</span>
-                </div>
-                <div className="px-3 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide truncate whitespace-nowrap">Status</div>
-                <div className="px-3 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide truncate whitespace-nowrap">Contacts</div>
-                <div className="px-3 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide truncate whitespace-nowrap">Sent</div>
-                <div className="px-3 py-2 text-[11px] font-medium text-text-muted uppercase tracking-wide truncate whitespace-nowrap">Actions</div>
-              </div>
-              {rows.map((row) => {
-                const campaign = row.original;
-                const pendingReview = summaryMap.get(campaign.id)?.pending_review_count || 0;
-                const isSelected = row.getIsSelected();
-                const isActive = selectedCampaignId === campaign.id;
-                return (
-                  <div
-                    key={row.id}
-                    className={`grid grid-cols-[minmax(0,1fr)_100px_90px_90px_132px] border-b border-border-subtle ${
-                      isActive ? 'bg-accent/12' : isSelected ? 'bg-accent/8' : 'hover:bg-surface-hover/60'
-                    } ${onSelectCampaign ? 'cursor-pointer' : ''}`}
-                    onClick={(e) => {
-                      if (!onSelectCampaign || isInteractiveTarget(e.target)) return;
-                      onSelectCampaign(campaign);
-                    }}
-                  >
-                    <div className="px-3 py-2 min-w-0">
-                      <div className="truncate text-xs font-medium text-text">{campaign.name}</div>
-                      <div className="text-[11px] text-text-dim tabular-nums">Review {pendingReview}</div>
-                    </div>
-                    <div className="px-3 py-2">
-                      <span className={`inline-flex px-1.5 py-0 text-[10px] font-medium rounded border capitalize ${statusBadge(String(campaign.status || 'draft'))}`}>
-                        {campaign.status || 'draft'}
-                      </span>
-                    </div>
-                    <div className="px-3 py-2 text-xs text-text tabular-nums">{campaign.stats?.total_contacts || 0}</div>
-                    <div className="px-3 py-2 text-xs text-text tabular-nums">{campaign.stats?.total_sent || 0}</div>
-                    <div className="px-3 py-2">{renderActionsMenu(campaign)}</div>
-                  </div>
-                );
-              })}
-            </div>
+            <SharedDataTable
+              table={table}
+              rows={tableData}
+              emptyState={
+                <EmptyState
+                  icon={Mail}
+                  title="No campaigns found"
+                  description="Try adjusting your filters."
+                />
+              }
+              selectedRowId={selectedCampaignId}
+              onRowClick={(campaign) => {
+                if (!onSelectCampaign) return;
+                onSelectCampaign(campaign);
+              }}
+              getRowAriaLabel={(campaign) => `Open campaign ${campaign.name}`}
+              isInteractiveTarget={isInteractiveTarget}
+              renderCompactRow={renderCompactCampaignRow}
+              isCompact={isPhone}
+              onAutoFitColumn={autoFitColumn}
+              viewportControlWidth={FILTERABLE_VIEWPORT_CONTROL_WIDTH}
+              viewportLeadingControl={viewportLeadingControl}
+              rowClassName={(_, isSelected) => (onSelectCampaign ? (isSelected ? 'cursor-pointer bg-accent/12' : 'cursor-pointer hover:bg-surface-hover/60') : isSelected ? 'bg-accent/12' : 'hover:bg-surface-hover/60')}
+            />
           )}
-          {!isTablet && showFilters ? (
-            <div className="absolute right-3 top-10 z-20 w-[260px] rounded-md border border-border bg-surface p-3 shadow-lg">
-              <div className="space-y-2">
-                <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Visible Columns</p>
-                {toggleableColumns.map((column) => (
-                  <label key={column.id} className="flex items-center gap-2 text-[12px] text-text">
-                    <input
-                      type="checkbox"
-                      checked={column.getIsVisible()}
-                      onChange={column.getToggleVisibilityHandler()}
-                      className="w-3.5 h-3.5 rounded border-gray-300 text-accent focus:ring-accent"
-                    />
-                    <span>{columnLabelMap[column.id] ?? column.id}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </div>
       </div>
 
