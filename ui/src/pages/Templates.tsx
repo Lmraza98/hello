@@ -1,11 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { flexRender, getCoreRowModel, type ColumnDef, type RowSelectionState, useReactTable } from '@tanstack/react-table';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Archive, Copy, FileText, Plus, RefreshCcw, Send, ShieldAlert, X } from 'lucide-react';
+import { Archive, Copy, FileText, RefreshCcw, Send, ShieldAlert, X } from 'lucide-react';
 import { emailApi } from '../api/emailApi';
 import type { EmailLibraryTemplate, EmailTemplateBlock, EmailTemplateRevision } from '../types/email';
-import { HeaderActionButton } from '../components/shared/HeaderActionButton';
 import { PageSearchInput } from '../components/shared/PageSearchInput';
 import { WorkspacePageShell } from '../components/shared/WorkspacePageShell';
 import { EmailTabs } from '../components/email/EmailTabs';
@@ -18,17 +16,8 @@ import { SidePanelContainer } from '../components/contacts/SidePanelContainer';
 import { BottomDrawerContainer } from '../components/contacts/BottomDrawerContainer';
 import { useRouter } from 'next/navigation';
 import { TableHeaderFilter } from '../components/shared/TableHeaderFilter';
-import {
-  SHARED_SELECTION_COLUMN_WIDTH,
-  SHARED_TABLE_ROW_HEIGHT_CLASS,
-  SharedViewportControlsOverlay,
-  SharedTableColGroupWithWidths,
-  SharedTableHeader,
-  filterCellsByIds,
-  sharedCellClassName,
-  useFittedTableLayout,
-  usePersistentColumnSizing,
-} from '../components/shared/resizableDataTable';
+import { EmptyState } from '../components/shared/EmptyState';
+import { StandardEmailTable, type StandardEmailColumn } from '../components/email/StandardEmailTable';
 
 const TOKENS = [
   '{{firstName}}',
@@ -89,7 +78,6 @@ export default function Templates() {
   const [search, setSearch] = useState(querySearch);
   const [status, setStatus] = useState<'all' | 'active' | 'archived'>(queryStatus);
   const [openHeaderFilterId, setOpenHeaderFilterId] = useState<string | null>(null);
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [isCreating, setIsCreating] = useState(false);
   const [draft, setDraft] = useState<DraftTemplate>(emptyDraft());
   const [sampleContactId, setSampleContactId] = useState('');
@@ -101,6 +89,7 @@ export default function Templates() {
   const [showImport, setShowImport] = useState(false);
   const [importJson, setImportJson] = useState('');
   const [selectedRevision, setSelectedRevision] = useState<number | null>(null);
+  const [viewportControlsTarget, setViewportControlsTarget] = useState<HTMLDivElement | null>(null);
 
   const editorOpen = isCreating || selectedId !== null;
 
@@ -311,86 +300,57 @@ export default function Templates() {
   };
 
   const listSubtitle = useMemo(() => `${templates.length} templates`, [templates.length]);
-  const templateColumns = useMemo<ColumnDef<EmailLibraryTemplate>[]>(
+  const handleDuplicateTemplate = async (template: EmailLibraryTemplate) => {
+    const created = await emailApi.duplicateTemplateLibraryItem(template.id);
+    setIsCreating(false);
+    openTemplate(created.id);
+    setDraft(created);
+    refreshAll();
+    addNotification({ type: 'success', title: 'Template duplicated' });
+  };
+
+  const handleArchiveTemplate = async (template: EmailLibraryTemplate) => {
+    await emailApi.archiveTemplateLibraryItem(template.id);
+    if (selectedId === template.id) {
+      setIsCreating(false);
+      closeTemplate();
+      setDraft(emptyDraft());
+      clearRunState();
+    }
+    refreshAll();
+    addNotification({ type: 'success', title: 'Template archived' });
+  };
+
+  const handleCopyTemplateExport = async (template: EmailLibraryTemplate) => {
+    const exported = await emailApi.exportTemplateLibraryItem(template.id);
+    await navigator.clipboard.writeText(JSON.stringify(exported, null, 2));
+    addNotification({ type: 'success', title: 'Template JSON copied' });
+  };
+
+  const templateColumns = useMemo<StandardEmailColumn<EmailLibraryTemplate>[]>(
     () => [
       {
-        id: 'select',
-        header: ({ table }) => (
-          <button
-            type="button"
-            aria-label="Select all visible templates"
-            aria-pressed={table.getIsAllRowsSelected()}
-            onClick={() => table.toggleAllRowsSelected(!table.getIsAllRowsSelected())}
-            className="block h-full w-full"
-            data-row-control
-          />
-        ),
-        cell: ({ row }) => (
-          <button
-            type="button"
-            aria-label={`Select template ${row.original.name || row.original.id}`}
-            aria-pressed={row.getIsSelected()}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              row.toggleSelected();
-            }}
-            className="block h-full w-full"
-            data-row-control
-          />
-        ),
-        size: SHARED_SELECTION_COLUMN_WIDTH,
-        minSize: SHARED_SELECTION_COLUMN_WIDTH,
-        maxSize: SHARED_SELECTION_COLUMN_WIDTH,
-        enableResizing: false,
-        meta: {
-          label: 'Select',
-          minWidth: SHARED_SELECTION_COLUMN_WIDTH,
-          defaultWidth: SHARED_SELECTION_COLUMN_WIDTH,
-          maxWidth: SHARED_SELECTION_COLUMN_WIDTH,
-          resizable: false,
-          align: 'center',
-        },
+        key: 'name',
+        label: 'Name',
+        minWidth: 220,
+        defaultWidth: 260,
+        maxWidth: 420,
+        render: (item) => <span className="block truncate text-sm text-text">{item.name || '-'}</span>,
+        measureValue: (item) => item.name || '-',
       },
       {
-        id: 'name',
-        header: 'Name',
-        accessorFn: (row) => row.name || '-',
-        cell: ({ row }) => <span className="block truncate text-sm text-text">{row.original.name || '-'}</span>,
-        size: 260,
-        minSize: 220,
-        maxSize: Number.MAX_SAFE_INTEGER,
-        meta: {
-          label: 'Name',
-          minWidth: 220,
-          defaultWidth: 260,
-          maxWidth: 420,
-          resizable: true,
-          align: 'left',
-          measureValue: (row: EmailLibraryTemplate) => row.name || '-',
-        },
+        key: 'subject',
+        label: 'Subject',
+        minWidth: 240,
+        defaultWidth: 340,
+        maxWidth: 520,
+        render: (item) => <span className="block truncate text-xs text-text-muted">{item.subject || '-'}</span>,
+        measureValue: (item) => item.subject || '-',
       },
       {
-        id: 'subject',
-        header: 'Subject',
-        accessorFn: (row) => row.subject || '-',
-        cell: ({ row }) => <span className="block truncate text-xs text-text-muted">{row.original.subject || '-'}</span>,
-        size: 340,
-        minSize: 240,
-        maxSize: Number.MAX_SAFE_INTEGER,
-        meta: {
-          label: 'Subject',
-          minWidth: 240,
-          defaultWidth: 340,
-          maxWidth: 520,
-          resizable: true,
-          align: 'left',
-          measureValue: (row: EmailLibraryTemplate) => row.subject || '-',
-        },
-      },
-      {
-        id: 'status',
-        header: () => (
+        key: 'status',
+        label: 'Status',
+        header: (
           <div className="flex items-center gap-1">
             <span>Status</span>
             <TableHeaderFilter
@@ -411,78 +371,33 @@ export default function Templates() {
             </TableHeaderFilter>
           </div>
         ),
-        accessorFn: (row) => row.status,
-        cell: ({ row }) => (
+        minWidth: 96,
+        defaultWidth: 108,
+        maxWidth: 150,
+        render: (item) => (
           <span
             className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${
-              row.original.status === 'active'
-                ? 'bg-emerald-500/15 text-emerald-700'
-                : 'bg-amber-500/15 text-amber-700'
+              item.status === 'active' ? 'bg-emerald-500/15 text-emerald-700' : 'bg-amber-500/15 text-amber-700'
             }`}
           >
-            {row.original.status}
+            {item.status}
           </span>
         ),
-        size: 108,
-        minSize: 96,
-        maxSize: Number.MAX_SAFE_INTEGER,
-        meta: {
-          label: 'Status',
-          minWidth: 96,
-          defaultWidth: 108,
-          maxWidth: 150,
-          resizable: true,
-          align: 'left',
-          measureValue: (row: EmailLibraryTemplate) => row.status,
-        },
+        measureValue: (item) => item.status,
       },
       {
-        id: 'updated_at',
-        header: 'Updated',
-        accessorFn: (row) => row.updated_at,
-        cell: ({ row }) => <span className="block truncate text-xs text-text-muted">{formatUpdatedAt(row.original.updated_at)}</span>,
-        size: 132,
-        minSize: 120,
-        maxSize: Number.MAX_SAFE_INTEGER,
-        meta: {
-          label: 'Updated',
-          minWidth: 120,
-          defaultWidth: 132,
-          maxWidth: 180,
-          resizable: true,
-          align: 'right',
-          measureValue: (row: EmailLibraryTemplate) => formatUpdatedAt(row.updated_at),
-        },
+        key: 'updated_at',
+        label: 'Updated',
+        minWidth: 120,
+        defaultWidth: 132,
+        maxWidth: 180,
+        align: 'right',
+        render: (item) => <span className="block truncate text-xs text-text-muted">{formatUpdatedAt(item.updated_at)}</span>,
+        measureValue: (item) => formatUpdatedAt(item.updated_at),
       },
     ],
-    [openHeaderFilterId, status]
+    [openHeaderFilterId, status],
   );
-  const { columnSizing, setColumnSizing, autoFitColumn } = usePersistentColumnSizing({
-    columns: templateColumns,
-    rows: templates,
-    storageKey: 'templates-table',
-  });
-  const templatesTable = useReactTable({
-    data: templates,
-    columns: templateColumns,
-    state: { columnSizing, rowSelection },
-    onRowSelectionChange: setRowSelection,
-    onColumnSizingChange: setColumnSizing,
-    getRowId: (row) => String(row.id),
-    getCoreRowModel: getCoreRowModel(),
-    columnResizeMode: 'onChange',
-  });
-  const {
-    containerRef: templatesTableRef,
-    columnWidths: templatesColumnWidths,
-    visibleColumnIds: templatesVisibleColumnIds,
-    tableStyle: templatesTableStyle,
-    fillWidth: templatesFillWidth,
-    canShiftLeft: canShiftTemplatesLeft,
-    canShiftRight: canShiftTemplatesRight,
-    shiftLeft: shiftTemplatesLeft,
-    shiftRight: shiftTemplatesRight,
-  } = useFittedTableLayout(templatesTable);
   const emailTabs = useMemo(
     () => [
       { id: 'campaigns', label: 'Campaigns' },
@@ -495,100 +410,110 @@ export default function Templates() {
   );
 
   const editorPane = (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 border-b border-border px-4 py-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-text">{selectedId ? draftValue.name || 'Template' : 'New Template'}</h3>
-            <p className="truncate text-xs text-text-muted">
-              {selectedId ? `Template #${selectedId}` : 'Create a reusable template'}
-            </p>
-          </div>
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <div className="sticky top-0 z-20 shrink-0 border-b border-border bg-surface">
+        <div className="px-3 pb-2 pt-3">
+          <h3 className="truncate text-sm font-semibold text-text">{selectedId ? draftValue.name || 'Template' : 'New Template'}</h3>
+          <p className="truncate text-xs text-text-muted">
+            {selectedId ? `Template #${selectedId}` : 'Create a reusable template'}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2">
+          <span className="inline-flex h-5 items-center rounded-full border border-border bg-bg px-2 text-[11px] text-text-muted capitalize">
+            {draftValue.status || 'active'}
+          </span>
+          {selectedId ? (
+            <span className="inline-flex h-5 items-center rounded-full border border-border bg-bg px-2 text-[11px] text-text-muted">
+              {revisions.length} revisions
+            </span>
+          ) : null}
+          <span className="inline-flex h-5 items-center rounded-full border border-border bg-bg px-2 text-[11px] text-text-muted">
+            {blocks.length} blocks
+          </span>
           <button
             type="button"
             onClick={closeEditor}
             aria-label="Close template editor"
-            className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
+            className="ml-auto inline-flex h-7 w-7 items-center justify-center border border-border text-text-muted hover:bg-surface-hover"
           >
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
-      </div>
-
-      <div className="shrink-0 border-b border-border p-3 flex items-center gap-2 overflow-x-auto no-scrollbar whitespace-nowrap">
-        <button
-          type="button"
-          onClick={() => (selectedId ? saveMutation.mutate() : createMutation.mutate())}
-          className="shrink-0 px-3 py-2 bg-accent text-white rounded-lg text-sm font-medium"
-        >
-          {selectedId ? 'Save' : 'Create'}
-        </button>
-        <button
-          type="button"
-          onClick={() => duplicateMutation.mutate()}
-          disabled={!selectedId}
-          className="inline-flex shrink-0 items-center gap-1 px-3 py-2 border border-border rounded-lg text-sm disabled:opacity-50"
-        >
-          <Copy className="w-3.5 h-3.5" />
-          Duplicate
-        </button>
-        <button
-          type="button"
-          onClick={() => archiveMutation.mutate()}
-          disabled={!selectedId}
-          className="inline-flex shrink-0 items-center gap-1 px-3 py-2 border border-border rounded-lg text-sm disabled:opacity-50"
-        >
-          <Archive className="w-3.5 h-3.5" />
-          Archive
-        </button>
-        <button
-          type="button"
-          onClick={() => validateMutation.mutate()}
-          className="inline-flex shrink-0 items-center gap-1 px-3 py-2 border border-border rounded-lg text-sm"
-        >
-          <ShieldAlert className="w-3.5 h-3.5" />
-          Validate
-        </button>
-        <button
-          type="button"
-          onClick={() => previewMutation.mutate()}
-          disabled={!selectedId}
-          className="inline-flex shrink-0 items-center gap-1 px-3 py-2 border border-border rounded-lg text-sm disabled:opacity-50"
-        >
-          <RefreshCcw className="w-3.5 h-3.5" />
-          Render Preview
-        </button>
-        <input
-          value={testEmail}
-          onChange={(e) => setTestEmail(e.target.value)}
-          placeholder="test@company.com"
-          className="shrink-0 px-3 py-2 bg-bg border border-border rounded-lg text-sm w-52"
-        />
-        <button
-          type="button"
-          onClick={() => testSendMutation.mutate()}
-          disabled={!selectedId || !testEmail.trim()}
-          className="inline-flex shrink-0 items-center gap-1 px-3 py-2 border border-border rounded-lg text-sm disabled:opacity-50"
-        >
-          <Send className="w-3.5 h-3.5" />
-          Test Send
-        </button>
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar border-t border-border px-3 py-2 whitespace-nowrap">
+          <button
+            type="button"
+            onClick={() => (selectedId ? saveMutation.mutate() : createMutation.mutate())}
+            className="inline-flex h-7 shrink-0 items-center border border-border bg-bg px-2.5 text-xs text-text hover:bg-surface-hover"
+          >
+            {selectedId ? 'Save' : 'Create'}
+          </button>
+          <button
+            type="button"
+            onClick={() => duplicateMutation.mutate()}
+            disabled={!selectedId}
+            className="inline-flex h-7 shrink-0 items-center gap-1 border border-border bg-bg px-2.5 text-xs text-text hover:bg-surface-hover disabled:opacity-50"
+          >
+            <Copy className="h-3.5 w-3.5" />
+            Duplicate
+          </button>
+          <button
+            type="button"
+            onClick={() => archiveMutation.mutate()}
+            disabled={!selectedId}
+            className="inline-flex h-7 shrink-0 items-center gap-1 border border-border bg-bg px-2.5 text-xs text-text hover:bg-surface-hover disabled:opacity-50"
+          >
+            <Archive className="h-3.5 w-3.5" />
+            Archive
+          </button>
+          <button
+            type="button"
+            onClick={() => validateMutation.mutate()}
+            className="inline-flex h-7 shrink-0 items-center gap-1 border border-border bg-bg px-2.5 text-xs text-text hover:bg-surface-hover"
+          >
+            <ShieldAlert className="h-3.5 w-3.5" />
+            Validate
+          </button>
+          <button
+            type="button"
+            onClick={() => previewMutation.mutate()}
+            disabled={!selectedId}
+            className="inline-flex h-7 shrink-0 items-center gap-1 border border-border bg-bg px-2.5 text-xs text-text hover:bg-surface-hover disabled:opacity-50"
+          >
+            <RefreshCcw className="h-3.5 w-3.5" />
+            Render Preview
+          </button>
+          <input
+            value={testEmail}
+            onChange={(e) => setTestEmail(e.target.value)}
+            placeholder="test@company.com"
+            className="h-7 w-52 shrink-0 border border-border bg-bg px-2.5 text-xs text-text focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => testSendMutation.mutate()}
+            disabled={!selectedId || !testEmail.trim()}
+            className="inline-flex h-7 shrink-0 items-center gap-1 border border-border bg-bg px-2.5 text-xs text-text hover:bg-surface-hover disabled:opacity-50"
+          >
+            <Send className="h-3.5 w-3.5" />
+            Test Send
+          </button>
+        </div>
       </div>
 
       {showImport ? (
-        <div className="shrink-0 p-3 border-b border-border bg-bg/60">
+        <div className="shrink-0 border-b border-border bg-bg/60 px-3 py-2">
           <textarea
             value={importJson}
             onChange={(e) => setImportJson(e.target.value)}
             rows={5}
             placeholder="Paste template export JSON"
-            className="w-full px-3 py-2 bg-surface border border-border rounded-lg text-sm font-mono"
+            className="w-full border border-border bg-surface px-2.5 py-2 text-xs font-mono text-text focus:outline-none"
           />
           <div className="mt-2">
             <button
               type="button"
               onClick={() => importMutation.mutate()}
-              className="px-3 py-2 bg-accent text-white rounded-lg text-sm"
+              className="inline-flex h-7 items-center border border-border bg-bg px-2.5 text-xs text-text hover:bg-surface-hover"
             >
               Import
             </button>
@@ -596,72 +521,70 @@ export default function Templates() {
         </div>
       ) : null}
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-3">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="shrink-0 grid grid-cols-1 gap-0 md:grid-cols-2">
           <input
             value={draftValue.name || ''}
             onChange={(e) => setDraft((p) => ({ ...(draftValue.id && p.id !== draftValue.id ? draftValue : p), name: e.target.value }))}
             placeholder="Template name"
-            className="px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+            className="h-8 border-x-0 border-t-0 border-b border-border bg-bg px-2.5 text-xs text-text focus:outline-none"
           />
           <input
             value={draftValue.subject || ''}
             onChange={(e) => setDraft((p) => ({ ...(draftValue.id && p.id !== draftValue.id ? draftValue : p), subject: e.target.value }))}
             placeholder="Subject"
-            className="px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+            className="h-8 border-x-0 border-t-0 border-b border-border bg-bg px-2.5 text-xs text-text focus:outline-none"
           />
           <input
             value={draftValue.preheader || ''}
             onChange={(e) => setDraft((p) => ({ ...(draftValue.id && p.id !== draftValue.id ? draftValue : p), preheader: e.target.value }))}
             placeholder="Preheader"
-            className="px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+            className="h-8 border-x-0 border-t-0 border-b border-border bg-bg px-2.5 text-xs text-text focus:outline-none"
           />
           <input
             value={draftValue.from_name || ''}
             onChange={(e) => setDraft((p) => ({ ...(draftValue.id && p.id !== draftValue.id ? draftValue : p), from_name: e.target.value }))}
             placeholder="From name"
-            className="px-3 py-2 bg-bg border border-border rounded-lg text-sm"
-          />
-          <input
-            value={draftValue.from_email || ''}
-            onChange={(e) => setDraft((p) => ({ ...(draftValue.id && p.id !== draftValue.id ? draftValue : p), from_email: e.target.value }))}
-            placeholder="From email"
-            className="px-3 py-2 bg-bg border border-border rounded-lg text-sm"
-          />
-          <input
-            value={draftValue.reply_to || ''}
-            onChange={(e) => setDraft((p) => ({ ...(draftValue.id && p.id !== draftValue.id ? draftValue : p), reply_to: e.target.value }))}
-            placeholder="Reply-to"
-            className="px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+            className="h-8 border-x-0 border-t-0 border-b border-border bg-bg px-2.5 text-xs text-text focus:outline-none"
+        />
+        </div>
+
+        <section className="shrink-0 border-x-0 border-b border-border bg-bg/30">
+          <div className="flex flex-wrap gap-1 px-2.5 py-1">
+            {TOKENS.map((token) => (
+              <button
+                key={token}
+                type="button"
+                onClick={() => handleInsert(` ${token} `)}
+                className="inline-flex h-6 items-center border border-border bg-bg px-1.5 text-[10px] text-text hover:bg-surface-hover"
+              >
+                {token}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <textarea
+            value={draftValue.html_body || ''}
+            onChange={(e) => setDraft((p) => ({ ...(draftValue.id && p.id !== draftValue.id ? draftValue : p), html_body: e.target.value }))}
+            placeholder="HTML body"
+            rows={1}
+            className="block h-full min-h-[220px] w-full resize-none overflow-y-auto no-scrollbar border-x-0 border-t-0 border-b border-border bg-bg px-2.5 py-2 text-xs font-mono text-text focus:outline-none"
           />
         </div>
 
-        <textarea
-          value={draftValue.html_body || ''}
-          onChange={(e) => setDraft((p) => ({ ...(draftValue.id && p.id !== draftValue.id ? draftValue : p), html_body: e.target.value }))}
-          placeholder="HTML body"
-          rows={16}
-          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono"
-        />
-        <textarea
-          value={draftValue.text_body || ''}
-          onChange={(e) => setDraft((p) => ({ ...(draftValue.id && p.id !== draftValue.id ? draftValue : p), text_body: e.target.value }))}
-          placeholder="Optional plain text body"
-          rows={7}
-          className="w-full px-3 py-2 bg-bg border border-border rounded-lg text-sm font-mono"
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="shrink-0 grid grid-cols-1 gap-0 md:grid-cols-2">
           <input
             value={sampleContactId}
             onChange={(e) => setSampleContactId(e.target.value)}
             placeholder="Sample contact ID for preview"
-            className="px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+            className="h-8 border-x-0 border-t-0 border-b border-border bg-bg px-2.5 text-xs text-text focus:outline-none"
           />
           <select
             value={selectedRevision || ''}
             onChange={(e) => setSelectedRevision(e.target.value ? Number(e.target.value) : null)}
-            className="px-3 py-2 bg-bg border border-border rounded-lg text-sm"
+            className="h-8 border-x-0 border-t-0 border-b border-border bg-bg px-2.5 text-xs text-text focus:outline-none"
           >
             <option value="">Revision history</option>
             {revisions.map((rev) => (
@@ -672,23 +595,23 @@ export default function Templates() {
           </select>
         </div>
 
-        <div>
+        <div className="shrink-0 px-2.5 py-1">
           <button
             type="button"
             onClick={() => revertMutation.mutate()}
             disabled={!selectedRevision || !selectedId}
-            className="px-3 py-2 border border-border rounded-lg text-sm disabled:opacity-50"
+            className="inline-flex h-7 items-center border border-border bg-bg px-2.5 text-xs text-text hover:bg-surface-hover disabled:opacity-50"
           >
             Revert to revision
           </button>
         </div>
 
         {errors.length > 0 || warnings.length > 0 ? (
-          <div className="border border-border rounded-lg p-3 bg-bg/50 space-y-2">
+          <div className="shrink-0 border-x-0 border-b border-border bg-bg/50 px-2.5 py-1.5 space-y-2">
             {errors.length > 0 ? (
               <div>
-                <h4 className="text-sm font-semibold text-red-600 mb-1">Errors</h4>
-                <ul className="list-disc pl-5 text-sm text-red-700">
+                <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-red-600">Errors</h4>
+                <ul className="list-disc pl-5 text-xs text-red-700">
                   {errors.map((item) => (
                     <li key={`e-${item}`}>{item}</li>
                   ))}
@@ -697,8 +620,8 @@ export default function Templates() {
             ) : null}
             {warnings.length > 0 ? (
               <div>
-                <h4 className="text-sm font-semibold text-amber-600 mb-1">Warnings</h4>
-                <ul className="list-disc pl-5 text-sm text-amber-700">
+                <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide text-amber-600">Warnings</h4>
+                <ul className="list-disc pl-5 text-xs text-amber-700">
                   {warnings.map((item) => (
                     <li key={`w-${item}`}>{item}</li>
                   ))}
@@ -708,51 +631,21 @@ export default function Templates() {
           </div>
         ) : null}
 
-        <section className="border border-border rounded-lg p-3 bg-bg/30">
-          <h3 className="text-xs uppercase tracking-wide font-semibold text-text-muted mb-2">Variables</h3>
-          <div className="flex flex-wrap gap-1.5">
-            {TOKENS.map((token) => (
-              <button
-                key={token}
-                type="button"
-                onClick={() => handleInsert(` ${token} `)}
-                className="px-2 py-1 text-xs border border-border rounded-md hover:bg-surface-hover"
-              >
-                {token}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="border border-border rounded-lg p-3 bg-bg/30">
-          <h3 className="text-xs uppercase tracking-wide font-semibold text-text-muted mb-2">Blocks</h3>
-          <div className="space-y-2">
+        <section className="shrink-0 border-x-0 border-b border-border bg-bg/30">
+          <h3 className="border-b border-border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted">Blocks</h3>
+          <div className="space-y-1 px-2.5 py-1">
             {blocks.map((block) => (
               <button
                 key={block.id}
                 type="button"
                 onClick={() => handleInsert(`\n${block.html}\n`)}
-                className="w-full text-left p-2 border border-border rounded-lg hover:bg-surface-hover"
+                className="w-full border border-border bg-bg px-2 py-1 text-left hover:bg-surface-hover"
               >
-                <div className="text-sm font-medium text-text">{block.name}</div>
-                <div className="text-xs text-text-muted">{block.category || 'General'}</div>
+                <div className="text-xs font-medium text-text">{block.name}</div>
+                <div className="text-[11px] text-text-muted">{block.category || 'General'}</div>
               </button>
             ))}
           </div>
-        </section>
-
-        <section className="border border-border rounded-lg p-3 bg-bg/30">
-          <h3 className="text-xs uppercase tracking-wide font-semibold text-text-muted mb-2">Live Preview</h3>
-          <div className="border border-border rounded-lg bg-white min-h-28 p-2">
-            {previewHtml ? (
-              <iframe title="template-preview" className="w-full h-64 border-0" srcDoc={previewHtml} />
-            ) : (
-              <p className="text-sm text-text-muted p-2">Run Render Preview to view output.</p>
-            )}
-          </div>
-          {previewText ? (
-            <pre className="mt-2 p-2 border border-border rounded-lg bg-bg text-xs whitespace-pre-wrap">{previewText}</pre>
-          ) : null}
         </section>
 
         {selectedId ? (
@@ -764,9 +657,9 @@ export default function Templates() {
               await navigator.clipboard.writeText(text);
               addNotification({ type: 'success', title: 'Template JSON copied' });
             }}
-            className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 border border-border rounded-lg text-sm"
+            className="shrink-0 inline-flex h-8 w-full items-center justify-center gap-2 border-x-0 border-t-0 border-b border-border bg-bg px-2.5 text-xs text-text hover:bg-surface-hover"
           >
-            <FileText className="w-4 h-4" />
+            <FileText className="h-4 w-4" />
             Copy Export JSON
           </button>
         ) : null}
@@ -807,64 +700,123 @@ export default function Templates() {
         />
       }
       preHeaderAffectsLayout
-      preHeaderClassName="-mt-3 md:-mt-4 h-14 flex items-end"
+      preHeaderClassName="h-14 flex items-end"
       toolbar={
-        <div className="flex min-w-0 flex-wrap items-center">
+        <div className="flex min-w-0 items-center gap-2">
           <div className="min-w-[220px] flex-1">
             <PageSearchInput value={search} onChange={setSearch} placeholder="Search templates..." />
           </div>
-          <HeaderActionButton onClick={() => setShowImport((v) => !v)} variant="secondary">
-            Import JSON
-          </HeaderActionButton>
-          <HeaderActionButton onClick={beginCreate} variant="primary" icon={<Plus className="w-4 h-4" />}>
-            New Template
-          </HeaderActionButton>
+          <div ref={setViewportControlsTarget} className="flex h-8 w-14 shrink-0 items-center justify-center" />
         </div>
       }
     >
       <div className="bg-surface overflow-hidden flex h-full min-h-0">
-        <section ref={templatesTableRef} className="flex min-w-0 min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-            <div className="sticky top-0 z-[1] relative">
-              <SharedViewportControlsOverlay
-                canShiftLeft={canShiftTemplatesLeft}
-                canShiftRight={canShiftTemplatesRight}
-                onShiftLeft={shiftTemplatesLeft}
-                onShiftRight={shiftTemplatesRight}
+        <section className="flex min-w-0 min-h-0 flex-1 flex-col">
+          <StandardEmailTable
+            columns={templateColumns}
+            rows={templates}
+            rowId={(item) => item.id}
+            selectedId={selectedId}
+            viewportControlsTarget={viewportControlsTarget}
+            renderHeaderActionsMenu={(closeMenu) => (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowImport((v) => !v);
+                    closeMenu();
+                  }}
+                  className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                >
+                  {showImport ? 'Hide import' : 'Import JSON'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    beginCreate();
+                    closeMenu();
+                  }}
+                  className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                >
+                  New template
+                </button>
+              </>
+            )}
+            onSelectRow={(item) => selectTemplate(item)}
+            getRowAriaLabel={(item) => `Open template ${item.name || item.id}`}
+            emptyState={
+              <EmptyState
+                icon={FileText}
+                title="No templates found"
+                description="Create a template or adjust your filters."
               />
-              <table className="w-full border-collapse" style={templatesTableStyle}>
-                <SharedTableColGroupWithWidths table={templatesTable} columnWidths={templatesColumnWidths} visibleColumnIds={templatesVisibleColumnIds} fillerWidth={templatesFillWidth} />
-                <SharedTableHeader
-                  table={templatesTable}
-                  onAutoFitColumn={autoFitColumn}
-                  visibleColumnIds={templatesVisibleColumnIds}
-                  columnWidths={templatesColumnWidths}
-                  fillerWidth={templatesFillWidth}
-                />
-              </table>
-            </div>
-            <table className="w-full border-collapse" style={templatesTableStyle}>
-              <SharedTableColGroupWithWidths table={templatesTable} columnWidths={templatesColumnWidths} visibleColumnIds={templatesVisibleColumnIds} fillerWidth={templatesFillWidth} />
-              <tbody>
-                {templatesTable.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className={`group ${SHARED_TABLE_ROW_HEIGHT_CLASS} cursor-pointer border-b border-border-subtle transition-colors ${
-                      row.original.id === selectedId ? 'bg-accent/10' : row.getIsSelected() ? 'bg-accent/8' : 'hover:bg-surface-hover/60'
+            }
+            isCompact={isPhone}
+            storageKey="templates-table"
+            renderCompactRow={(item, isSelected) => (
+              <div className={`p-3 ${isSelected ? 'bg-accent/10' : ''}`}>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium text-text">{item.name || '-'}</div>
+                  <div className="mt-1 truncate text-xs text-text-muted">{item.subject || '-'}</div>
+                </div>
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <span
+                    className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      item.status === 'active' ? 'bg-emerald-500/15 text-emerald-700' : 'bg-amber-500/15 text-amber-700'
                     }`}
-                    onClick={() => selectTemplate(row.original)}
                   >
-                    {filterCellsByIds(row.getVisibleCells(), templatesVisibleColumnIds).map((cell, index, cells) => (
-                      <td key={cell.id} className={sharedCellClassName(cell, `${SHARED_TABLE_ROW_HEIGHT_CLASS} px-3 py-0 ${index === cells.length - 1 ? '__shared-last__' : ''}`)}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                    {templatesFillWidth > 0 ? <td aria-hidden="true" className={`${SHARED_TABLE_ROW_HEIGHT_CLASS} px-0 py-0`} /> : null}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    {item.status}
+                  </span>
+                  <span className="text-[11px] text-text-muted">{formatUpdatedAt(item.updated_at)}</span>
+                </div>
+              </div>
+            )}
+            renderRowActionsMenu={(item, closeMenu) => (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    selectTemplate(item);
+                    closeMenu();
+                  }}
+                  className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                >
+                  Open template
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleDuplicateTemplate(item);
+                    closeMenu();
+                  }}
+                  className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                >
+                  Duplicate
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleCopyTemplateExport(item);
+                    closeMenu();
+                  }}
+                  className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                >
+                  Copy export JSON
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void handleArchiveTemplate(item);
+                    closeMenu();
+                  }}
+                  disabled={item.status === 'archived'}
+                  className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                >
+                  Archive
+                </button>
+              </>
+            )}
+          />
         </section>
 
         {!isPhone && editorOpen ? <SidePanelContainer>{editorPane}</SidePanelContainer> : null}

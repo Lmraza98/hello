@@ -7,12 +7,14 @@ export function TableHeaderFilter({
   label,
   onToggle,
   children,
+  align = 'left',
 }: {
   open: boolean;
   active: boolean;
   label: string;
   onToggle: () => void;
   children: ReactNode;
+  align?: 'left' | 'right';
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -41,7 +43,7 @@ export function TableHeaderFilter({
       </button>
       {open ? (
         <div
-          className="absolute left-0 top-6 z-40 w-40 rounded-none border border-border bg-surface p-2 shadow-lg"
+          className={`absolute top-6 z-40 w-40 rounded-none border border-border bg-surface p-2 shadow-lg ${align === 'right' ? 'right-0' : 'left-0'}`}
           onClick={(event) => event.stopPropagation()}
         >
           {children}

@@ -1,4 +1,4 @@
-﻿---
+---
 summary: "How chat model routing and fallback work, including OpenAI fallback controls."
 read_when:
   - You are debugging why a chat request used a specific model

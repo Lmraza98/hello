@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 export interface DailyPoint {
   date: string;
@@ -23,13 +23,36 @@ export function MiniLineChart({
   focusMetric = null,
 }: MiniLineChartProps) {
   const [hovered, setHovered] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
 
-  const chartW = 500;
-  const chartH = compact ? 100 : 140;
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+
+    const updateWidth = () => {
+      const nextWidth = Math.max(1, Math.round(node.getBoundingClientRect().width));
+      setContainerWidth((prev) => (prev === nextWidth ? prev : nextWidth));
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(() => updateWidth());
+    observer.observe(node);
+    window.addEventListener('resize', updateWidth);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateWidth);
+    };
+  }, []);
+
+  const chartW = Math.max(containerWidth, 320);
+  const chartH = compact ? 92 : 136;
   const padL = 0;
   const padR = 0;
   const padT = 8;
-  const padB = 24;
+  const padB = compact ? 18 : 24;
   const innerW = chartW - padL - padR;
   const innerH = chartH - padT - padB;
 
@@ -54,7 +77,7 @@ export function MiniLineChart({
   const hoveredPoint = hovered !== null ? data[hovered] : null;
 
   return (
-    <div className="relative select-none">
+    <div ref={containerRef} className="relative h-full min-h-0 w-full select-none overflow-hidden">
       {!hideLegend ? (
         <div className="mb-2 flex items-center gap-4">
           {lines.map((l) => (
@@ -68,8 +91,7 @@ export function MiniLineChart({
 
       <svg
         viewBox={`0 0 ${chartW} ${chartH}`}
-        className="h-full w-full"
-        preserveAspectRatio="none"
+        className="block h-full w-full"
         onMouseLeave={() => setHovered(null)}
       >
         {/* Horizontal grid — 3 lines */}
@@ -84,7 +106,7 @@ export function MiniLineChart({
               y2={y}
               stroke="currentColor"
               className="text-border"
-              strokeWidth="0.5"
+              strokeWidth="0.75"
             />
           );
         })}
@@ -105,7 +127,7 @@ export function MiniLineChart({
                   fill="none"
                   stroke={l.color}
                   strokeOpacity={0.2}
-                  strokeWidth="1.5"
+                  strokeWidth="1"
                   strokeDasharray="4 3"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -138,7 +160,7 @@ export function MiniLineChart({
             fill="none"
             stroke={l.color}
             strokeOpacity={focusMetric && focusMetric !== l.key ? 0.28 : 1}
-            strokeWidth="2"
+            strokeWidth="1.5"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
@@ -152,10 +174,10 @@ export function MiniLineChart({
               key={l.key}
               cx={xScale(hovered)}
               cy={yScale(hoveredPoint[l.key] as number)}
-              r="3.5"
+              r="3"
               fill={l.color}
               stroke="white"
-              strokeWidth="2"
+              strokeWidth="1.5"
             />
           ))}
 

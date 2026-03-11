@@ -14,13 +14,13 @@ import { getPageCapability } from '../capabilities/catalog';
 import { getOllamaReadyFast } from '../chat/ollamaStatus';
 import { SystemStatusStrip } from '../components/dashboard/page/SystemStatusStrip';
 import { type Timeframe } from '../components/dashboard/page/TimeframeToggle';
-import { type PerformanceSummary } from '../components/dashboard/page/CampaignSummaryStrip';
 import { type PerformanceMode } from '../components/dashboard/page/PerformanceModeToggle';
 import { SlideOverPanel } from '../components/dashboard/page/SlideOverPanel';
 import { EmailPerformanceSection } from '../components/dashboard/page/EmailPerformanceSection';
 import { PerformanceDrilldownContent } from '../components/dashboard/page/PerformanceDrilldownContent';
 import { DashboardStatsGrid } from '../components/dashboard/page/DashboardStatsGrid';
 import { DashboardWorkspaceGrid } from '../components/dashboard/page/DashboardWorkspaceGrid';
+import { WorkspacePageShell } from '../components/shared/WorkspacePageShell';
 import {
   aggregateEntities,
   buildDailyForEntity,
@@ -38,7 +38,6 @@ export default function Dashboard() {
   const [selectedConversation, setSelectedConversation] = useState<ReplyPreview | null>(null);
   const [performanceMode, setPerformanceMode] = useState<PerformanceMode>('overall');
   const [focusMetric, setFocusMetric] = useState<'sent' | 'viewed' | 'responded' | null>(null);
-  const [summaryCollapsed, setSummaryCollapsed] = useState(false);
   const [selectedEntityKey, setSelectedEntityKey] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [panelEntityType, setPanelEntityType] = useState<'campaign' | 'template'>('campaign');
@@ -140,15 +139,6 @@ export default function Dashboard() {
       windowReplyRate: current.replyRate,
     };
   }, [emailKpis, performanceMode, selectedAggregate, topSummaryEntity]);
-  const summaryStrip: PerformanceSummary | null = topSummaryEntity
-    ? {
-        key: topSummaryEntity.key,
-        label: topSummaryEntity.label,
-        sent: topSummaryEntity.sent,
-        replies: topSummaryEntity.responded,
-        replyRate: topSummaryEntity.replyRate,
-      }
-    : null;
   const panelSource = panelEntityType === 'template' ? templateAggregates : campaignAggregates;
   const panelEntity = panelSource.find((item) => item.key === selectedEntityKey) || null;
   const panelTemplateUsage = useMemo(() => {
@@ -290,13 +280,14 @@ export default function Dashboard() {
   }, [activeAggregates, performanceMode, selectedEntityKey, topSummaryEntity]);
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="pt-3 px-3 pb-3 md:pt-4 md:px-4 md:pb-4">
-
-
-        <div className="space-y-4">
+    <WorkspacePageShell
+      title="Dashboard"
+      subtitle={`${stats?.total_companies ?? 0} companies - ${stats?.total_contacts ?? 0} contacts`}
+      stickyHeader={false}
+    >
+      <div className="flex h-full min-h-0 flex-col bg-surface">
+        <div className="shrink-0">
           <SystemStatusStrip items={systemStatusItems} />
-
           <DashboardStatsGrid items={statItems} />
           <EmailPerformanceSection
             performanceMode={performanceMode}
@@ -308,15 +299,6 @@ export default function Dashboard() {
             onChangeTimeframe={setTimeframe}
             hasCampaigns={campaigns.length > 0}
             onCreateCampaign={() => router.push('/email?view=campaigns')}
-            summaryStrip={summaryStrip}
-            summaryCollapsed={summaryCollapsed}
-            onToggleSummaryCollapse={() => setSummaryCollapsed((prev) => !prev)}
-            onOpenSummaryDetail={() => {
-              if (!summaryStrip) return;
-              setSelectedEntityKey(summaryStrip.key);
-              setPanelEntityType(performanceMode === 'template' ? 'template' : 'campaign');
-              setPanelOpen(true);
-            }}
             focusMetric={focusMetric}
             onToggleFocusMetric={(metric) => setFocusMetric((prev) => (prev === metric ? null : metric))}
             modeKpis={modeKpis}
@@ -325,6 +307,8 @@ export default function Dashboard() {
             chartPrimaryData={chartPrimaryData}
             chartBaselineData={performanceMode === 'overall' ? undefined : filteredDaily}
           />
+        </div>
+        <div className="min-h-0 flex-1">
           <DashboardWorkspaceGrid
             activeConversations={activeConversations}
             recentReplies={recentReplies}
@@ -342,12 +326,8 @@ export default function Dashboard() {
             nextSends={nextSends}
             totalScheduled={totalScheduled}
           />
-
-          
-
         </div>
       </div>
-
       <SlideOverPanel
         open={panelOpen}
         onClose={() => setPanelOpen(false)}
@@ -384,6 +364,6 @@ export default function Dashboard() {
       ) : null}
 
       <ToastContainer messages={toasts} onDismiss={dismissToast} />
-    </div>
+    </WorkspacePageShell>
   );
 }

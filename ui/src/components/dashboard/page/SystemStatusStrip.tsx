@@ -36,22 +36,24 @@ const toneMap: Record<Tone, string> = {
 
 export function SystemStatusStrip({ items }: SystemStatusStripProps) {
   return (
-    <section className="py-1">
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-border/70 pb-1.5">
-        <p className="mr-1 text-[11px] font-medium uppercase tracking-wide text-text-dim">System</p>
-        {items.map((item) => {
-          const Icon = iconMap[item.key];
-          return (
-            <span
-              key={item.key}
-              className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] ${toneMap[item.tone]}`}
-            >
-              <Icon className="h-3 w-3" />
-              <span className="font-medium">{labelMap[item.key]}</span>
-              <span>{item.state}</span>
-            </span>
-          );
-        })}
+    <section>
+      <div className="flex flex-wrap items-center gap-px border border-border bg-border">
+        <p className="px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-text-dim">System</p>
+        <div className="flex flex-1 flex-wrap gap-px bg-border">
+          {items.map((item) => {
+            const Icon = iconMap[item.key];
+            return (
+              <span
+                key={item.key}
+                className={`inline-flex items-center gap-1 bg-surface px-2 py-1.5 text-[10px] ${toneMap[item.tone]}`}
+              >
+                <Icon className="h-3 w-3" />
+                <span className="font-medium">{labelMap[item.key]}</span>
+                <span>{item.state}</span>
+              </span>
+            );
+          })}
+        </div>
       </div>
     </section>
   );

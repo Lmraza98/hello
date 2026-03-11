@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MessageSquare, CheckCircle, Reply } from 'lucide-react';
+import { CheckCircle, MessageSquare, Reply } from 'lucide-react';
 import type { ReplyPreview } from '../../api';
 
 type ConversationCardProps = {
@@ -26,82 +26,73 @@ export function ConversationCard({ reply, onClick, onMarkDone, removing }: Conve
   const [showInlineReply, setShowInlineReply] = useState(false);
   const preview = reply.body_preview
     ? reply.body_preview.length > 60
-      ? reply.body_preview.slice(0, 60) + '...'
+      ? `${reply.body_preview.slice(0, 60)}...`
       : reply.body_preview
     : 'No preview available';
 
   return (
     <div
-      className={`group border border-border rounded-lg p-3 cursor-pointer hover:border-amber-200 hover:bg-amber-50/30 transition-all duration-300 ${
-        removing ? 'opacity-0 scale-95 max-h-0 overflow-hidden mb-0 p-0 border-0' : 'max-h-40'
+      className={`group cursor-pointer border-b border-border bg-surface px-2.5 py-2 transition-all duration-200 hover:bg-surface-hover ${
+        removing ? 'max-h-0 overflow-hidden border-0 px-0 py-0 opacity-0' : 'max-h-40'
       }`}
       onClick={onClick}
     >
-      <div className="flex items-start gap-2.5">
-        <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
-          <MessageSquare className="w-3.5 h-3.5 text-amber-600" />
+      <div className="flex items-start gap-2">
+        <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center border border-amber-200 bg-amber-50">
+          <MessageSquare className="h-3 w-3 text-amber-600" />
         </div>
-        <div className="flex-1 min-w-0">
-          {/* Name + Company */}
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <span className="text-sm font-medium text-text truncate">{reply.contact_name}</span>
+        <div className="min-w-0 flex-1">
+          <div className="mb-0.5 flex items-center gap-1.5">
+            <span className="truncate text-xs font-medium text-text">{reply.contact_name}</span>
             <span className="text-[10px] text-text-dim">@</span>
-            <span className="text-xs text-text-muted truncate">{reply.company_name}</span>
+            <span className="truncate text-[11px] text-text-muted">{reply.company_name}</span>
           </div>
-
-          {/* Preview */}
-          <p className="text-xs text-text-muted leading-snug mb-1.5 line-clamp-1">
-            &ldquo;{preview}&rdquo;
-          </p>
-
-          {/* Meta row */}
+          <p className="mb-1.5 line-clamp-1 text-[11px] leading-snug text-text-muted">&ldquo;{preview}&rdquo;</p>
           <div className="flex items-center gap-2">
             <span className="text-[10px] text-text-dim">{timeAgo(reply.received_at)}</span>
-            <span className="text-[10px] text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">
+            <span className="border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700">
               {reply.campaign_name}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Quick actions — show on hover */}
-      <div className="flex items-center gap-1.5 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="mt-2 flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <button
-          onClick={(e) => {
-            e.stopPropagation();
+          onClick={(event) => {
+            event.stopPropagation();
             setShowInlineReply(!showInlineReply);
           }}
-          className="flex items-center gap-1 px-2 py-1 text-[11px] text-text-muted border border-border rounded hover:bg-surface-hover transition-colors"
+          className="flex h-6 items-center gap-1 border border-border px-2 text-[10px] text-text-muted transition-colors hover:bg-surface-hover"
         >
-          <Reply className="w-3 h-3" />
+          <Reply className="h-3 w-3" />
           Quick Reply
         </button>
         <button
-          onClick={(e) => {
-            e.stopPropagation();
+          onClick={(event) => {
+            event.stopPropagation();
             onMarkDone(reply.reply_id);
           }}
-          className="flex items-center gap-1 px-2 py-1 text-[11px] text-green-700 border border-green-200 rounded hover:bg-green-50 transition-colors"
+          className="flex h-6 items-center gap-1 border border-green-200 px-2 text-[10px] text-green-700 transition-colors hover:bg-green-50"
         >
-          <CheckCircle className="w-3 h-3" />
+          <CheckCircle className="h-3 w-3" />
           Mark Done
         </button>
       </div>
 
-      {/* Inline reply (simple) */}
-      {showInlineReply && (
-        <div className="mt-2 flex gap-1.5" onClick={(e) => e.stopPropagation()}>
+      {showInlineReply ? (
+        <div className="mt-2 flex gap-1.5" onClick={(event) => event.stopPropagation()}>
           <input
             type="text"
             placeholder="Type a quick reply..."
-            className="flex-1 px-2.5 py-1.5 text-xs border border-border rounded-lg focus:outline-none focus:border-accent bg-bg"
+            className="flex-1 border border-border bg-bg px-2.5 py-1.5 text-[11px] focus:border-accent focus:outline-none"
             autoFocus
           />
-          <button className="px-2.5 py-1.5 text-xs text-white bg-accent rounded-lg hover:bg-accent-hover transition-colors">
+          <button className="bg-accent px-2.5 py-1.5 text-[11px] text-white transition-colors hover:bg-accent-hover">
             Send
           </button>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

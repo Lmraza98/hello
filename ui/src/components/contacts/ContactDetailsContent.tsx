@@ -62,15 +62,15 @@ type CampaignEnrollmentRow = {
   enrolled_at?: string | null;
 };
 
-const ACTIVITY_SIZING_STORAGE_KEY = 'contact-activity-table-v3';
+const ACTIVITY_SIZING_STORAGE_KEY = 'contact-activity-table-v4';
 const activityColumnHelper = createColumnHelper<ContactActivity>();
 const ACTIVITY_COLUMN_IDS = ['type', 'activity', 'date', 'status'] as const;
 const ACTIVITY_SHRINK_PRIORITY = ['activity', 'date', 'type', 'status'] as const;
 const ACTIVITY_COLUMN_MIN_WIDTHS: Record<(typeof ACTIVITY_COLUMN_IDS)[number], number> = {
-  type: 72,
+  type: 88,
   activity: 96,
-  date: 88,
-  status: 84,
+  date: 96,
+  status: 88,
 };
 
 function formatCompactDate(value?: string | null) {
@@ -401,27 +401,27 @@ export function ContactDetailsContent({
       header: 'Type',
       cell: ({ row }) => <div className="text-[10px] uppercase tracking-[0.12em] text-text-muted">{compactActivityLabel(row.original.type)}</div>,
       enableResizing: true,
-      size: 96,
-      minSize: 72,
-      meta: { label: 'Type', minWidth: 72, defaultWidth: 96, resizable: true, align: 'left', measureValue: (row: ContactActivity) => compactActivityLabel(row.type) },
+      size: 88,
+      minSize: 88,
+      meta: { label: 'Type', minWidth: 88, defaultWidth: 88, resizable: true, align: 'left', measureValue: (row: ContactActivity) => compactActivityLabel(row.type) },
     }),
     activityColumnHelper.display({
       id: 'activity',
       header: 'Activity',
       cell: ({ row }) => <div className="truncate text-[12px] leading-4 text-text">{row.original.step ? `${buildActivitySummary(row.original)} - Step ${row.original.step}` : buildActivitySummary(row.original)}</div>,
       enableResizing: true,
-      size: 160,
+      size: 192,
       minSize: 96,
-      meta: { label: 'Activity', minWidth: 96, defaultWidth: 160, resizable: true, align: 'left', grow: 1, measureValue: (row: ContactActivity) => row.step ? `${buildActivitySummary(row)} - Step ${row.step}` : buildActivitySummary(row) },
+      meta: { label: 'Activity', minWidth: 96, defaultWidth: 192, resizable: true, align: 'left', grow: 1, measureValue: (row: ContactActivity) => row.step ? `${buildActivitySummary(row)} - Step ${row.step}` : buildActivitySummary(row) },
     }),
     activityColumnHelper.accessor('ts', {
       id: 'date',
       header: 'Date',
       cell: ({ row }) => <div className="text-[11px] text-text-muted">{formatCompactDate(row.original.ts)}</div>,
       enableResizing: true,
-      size: 104,
-      minSize: 88,
-      meta: { label: 'Date', minWidth: 88, defaultWidth: 104, resizable: true, align: 'left', measureValue: (row: ContactActivity) => formatCompactDate(row.ts) },
+      size: 96,
+      minSize: 96,
+      meta: { label: 'Date', minWidth: 96, defaultWidth: 96, resizable: true, align: 'left', measureValue: (row: ContactActivity) => formatCompactDate(row.ts) },
     }),
     activityColumnHelper.display({
       id: 'status',
@@ -455,12 +455,12 @@ export function ContactDetailsContent({
         </div>
       ),
       enableResizing: true,
-      size: 96,
-      minSize: 84,
+      size: 88,
+      minSize: 88,
       meta: {
         label: 'Status',
-        minWidth: 84,
-        defaultWidth: 96,
+        minWidth: 88,
+        defaultWidth: 88,
         resizable: true,
         align: 'left',
         headerClassName: 'px-1.5',
@@ -539,13 +539,23 @@ export function ContactDetailsContent({
     [activityColumnWidths, activityVisibleColumnIds]
   );
   const activityFillWidth = Math.max(0, activityContainerWidth - activityBaseTableWidth);
+  const activityDisplayColumnWidths = useMemo(() => {
+    if (activityVisibleColumnIds.length === 0 || activityFillWidth <= 0) return activityColumnWidths;
+    const fillTargetId = activityVisibleColumnIds.includes('activity')
+      ? 'activity'
+      : activityVisibleColumnIds[activityVisibleColumnIds.length - 1];
+    return {
+      ...activityColumnWidths,
+      [fillTargetId]: (activityColumnWidths[fillTargetId] ?? 0) + activityFillWidth,
+    };
+  }, [activityColumnWidths, activityFillWidth, activityVisibleColumnIds]);
   const activityTableStyle = useMemo(
     () => ({
-      width: `${activityBaseTableWidth + activityFillWidth}px`,
-      minWidth: `${activityBaseTableWidth + activityFillWidth}px`,
+      width: `${Math.max(activityContainerWidth, activityBaseTableWidth)}px`,
+      minWidth: `${Math.max(activityContainerWidth, activityBaseTableWidth)}px`,
       tableLayout: 'fixed' as const,
     }),
-    [activityBaseTableWidth, activityFillWidth]
+    [activityBaseTableWidth, activityContainerWidth]
   );
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
@@ -567,13 +577,13 @@ export function ContactDetailsContent({
               </div>
             ) : (
               <table className="border-collapse" style={activityTableStyle}>
-                <SharedTableColGroupWithWidths table={activityTable} columnWidths={activityColumnWidths} visibleColumnIds={activityVisibleColumnIds} fillerWidth={activityFillWidth} controlWidth={0} />
+                <SharedTableColGroupWithWidths table={activityTable} columnWidths={activityDisplayColumnWidths} visibleColumnIds={activityVisibleColumnIds} fillerWidth={0} controlWidth={0} />
                 <SharedTableHeader
                   table={activityTable}
                   onAutoFitColumn={autoFitActivityColumn}
                   visibleColumnIds={activityVisibleColumnIds}
-                  columnWidths={activityColumnWidths}
-                  fillerWidth={activityFillWidth}
+                  columnWidths={activityDisplayColumnWidths}
+                  fillerWidth={0}
                   controlWidth={0}
                 />
                 <tbody>
@@ -588,7 +598,6 @@ export function ContactDetailsContent({
                             </div>
                           </td>
                         ))}
-                        {activityFillWidth > 0 ? <td aria-hidden="true" className={`${SHARED_TABLE_ROW_HEIGHT_CLASS} px-0 py-0`} /> : null}
                       </tr>
                     );
                   })}

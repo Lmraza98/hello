@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type MouseEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getCoreRowModel, type ColumnDef, type RowSelectionState, useReactTable } from '@tanstack/react-table';
 import {
@@ -20,7 +21,6 @@ import {
 import { useRouter, useSearchParams } from 'next/navigation';
 import { api, type DocumentAnswerResponse, type DocumentFolderRecord, type DocumentRecord } from '../api';
 import { useIsMobile } from '../hooks/useIsMobile';
-import { HeaderActionButton } from '../components/shared/HeaderActionButton';
 import { PageSearchInput } from '../components/shared/PageSearchInput';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { EmptyState } from '../components/shared/EmptyState';
@@ -35,7 +35,6 @@ import {
   FILTERABLE_VIEWPORT_CONTROL_WIDTH,
   SHARED_SELECTION_COLUMN_WIDTH,
   SHARED_TABLE_ROW_HEIGHT_CLASS,
-  SharedViewportControlsOverlay,
   SharedTableColGroupWithWidths,
   SharedTableHeader,
   useFittedTableLayout,
@@ -74,6 +73,7 @@ const DOCUMENT_COLUMNS: Array<{
 ];
 
 const PATH_SEP = '/';
+const DOCUMENT_ACTIONS_COLUMN_WIDTH = 56;
 
 function parseDocumentsView(value: string | null): DocumentsView {
   if (value === 'extracting' || value === 'chunking' || value === 'tagging' || value === 'ready' || value === 'failed' || value === 'all') {
@@ -302,6 +302,265 @@ function TreeCell({ label, depth, kind, isExpanded = false, onToggle, meta, trai
   );
 }
 
+function DocumentRowActionsMenu({
+  row,
+  onOpen,
+  onMoveDocument,
+  onMoveFolder,
+  onDeleteDocument,
+  onDeleteEmptyFolder,
+}: {
+  row: TreeRow;
+  onOpen?: () => void;
+  onMoveDocument: (id: string, currentFolder: string) => void | Promise<void>;
+  onMoveFolder: (path: string) => void | Promise<void>;
+  onDeleteDocument: (id: string, filename: string) => void;
+  onDeleteEmptyFolder: (path: string) => void | Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const updatePosition = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPosition({
+        top: rect.top + rect.height / 2,
+        left: rect.left - 4,
+      });
+    };
+    updatePosition();
+    const onPointerDown = (event: globalThis.MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onScrollOrResize = () => updatePosition();
+    document.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <div className="relative flex items-center justify-center">
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-label={row.kind === 'doc' ? `Open actions for ${row.doc.filename}` : `Open actions for ${row.name}`}
+          data-row-control
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen((value) => !value);
+          }}
+          className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {open && menuPosition && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={ref}
+              className="fixed z-[120] w-44 -translate-x-full -translate-y-1/2 rounded-none border border-border bg-surface p-1 shadow-lg"
+              style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              {row.kind === 'doc' ? (
+                <>
+                  {onOpen ? (
+                    <button
+                      type="button"
+                      data-row-control
+                      onClick={() => {
+                        onOpen();
+                        setOpen(false);
+                      }}
+                      className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                    >
+                      Open details
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    data-row-control
+                    onClick={() => {
+                      void onMoveDocument(row.doc.id, docFolderPath(row.doc));
+                      setOpen(false);
+                    }}
+                    className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                  >
+                    Move
+                  </button>
+                  <button
+                    type="button"
+                    data-row-control
+                    onClick={() => {
+                      onDeleteDocument(row.doc.id, row.doc.filename);
+                      setOpen(false);
+                    }}
+                    className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-rose-700 hover:bg-rose-50"
+                  >
+                    Delete
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    data-row-control
+                    onClick={() => {
+                      void onMoveFolder(row.path);
+                      setOpen(false);
+                    }}
+                    className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                  >
+                    Move
+                  </button>
+                  {row.explicit ? (
+                    <button
+                      type="button"
+                      data-row-control
+                      onClick={() => {
+                        void onDeleteEmptyFolder(row.path);
+                        setOpen(false);
+                      }}
+                      className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-rose-700 hover:bg-rose-50"
+                    >
+                      Delete
+                    </button>
+                  ) : null}
+                </>
+              )}
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
+function DocumentHeaderActionsMenu({
+  onUpload,
+  onCreateFolder,
+  onToggleTreeOrder,
+  onRefresh,
+  treeOrder,
+}: {
+  onUpload: () => void;
+  onCreateFolder: () => void;
+  onToggleTreeOrder: () => void;
+  onRefresh: () => void;
+  treeOrder: TreeOrder;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const updatePosition = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPosition({
+        top: rect.top + rect.height / 2,
+        left: rect.left - 4,
+      });
+    };
+    updatePosition();
+    const onPointerDown = (event: globalThis.MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onScrollOrResize = () => updatePosition();
+    document.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <div className="relative flex h-full w-full items-center justify-center">
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-label="Open document table actions"
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen((value) => !value);
+          }}
+          className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {open && menuPosition && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={ref}
+              className="fixed z-[120] w-44 -translate-x-full -translate-y-1/2 rounded-none border border-border bg-surface p-1 shadow-lg"
+              style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  onUpload();
+                  setOpen(false);
+                }}
+                className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+              >
+                Upload
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onCreateFolder();
+                  setOpen(false);
+                }}
+                className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+              >
+                New folder
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onToggleTreeOrder();
+                  setOpen(false);
+                }}
+                className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+              >
+                {treeOrder === 'files_first' ? 'Folders first' : 'Files first'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onRefresh();
+                  setOpen(false);
+                }}
+                className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+              >
+                Refresh
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
 export default function DocumentsPage() {
   const router = useRouter();
   const isPhone = useIsMobile(640);
@@ -313,8 +572,15 @@ export default function DocumentsPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const filterMenuRef = useRef<HTMLDivElement>(null);
+  const documentsTableRefState = useRef<any>(null);
+  const documentsScrollContainerRef = useRef<HTMLDivElement>(null);
+  const canShiftLeftRef = useRef(false);
+  const canShiftRightRef = useRef(false);
+  const shiftLeftRef = useRef<() => void>(() => {});
+  const shiftRightRef = useRef<() => void>(() => {});
   const lastFocusedRowRef = useRef<HTMLElement | null>(null);
   const detailsPanelRef = useRef<HTMLDivElement>(null);
+  const [viewportControlsTarget, setViewportControlsTarget] = useState<HTMLDivElement | null>(null);
   const [query, setQuery] = useState('');
   const [treeOrder, setTreeOrder] = useState<TreeOrder>(() => {
     if (typeof window === 'undefined') return 'files_first';
@@ -358,6 +624,11 @@ export default function DocumentsPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; filename: string } | null>(null);
   const [deleteConfirmValue, setDeleteConfirmValue] = useState('');
+  const [scrollThumb, setScrollThumb] = useState<{ height: number; top: number; visible: boolean }>({
+    height: 0,
+    top: 0,
+    visible: false,
+  });
   const [deleteSaving, setDeleteSaving] = useState(false);
   const inlineFolderInputRef = useRef<HTMLInputElement>(null);
   const view = useMemo(() => parseDocumentsView(searchParams?.get('view') ?? null), [searchParams]);
@@ -1208,6 +1479,93 @@ export default function DocumentsPage() {
     });
   }, [rows]);
 
+  const managedColumnIds = useMemo(() => DOCUMENT_COLUMNS.map((column) => column.id), []);
+  const { columnOrder: managedColumnOrder, setColumnOrder: setManagedColumnOrder, columnVisibility, setColumnVisibility } = usePersistentColumnPreferences({
+    storageKey: 'documents-table',
+    columnIds: managedColumnIds,
+    initialVisibility: { name: true, size: true, type: true, company: true, status: true, updated: true },
+  });
+
+  const moveManagedColumn = useCallback((columnId: string, delta: -1 | 1) => {
+    setManagedColumnOrder((prev) => {
+      const index = prev.indexOf(columnId);
+      const nextIndex = index + delta;
+      if (index < 0 || nextIndex < 0 || nextIndex >= prev.length) return prev;
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.splice(nextIndex, 0, item);
+      return next;
+    });
+  }, [setManagedColumnOrder]);
+
+  const viewportControls = useMemo(() => (
+    <div className="relative flex h-full w-full items-center justify-center gap-0.5 bg-surface" ref={filterMenuRef}>
+      <button
+        type="button"
+        onClick={() => setShowFiltersMenu((v) => !v)}
+        className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        title="Visible columns"
+        aria-label="Open visible columns menu"
+      >
+        <SlidersHorizontal className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => shiftLeftRef.current()}
+        disabled={!canShiftLeftRef.current}
+        aria-label="Show previous columns"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text disabled:opacity-30"
+      >
+        <ChevronRight className="h-3.5 w-3.5 rotate-180" />
+      </button>
+      <button
+        type="button"
+        onClick={() => shiftRightRef.current()}
+        disabled={!canShiftRightRef.current}
+        aria-label="Show more columns"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text disabled:opacity-30"
+      >
+        <ChevronRight className="h-3.5 w-3.5" />
+      </button>
+      {showFiltersMenu ? (
+        <div className="absolute right-0 top-7 z-20 w-[260px] rounded-none border border-border bg-surface p-3 shadow-lg">
+          <ColumnVisibilityMenu
+            items={managedColumnOrder.map((columnId, index) => {
+              const column = DOCUMENT_COLUMNS.find((item) => item.id === columnId);
+              return {
+                id: columnId,
+                label: column?.label ?? columnId,
+                visible: documentsTableRefState.current?.getColumn(columnId)?.getIsVisible() ?? true,
+                canHide: columnId !== 'name',
+                canMoveUp: index > 0,
+                canMoveDown: index < managedColumnOrder.length - 1,
+              };
+            })}
+            onToggle={(columnId, visible) => {
+              if (columnId === 'name') return;
+              documentsTableRefState.current?.getColumn(columnId)?.toggleVisibility(visible);
+            }}
+            onMoveUp={(columnId) => moveManagedColumn(columnId, -1)}
+            onMoveDown={(columnId) => moveManagedColumn(columnId, 1)}
+          />
+        </div>
+      ) : null}
+    </div>
+  ), [managedColumnOrder, moveManagedColumn, showFiltersMenu]);
+
+  const actionsHeader = useMemo(
+    () => (
+      <DocumentHeaderActionsMenu
+        onUpload={() => fileInputRef.current?.click()}
+        onCreateFolder={createFolder}
+        onToggleTreeOrder={() => setTreeOrder((value) => (value === 'files_first' ? 'folders_first' : 'files_first'))}
+        onRefresh={() => void refreshAll()}
+        treeOrder={treeOrder}
+      />
+    ),
+    [createFolder, refreshAll, treeOrder],
+  );
+
   const documentColumns = useMemo<ColumnDef<TreeRow>[]>(
     () => [
       {
@@ -1258,69 +1616,6 @@ export default function DocumentsPage() {
         header: 'Name',
         cell: ({ row: tableRow }) => {
           const row = tableRow.original;
-          const trailingActions = row.kind === 'folder' ? (
-            <div className="hidden items-center gap-1 group-hover:flex">
-              {row.explicit ? (
-                <button
-                  type="button"
-                  data-row-control
-                  aria-label={`Move folder ${row.path}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void moveFolder(row.path);
-                  }}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded border border-border text-text-muted hover:bg-surface"
-                  title="Move folder"
-                >
-                  <MoveRight className="h-3.5 w-3.5" />
-                </button>
-              ) : null}
-              {row.explicit ? (
-                <button
-                  type="button"
-                  data-row-control
-                  aria-label={`Delete folder ${row.path}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void deleteEmptyFolder(row.path);
-                  }}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded border border-red-200 text-red-600 hover:bg-red-50"
-                  title="Delete empty folder"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              ) : null}
-            </div>
-          ) : (
-            <div className="hidden items-center gap-1 group-hover:flex">
-              <button
-                type="button"
-                data-row-control
-                aria-label={`Move file ${row.doc.filename}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  void moveDocument(row.doc.id, docFolderPath(row.doc));
-                }}
-                className="inline-flex h-6 w-6 items-center justify-center rounded border border-border text-text-muted hover:bg-surface"
-                title="Move file"
-              >
-                <MoveRight className="h-3.5 w-3.5" />
-              </button>
-              <button
-                type="button"
-                data-row-control
-                aria-label={`Delete file ${row.doc.filename}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  requestDeleteDocument(row.doc.id, row.doc.filename);
-                }}
-                className="inline-flex h-6 w-6 items-center justify-center rounded border border-red-200 text-red-600 hover:bg-red-50"
-                title="Delete file"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          );
           return renaming &&
             ((renaming.kind === 'folder' && row.kind === 'folder' && String(renaming.id) === row.path) ||
               (renaming.kind === 'doc' && row.kind === 'doc' && String(renaming.id) === row.doc.id)) ? (
@@ -1398,10 +1693,9 @@ export default function DocumentsPage() {
                   row.kind === 'folder' ? (
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] text-text-dim">{row.count}</span>
-                      {trailingActions}
                     </div>
                   ) : (
-                    trailingActions
+                    undefined
                   )
                 }
               />
@@ -1571,8 +1865,40 @@ export default function DocumentsPage() {
           measureValue: (row: TreeRow) => (row.kind === 'folder' ? prettyDate(row.latest) : prettyDate(row.doc.uploaded_at)),
         },
       },
+      {
+        id: 'actions',
+        header: () => actionsHeader,
+        cell: ({ row: tableRow }) => {
+          const row = tableRow.original;
+          return (
+            <DocumentRowActionsMenu
+              row={row}
+              onOpen={row.kind === 'doc' ? () => openDocument(row.doc.id) : undefined}
+              onMoveDocument={moveDocument}
+              onMoveFolder={moveFolder}
+              onDeleteDocument={requestDeleteDocument}
+              onDeleteEmptyFolder={deleteEmptyFolder}
+            />
+          );
+        },
+        size: DOCUMENT_ACTIONS_COLUMN_WIDTH,
+        minSize: DOCUMENT_ACTIONS_COLUMN_WIDTH,
+        maxSize: DOCUMENT_ACTIONS_COLUMN_WIDTH,
+        enableResizing: false,
+        meta: {
+          label: 'Actions',
+          minWidth: DOCUMENT_ACTIONS_COLUMN_WIDTH,
+          defaultWidth: DOCUMENT_ACTIONS_COLUMN_WIDTH,
+          maxWidth: DOCUMENT_ACTIONS_COLUMN_WIDTH,
+          resizable: false,
+          align: 'right',
+          headerClassName: 'sticky right-0 z-20 bg-surface px-0',
+          cellClassName: 'sticky right-0 z-40 overflow-visible bg-surface px-0 text-center',
+        },
+      },
     ],
     [
+      actionsHeader,
       cancelRename,
       confirmRename,
       deleteEmptyFolder,
@@ -1584,6 +1910,10 @@ export default function DocumentsPage() {
       renameValue,
       renaming,
       isInteractiveTarget,
+      moveDocument,
+      moveFolder,
+      openDocument,
+      requestDeleteDocument,
       setActiveFolderPath,
       startRename,
       toggleFolderContentsSelection,
@@ -1596,24 +1926,6 @@ export default function DocumentsPage() {
     rows,
     storageKey: 'documents-table',
   });
-  const managedColumnIds = useMemo(() => DOCUMENT_COLUMNS.map((column) => column.id), []);
-  const { columnOrder: managedColumnOrder, setColumnOrder: setManagedColumnOrder, columnVisibility, setColumnVisibility } = usePersistentColumnPreferences({
-    storageKey: 'documents-table',
-    columnIds: managedColumnIds,
-    initialVisibility: { name: true, size: true, type: true, company: true, status: true, updated: true },
-  });
-
-  const moveManagedColumn = useCallback((columnId: string, delta: -1 | 1) => {
-    setManagedColumnOrder((prev) => {
-      const index = prev.indexOf(columnId);
-      const nextIndex = index + delta;
-      if (index < 0 || nextIndex < 0 || nextIndex >= prev.length) return prev;
-      const next = [...prev];
-      const [item] = next.splice(index, 1);
-      next.splice(nextIndex, 0, item);
-      return next;
-    });
-  }, [setManagedColumnOrder]);
 
   const documentsTable = useReactTable({
     data: rows,
@@ -1622,7 +1934,7 @@ export default function DocumentsPage() {
       columnVisibility,
       columnSizing,
       rowSelection,
-      columnOrder: ['select', ...managedColumnOrder],
+      columnOrder: ['select', ...managedColumnOrder, 'actions'],
     },
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
@@ -1644,19 +1956,70 @@ export default function DocumentsPage() {
     shiftLeft: shiftDocumentsLeft,
     shiftRight: shiftDocumentsRight,
   } = useFittedTableLayout(documentsTable, { controlWidth: FILTERABLE_VIEWPORT_CONTROL_WIDTH });
+  documentsTableRefState.current = documentsTable;
+  canShiftLeftRef.current = canShiftDocumentsLeft;
+  canShiftRightRef.current = canShiftDocumentsRight;
+  shiftLeftRef.current = shiftDocumentsLeft;
+  shiftRightRef.current = shiftDocumentsRight;
   const visibleColumns = useMemo(
     () => documentsTable.getVisibleLeafColumns().filter((column) => documentsVisibleColumnIds.includes(column.id)),
     [documentsTable, documentsVisibleColumnIds],
   );
   const rowGridStyle = useMemo(
-    () => ({
-      gridTemplateColumns: [
-        ...visibleColumns.map((column) => `${documentsColumnWidths[column.id] ?? column.getSize()}px`),
-        ...(documentsFillWidth > 0 ? [`${documentsFillWidth}px`] : []),
-      ].join(' '),
-    }),
+    () => {
+      const trailingActionsColumn = visibleColumns.length > 0 && visibleColumns[visibleColumns.length - 1]?.id === 'actions'
+        ? visibleColumns[visibleColumns.length - 1]
+        : null;
+      const leadingColumns = trailingActionsColumn ? visibleColumns.slice(0, -1) : visibleColumns;
+      const displayWidths = leadingColumns.map((column, index) => {
+        const isLastLeading = index === leadingColumns.length - 1;
+        const extraWidth = trailingActionsColumn && isLastLeading ? documentsFillWidth : 0;
+        return `${(documentsColumnWidths[column.id] ?? column.getSize()) + extraWidth}px`;
+      });
+      return {
+        gridTemplateColumns: [
+          ...displayWidths,
+          ...(trailingActionsColumn ? [`${documentsColumnWidths[trailingActionsColumn.id] ?? trailingActionsColumn.getSize()}px`] : []),
+          ...(!trailingActionsColumn && documentsFillWidth > 0 ? [`${documentsFillWidth}px`] : []),
+        ].join(' '),
+      };
+    },
     [documentsColumnWidths, documentsFillWidth, visibleColumns],
   );
+  const hasTrailingActionsColumn = visibleColumns.length > 0 && visibleColumns[visibleColumns.length - 1]?.id === 'actions';
+
+  useEffect(() => {
+    const element = documentsScrollContainerRef.current;
+    if (!element) {
+      setScrollThumb({ height: 0, top: 0, visible: false });
+      return;
+    }
+    let frameId = 0;
+    const updateThumb = () => {
+      const { clientHeight, scrollHeight, scrollTop } = element;
+      if (scrollHeight <= clientHeight + 1) {
+        setScrollThumb({ height: 0, top: 0, visible: false });
+        return;
+      }
+      const ratio = clientHeight / scrollHeight;
+      const thumbHeight = Math.max(40, Math.round(clientHeight * ratio));
+      const maxTop = Math.max(0, clientHeight - thumbHeight);
+      const top = Math.min(maxTop, Math.round((scrollTop / (scrollHeight - clientHeight)) * maxTop));
+      setScrollThumb({ height: thumbHeight, top, visible: true });
+    };
+    const scheduleUpdate = () => {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(updateThumb);
+    };
+    scheduleUpdate();
+    element.addEventListener('scroll', scheduleUpdate, { passive: true });
+    window.addEventListener('resize', scheduleUpdate);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      element.removeEventListener('scroll', scheduleUpdate);
+      window.removeEventListener('resize', scheduleUpdate);
+    };
+  }, [rows.length, selectedId, view]);
 
   const documentTabs = useMemo(
     () => [
@@ -1671,33 +2034,25 @@ export default function DocumentsPage() {
   );
 
   const inlineControls = (
-    <div className="flex min-w-0 flex-wrap items-center">
+    <div className="flex min-w-0 items-center gap-2">
       <div className="min-w-[240px] flex-1">
         <PageSearchInput value={query} onChange={handleSearchChange} placeholder="Search filename, summary, or content" />
       </div>
-      <HeaderActionButton onClick={() => fileInputRef.current?.click()} variant="primary" icon={<Upload className="h-4 w-4" />}>
-        Upload
-      </HeaderActionButton>
-      <HeaderActionButton onClick={createFolder} variant="secondary" icon={<Plus className="h-4 w-4" />}>
-        New Folder
-      </HeaderActionButton>
-      <button
-        type="button"
-        onClick={() => setTreeOrder((value) => (value === 'files_first' ? 'folders_first' : 'files_first'))}
-        className="inline-flex h-8 items-center border border-border bg-surface px-3 text-xs text-text-muted hover:bg-surface-hover"
-        aria-label={`Switch document tree order, currently ${treeOrder === 'files_first' ? 'files first' : 'folders first'}`}
-      >
-        {treeOrder === 'files_first' ? 'Files First' : 'Folders First'}
-      </button>
-      <HeaderActionButton onClick={refreshAll} variant="secondary" icon={<RefreshCw className="h-4 w-4" />}>
-        Refresh
-      </HeaderActionButton>
+      <div ref={setViewportControlsTarget} className="flex h-8 w-14 shrink-0 items-center justify-center" />
     </div>
   );
 
   return (
     <div className="h-full flex flex-col">
       <input ref={fileInputRef} type="file" className="hidden" onChange={onUploadChange} accept=".pdf,.docx,.csv,.txt,.png,.jpg,.jpeg,.webp" />
+      {viewportControlsTarget && typeof document !== 'undefined'
+        ? createPortal(
+            <div className="flex h-full w-full items-center justify-center">
+              {viewportControls}
+            </div>,
+            viewportControlsTarget,
+          )
+        : null}
       <WorkspacePageShell
         title="Documents"
         subtitle={
@@ -1719,7 +2074,7 @@ export default function DocumentsPage() {
           />
         }
         preHeaderAffectsLayout
-        preHeaderClassName="-mt-3 md:-mt-4 h-14 flex items-end"
+        preHeaderClassName="h-14 flex items-end"
         toolbar={inlineControls}
       >
         {errorMessage ? <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{errorMessage}</div> : null}
@@ -1744,48 +2099,6 @@ export default function DocumentsPage() {
             <div className="bg-surface overflow-hidden flex h-full min-h-0">
               <div ref={documentsTableRef} className="flex min-w-0 min-h-0 flex-1 flex-col">
                 <div className="relative shrink-0">
-                  <SharedViewportControlsOverlay
-                    canShiftLeft={canShiftDocumentsLeft}
-                    canShiftRight={canShiftDocumentsRight}
-                    onShiftLeft={shiftDocumentsLeft}
-                    onShiftRight={shiftDocumentsRight}
-                    leadingControl={
-                      <div className="relative" ref={filterMenuRef}>
-                        <button
-                          type="button"
-                          onClick={() => setShowFiltersMenu((v) => !v)}
-                          className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
-                          title="Visible columns"
-                          aria-label="Open visible columns menu"
-                        >
-                          <SlidersHorizontal className="h-3.5 w-3.5" />
-                        </button>
-                        {showFiltersMenu ? (
-                          <div className="absolute right-0 top-7 z-20 w-[260px] rounded-none border border-border bg-surface p-3 shadow-lg">
-                            <ColumnVisibilityMenu
-                              items={managedColumnOrder.map((columnId, index) => {
-                                const column = DOCUMENT_COLUMNS.find((item) => item.id === columnId);
-                                return {
-                                  id: columnId,
-                                  label: column?.label ?? columnId,
-                                  visible: documentsTable.getColumn(columnId)?.getIsVisible() ?? true,
-                                  canHide: columnId !== 'name',
-                                  canMoveUp: index > 0,
-                                  canMoveDown: index < managedColumnOrder.length - 1,
-                                };
-                              })}
-                              onToggle={(columnId, visible) => {
-                                if (columnId === 'name') return;
-                                documentsTable.getColumn(columnId)?.toggleVisibility(visible);
-                              }}
-                              onMoveUp={(columnId) => moveManagedColumn(columnId, -1)}
-                              onMoveDown={(columnId) => moveManagedColumn(columnId, 1)}
-                            />
-                          </div>
-                        ) : null}
-                      </div>
-                    }
-                  />
                   <table className="w-full border-collapse" style={documentRowStyle}>
                     <SharedTableColGroupWithWidths table={documentsTable} columnWidths={documentsColumnWidths} visibleColumnIds={documentsVisibleColumnIds} fillerWidth={documentsFillWidth} controlWidth={FILTERABLE_VIEWPORT_CONTROL_WIDTH} />
                     <SharedTableHeader
@@ -1799,7 +2112,8 @@ export default function DocumentsPage() {
                   </table>
                 </div>
                 <div
-                  className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
+                  ref={documentsScrollContainerRef}
+                  className="relative no-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden"
                   onDragOver={(e) => {
                     if (!draggingItem) return;
                     if (e.target !== e.currentTarget) return;
@@ -1849,12 +2163,12 @@ export default function DocumentsPage() {
                                       className="h-7 w-full rounded border border-border bg-surface px-2 text-[12px] text-text focus:outline-none focus:border-accent"
                                     />
                                   </div>
-                                ) : column.id === 'select' ? null : (
+                                ) : column.id === 'select' || column.id === 'actions' ? null : (
                                   '-'
                                 )}
                               </div>
                             ))}
-                            {documentsFillWidth > 0 ? <div aria-hidden="true" /> : null}
+                            {documentsFillWidth > 0 && !hasTrailingActionsColumn ? <div aria-hidden="true" /> : null}
                           </div>
                         ) : null}
                         <div
@@ -2147,6 +2461,20 @@ export default function DocumentsPage() {
                                 </div>
                               );
                             }
+                            if (column.id === 'actions') {
+                              return (
+                                <div key={`${row.key}-actions`} className={`${cellClassName} sticky right-0 z-40 overflow-visible bg-surface px-0 text-center`}>
+                                  <DocumentRowActionsMenu
+                                    row={row}
+                                    onOpen={row.kind === 'doc' ? () => openDocument(row.doc.id) : undefined}
+                                    onMoveDocument={moveDocument}
+                                    onMoveFolder={moveFolder}
+                                    onDeleteDocument={requestDeleteDocument}
+                                    onDeleteEmptyFolder={deleteEmptyFolder}
+                                  />
+                                </div>
+                              );
+                            }
                             if (column.id === 'type') {
                               return (
                                 <div key={`${row.key}-type`} className={`${cellClassName} text-[12px] text-text-dim whitespace-nowrap`}>
@@ -2181,7 +2509,7 @@ export default function DocumentsPage() {
                               </div>
                             );
                           })}
-                          {documentsFillWidth > 0 ? <div aria-hidden="true" /> : null}
+                          {documentsFillWidth > 0 && !hasTrailingActionsColumn ? <div aria-hidden="true" /> : null}
                         </div>
                         {row.kind === 'folder' && inlineFolderParentPath === row.path ? (
                           <div className="grid border-b border-border-subtle bg-accent/5" style={rowGridStyle}>
@@ -2209,17 +2537,25 @@ export default function DocumentsPage() {
                                       className="h-7 w-full rounded border border-border bg-surface px-2 text-[12px] text-text focus:outline-none focus:border-accent"
                                     />
                                   </div>
-                                ) : column.id === 'select' ? null : (
+                                ) : column.id === 'select' || column.id === 'actions' ? null : (
                                   '-'
                                 )}
                               </div>
                             ))}
-                            {documentsFillWidth > 0 ? <div aria-hidden="true" /> : null}
+                            {documentsFillWidth > 0 && !hasTrailingActionsColumn ? <div aria-hidden="true" /> : null}
                           </div>
                         ) : null}
                       </Fragment>
                     );
                   })}
+                  {scrollThumb.visible ? (
+                    <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-2">
+                      <div
+                        className="absolute right-0 w-1.5 rounded-full bg-slate-200/75"
+                        style={{ top: `${scrollThumb.top}px`, height: `${scrollThumb.height}px` }}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               </div>
 

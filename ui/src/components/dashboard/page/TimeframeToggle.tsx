@@ -10,7 +10,7 @@ const options: Timeframe[] = [7, 30, 90];
 export function TimeframeToggle({ value, onChange }: TimeframeToggleProps) {
   return (
     <div
-      className="inline-flex items-center gap-1 rounded-lg border border-border bg-surface p-1"
+      className="inline-flex items-center gap-px border border-border bg-border"
       role="tablist"
       aria-label="Email performance timeframe"
     >
@@ -21,10 +21,10 @@ export function TimeframeToggle({ value, onChange }: TimeframeToggleProps) {
           role="tab"
           aria-selected={value === option}
           onClick={() => onChange(option)}
-          className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+          className={`px-2.5 py-1 text-xs font-medium transition-colors ${
             value === option
               ? 'bg-accent text-white'
-              : 'text-text-muted hover:bg-surface-hover hover:text-text'
+              : 'bg-surface text-text-muted hover:bg-surface-hover hover:text-text'
           }`}
         >
           {option}d

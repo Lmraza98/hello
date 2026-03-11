@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { usePageContext } from '../contexts/PageContextProvider';
-import { CheckCircle, Clock, Mail, Plus, RefreshCw, Send, Settings } from 'lucide-react';
+import { CheckCircle, Clock, Mail, Send } from 'lucide-react';
 import { useNotificationContext } from '../contexts/NotificationContext';
 import { useEmailCampaigns } from '../hooks/useEmailCampaigns';
 import { CampaignModal } from '../components/email/CampaignModal';
@@ -13,7 +13,6 @@ import { EmailTabs } from '../components/email/EmailTabs';
 import { StandardEmailTable, type StandardEmailColumn } from '../components/email/StandardEmailTable';
 import { SettingsPanel } from '../components/email/SettingsPanel';
 import { SendNowConfirm } from '../components/email/SendNowConfirm';
-import { HeaderActionButton } from '../components/shared/HeaderActionButton';
 import { PageSearchInput } from '../components/shared/PageSearchInput';
 import { WorkspacePageShell } from '../components/shared/WorkspacePageShell';
 import type { EmailCampaign, ReviewQueueItem, ScheduledEmail, SentEmail } from '../types/email';
@@ -66,6 +65,7 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
   const [emailSearch, setEmailSearch] = useState('');
   const [sendNowTarget, setSendNowTarget] = useState<ScheduledEmail | null>(null);
   const [scheduledCampaignFilter, setScheduledCampaignFilter] = useState<number | null>(null);
+  const [viewportControlsTarget, setViewportControlsTarget] = useState<HTMLDivElement | null>(null);
   const { emailId: selectedEmailId, openEmail, closeEmail, setEmailId } = useEmailDetailsRouteState();
   const lastFocusedRowRef = useRef<HTMLElement | null>(null);
   const detailsPanelRef = useRef<HTMLDivElement>(null);
@@ -636,32 +636,12 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
   }, []);
 
   const inlineControls = (
-    <div className="flex min-w-0 flex-wrap items-center">
+    <div className="flex min-w-0 items-center gap-2">
       <div className="min-w-[220px] flex-1">
         <PageSearchInput value={emailSearch} onChange={setEmailSearch} placeholder={searchPlaceholder} />
       </div>
-      {view === 'review' ? (
-        <>
-          <HeaderActionButton
-            onClick={() => prepareBatch.mutate()}
-            variant="secondary"
-            icon={<RefreshCw className={`h-4 w-4 ${prepareBatch.isPending ? 'animate-spin' : ''}`} />}
-            disabled={prepareBatch.isPending}
-          >
-            Prepare Batch
-          </HeaderActionButton>
-          <HeaderActionButton
-            onClick={() => approveAll.mutate(filteredReviewQueue.map((item) => item.id))}
-            variant="primary"
-            icon={<CheckCircle className="h-4 w-4" />}
-            disabled={filteredReviewQueue.length === 0 || approveAll.isPending}
-          >
-            Approve All
-          </HeaderActionButton>
-        </>
-      ) : null}
       {view === 'scheduled' ? (
-        <>
+        <div className="shrink-0">
           <select
             value={scheduledCampaignFilter ?? ''}
             onChange={(event) => setScheduledCampaignFilter(event.target.value ? Number(event.target.value) : null)}
@@ -675,38 +655,9 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
               </option>
             ))}
           </select>
-          <HeaderActionButton
-            onClick={() => processScheduled.mutate(true)}
-            variant="secondary"
-            icon={<Clock className="h-4 w-4" />}
-            disabled={filteredScheduledRows.length === 0 || (processScheduled.isPending && processScheduled.variables === true)}
-          >
-            Review in Tabs
-          </HeaderActionButton>
-          <HeaderActionButton
-            onClick={() => processScheduled.mutate(false)}
-            variant="primary"
-            icon={<Send className="h-4 w-4" />}
-            disabled={filteredScheduledRows.length === 0 || (processScheduled.isPending && processScheduled.variables !== true)}
-          >
-            Process Due
-          </HeaderActionButton>
-        </>
+        </div>
       ) : null}
-      <HeaderActionButton
-        onClick={() => setShowSettings((prev) => !prev)}
-        variant={showSettings ? 'primary' : 'secondary'}
-        compact
-        icon={<Settings className="h-4 w-4" />}
-        title="Email Settings"
-      />
-      <HeaderActionButton
-        onClick={() => setShowCreateModal(true)}
-        variant="primary"
-        icon={<Plus className="h-4 w-4" />}
-      >
-        New Campaign
-      </HeaderActionButton>
+      <div ref={setViewportControlsTarget} className="flex h-8 w-14 shrink-0 items-center justify-center" />
     </div>
   );
 
@@ -733,7 +684,7 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
           />
         }
         preHeaderAffectsLayout
-        preHeaderClassName="-mt-3 md:-mt-4 h-14 flex items-end"
+        preHeaderClassName="h-14 flex items-end"
         toolbar={inlineControls}
       >
         {showSettings && emailConfig ? (
@@ -749,6 +700,31 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
                   campaignScheduleSummary={campaignScheduleSummary}
                   isLoading={campaignsLoading}
                   searchQuery={emailSearch}
+                  viewportControlsTarget={viewportControlsTarget}
+                  renderHeaderActionsMenu={(closeMenu) => (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowSettings((prev) => !prev);
+                          closeMenu();
+                        }}
+                        className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                      >
+                        {showSettings ? 'Hide settings' : 'Email settings'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCreateModal(true);
+                          closeMenu();
+                        }}
+                        className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                      >
+                        New campaign
+                      </button>
+                    </>
+                  )}
                   withinCard
                   selectedCampaignId={selectedCampaign?.id ?? null}
                   onSelectCampaign={(campaign) => setSelectedCampaignId(campaign.id)}
@@ -798,12 +774,52 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
                   columns={reviewColumns}
                   rows={filteredReviewQueue}
                   storageKey="review-table-v2"
+                  viewportControlsTarget={viewportControlsTarget}
+                  renderHeaderActionsMenu={(closeMenu) => (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          prepareBatch.mutate();
+                          closeMenu();
+                        }}
+                        className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                      >
+                        Prepare batch
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          approveAll.mutate(filteredReviewQueue.map((item) => item.id));
+                          closeMenu();
+                        }}
+                        disabled={filteredReviewQueue.length === 0 || approveAll.isPending}
+                        className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover disabled:opacity-50"
+                      >
+                        Approve all
+                      </button>
+                    </>
+                  )}
                   rowId={(item) => item.id}
                   selectedId={selectedEmailPanel?.mode === 'review' ? selectedEmailPanel.email.id : null}
                   isCompact={isCompact}
                   renderCompactRow={renderCompactReviewRow}
                   onSelectRow={(item, element) => openEmailDetails(item.id, element)}
                   getRowAriaLabel={(item) => `Open review details for ${item.contact_name}`}
+                  renderRowActionsMenu={(item, closeMenu) => (
+                    <button
+                      type="button"
+                      data-row-control
+                      onClick={() => {
+                        const element = lastFocusedRowRef.current ?? document.body;
+                        openEmailDetails(item.id, element as HTMLElement);
+                        closeMenu();
+                      }}
+                      className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                    >
+                      Open details
+                    </button>
+                  )}
                   emptyState={
                     <div className="text-center text-text-muted">
                       <CheckCircle className="mx-auto mb-3 h-10 w-10 opacity-50" />
@@ -832,12 +848,51 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
                   columns={historyColumns}
                   rows={filteredSentEmails}
                   storageKey="history-table"
+                  viewportControlsTarget={viewportControlsTarget}
+                  renderHeaderActionsMenu={(closeMenu) => (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowSettings((prev) => !prev);
+                          closeMenu();
+                        }}
+                        className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                      >
+                        {showSettings ? 'Hide settings' : 'Email settings'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCreateModal(true);
+                          closeMenu();
+                        }}
+                        className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                      >
+                        New campaign
+                      </button>
+                    </>
+                  )}
                   rowId={(item) => item.id}
                   selectedId={selectedEmailPanel?.mode === 'history' ? selectedEmailPanel.email.id : null}
                   isCompact={isCompact}
                   renderCompactRow={renderCompactHistoryRow}
                   onSelectRow={(item, element) => openEmailDetails(item.id, element)}
                   getRowAriaLabel={(item) => `Open sent email details for ${item.contact_name}`}
+                  renderRowActionsMenu={(item, closeMenu) => (
+                    <button
+                      type="button"
+                      data-row-control
+                      onClick={() => {
+                        const element = lastFocusedRowRef.current ?? document.body;
+                        openEmailDetails(item.id, element as HTMLElement);
+                        closeMenu();
+                      }}
+                      className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                    >
+                      Open details
+                    </button>
+                  )}
                   emptyState={
                     <div className="text-center text-text-muted">
                       <Mail className="mx-auto mb-3 h-10 w-10 opacity-50" />
@@ -866,12 +921,53 @@ export default function Email({ openAddModal, onModalOpened }: { openAddModal?: 
                   columns={scheduledColumns}
                   rows={filteredScheduledRows}
                   storageKey="scheduled-table"
+                  viewportControlsTarget={viewportControlsTarget}
+                  renderHeaderActionsMenu={(closeMenu) => (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          processScheduled.mutate(true);
+                          closeMenu();
+                        }}
+                        disabled={filteredScheduledRows.length === 0 || (processScheduled.isPending && processScheduled.variables === true)}
+                        className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover disabled:opacity-50"
+                      >
+                        Review in tabs
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          processScheduled.mutate(false);
+                          closeMenu();
+                        }}
+                        disabled={filteredScheduledRows.length === 0 || (processScheduled.isPending && processScheduled.variables !== true)}
+                        className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover disabled:opacity-50"
+                      >
+                        Process due
+                      </button>
+                    </>
+                  )}
                   rowId={(item) => item.id}
                   selectedId={selectedEmailPanel?.mode === 'scheduled' ? selectedEmailPanel.email.id : null}
                   isCompact={isCompact}
                   renderCompactRow={renderCompactScheduledRow}
                   onSelectRow={(item, element) => openEmailDetails(item.id, element)}
                   getRowAriaLabel={(item) => `Open scheduled email details for ${item.contact_name}`}
+                  renderRowActionsMenu={(item, closeMenu) => (
+                    <button
+                      type="button"
+                      data-row-control
+                      onClick={() => {
+                        const element = lastFocusedRowRef.current ?? document.body;
+                        openEmailDetails(item.id, element as HTMLElement);
+                        closeMenu();
+                      }}
+                      className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+                    >
+                      Open details
+                    </button>
+                  )}
                   emptyState={
                     <div className="text-center text-text-muted">
                       <Clock className="mx-auto mb-3 h-10 w-10 opacity-50" />

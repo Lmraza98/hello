@@ -7,6 +7,8 @@ type StatItem = {
   delta: string;
   icon: LucideIcon;
   onClick: () => void;
+  compactSummary?: boolean;
+  detailLines?: Array<{ label: string; value: string | number }>;
 };
 
 type DashboardStatsGridProps = {
@@ -15,7 +17,7 @@ type DashboardStatsGridProps = {
 
 export function DashboardStatsGrid({ items }: DashboardStatsGridProps) {
   return (
-    <section className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-4" data-component="dashboard-stats-grid">
+    <section className="grid grid-cols-2 md:grid-cols-4" data-component="dashboard-stats-grid">
       {items.map((item) => (
         <StatCard
           key={item.label}

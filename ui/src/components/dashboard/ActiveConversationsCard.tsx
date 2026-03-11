@@ -43,9 +43,11 @@ export function ActiveConversationsCard({
       icon={MessageCircle}
       storageKey="active-conversations"
       defaultCollapsed={false}
+      className="h-full"
+      contentClassName="min-h-0 flex-1"
       badge={
         activeConversations > 0 ? (
-          <span className="text-[10px] font-medium text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+          <span className="inline-flex h-4 min-w-4 items-center justify-center border border-amber-200 bg-amber-50 px-1 text-[10px] font-medium text-amber-700">
             {activeConversations}
           </span>
         ) : null
@@ -57,14 +59,14 @@ export function ActiveConversationsCard({
               <button
                 onClick={() => pollReplies()}
                 disabled={pollRepliesLoading}
-                className="flex items-center gap-1 px-2 py-1 text-[11px] text-text-muted border border-border rounded hover:text-text hover:bg-surface-hover transition-colors disabled:opacity-40"
+                className="inline-flex h-5 w-5 items-center justify-center border border-border text-text-muted transition-colors hover:bg-surface-hover hover:text-text disabled:opacity-40"
                 title="Check for new replies"
               >
                 <RefreshCw className={`w-3 h-3 ${pollRepliesLoading ? 'animate-spin' : ''}`} />
               </button>
               <button
                 onClick={() => disconnectOutlook()}
-                className="p-1 text-text-dim border border-border rounded hover:text-red-600 hover:border-red-200 transition-colors"
+                className="inline-flex h-5 w-5 items-center justify-center border border-border text-text-dim transition-colors hover:border-red-200 hover:text-red-600"
                 title="Disconnect Outlook"
               >
                 <Unlink className="w-3 h-3" />
@@ -72,33 +74,36 @@ export function ActiveConversationsCard({
             </>
           )}
           {outlookConnected && (
-            <span className="flex items-center gap-1 text-[10px] text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">
+            <span className="inline-flex h-5 items-center gap-1 border border-emerald-200 bg-emerald-50 px-1.5 text-[10px] text-emerald-700">
               <CheckCircle2 className="w-2.5 h-2.5" />
+              Live
             </span>
           )}
         </div>
       }
     >
       {recentReplies.length > 0 ? (
-        <div className="space-y-2">
-          {visibleReplies.map((reply) => (
-            <ConversationCard
-              key={reply.reply_id}
-              reply={reply}
-              onClick={() => onSelectConversation(reply)}
-              onMarkDone={onMarkDone}
-              removing={removingIds.includes(reply.reply_id)}
-            />
-          ))}
-          {recentReplies.length > 3 && (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar">
+            {visibleReplies.map((reply) => (
+              <ConversationCard
+                key={reply.reply_id}
+                reply={reply}
+                onClick={() => onSelectConversation(reply)}
+                onMarkDone={onMarkDone}
+                removing={removingIds.includes(reply.reply_id)}
+              />
+            ))}
+          </div>
+          {recentReplies.length > 3 ? (
             <button
               onClick={() => setShowAllConversations(!showAllConversations)}
-              className="flex items-center gap-1 text-xs text-accent hover:text-accent-hover font-medium w-full justify-center py-1.5 transition-colors"
+              className="flex h-[31px] w-full items-center justify-center gap-1 border-t border-border px-3 text-[11px] font-medium text-accent transition-colors hover:bg-surface-hover hover:text-accent-hover"
             >
               {showAllConversations ? 'Show less' : `View All ${recentReplies.length}`}
               <ArrowRight className="w-3 h-3" />
             </button>
-          )}
+          ) : null}
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-6 text-center">

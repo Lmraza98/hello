@@ -141,7 +141,7 @@ export const ResizableSidePanel = forwardRef<HTMLDivElement, ResizableSidePanelP
 
   return (
     <>
-      <div className="group relative flex h-full w-4 shrink-0 cursor-col-resize items-stretch justify-center bg-surface">
+      <div className="group relative flex h-full w-px shrink-0 cursor-col-resize items-stretch justify-center bg-border">
         <button
           ref={handleRef}
           type="button"
@@ -154,10 +154,9 @@ export const ResizableSidePanel = forwardRef<HTMLDivElement, ResizableSidePanelP
           onPointerDown={onPointerDown}
           onKeyDown={onKeyDown}
           onDoubleClick={() => setWidth(clamp(defaultWidth, minWidth, maxWidth))}
-          className="absolute inset-0 z-10 cursor-col-resize touch-none focus:outline-none"
+          className="absolute inset-y-0 left-1/2 z-10 w-3 -translate-x-1/2 cursor-col-resize touch-none focus:outline-none"
         />
-        <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-border" />
-        <div className="pointer-events-none absolute inset-y-0 left-1/2 w-2 -translate-x-1/2 bg-transparent transition-colors group-hover:bg-surface-hover/40" />
+        <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-border-strong transition-colors group-hover:bg-text-muted" />
       </div>
       <SidePanelContainer ref={ref} ariaLabel={ariaLabel} style={panelStyle} className="relative w-auto max-w-none border-l-0">
         {children}

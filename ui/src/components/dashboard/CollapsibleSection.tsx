@@ -9,6 +9,8 @@ type CollapsibleSectionProps = {
   badge?: ReactNode;
   headerRight?: ReactNode;
   children: ReactNode;
+  className?: string;
+  contentClassName?: string;
 };
 
 export function CollapsibleSection({
@@ -19,6 +21,8 @@ export function CollapsibleSection({
   badge,
   headerRight,
   children,
+  className = '',
+  contentClassName = '',
 }: CollapsibleSectionProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
 
@@ -47,28 +51,26 @@ export function CollapsibleSection({
   }, [children]);
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-surface">
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-surface-hover transition-colors"
-      >
-        <div className="flex items-center gap-2">
+    <div className={`flex h-full min-h-0 flex-col border border-border bg-surface ${className}`.trim()}>
+      <div className="flex h-[31px] items-center justify-between border-b border-border px-2.5">
+        <button
+          type="button"
+          onClick={() => setCollapsed(!collapsed)}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left transition-colors hover:text-text"
+        >
           {collapsed ? (
             <ChevronRight className="w-3.5 h-3.5 text-text-dim" />
           ) : (
             <ChevronDown className="w-3.5 h-3.5 text-text-dim" />
           )}
-          {Icon && <Icon className="w-4 h-4 text-text-muted" />}
-          <span className="text-sm font-semibold text-text">{title}</span>
+          {Icon && <Icon className="h-3.5 w-3.5 shrink-0 text-text-muted" />}
+          <span className="truncate text-[10px] font-semibold uppercase tracking-wide text-text-dim">{title}</span>
           {badge}
-        </div>
-        <div className="flex items-center gap-2">
+        </button>
+        <div className="ml-2 flex shrink-0 items-center gap-1.5">
           {headerRight}
-          <span className="text-[10px] text-text-dim">
-            {collapsed ? 'Expand' : 'Collapse'}
-          </span>
         </div>
-      </button>
+      </div>
       <div
         style={{
           maxHeight: collapsed ? 0 : height ?? 'none',
@@ -76,8 +78,9 @@ export function CollapsibleSection({
           transition: 'max-height 200ms ease, opacity 150ms ease',
           overflow: 'hidden',
         }}
+        className="min-h-0 flex-1"
       >
-        <div ref={contentRef} className="px-4 pb-4">
+        <div ref={contentRef} className={`min-h-0 flex-1 ${contentClassName}`.trim()}>
           {children}
         </div>
       </div>

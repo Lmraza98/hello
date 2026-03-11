@@ -1,8 +1,9 @@
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { createPortal } from 'react-dom';
 import { flexRender, getCoreRowModel, type ColumnDef, useReactTable } from '@tanstack/react-table';
-import { Loader2, RefreshCw, Wand2 } from 'lucide-react';
+import { ChevronRight, Loader2, MoreHorizontal, RefreshCw, SlidersHorizontal, Wand2 } from 'lucide-react';
 import { api, type BrowserAnnotationBox, type BrowserTab, type BrowserWorkflowTask } from '../api';
 import { getPageCapability } from '../capabilities/catalog';
 import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
@@ -11,11 +12,24 @@ import type { TabValidationSummary, WorkbenchTab, WorkflowActionType } from '../
 import { EmailTabs } from '../components/email/EmailTabs';
 import { BROWSER_WORKFLOW_COMMAND_EVENT, isBrowserWorkflowCommand } from '../components/browser/workbenchBridge';
 import { PageSearchInput } from '../components/shared/PageSearchInput';
+import { ColumnVisibilityMenu } from '../components/shared/ColumnVisibilityMenu';
 import { SidePanelContainer } from '../components/contacts/SidePanelContainer';
 import { BottomDrawerContainer } from '../components/contacts/BottomDrawerContainer';
 import { usePageContext } from '../contexts/PageContextProvider';
 import { useWorkspaceLayout } from '../components/shell/workspaceLayout';
 import { useIsMobile } from '../hooks/useIsMobile';
+import {
+  FILTERABLE_VIEWPORT_CONTROL_WIDTH,
+  SHARED_SELECTION_COLUMN_WIDTH,
+  SHARED_TABLE_ROW_HEIGHT_CLASS,
+  SharedTableColGroupWithWidths,
+  SharedTableHeader,
+  filterCellsByIds,
+  sharedCellClassName,
+  useFittedTableLayout,
+  usePersistentColumnSizing,
+} from '../components/shared/resizableDataTable';
+import { usePersistentColumnPreferences } from '../components/shared/usePersistentColumnPreferences';
 
 function extractDomain(url: string): string {
   try {
@@ -59,6 +73,8 @@ type BrowserFlowSelection = BrowserTaskTab & {
   tabsOwned: string[];
 };
 
+const BROWSER_TABS_ACTIONS_COLUMN_WIDTH = 56;
+
 function resolveTabOrder(tab: BrowserTab, fallbackIndex: number): number {
   const index = typeof tab.index === 'number' && Number.isFinite(tab.index) ? tab.index : fallbackIndex;
   return index;
@@ -100,6 +116,148 @@ function workbenchStatusPillClass(status: WorkbenchTab['status']): string {
   if (status === 'active') return 'bg-green-100 text-green-700';
   if (status === 'blocked') return 'bg-amber-100 text-amber-700';
   return 'bg-slate-100 text-slate-700';
+}
+
+function BrowserTabsHeaderActionsMenu({
+  onNewTab,
+  onRefresh,
+}: {
+  onNewTab: () => void;
+  onRefresh: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const updatePosition = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPosition({ top: rect.top + rect.height / 2, left: rect.left - 4 });
+    };
+    updatePosition();
+    const onPointerDown = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onScrollOrResize = () => updatePosition();
+    document.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <div className="relative flex h-full w-full items-center justify-center">
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-label="Open browser tab table actions"
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen((value) => !value);
+          }}
+          className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {open && menuPosition && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={ref}
+              className="fixed z-[120] w-44 -translate-x-full -translate-y-1/2 rounded-none border border-border bg-surface p-1 shadow-lg"
+              style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button type="button" onClick={() => { onNewTab(); setOpen(false); }} className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover">
+                New tab
+              </button>
+              <button type="button" onClick={() => { onRefresh(); setOpen(false); }} className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover">
+                Refresh
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
+function BrowserTabRowActionsMenu({
+  tab,
+  onOpen,
+}: {
+  tab: WorkbenchTab;
+  onOpen: (tabId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const updatePosition = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPosition({ top: rect.top + rect.height / 2, left: rect.left - 4 });
+    };
+    updatePosition();
+    const onPointerDown = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onScrollOrResize = () => updatePosition();
+    document.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <div className="relative flex h-full w-full items-center justify-center">
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-label={`Open actions for ${browserWorkbenchTabLabel(tab)}`}
+          data-row-control
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen((value) => !value);
+          }}
+          className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {open && menuPosition && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={ref}
+              className="fixed z-[120] w-44 -translate-x-full -translate-y-1/2 rounded-none border border-border bg-surface p-1 shadow-lg"
+              style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button type="button" onClick={() => { onOpen(tab.id); setOpen(false); }} className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover">
+                Open details
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
 }
 
 function formatWorkbenchTime(ts?: number | null): string {
@@ -1048,6 +1206,15 @@ export default function BrowserWorkbenchPage() {
   const [workflowDrawerOpen, setWorkflowDrawerOpen] = useState(false);
   const [workflowDrawerOpenToHalfNonce, setWorkflowDrawerOpenToHalfNonce] = useState(0);
   const [activeTaskId, setActiveTaskId] = useState<string>('browser-tabs');
+  const [browserTabsRowSelection, setBrowserTabsRowSelection] = useState<Record<string, boolean>>({});
+  const [showFiltersMenu, setShowFiltersMenu] = useState(false);
+  const [viewportControlsTarget, setViewportControlsTarget] = useState<HTMLDivElement | null>(null);
+  const filtersMenuRef = useRef<HTMLDivElement>(null);
+  const browserTabsTableRef = useRef<any>(null);
+  const canShiftLeftRef = useRef(false);
+  const canShiftRightRef = useRef(false);
+  const shiftLeftRef = useRef<() => void>(() => {});
+  const shiftRightRef = useRef<() => void>(() => {});
 
   const [selectedTabId, setSelectedTabId] = useState<string>('');
   const [selectedBrowserDetailsTabId, setSelectedBrowserDetailsTabId] = useState<string | null>(null);
@@ -1352,6 +1519,14 @@ export default function BrowserWorkbenchPage() {
         .includes(q)
     );
   }, [tabSearch, visibleWorkbenchTabs]);
+
+  useEffect(() => {
+    function handleClick(event: MouseEvent) {
+      if (filtersMenuRef.current && !filtersMenuRef.current.contains(event.target as Node)) setShowFiltersMenu(false);
+    }
+    if (showFiltersMenu) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showFiltersMenu]);
   const selectedWorkbenchTab = useMemo(
     () => visibleWorkbenchTabs.find((tab) => tab.id === selectedTabId) || null,
     [selectedTabId, visibleWorkbenchTabs]
@@ -1410,6 +1585,264 @@ export default function BrowserWorkbenchPage() {
     setSelectedBrowserDetailsTabId(null);
   }, [selectedBrowserDetailsTabId, workbenchTabs]);
 
+  const browserTabsColumnLabelMap: Record<string, string> = {
+    title: 'Title',
+    status: 'Status',
+    url: 'URL',
+    domain: 'Domain',
+    linked_tasks: 'Linked Tasks',
+    updated: 'Updated',
+  };
+  const managedBrowserTabColumnIds = useMemo(() => ['title', 'status', 'url', 'domain', 'linked_tasks', 'updated'], []);
+  const {
+    columnOrder: browserTabsColumnOrder,
+    setColumnOrder: setBrowserTabsColumnOrder,
+    columnVisibility: browserTabsColumnVisibility,
+    setColumnVisibility: setBrowserTabsColumnVisibility,
+  } = usePersistentColumnPreferences({
+    storageKey: 'browser-tabs-table',
+    columnIds: managedBrowserTabColumnIds,
+    initialVisibility: { title: true },
+  });
+
+  const moveBrowserTabsColumn = useCallback((columnId: string, delta: -1 | 1) => {
+    setBrowserTabsColumnOrder((prev) => {
+      const index = prev.indexOf(columnId);
+      const nextIndex = index + delta;
+      if (index < 0 || nextIndex < 0 || nextIndex >= prev.length) return prev;
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.splice(nextIndex, 0, item);
+      return next;
+    });
+  }, [setBrowserTabsColumnOrder]);
+
+  const viewportControls = useMemo(() => (
+    <div className="relative flex h-full w-full items-center justify-center gap-0.5 bg-surface" ref={filtersMenuRef}>
+      <button
+        type="button"
+        onClick={() => setShowFiltersMenu((v) => !v)}
+        className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        title="Columns"
+        aria-label="Open visible columns menu"
+      >
+        <SlidersHorizontal className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => shiftLeftRef.current()}
+        disabled={!canShiftLeftRef.current}
+        aria-label="Show previous columns"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text disabled:opacity-30"
+      >
+        <ChevronRight className="h-3.5 w-3.5 rotate-180" />
+      </button>
+      <button
+        type="button"
+        onClick={() => shiftRightRef.current()}
+        disabled={!canShiftRightRef.current}
+        aria-label="Show more columns"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text disabled:opacity-30"
+      >
+        <ChevronRight className="h-3.5 w-3.5" />
+      </button>
+      {showFiltersMenu ? (
+        <div className="absolute right-0 top-7 z-20 w-[260px] rounded-none border border-border bg-surface p-3 shadow-lg">
+          <ColumnVisibilityMenu
+            items={browserTabsColumnOrder.map((columnId, index) => ({
+              id: columnId,
+              label: browserTabsColumnLabelMap[columnId] ?? columnId,
+              visible: browserTabsTableRef.current?.getColumn(columnId)?.getIsVisible() ?? true,
+              canHide: columnId !== 'title',
+              canMoveUp: index > 0,
+              canMoveDown: index < browserTabsColumnOrder.length - 1,
+            }))}
+            onToggle={(columnId, visible) => {
+              if (columnId === 'title') return;
+              browserTabsTableRef.current?.getColumn(columnId)?.toggleVisibility(visible);
+            }}
+            onMoveUp={(columnId) => moveBrowserTabsColumn(columnId, -1)}
+            onMoveDown={(columnId) => moveBrowserTabsColumn(columnId, 1)}
+          />
+        </div>
+      ) : null}
+    </div>
+  ), [browserTabsColumnLabelMap, browserTabsColumnOrder, moveBrowserTabsColumn, showFiltersMenu]);
+
+  const browserTabsActionsHeader = useMemo(
+    () => (
+      <BrowserTabsHeaderActionsMenu
+        onNewTab={() => {
+          void handleNewTab();
+        }}
+        onRefresh={() => {
+          void tabsQ.refetch();
+          void workflowTasksQ.refetch();
+          if (selectedTabId) void fetchScreenshot(selectedTabId, false);
+        }}
+      />
+    ),
+    [selectedTabId, tabsQ, workflowTasksQ],
+  );
+
+  const browserTabsColumns = useMemo<ColumnDef<WorkbenchTab>[]>(() => [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <button
+          type="button"
+          aria-label="Select all visible browser tabs"
+          aria-pressed={table.getIsAllRowsSelected()}
+          onClick={() => table.toggleAllRowsSelected(!table.getIsAllRowsSelected())}
+          className="block h-full w-full"
+          data-row-control
+        />
+      ),
+      cell: ({ row }) => (
+        <button
+          type="button"
+          aria-label={`Select browser tab ${browserWorkbenchTabLabel(row.original)}`}
+          aria-pressed={row.getIsSelected()}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            row.toggleSelected();
+          }}
+          className="block h-full w-full"
+          data-row-control
+        />
+      ),
+      size: SHARED_SELECTION_COLUMN_WIDTH,
+      minSize: SHARED_SELECTION_COLUMN_WIDTH,
+      maxSize: SHARED_SELECTION_COLUMN_WIDTH,
+      enableResizing: false,
+      meta: { label: 'Select', minWidth: SHARED_SELECTION_COLUMN_WIDTH, defaultWidth: SHARED_SELECTION_COLUMN_WIDTH, maxWidth: SHARED_SELECTION_COLUMN_WIDTH, resizable: false, align: 'center' },
+    },
+    {
+      id: 'title',
+      header: 'Title',
+      accessorFn: (row) => row.title,
+      cell: ({ row }) => (
+        <span className="block truncate text-xs font-medium text-text" title={row.original.title || row.original.id}>
+          {row.original.title || `Tab ${row.original.id}`}
+        </span>
+      ),
+      size: 260,
+      minSize: 220,
+      maxSize: Number.MAX_SAFE_INTEGER,
+      meta: { label: 'Title', minWidth: 220, defaultWidth: 260, maxWidth: 420, resizable: true, align: 'left', measureValue: (row: WorkbenchTab) => row.title || row.id },
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      accessorFn: (row) => row.status,
+      cell: ({ row }) => <span className={`inline-flex px-1.5 py-0.5 text-[10px] font-medium ${workbenchStatusPillClass(row.original.status)}`}>{row.original.status}</span>,
+      size: 120,
+      minSize: 96,
+      maxSize: Number.MAX_SAFE_INTEGER,
+      meta: { label: 'Status', minWidth: 96, defaultWidth: 120, maxWidth: 150, resizable: true, align: 'left', measureValue: (row: WorkbenchTab) => row.status },
+    },
+    {
+      id: 'url',
+      header: 'URL',
+      accessorFn: (row) => row.url,
+      cell: ({ row }) => <span className="block truncate text-xs leading-tight text-text-dim" title={row.original.url}>{row.original.url || 'n/a'}</span>,
+      size: 280,
+      minSize: 220,
+      maxSize: Number.MAX_SAFE_INTEGER,
+      meta: { label: 'URL', minWidth: 220, defaultWidth: 280, maxWidth: 520, resizable: true, align: 'left', measureValue: (row: WorkbenchTab) => row.url || 'n/a' },
+    },
+    {
+      id: 'domain',
+      header: 'Domain',
+      accessorFn: (row) => row.domain,
+      cell: ({ row }) => <span className="block truncate text-xs leading-tight text-text-dim">{row.original.domain}</span>,
+      size: 120,
+      minSize: 100,
+      maxSize: Number.MAX_SAFE_INTEGER,
+      meta: { label: 'Domain', minWidth: 100, defaultWidth: 120, maxWidth: 180, resizable: true, align: 'left', measureValue: (row: WorkbenchTab) => row.domain },
+    },
+    {
+      id: 'linked_tasks',
+      header: 'Linked Tasks',
+      accessorFn: (row) => (tasksByTabId.get(row.id) || []).length,
+      cell: ({ row }) => <span className="block truncate text-xs leading-tight text-text-dim">{(tasksByTabId.get(row.original.id) || []).length}</span>,
+      size: 110,
+      minSize: 96,
+      maxSize: Number.MAX_SAFE_INTEGER,
+      meta: { label: 'Linked Tasks', minWidth: 96, defaultWidth: 110, maxWidth: 140, resizable: true, align: 'left', measureValue: (row: WorkbenchTab) => (tasksByTabId.get(row.id) || []).length },
+    },
+    {
+      id: 'updated',
+      header: 'Updated',
+      accessorFn: (row) => formatWorkbenchTime(row.lastUpdatedAt),
+      cell: ({ row }) => <span className="block truncate text-xs leading-tight text-text-dim">{formatWorkbenchTime(row.original.lastUpdatedAt)}</span>,
+      size: 160,
+      minSize: 130,
+      maxSize: Number.MAX_SAFE_INTEGER,
+      meta: { label: 'Updated', minWidth: 130, defaultWidth: 160, maxWidth: 220, resizable: true, align: 'left', measureValue: (row: WorkbenchTab) => formatWorkbenchTime(row.lastUpdatedAt) },
+    },
+    {
+      id: 'actions',
+      header: () => browserTabsActionsHeader,
+      cell: ({ row }) => <BrowserTabRowActionsMenu tab={row.original} onOpen={(tabId) => {
+        setActiveTab(tabId);
+        setSelectedBrowserDetailsTabId((current) => (current === tabId ? null : tabId));
+      }} />,
+      size: BROWSER_TABS_ACTIONS_COLUMN_WIDTH,
+      minSize: BROWSER_TABS_ACTIONS_COLUMN_WIDTH,
+      maxSize: BROWSER_TABS_ACTIONS_COLUMN_WIDTH,
+      enableResizing: false,
+      meta: { label: 'Actions', minWidth: BROWSER_TABS_ACTIONS_COLUMN_WIDTH, defaultWidth: BROWSER_TABS_ACTIONS_COLUMN_WIDTH, maxWidth: BROWSER_TABS_ACTIONS_COLUMN_WIDTH, resizable: false, align: 'right', headerClassName: 'sticky right-0 z-20 bg-surface px-0', cellClassName: 'sticky right-0 z-40 overflow-visible bg-surface px-0 text-center' },
+    },
+  ], [browserTabsActionsHeader, tasksByTabId]);
+
+  const { columnSizing: browserTabsColumnSizing, setColumnSizing: setBrowserTabsColumnSizing, autoFitColumn: autoFitBrowserTabsColumn } = usePersistentColumnSizing({
+    columns: browserTabsColumns,
+    rows: filteredWorkbenchTabs,
+    storageKey: 'browser-tabs-workbench-table',
+  });
+
+  const browserTabsTable = useReactTable({
+    data: filteredWorkbenchTabs,
+    columns: browserTabsColumns,
+    state: { columnSizing: browserTabsColumnSizing, columnVisibility: browserTabsColumnVisibility, rowSelection: browserTabsRowSelection, columnOrder: ['select', ...browserTabsColumnOrder, 'actions'] },
+    onColumnSizingChange: setBrowserTabsColumnSizing,
+    onColumnVisibilityChange: setBrowserTabsColumnVisibility,
+    onRowSelectionChange: setBrowserTabsRowSelection,
+    onColumnOrderChange: (updater) => {
+      setBrowserTabsColumnOrder((prev) => {
+        const current = ['select', ...prev, 'actions'];
+        const next = typeof updater === 'function' ? updater(current) : updater;
+        const orderedManaged = next.filter((id) => managedBrowserTabColumnIds.includes(id));
+        managedBrowserTabColumnIds.forEach((id) => {
+          if (!orderedManaged.includes(id)) orderedManaged.push(id);
+        });
+        return orderedManaged;
+      });
+    },
+    getRowId: (row) => row.id,
+    getCoreRowModel: getCoreRowModel(),
+    columnResizeMode: 'onChange',
+  });
+
+  const {
+    containerRef: browserTabsTableContainerRef,
+    columnWidths: browserTabsColumnWidths,
+    visibleColumnIds: browserTabsVisibleColumnIds,
+    tableStyle: browserTabsTableStyle,
+    fillWidth: browserTabsFillWidth,
+    canShiftLeft: canShiftBrowserTabsLeft,
+    canShiftRight: canShiftBrowserTabsRight,
+    shiftLeft: shiftBrowserTabsLeft,
+    shiftRight: shiftBrowserTabsRight,
+  } = useFittedTableLayout(browserTabsTable, { controlWidth: FILTERABLE_VIEWPORT_CONTROL_WIDTH });
+  browserTabsTableRef.current = browserTabsTable;
+  canShiftLeftRef.current = canShiftBrowserTabsLeft;
+  canShiftRightRef.current = canShiftBrowserTabsRight;
+  shiftLeftRef.current = shiftBrowserTabsLeft;
+  shiftRightRef.current = shiftBrowserTabsRight;
+
   const handleNewTab = async () => {
     try {
       await fetch('/api/browser/navigate', {
@@ -1425,9 +1858,17 @@ export default function BrowserWorkbenchPage() {
 
   return (
     <div className="h-full min-h-0 overflow-y-auto md:overflow-hidden">
+      {viewportControlsTarget && typeof document !== 'undefined'
+        ? createPortal(
+            <div className="flex h-full w-full items-center justify-center">
+              {viewportControls}
+            </div>,
+            viewportControlsTarget,
+          )
+        : null}
       <div className="flex h-full min-h-0 flex-col">
-        <div className="pb-2 pt-3 md:pt-4">
-          <div className="-mt-3 mb-2 flex h-14 items-end gap-2 md:-mt-4">
+        <div>
+          <div className="flex h-14 items-end gap-2">
             <div className="min-w-0 flex-1">
               <EmailTabs
                 tabs={topLevelTabs}
@@ -1465,18 +1906,7 @@ export default function BrowserWorkbenchPage() {
                 placeholder={browserTabsMode ? 'Search browser tabs...' : 'Search tabs in this task...'}
               />
             </div>
-            <span className="inline-flex h-9 items-center rounded-md border border-border bg-surface px-3 text-[11px] text-text-dim">
-              {filteredWorkbenchTabs.length} of {visibleWorkbenchTabs.length} tabs
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                void handleNewTab();
-              }}
-              className="inline-flex h-9 items-center rounded-md border border-border bg-surface px-3 text-xs text-text-dim hover:bg-surface-hover"
-            >
-              New Tab
-            </button>
+            <div ref={setViewportControlsTarget} className="ml-auto flex h-8 w-14 shrink-0 items-center justify-center" />
           </div>
         </div>
 
@@ -1484,64 +1914,77 @@ export default function BrowserWorkbenchPage() {
           <div className="flex h-full min-h-0 overflow-hidden bg-surface">
             {browserTabsMode ? (
               <>
-                <div className="min-w-0 flex-1 overflow-auto">
+                <div ref={browserTabsTableContainerRef} className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
                   {filteredWorkbenchTabs.length === 0 ? (
                     <div className="flex h-full items-center justify-center p-6 text-sm text-text-dim">
                       No browser tabs found.
                     </div>
                   ) : (
-                    <table className="w-full min-w-[980px] table-fixed">
-                      <thead className="sticky top-0 z-10 bg-surface">
-                        <tr className="h-9 border-b border-border-subtle bg-surface-hover/30">
-                          <th className="w-[26%] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted">Title</th>
-                          <th className="w-[12%] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted">Status</th>
-                          <th className="w-[26%] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted">URL</th>
-                          <th className="w-[10%] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted">Domain</th>
-                          <th className="w-[10%] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted">Linked Tasks</th>
-                          <th className="w-[16%] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wide text-text-muted">Updated</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border-subtle">
-                        {filteredWorkbenchTabs.map((tab) => {
-                          const linkedTasks = tasksByTabId.get(tab.id) || [];
-                          const isActive = selectedWorkbenchTab?.id === tab.id;
-                          return (
-                            <tr
-                              key={tab.id}
-                              className={`group h-[42px] cursor-pointer text-sm transition-colors ${isActive ? 'bg-accent/10' : 'hover:bg-surface-hover/60'}`}
-                              onClick={() => {
-                                setActiveTab(tab.id);
-                                setSelectedBrowserDetailsTabId((current) => (current === tab.id ? null : tab.id));
-                              }}
-                              tabIndex={0}
-                              aria-label={`Open details for browser tab ${browserWorkbenchTabLabel(tab)}`}
-                              onKeyDown={(event) => {
-                                if (event.key !== 'Enter' && event.key !== ' ') return;
-                                event.preventDefault();
-                                setActiveTab(tab.id);
-                                setSelectedBrowserDetailsTabId((current) => (current === tab.id ? null : tab.id));
-                              }}
-                            >
-                              <td className="h-[42px] px-3 py-0 align-middle leading-tight">
-                                <div className="min-w-0">
-                                  <p className="truncate font-medium text-text">{tab.title || 'Untitled tab'}</p>
-                                  <p className="mt-0.5 truncate text-xs text-text-dim">Tab {tab.id}</p>
-                                </div>
-                              </td>
-                              <td className="h-[42px] px-3 py-0 align-middle leading-tight">
-                                <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${workbenchStatusPillClass(tab.status)}`}>{tab.status}</span>
-                              </td>
-                              <td className="h-[42px] px-3 py-0 align-middle text-xs leading-tight text-text-dim">
-                                <span className="block truncate" title={tab.url}>{tab.url || 'n/a'}</span>
-                              </td>
-                              <td className="h-[42px] px-3 py-0 align-middle text-xs leading-tight text-text-dim">{tab.domain}</td>
-                              <td className="h-[42px] px-3 py-0 align-middle text-xs leading-tight text-text-dim">{linkedTasks.length}</td>
-                              <td className="h-[42px] px-3 py-0 align-middle text-xs leading-tight text-text-dim">{formatWorkbenchTime(tab.lastUpdatedAt)}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
+                    <>
+                      <div className="sticky top-0 z-10 bg-surface">
+                        <table className="w-full border-collapse" style={browserTabsTableStyle}>
+                          <SharedTableColGroupWithWidths table={browserTabsTable} columnWidths={browserTabsColumnWidths} visibleColumnIds={browserTabsVisibleColumnIds} fillerWidth={browserTabsFillWidth} controlWidth={FILTERABLE_VIEWPORT_CONTROL_WIDTH} />
+                          <SharedTableHeader
+                            table={browserTabsTable}
+                            onAutoFitColumn={autoFitBrowserTabsColumn}
+                            visibleColumnIds={browserTabsVisibleColumnIds}
+                            columnWidths={browserTabsColumnWidths}
+                            fillerWidth={browserTabsFillWidth}
+                            controlWidth={FILTERABLE_VIEWPORT_CONTROL_WIDTH}
+                          />
+                        </table>
+                      </div>
+                      <table className="w-full border-collapse" style={browserTabsTableStyle}>
+                        <SharedTableColGroupWithWidths table={browserTabsTable} columnWidths={browserTabsColumnWidths} visibleColumnIds={browserTabsVisibleColumnIds} fillerWidth={browserTabsFillWidth} controlWidth={FILTERABLE_VIEWPORT_CONTROL_WIDTH} />
+                        <tbody>
+                          {browserTabsTable.getRowModel().rows.map((row) => {
+                            const tab = row.original;
+                            const isActive = selectedBrowserDetailsTab?.id === tab.id;
+                            return (
+                              <tr
+                                key={row.id}
+                                className={`group ${SHARED_TABLE_ROW_HEIGHT_CLASS} cursor-pointer text-sm outline-none transition-colors ${isActive ? 'bg-surface-hover/70' : 'hover:bg-surface-hover/60'}`}
+                                onClick={() => {
+                                  setActiveTab(tab.id);
+                                  setSelectedBrowserDetailsTabId((current) => (current === tab.id ? null : tab.id));
+                                }}
+                                tabIndex={0}
+                                aria-label={`Open details for browser tab ${browserWorkbenchTabLabel(tab)}`}
+                                onKeyDown={(event) => {
+                                  if (event.key !== 'Enter' && event.key !== ' ') return;
+                                  event.preventDefault();
+                                  setActiveTab(tab.id);
+                                  setSelectedBrowserDetailsTabId((current) => (current === tab.id ? null : tab.id));
+                                }}
+                              >
+                                {(() => {
+                                  const cells = filterCellsByIds(row.getVisibleCells(), browserTabsVisibleColumnIds);
+                                  const trailingActionsCell = cells.length > 0 && cells[cells.length - 1]?.column.id === 'actions'
+                                    ? cells[cells.length - 1]
+                                    : null;
+                                  const leadingCells = trailingActionsCell ? cells.slice(0, -1) : cells;
+                                  return (
+                                    <>
+                                      {leadingCells.map((cell, index) => (
+                                        <td key={cell.id} className={sharedCellClassName(cell, `${SHARED_TABLE_ROW_HEIGHT_CLASS} px-3 py-0 ${index === leadingCells.length - 1 && !trailingActionsCell ? '__shared-last__' : ''}`)}>
+                                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </td>
+                                      ))}
+                                      {browserTabsFillWidth > 0 && !trailingActionsCell ? <td aria-hidden="true" className={`${SHARED_TABLE_ROW_HEIGHT_CLASS} px-0 py-0`} /> : null}
+                                      {trailingActionsCell ? (
+                                        <td key={trailingActionsCell.id} className={sharedCellClassName(trailingActionsCell, `${SHARED_TABLE_ROW_HEIGHT_CLASS} __shared-last__`)}>
+                                          {flexRender(trailingActionsCell.column.columnDef.cell, trailingActionsCell.getContext())}
+                                        </td>
+                                      ) : null}
+                                    </>
+                                  );
+                                })()}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </>
                   )}
                 </div>
                 {!isPhone && selectedBrowserDetailsTab ? (
@@ -1668,113 +2111,129 @@ function BrowserTabDetailsPanel({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="sticky top-0 z-10 border-b border-border bg-surface px-4 py-3">
-        <div className="flex items-start justify-between gap-3">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="sticky top-0 z-20 shrink-0 border-b border-border bg-surface">
+        <div className="flex items-start justify-between gap-3 px-3 pb-2">
           <div className="min-w-0">
             <h3 className="truncate text-sm font-semibold text-text">{tab.title || 'Browser Tab'}</h3>
-            <p className="truncate text-xs text-text-dim">{tab.url || tab.domain || tab.id}</p>
+            <p className="truncate text-xs text-text-muted">{tab.url || tab.domain || tab.id}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close browser tab details"
-            className="inline-flex h-7 items-center justify-center rounded-md border border-border px-2 text-[11px] text-text-muted hover:bg-surface-hover"
+            className="inline-flex h-7 items-center justify-center rounded-none border border-border px-2.5 text-[11px] text-text hover:bg-surface-hover"
           >
             Close
           </button>
         </div>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
-          <span className={`inline-flex rounded-full px-2 py-0.5 font-medium ${workbenchStatusPillClass(tab.status)}`}>{tab.status}</span>
-          <span className="inline-flex rounded-full border border-border bg-bg px-2 py-0.5 text-text-dim">Tab {tab.id}</span>
+        <div className="flex flex-wrap items-center gap-1.5 px-3 pb-2">
+          <span className={`inline-flex h-5 items-center rounded-full px-2 text-[11px] font-medium ${workbenchStatusPillClass(tab.status)}`}>{tab.status}</span>
+          <span className="inline-flex h-5 items-center rounded-full border border-border bg-bg px-2 text-[11px] text-text-muted">Tab {tab.id}</span>
           {tab.domain && tab.domain !== 'unknown' ? (
-            <span className="inline-flex rounded-full border border-border bg-bg px-2 py-0.5 text-text-dim">{tab.domain}</span>
+            <span className="inline-flex h-5 items-center rounded-full border border-border bg-bg px-2 text-[11px] text-text-muted">{tab.domain}</span>
           ) : null}
+          <span className="inline-flex h-5 items-center rounded-full border border-border bg-bg px-2 text-[11px] text-text-muted">
+            {linkedTasks.length} linked tasks
+          </span>
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-auto p-4 text-xs">
-        <section className="rounded-lg border border-border bg-bg/40 p-3">
-          <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-text-muted">Tab Metadata</p>
-          <dl className="grid grid-cols-1 gap-x-3 gap-y-2 md:grid-cols-2">
-            <div className="min-w-0">
-              <dt className="text-[11px] uppercase tracking-wide text-text-muted">Title</dt>
-              <dd className="mt-0.5 break-words text-text">{tab.title || 'n/a'}</dd>
-            </div>
-            <div className="min-w-0">
-              <dt className="text-[11px] uppercase tracking-wide text-text-muted">URL</dt>
-              <dd className="mt-0.5 break-words text-text">{tab.url || 'n/a'}</dd>
-            </div>
-            <div className="min-w-0">
-              <dt className="text-[11px] uppercase tracking-wide text-text-muted">Last Used</dt>
-              <dd className="mt-0.5 break-words text-text">{formatWorkbenchTime(tab.lastUsedAt)}</dd>
-            </div>
-            <div className="min-w-0">
-              <dt className="text-[11px] uppercase tracking-wide text-text-muted">Last Updated</dt>
-              <dd className="mt-0.5 break-words text-text">{formatWorkbenchTime(tab.lastUpdatedAt)}</dd>
-            </div>
-            <div className="min-w-0">
-              <dt className="text-[11px] uppercase tracking-wide text-text-muted">Annotations</dt>
-              <dd className="mt-0.5 break-words text-text">{tab.hasAnnotations ? 'Present' : 'None'}</dd>
-            </div>
-            <div className="min-w-0">
-              <dt className="text-[11px] uppercase tracking-wide text-text-muted">Validation</dt>
-              <dd className="mt-0.5 break-words text-text">{tab.validationSummary ? `${Math.round(tab.validationSummary.fitScore * 100)}% fit` : 'Not checked'}</dd>
-            </div>
-          </dl>
-        </section>
-
-        {tab.lastError ? (
-          <section className="rounded-lg border border-red-200 bg-red-50 p-3">
-            <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-red-700">Last Error</p>
-            <p className="whitespace-pre-wrap break-words text-red-800">{tab.lastError}</p>
-          </section>
-        ) : null}
-
-        <section className="rounded-lg border border-border bg-bg/40 p-3">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-text-muted">Linked Tasks</p>
+      <div className="min-h-0 flex flex-1 flex-col overflow-hidden text-xs">
+        <section className="flex min-h-0 flex-[0_0_auto] flex-col overflow-hidden border-b border-border">
+          <div className="flex h-[31px] shrink-0 items-center justify-between border-b border-border bg-surface px-2.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-text-muted">Overview</span>
             <button
               type="button"
               onClick={() => onSelectTab(tab.id)}
-              className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-[11px] text-text hover:bg-surface-hover"
+              className="inline-flex h-6 items-center rounded-none border border-border px-2 text-[11px] text-text hover:bg-surface-hover"
             >
               Focus Tab
             </button>
           </div>
-          {linkedTasks.length === 0 ? (
-            <p className="text-text-dim">No browser workflow tasks are currently linked to this tab.</p>
-          ) : (
-            <div className="space-y-2">
-              {linkedTasks.map((task) => (
-                <div key={task.id} className="rounded-md border border-border bg-surface p-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium text-text">{task.label}</p>
-                      <p className="truncate text-[11px] text-text-dim">{task.stage}</p>
-                    </div>
-                    <span className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${workbenchStatusPillClass(task.status as WorkbenchTab['status'])}`}>{task.status}</span>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => onOpenTask(task.topLevelTaskId, tab.id)}
-                      className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-[11px] text-text hover:bg-surface-hover"
-                    >
-                      Open Task View
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onSelectTab(tab.id)}
-                      className="inline-flex h-7 items-center rounded-md border border-border px-2.5 text-[11px] text-text hover:bg-surface-hover"
-                    >
-                      Focus Browser Tab
-                    </button>
-                  </div>
-                </div>
-              ))}
+          <div className="border border-t-0 border-border bg-bg/30">
+            <div className="grid grid-cols-[120px_minmax(0,1fr)]">
+              <div className="h-[31px] border-b border-r border-border px-2.5 py-0 text-[10px] font-semibold uppercase tracking-wide text-text-muted leading-[31px]">Title</div>
+              <div className="h-[31px] border-b border-border px-2.5 py-0 text-[11px] text-text truncate leading-[31px]" title={tab.title || 'n/a'}>{tab.title || 'n/a'}</div>
+              <div className="h-[31px] border-b border-r border-border px-2.5 py-0 text-[10px] font-semibold uppercase tracking-wide text-text-muted leading-[31px]">URL</div>
+              <div className="h-[31px] border-b border-border px-2.5 py-0 text-[11px] text-text truncate leading-[31px]" title={tab.url || 'n/a'}>{tab.url || 'n/a'}</div>
+              <div className="h-[31px] border-b border-r border-border px-2.5 py-0 text-[10px] font-semibold uppercase tracking-wide text-text-muted leading-[31px]">Last Used</div>
+              <div className="h-[31px] border-b border-border px-2.5 py-0 text-[11px] text-text-muted truncate leading-[31px]">{formatWorkbenchTime(tab.lastUsedAt)}</div>
+              <div className="h-[31px] border-b border-r border-border px-2.5 py-0 text-[10px] font-semibold uppercase tracking-wide text-text-muted leading-[31px]">Updated</div>
+              <div className="h-[31px] border-b border-border px-2.5 py-0 text-[11px] text-text-muted truncate leading-[31px]">{formatWorkbenchTime(tab.lastUpdatedAt)}</div>
+              <div className="h-[31px] border-b border-r border-border px-2.5 py-0 text-[10px] font-semibold uppercase tracking-wide text-text-muted leading-[31px]">Annotations</div>
+              <div className="h-[31px] border-b border-border px-2.5 py-0 text-[11px] text-text-muted truncate leading-[31px]">{tab.hasAnnotations ? 'Present' : 'None'}</div>
+              <div className="h-[31px] border-r border-border px-2.5 py-0 text-[10px] font-semibold uppercase tracking-wide text-text-muted leading-[31px]">Validation</div>
+              <div className="h-[31px] px-2.5 py-0 text-[11px] text-text-muted truncate leading-[31px]">
+                {tab.validationSummary ? `${Math.round(tab.validationSummary.fitScore * 100)}% fit` : 'Not checked'}
+              </div>
             </div>
-          )}
+          </div>
+        </section>
+
+        {tab.lastError ? (
+          <section className="flex min-h-0 flex-[0_0_auto] flex-col overflow-hidden border-b border-border">
+            <div className="flex h-[31px] shrink-0 items-center border-b border-border bg-surface px-2.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-red-700">Last Error</span>
+            </div>
+            <div className="border border-t-0 border-red-200 bg-red-50 px-2.5 py-2 text-[11px] text-red-800">
+              <p className="whitespace-pre-wrap break-words">{tab.lastError}</p>
+            </div>
+          </section>
+        ) : null}
+
+        <section className="min-h-0 flex flex-1 flex-col overflow-hidden">
+          <div className="flex h-[31px] shrink-0 items-center justify-between border-b border-border bg-surface px-2.5">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-text-muted">Linked Tasks</span>
+            <span className="text-[10px] text-text-dim">{linkedTasks.length} rows</span>
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden border border-t-0 border-border bg-bg/30">
+            {linkedTasks.length === 0 ? (
+              <p className="px-2.5 py-1.5 text-[11px] text-text-muted">No browser workflow tasks are currently linked to this tab.</p>
+            ) : (
+              <div className="min-h-0 h-full overflow-auto">
+                <table className="w-full border-collapse table-fixed">
+                  <thead className="sticky top-0 z-10 bg-surface">
+                    <tr className="h-[31px] border-b border-border">
+                      <th className="border-r border-border px-2.5 py-0 text-left text-[10px] font-semibold uppercase tracking-wide text-text-muted">Task</th>
+                      <th className="border-r border-border px-2.5 py-0 text-left text-[10px] font-semibold uppercase tracking-wide text-text-muted">Stage</th>
+                      <th className="border-r border-border px-2.5 py-0 text-left text-[10px] font-semibold uppercase tracking-wide text-text-muted">Status</th>
+                      <th className="px-2.5 py-0 text-left text-[10px] font-semibold uppercase tracking-wide text-text-muted">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {linkedTasks.map((task) => (
+                      <tr key={task.id} className="h-[31px] border-b border-border-subtle hover:bg-surface-hover/60">
+                        <td className="border-r border-border-subtle px-2.5 py-0 text-[11px] font-medium text-text truncate" title={task.label}>{task.label}</td>
+                        <td className="border-r border-border-subtle px-2.5 py-0 text-[11px] text-text-muted truncate" title={task.stage}>{task.stage || '-'}</td>
+                        <td className="border-r border-border-subtle px-2.5 py-0">
+                          <span className={`inline-flex px-1.5 py-0.5 text-[10px] font-medium ${workbenchStatusPillClass(task.status as WorkbenchTab['status'])}`}>{task.status}</span>
+                        </td>
+                        <td className="px-2.5 py-0">
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => onOpenTask(task.topLevelTaskId, tab.id)}
+                              className="inline-flex h-6 items-center rounded-none border border-border px-2 text-[11px] text-text hover:bg-surface-hover"
+                            >
+                              Open Task
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onSelectTab(tab.id)}
+                              className="inline-flex h-6 items-center rounded-none border border-border px-2 text-[11px] text-text hover:bg-surface-hover"
+                            >
+                              Focus
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </section>
       </div>
     </div>

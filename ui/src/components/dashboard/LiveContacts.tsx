@@ -14,27 +14,30 @@ export function LiveContacts({ contacts }: LiveContactsProps) {
   }, {} as Record<string, Contact[]>);
 
   if (contacts.length === 0) {
-    return <p className="text-xs text-text-muted text-center py-6">No contacts scraped today</p>;
+    return <p className="px-3 py-6 text-center text-xs text-text-muted">No contacts scraped today</p>;
   }
 
   return (
-    <div className="space-y-2 max-h-72 md:max-h-96 overflow-y-auto">
+    <div className="h-full overflow-y-auto no-scrollbar">
       {Object.entries(grouped).map(([company, list]) => (
-        <div key={company} className="border border-border rounded-lg overflow-hidden">
-          <div className="px-2.5 md:px-3 py-1.5 bg-surface-hover flex justify-between items-center">
-            <span className="font-medium text-text text-xs md:text-sm truncate">{company}</span>
-            <span className="text-[10px] text-text-muted shrink-0 ml-2">{list.length}</span>
+        <div key={company} className="border-b border-border">
+          <div className="flex h-[31px] items-center justify-between bg-bg px-2.5">
+            <span className="truncate text-[11px] font-medium text-text">{company}</span>
+            <span className="ml-2 shrink-0 text-[10px] text-text-muted">{list.length}</span>
           </div>
-          <div className="divide-y divide-border-subtle">
+          <div>
             {list.slice(0, 5).map((c) => (
-              <div key={c.id} className="px-2.5 md:px-3 py-1.5 flex justify-between items-center gap-2">
-                <span className="text-xs text-text truncate flex-1 min-w-0">{c.name}</span>
+              <div key={c.id} className="flex min-h-[31px] items-center justify-between gap-2 border-t border-border-subtle px-2.5 py-1.5">
+                <div className="min-w-0 flex-1">
+                  <span className="block truncate text-[11px] text-text">{c.name}</span>
+                  {c.title ? <span className="block truncate text-[10px] text-text-dim">{c.title}</span> : null}
+                </div>
                 {c.salesforce_url ? (
                   <a
                     href={c.salesforce_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 rounded border border-border bg-bg px-1.5 py-0.5 text-[10px] text-text-muted hover:bg-surface-hover hover:text-text shrink-0"
+                    className="inline-flex h-5 shrink-0 items-center gap-1 border border-border bg-surface px-1.5 text-[10px] text-text-muted hover:bg-surface-hover hover:text-text"
                     title="Open in Salesforce"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -43,11 +46,11 @@ export function LiveContacts({ contacts }: LiveContactsProps) {
                   </a>
                 ) : null}
                 {c.email && (
-                  <span className="text-[10px] text-success shrink-0 truncate max-w-[100px] md:max-w-none">{c.email}</span>
+                  <span className="hidden max-w-[140px] shrink-0 truncate text-[10px] text-success lg:block">{c.email}</span>
                 )}
               </div>
             ))}
-            {list.length > 5 && <div className="px-2.5 md:px-3 py-1.5 text-[10px] text-text-muted">+{list.length - 5} more</div>}
+            {list.length > 5 && <div className="border-t border-border-subtle px-2.5 py-2 text-[10px] text-text-muted">+{list.length - 5} more</div>}
           </div>
         </div>
       ))}

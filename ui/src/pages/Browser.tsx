@@ -1,24 +1,26 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { flexRender, getCoreRowModel, type ColumnDef, type RowSelectionState, useReactTable } from '@tanstack/react-table';
-import { RefreshCw, X } from 'lucide-react';
+import { ChevronRight, MoreHorizontal, SlidersHorizontal, X } from 'lucide-react';
 import { api, type BrowserWorkflowTask, type CompoundWorkflowStatusResponse, type CompoundWorkflowSummary } from '../api';
-import { HeaderActionButton } from '../components/shared/HeaderActionButton';
 import { PageSearchInput } from '../components/shared/PageSearchInput';
 import { WorkspacePageShell } from '../components/shared/WorkspacePageShell';
 import { EmailTabs } from '../components/email/EmailTabs';
 import { SidePanelContainer } from '../components/contacts/SidePanelContainer';
 import { BottomDrawerContainer } from '../components/contacts/BottomDrawerContainer';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
+import { ColumnVisibilityMenu } from '../components/shared/ColumnVisibilityMenu';
+import { TableHeaderFilter } from '../components/shared/TableHeaderFilter';
 import { usePageContext } from '../contexts/PageContextProvider';
 import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
 import { getPageCapability } from '../capabilities/catalog';
 import { useIsMobile } from '../hooks/useIsMobile';
 import {
+  FILTERABLE_VIEWPORT_CONTROL_WIDTH,
   SHARED_SELECTION_COLUMN_WIDTH,
   SHARED_TABLE_ROW_HEIGHT_CLASS,
-  SharedViewportControlsOverlay,
   SharedTableColGroupWithWidths,
   SharedTableHeader,
   filterCellsByIds,
@@ -26,6 +28,7 @@ import {
   useFittedTableLayout,
   usePersistentColumnSizing,
 } from '../components/shared/resizableDataTable';
+import { usePersistentColumnPreferences } from '../components/shared/usePersistentColumnPreferences';
 
 type TasksView = 'all' | 'browser' | 'compound';
 
@@ -60,6 +63,8 @@ type BrowserResultCard = {
   primaryHref?: string;
   actions: Array<{ label: string; href: string }>;
 };
+
+const TASKS_ACTIONS_COLUMN_WIDTH = 56;
 
 function parseTasksView(value: string | null): TasksView {
   if (value === 'browser' || value === 'compound' || value === 'all') return value;
@@ -202,6 +207,171 @@ function statusPillClass(status: string): string {
   if (s === 'paused') return 'bg-amber-100 text-amber-700';
   if (s === 'running' || s === 'pending') return 'bg-blue-100 text-blue-700';
   return 'bg-accent/10 text-accent';
+}
+
+function TasksHeaderActionsMenu({
+  onRefresh,
+  showFinished,
+  onToggleShowFinished,
+}: {
+  onRefresh: () => void;
+  showFinished: boolean;
+  onToggleShowFinished: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const updatePosition = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPosition({ top: rect.top + rect.height / 2, left: rect.left - 4 });
+    };
+    updatePosition();
+    const onPointerDown = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onScrollOrResize = () => updatePosition();
+    document.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <div className="relative flex h-full w-full items-center justify-center">
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-label="Open task table actions"
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen((value) => !value);
+          }}
+          className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {open && menuPosition && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={ref}
+              className="fixed z-[120] w-44 -translate-x-full -translate-y-1/2 rounded-none border border-border bg-surface p-1 shadow-lg"
+              style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  onToggleShowFinished();
+                  setOpen(false);
+                }}
+                className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+              >
+                {showFinished ? 'Hide finished' : 'Show finished'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onRefresh();
+                  setOpen(false);
+                }}
+                className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+              >
+                Refresh
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
+function TaskRowActionsMenu({
+  task,
+  onOpen,
+}: {
+  task: UnifiedTaskRow;
+  onOpen: (taskId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const updatePosition = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPosition({ top: rect.top + rect.height / 2, left: rect.left - 4 });
+    };
+    updatePosition();
+    const onPointerDown = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onScrollOrResize = () => updatePosition();
+    document.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <div className="relative flex h-full w-full items-center justify-center">
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-label={`Open actions for ${task.goal}`}
+          data-row-control
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen((value) => !value);
+          }}
+          className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {open && menuPosition && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={ref}
+              className="fixed z-[120] w-44 -translate-x-full -translate-y-1/2 rounded-none border border-border bg-surface p-1 shadow-lg"
+              style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  onOpen(task.id);
+                  setOpen(false);
+                }}
+                className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+              >
+                Open details
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
 }
 
 function toPrettyJson(value: unknown): string {
@@ -679,8 +849,20 @@ export default function TasksPage() {
   const detailsPanelRef = useRef<HTMLDivElement>(null);
   const [showFinished, setShowFinished] = useState(true);
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sourceFilter, setSourceFilter] = useState('');
+  const [openHeaderFilterId, setOpenHeaderFilterId] = useState<string | null>(null);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [showFiltersMenu, setShowFiltersMenu] = useState(false);
+  const [viewportControlsTarget, setViewportControlsTarget] = useState<HTMLDivElement | null>(null);
   const view = useMemo(() => parseTasksView(searchParams?.get('view') ?? null), [searchParams]);
+  const filtersMenuRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<any>(null);
+  const canShiftLeftRef = useRef(false);
+  const canShiftRightRef = useRef(false);
+  const shiftLeftRef = useRef<() => void>(() => {});
+  const shiftRightRef = useRef<() => void>(() => {});
+  const refreshTasksRef = useRef<() => void>(() => {});
   useRegisterCapabilities(getPageCapability('tasks'));
 
   useEffect(() => {
@@ -789,20 +971,130 @@ export default function TasksPage() {
   }, [browserTasks, compoundTasks]);
 
   const filteredTasks = useMemo(() => {
-    const q = search.trim().toLowerCase();
     const viewFiltered = tasks.filter((task) => {
       if (view === 'browser') return task.source === 'browser';
       if (view === 'compound') return task.source === 'compound';
       return true;
     });
-    if (!q) return viewFiltered;
-    return viewFiltered.filter((task) =>
+    const headerFiltered = viewFiltered.filter((task) => {
+      if (statusFilter && task.status.toLowerCase() !== statusFilter.toLowerCase()) return false;
+      if (sourceFilter && task.source.toLowerCase() !== sourceFilter.toLowerCase()) return false;
+      return true;
+    });
+    const q = search.trim().toLowerCase();
+    if (!q) return headerFiltered;
+    return headerFiltered.filter((task) =>
       [task.id, task.goal, task.status, task.stage, task.operation, task.tabId || '', task.errorText || '']
         .join(' ')
         .toLowerCase()
         .includes(q)
     );
-  }, [search, tasks, view]);
+  }, [search, sourceFilter, statusFilter, tasks, view]);
+
+  const statusOptions = useMemo(
+    () => Array.from(new Set(tasks.map((task) => String(task.status || '').trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [tasks],
+  );
+
+  useEffect(() => {
+    function handleClick(event: MouseEvent) {
+      if (filtersMenuRef.current && !filtersMenuRef.current.contains(event.target as Node)) setShowFiltersMenu(false);
+    }
+    if (showFiltersMenu) document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showFiltersMenu]);
+
+  const columnLabelMap: Record<string, string> = {
+    goal: 'Goal',
+    status: 'Status',
+    stage: 'Stage',
+    progress: 'Progress',
+    updated: 'Updated',
+    operation: 'Operation',
+    task_id: 'Task ID',
+    source: 'Source',
+  };
+  const managedColumnIds = useMemo(() => ['goal', 'status', 'stage', 'progress', 'updated', 'operation', 'task_id', 'source'], []);
+  const { columnOrder: managedColumnOrder, setColumnOrder: setManagedColumnOrder, columnVisibility, setColumnVisibility } = usePersistentColumnPreferences({
+    storageKey: 'tasks-table',
+    columnIds: managedColumnIds,
+    initialVisibility: { goal: true },
+  });
+
+  const moveManagedColumn = useCallback((columnId: string, delta: -1 | 1) => {
+    setManagedColumnOrder((prev) => {
+      const index = prev.indexOf(columnId);
+      const nextIndex = index + delta;
+      if (index < 0 || nextIndex < 0 || nextIndex >= prev.length) return prev;
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.splice(nextIndex, 0, item);
+      return next;
+    });
+  }, [setManagedColumnOrder]);
+
+  const viewportControls = useMemo(() => (
+    <div className="relative flex h-full w-full items-center justify-center gap-0.5 bg-surface" ref={filtersMenuRef}>
+      <button
+        type="button"
+        onClick={() => setShowFiltersMenu((v) => !v)}
+        className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        title="Columns"
+        aria-label="Open visible columns menu"
+      >
+        <SlidersHorizontal className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => shiftLeftRef.current()}
+        disabled={!canShiftLeftRef.current}
+        aria-label="Show previous columns"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text disabled:opacity-30"
+      >
+        <ChevronRight className="h-3.5 w-3.5 rotate-180" />
+      </button>
+      <button
+        type="button"
+        onClick={() => shiftRightRef.current()}
+        disabled={!canShiftRightRef.current}
+        aria-label="Show more columns"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text disabled:opacity-30"
+      >
+        <ChevronRight className="h-3.5 w-3.5" />
+      </button>
+      {showFiltersMenu ? (
+        <div className="absolute right-0 top-7 z-20 w-[260px] rounded-none border border-border bg-surface p-3 shadow-lg">
+          <ColumnVisibilityMenu
+            items={managedColumnOrder.map((columnId, index) => ({
+              id: columnId,
+              label: columnLabelMap[columnId] ?? columnId,
+              visible: tableRef.current?.getColumn(columnId)?.getIsVisible() ?? true,
+              canHide: columnId !== 'goal',
+              canMoveUp: index > 0,
+              canMoveDown: index < managedColumnOrder.length - 1,
+            }))}
+            onToggle={(columnId, visible) => {
+              if (columnId === 'goal') return;
+              tableRef.current?.getColumn(columnId)?.toggleVisibility(visible);
+            }}
+            onMoveUp={(columnId) => moveManagedColumn(columnId, -1)}
+            onMoveDown={(columnId) => moveManagedColumn(columnId, 1)}
+          />
+        </div>
+      ) : null}
+    </div>
+  ), [columnLabelMap, managedColumnOrder, moveManagedColumn, showFiltersMenu]);
+
+  const actionsHeader = useMemo(
+    () => (
+      <TasksHeaderActionsMenu
+        onRefresh={() => refreshTasksRef.current()}
+        showFinished={showFinished}
+        onToggleShowFinished={() => setShowFinished((value) => !value)}
+      />
+    ),
+    [showFinished],
+  );
 
   const taskColumns = useMemo<ColumnDef<UnifiedTaskRow>[]>(
     () => [
@@ -874,7 +1166,30 @@ export default function TasksPage() {
       },
       {
         id: 'status',
-        header: 'Status',
+        header: () => (
+          <div className="flex items-center gap-1">
+            <span>Status</span>
+            <TableHeaderFilter
+              open={openHeaderFilterId === 'status'}
+              active={Boolean(statusFilter)}
+              label="Status"
+              onToggle={() => setOpenHeaderFilterId((value) => (value === 'status' ? null : 'status'))}
+            >
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                className="h-7 w-full rounded-none border border-border bg-surface px-2 text-[11px] text-text focus:border-accent focus:outline-none"
+              >
+                <option value="">All</option>
+                {statusOptions.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </TableHeaderFilter>
+          </div>
+        ),
         accessorFn: (row) => row.status,
         cell: ({ row }) => <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium ${statusPillClass(row.original.status)}`}>{row.original.status}</span>,
         size: 120,
@@ -987,7 +1302,27 @@ export default function TasksPage() {
       },
       {
         id: 'source',
-        header: 'Source',
+        header: () => (
+          <div className="flex items-center gap-1">
+            <span>Source</span>
+            <TableHeaderFilter
+              open={openHeaderFilterId === 'source'}
+              active={Boolean(sourceFilter)}
+              label="Source"
+              onToggle={() => setOpenHeaderFilterId((value) => (value === 'source' ? null : 'source'))}
+            >
+              <select
+                value={sourceFilter}
+                onChange={(event) => setSourceFilter(event.target.value)}
+                className="h-7 w-full rounded-none border border-border bg-surface px-2 text-[11px] text-text focus:border-accent focus:outline-none"
+              >
+                <option value="">All</option>
+                <option value="browser">Browser</option>
+                <option value="compound">Compound</option>
+              </select>
+            </TableHeaderFilter>
+          </div>
+        ),
         accessorFn: (row) => row.source,
         cell: ({ row }) => <span className="block truncate text-xs leading-tight text-text-dim">{taskSourceLabel(row.original.source)}</span>,
         size: 100,
@@ -1003,8 +1338,27 @@ export default function TasksPage() {
           measureValue: (row: UnifiedTaskRow) => taskSourceLabel(row.source),
         },
       },
+      {
+        id: 'actions',
+        header: () => actionsHeader,
+        cell: ({ row }) => <TaskRowActionsMenu task={row.original} onOpen={openTask} />,
+        size: TASKS_ACTIONS_COLUMN_WIDTH,
+        minSize: TASKS_ACTIONS_COLUMN_WIDTH,
+        maxSize: TASKS_ACTIONS_COLUMN_WIDTH,
+        enableResizing: false,
+        meta: {
+          label: 'Actions',
+          minWidth: TASKS_ACTIONS_COLUMN_WIDTH,
+          defaultWidth: TASKS_ACTIONS_COLUMN_WIDTH,
+          maxWidth: TASKS_ACTIONS_COLUMN_WIDTH,
+          resizable: false,
+          align: 'right',
+          headerClassName: 'sticky right-0 z-20 bg-surface px-0',
+          cellClassName: 'sticky right-0 z-40 overflow-visible bg-surface px-0 text-center',
+        },
+      },
     ],
-    []
+    [actionsHeader, openHeaderFilterId, openTask, sourceFilter, statusFilter, statusOptions]
   );
 
   const { columnSizing, setColumnSizing, autoFitColumn } = usePersistentColumnSizing({
@@ -1016,9 +1370,21 @@ export default function TasksPage() {
   const tasksTable = useReactTable({
     data: filteredTasks,
     columns: taskColumns,
-    state: { columnSizing, rowSelection },
+    state: { columnSizing, rowSelection, columnVisibility, columnOrder: ['select', ...managedColumnOrder, 'actions'] },
     onRowSelectionChange: setRowSelection,
     onColumnSizingChange: setColumnSizing,
+    onColumnVisibilityChange: setColumnVisibility,
+    onColumnOrderChange: (updater) => {
+      setManagedColumnOrder((prev) => {
+        const current = ['select', ...prev, 'actions'];
+        const next = typeof updater === 'function' ? updater(current) : updater;
+        const orderedManaged = next.filter((id) => managedColumnIds.includes(id));
+        managedColumnIds.forEach((id) => {
+          if (!orderedManaged.includes(id)) orderedManaged.push(id);
+        });
+        return orderedManaged;
+      });
+    },
     getRowId: (row) => `${row.source}:${row.id}`,
     getCoreRowModel: getCoreRowModel(),
     columnResizeMode: 'onChange',
@@ -1033,7 +1399,12 @@ export default function TasksPage() {
     canShiftRight: canShiftTasksRight,
     shiftLeft: shiftTasksLeft,
     shiftRight: shiftTasksRight,
-  } = useFittedTableLayout(tasksTable);
+  } = useFittedTableLayout(tasksTable, { controlWidth: FILTERABLE_VIEWPORT_CONTROL_WIDTH });
+  tableRef.current = tasksTable;
+  canShiftLeftRef.current = canShiftTasksLeft;
+  canShiftRightRef.current = canShiftTasksRight;
+  shiftLeftRef.current = shiftTasksLeft;
+  shiftRightRef.current = shiftTasksRight;
 
   const selectedTask = useMemo(
     () => (selectedTaskId ? tasks.find((task) => task.id === selectedTaskId) ?? null : null),
@@ -1108,6 +1479,13 @@ export default function TasksPage() {
     }
   }, [compoundDetailQ, selectedTask?.id, selectedTask?.progressPct, selectedTask?.source, selectedTask?.status]);
 
+  refreshTasksRef.current = () => {
+    void tasksQ.refetch();
+    void compoundQ.refetch();
+    if (selectedTask?.source === 'browser') void browserDetailQ.refetch();
+    if (selectedTask?.source === 'compound') void compoundDetailQ.refetch();
+  };
+
   const browserCount = browserTasks.length;
   const compoundCount = compoundTasks.length;
   const totalCount = tasks.length;
@@ -1154,37 +1532,25 @@ export default function TasksPage() {
         />
       )}
       preHeaderAffectsLayout
-      preHeaderClassName="-mt-3 md:-mt-4 h-14 flex items-end"
+      preHeaderClassName="h-14 flex items-end"
       toolbar={(
-        <div className="flex min-w-0 flex-wrap items-center">
+        <div className="flex min-w-0 items-center gap-2">
           <div className="min-w-[220px] flex-1">
             <PageSearchInput value={search} onChange={setSearch} placeholder="Search tasks..." />
           </div>
-          <label className="inline-flex h-8 items-center gap-2 rounded-none border border-border bg-surface px-3 text-xs text-text-dim">
-            <input type="checkbox" checked={showFinished} onChange={(event) => setShowFinished(event.target.checked)} />
-            Show finished
-          </label>
-          <div className="ml-auto flex flex-wrap items-center gap-2 text-[11px] text-text-dim">
-            <span className="inline-flex h-8 items-center rounded-none border border-border bg-surface px-3">Running {runningCount}</span>
-            <span className="inline-flex h-8 items-center rounded-none border border-border bg-surface px-3">Browser {browserCount}</span>
-            <span className="inline-flex h-8 items-center rounded-none border border-border bg-surface px-3">Compound {compoundCount}</span>
-          </div>
-          <HeaderActionButton
-            onClick={() => {
-              void tasksQ.refetch();
-              void compoundQ.refetch();
-              if (selectedTask?.source === 'browser') void browserDetailQ.refetch();
-              if (selectedTask?.source === 'compound') void compoundDetailQ.refetch();
-            }}
-            variant="secondary"
-            icon={<RefreshCw className="h-3.5 w-3.5" />}
-          >
-            Refresh
-          </HeaderActionButton>
+          <div ref={setViewportControlsTarget} className="ml-auto flex h-8 w-14 shrink-0 items-center justify-center" />
         </div>
       )}
       contentClassName=""
-    >
+  >
+      {viewportControlsTarget && typeof document !== 'undefined'
+        ? createPortal(
+            <div className="flex h-full w-full items-center justify-center">
+              {viewportControls}
+            </div>,
+            viewportControlsTarget,
+          )
+        : null}
       <div className="min-h-0 flex-1 overflow-hidden">
         <div className="flex h-full min-h-0 overflow-hidden bg-surface">
         <div ref={tasksTableRef} className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden">
@@ -1199,25 +1565,20 @@ export default function TasksPage() {
           ) : (
             <>
               <div className="sticky top-0 z-10 bg-surface relative">
-                <SharedViewportControlsOverlay
-                  canShiftLeft={canShiftTasksLeft}
-                  canShiftRight={canShiftTasksRight}
-                  onShiftLeft={shiftTasksLeft}
-                  onShiftRight={shiftTasksRight}
-                />
                 <table className="w-full border-collapse" style={tasksTableStyle}>
-                  <SharedTableColGroupWithWidths table={tasksTable} columnWidths={tasksColumnWidths} visibleColumnIds={tasksVisibleColumnIds} fillerWidth={tasksFillWidth} />
+                  <SharedTableColGroupWithWidths table={tasksTable} columnWidths={tasksColumnWidths} visibleColumnIds={tasksVisibleColumnIds} fillerWidth={tasksFillWidth} controlWidth={FILTERABLE_VIEWPORT_CONTROL_WIDTH} />
                   <SharedTableHeader
                     table={tasksTable}
                     onAutoFitColumn={autoFitColumn}
                     visibleColumnIds={tasksVisibleColumnIds}
                     columnWidths={tasksColumnWidths}
                     fillerWidth={tasksFillWidth}
+                    controlWidth={FILTERABLE_VIEWPORT_CONTROL_WIDTH}
                   />
                 </table>
               </div>
               <table className="w-full border-collapse" style={tasksTableStyle}>
-                <SharedTableColGroupWithWidths table={tasksTable} columnWidths={tasksColumnWidths} visibleColumnIds={tasksVisibleColumnIds} fillerWidth={tasksFillWidth} />
+                <SharedTableColGroupWithWidths table={tasksTable} columnWidths={tasksColumnWidths} visibleColumnIds={tasksVisibleColumnIds} fillerWidth={tasksFillWidth} controlWidth={FILTERABLE_VIEWPORT_CONTROL_WIDTH} />
                 <tbody>
                   {tasksTable.getRowModel().rows.map((row) => {
                     const task = row.original;
@@ -1236,12 +1597,28 @@ export default function TasksPage() {
                           openTask(task.id);
                         }}
                       >
-                        {filterCellsByIds(row.getVisibleCells(), tasksVisibleColumnIds).map((cell, index, cells) => (
-                          <td key={cell.id} className={sharedCellClassName(cell, `${SHARED_TABLE_ROW_HEIGHT_CLASS} px-3 py-0 ${index === cells.length - 1 ? '__shared-last__' : ''}`)}>
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </td>
-                        ))}
-                        {tasksFillWidth > 0 ? <td aria-hidden="true" className={`${SHARED_TABLE_ROW_HEIGHT_CLASS} px-0 py-0`} /> : null}
+                        {(() => {
+                          const cells = filterCellsByIds(row.getVisibleCells(), tasksVisibleColumnIds);
+                          const trailingActionsCell = cells.length > 0 && cells[cells.length - 1]?.column.id === 'actions'
+                            ? cells[cells.length - 1]
+                            : null;
+                          const leadingCells = trailingActionsCell ? cells.slice(0, -1) : cells;
+                          return (
+                            <>
+                              {leadingCells.map((cell, index) => (
+                                <td key={cell.id} className={sharedCellClassName(cell, `${SHARED_TABLE_ROW_HEIGHT_CLASS} px-3 py-0 ${index === leadingCells.length - 1 && !trailingActionsCell ? '__shared-last__' : ''}`)}>
+                                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                </td>
+                              ))}
+                              {tasksFillWidth > 0 && !trailingActionsCell ? <td aria-hidden="true" className={`${SHARED_TABLE_ROW_HEIGHT_CLASS} px-0 py-0`} /> : null}
+                              {trailingActionsCell ? (
+                                <td key={trailingActionsCell.id} className={sharedCellClassName(trailingActionsCell, `${SHARED_TABLE_ROW_HEIGHT_CLASS} __shared-last__`)}>
+                                  {flexRender(trailingActionsCell.column.columnDef.cell, trailingActionsCell.getContext())}
+                                </td>
+                              ) : null}
+                            </>
+                          );
+                        })()}
                       </tr>
                     );
                   })}

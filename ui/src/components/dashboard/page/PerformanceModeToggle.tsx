@@ -13,7 +13,7 @@ const OPTIONS: Array<{ value: PerformanceMode; label: string }> = [
 
 export function PerformanceModeToggle({ value, onChange }: PerformanceModeToggleProps) {
   return (
-    <label className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text-muted">
+    <label className="inline-flex items-center gap-1.5 border border-border bg-surface px-2 py-1 text-xs text-text-muted">
       <span className="hidden sm:inline">Performance by:</span>
       <select
         value={value}

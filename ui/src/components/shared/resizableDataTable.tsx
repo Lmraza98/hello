@@ -828,6 +828,8 @@ export function SharedDataTable<TData>({
   bodyClassName = '',
   viewportControlWidth,
   viewportLeadingControl,
+  suppressViewportOverlay = false,
+  onViewportStateChange,
 }: {
   table: Table<TData>;
   rows: TData[];
@@ -843,6 +845,13 @@ export function SharedDataTable<TData>({
   bodyClassName?: string;
   viewportControlWidth?: number;
   viewportLeadingControl?: ReactNode;
+  suppressViewportOverlay?: boolean;
+  onViewportStateChange?: (state: {
+    canShiftLeft: boolean;
+    canShiftRight: boolean;
+    shiftLeft: () => void;
+    shiftRight: () => void;
+  }) => void;
 }) {
   const {
     containerRef,
@@ -855,6 +864,15 @@ export function SharedDataTable<TData>({
     shiftLeft,
     shiftRight,
   } = useFittedTableLayout(table, viewportControlWidth ? { controlWidth: viewportControlWidth } : undefined);
+
+  useEffect(() => {
+    onViewportStateChange?.({
+      canShiftLeft,
+      canShiftRight,
+      shiftLeft,
+      shiftRight,
+    });
+  }, [canShiftLeft, canShiftRight, onViewportStateChange, shiftLeft, shiftRight]);
 
   if (isCompact) {
     return (
@@ -891,13 +909,15 @@ export function SharedDataTable<TData>({
     <div className="flex min-h-0 min-w-0 flex-1 flex-col">
       <div className="shrink-0">
         <div className="relative">
-          <SharedViewportControlsOverlay
-            canShiftLeft={canShiftLeft}
-            canShiftRight={canShiftRight}
-            onShiftLeft={shiftLeft}
-            onShiftRight={shiftRight}
-            leadingControl={viewportLeadingControl}
-          />
+          {!suppressViewportOverlay ? (
+            <SharedViewportControlsOverlay
+              canShiftLeft={canShiftLeft}
+              canShiftRight={canShiftRight}
+              onShiftLeft={shiftLeft}
+              onShiftRight={shiftRight}
+              leadingControl={viewportLeadingControl}
+            />
+          ) : null}
           <table className="w-full border-collapse" style={tableStyle}>
             <SharedTableColGroupWithWidths
               table={table}

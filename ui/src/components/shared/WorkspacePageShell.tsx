@@ -14,6 +14,7 @@ type WorkspacePageShellProps = {
   children: ReactNode;
   contentClassName?: string;
   hideHeader?: boolean;
+  stickyHeader?: boolean;
 };
 
 export function WorkspacePageShell({
@@ -29,12 +30,14 @@ export function WorkspacePageShell({
   children,
   contentClassName = '',
   hideHeader = false,
+  stickyHeader = true,
 }: WorkspacePageShellProps) {
+  const shellTopClass = preHeader ? 'pt-0' : 'pt-3 md:pt-4';
   return (
     <div className="h-full flex flex-col">
       <div className="min-h-0 flex flex-col">
-        <div className="sticky top-0 z-10">
-          <div className="relative pt-3 md:pt-4">
+        <div className={stickyHeader ? 'sticky top-0 z-10' : ''}>
+          <div className={`relative ${shellTopClass}`.trim()}>
             {preHeader ? (
               <div
                 className={`${preHeaderAffectsLayout ? '' : 'absolute left-0 right-0 z-20'} ${preHeaderClassName}`.trim()}

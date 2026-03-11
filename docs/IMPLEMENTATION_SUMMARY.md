@@ -1,4 +1,4 @@
-﻿---
+---
 title: "Implementation Summary (2026-02-15)"
 summary: "Summary of changes from the February 15, 2026 implementation session."
 read_when:

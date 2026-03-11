@@ -1,4 +1,4 @@
-﻿---
+---
 summary: "Skill-first assistant architecture (deterministic skills first, LLM planner as fallback)."
 read_when:
   - You are modifying the assistant-core skill router or its handlers

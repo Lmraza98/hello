@@ -41,8 +41,8 @@ export function DashboardWorkspaceGrid({
   totalScheduled,
 }: DashboardWorkspaceGridProps) {
   return (
-    <section className="grid grid-cols-1 gap-3 xl:grid-cols-12" data-component="dashboard-workspace-grid">
-      <div className="rounded-lg border border-border/80 bg-surface p-2.5 xl:col-span-5">
+    <section className="grid h-full min-h-0 auto-rows-fr grid-cols-1 lg:grid-cols-12" data-component="dashboard-workspace-grid">
+      <div className="flex min-h-[180px] min-h-0 flex-col overflow-hidden lg:col-span-5">
         {recentReplies.length > 0 ? (
           <ActiveConversationsCard
             activeConversations={activeConversations}
@@ -56,8 +56,10 @@ export function DashboardWorkspaceGrid({
             removingIds={removingIds}
           />
         ) : (
-          <>
-            <h3 className="mb-2 text-sm font-medium text-text">Active Conversations</h3>
+          <div className="flex h-full min-h-0 flex-col border border-border bg-surface">
+            <div className="flex h-[31px] items-center border-b border-border px-2.5">
+              <h3 className="text-[10px] font-semibold uppercase tracking-wide text-text-dim">Active Conversations</h3>
+            </div>
             <EmptyStateCard
               title={
                 outlookConnected
@@ -72,31 +74,41 @@ export function DashboardWorkspaceGrid({
               ctaLabel={outlookConnected ? 'Go to Email Campaigns' : 'Set up Email'}
               onCta={onNavigateEmailHome}
             />
-          </>
+          </div>
         )}
       </div>
 
-      <div className="rounded-lg border border-border/80 bg-surface p-2.5 xl:col-span-3">
-        <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-text-dim">Today&apos;s Contacts</h3>
-        {todaysContacts.length > 0 ? (
-          <LiveContacts contacts={todaysContacts} />
-        ) : (
-          <EmptyStateCard
-            title="No contacts captured yet today"
-            description="The contact stream is empty for this date. Run a company prospecting pass and enrich contacts."
-            ctaLabel="Find Companies"
-            onCta={onNavigateCompanies}
-            Icon={Users}
-          />
-        )}
+      <div className="flex min-h-[180px] min-h-0 flex-col overflow-hidden border border-border bg-surface lg:col-span-3">
+        <div className="flex h-[31px] items-center border-b border-border px-2.5">
+          <h3 className="text-[10px] font-semibold uppercase tracking-wide text-text-dim">Today&apos;s Contacts</h3>
+        </div>
+        <div className="min-h-0 flex-1">
+          {todaysContacts.length > 0 ? (
+            <LiveContacts contacts={todaysContacts} />
+          ) : (
+            <EmptyStateCard
+              title="No contacts captured yet today"
+              description="The contact stream is empty for this date. Run a company prospecting pass and enrich contacts."
+              ctaLabel="Find Companies"
+              onCta={onNavigateCompanies}
+              Icon={Users}
+            />
+          )}
+        </div>
       </div>
 
-      <div className="rounded-lg border border-border/80 bg-surface p-2.5 xl:col-span-4">
+      <div className="flex min-h-[180px] min-h-0 flex-col overflow-hidden lg:col-span-4">
         {nextSends.length > 0 ? (
-          <ScheduledSendsCard nextSends={nextSends} totalScheduled={totalScheduled} />
+          <ScheduledSendsCard
+            nextSends={nextSends}
+            totalScheduled={totalScheduled}
+            onNavigateEmailScheduled={onNavigateEmailScheduled}
+          />
         ) : (
-          <>
-            <h3 className="mb-2 text-sm font-medium text-text">Next Scheduled Sends</h3>
+          <div className="flex h-full min-h-0 flex-col border border-border bg-surface">
+            <div className="flex h-[31px] items-center border-b border-border px-2.5">
+              <h3 className="text-[10px] font-semibold uppercase tracking-wide text-text-dim">Next Scheduled Sends</h3>
+            </div>
             <EmptyStateCard
               title="No sends scheduled for today"
               description="Your send queue is empty for this window. Schedule drafts to keep outreach cadence consistent."
@@ -104,7 +116,7 @@ export function DashboardWorkspaceGrid({
               onCta={onNavigateEmailScheduled}
               Icon={CalendarClock}
             />
-          </>
+          </div>
         )}
       </div>
     </section>

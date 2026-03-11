@@ -1,5 +1,6 @@
 ﻿import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import { usePageContext } from '../contexts/PageContextProvider';
 import { normalizeQueryFilterParam } from '../utils/filterNormalization';
 import {
@@ -45,7 +46,7 @@ import {
   usePersistentColumnSizing,
 } from '../components/shared/resizableDataTable';
 import { usePersistentColumnPreferences } from '../components/shared/usePersistentColumnPreferences';
-import { Users, Download, Loader2, Phone, Plus, RotateCcw, Send, SlidersHorizontal, Target, Trash2, Upload, UserPlus } from 'lucide-react';
+import { Users, Download, Loader2, MoreHorizontal, Phone, Plus, RotateCcw, Send, SlidersHorizontal, Target, Trash2, Upload, UserPlus } from 'lucide-react';
 import { useRegisterCapabilities } from '../capabilities/useRegisterCapabilities';
 import { getPageCapability } from '../capabilities/catalog';
 
@@ -70,6 +71,83 @@ function sortContactsByRecency(data: Contact[]) {
     if (Number.isFinite(ta)) return -1;
     return b.id - a.id;
   });
+}
+
+function ContactsHeaderActionsMenu({
+  onNewContact,
+}: {
+  onNewContact: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const updatePosition = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPosition({
+        top: rect.top + rect.height / 2,
+        left: rect.left - 4,
+      });
+    };
+    updatePosition();
+    const onPointerDown = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onScrollOrResize = () => updatePosition();
+    document.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <div className="relative flex h-full w-full items-center justify-center">
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-label="Open contact table actions"
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen((value) => !value);
+          }}
+          className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {open && menuPosition && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={ref}
+              className="fixed z-[120] w-44 -translate-x-full -translate-y-1/2 rounded-none border border-border bg-surface p-1 shadow-lg"
+              style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  onNewContact();
+                  setOpen(false);
+                }}
+                className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover"
+              >
+                New contact
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
 }
 
 /* ── Main Component ────────────────────────────────────── */
@@ -118,12 +196,12 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const filtersMenuRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<any>(null);
+  const [viewportControlsTarget, setViewportControlsTarget] = useState<HTMLDivElement | null>(null);
   const canShiftLeftRef = useRef(false);
   const canShiftRightRef = useRef(false);
   const shiftLeftRef = useRef<() => void>(() => {});
   const shiftRightRef = useRef<() => void>(() => {});
   const lastFocusedRowRef = useRef<HTMLElement | null>(null);
-  const newContactButtonRef = useRef<HTMLButtonElement>(null);
   const detailsPanelRef = useRef<HTMLDivElement>(null);
   const selectionScrollAnimationRef = useRef<number | null>(null);
   const [scrollThumb, setScrollThumb] = useState<{ height: number; top: number; visible: boolean }>({
@@ -131,12 +209,11 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     top: 0,
     visible: false,
   });
+  const [scrollGutterWidth, setScrollGutterWidth] = useState(0);
 
   const closeAddPanel = useCallback((options?: { restoreFocus?: boolean }) => {
     setShowAddPanel(false);
     if (options?.restoreFocus === false) return;
-    const id = window.requestAnimationFrame(() => newContactButtonRef.current?.focus());
-    return () => window.cancelAnimationFrame(id);
   }, []);
 
   const openAddPanel = useCallback(() => {
@@ -373,7 +450,7 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     });
   }, [setManagedColumnOrder]);
 
-  const actionsHeader = useMemo(() => (
+  const viewportControls = useMemo(() => (
     <div className="relative flex h-full w-full items-center justify-center gap-0.5 bg-surface" ref={filtersMenuRef}>
       <button
         type="button"
@@ -433,6 +510,11 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
     moveManagedColumn,
     showFiltersMenu,
   ]);
+
+  const actionsHeader = useMemo(
+    () => <ContactsHeaderActionsMenu onNewContact={openAddPanel} />,
+    [openAddPanel],
+  );
 
   /* ── Table configuration ── */
 
@@ -618,13 +700,15 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
   useEffect(() => {
     if (isCompact) {
       setScrollThumb({ height: 0, top: 0, visible: false });
+      setScrollGutterWidth(0);
       return;
     }
     const element = scrollContainerRef.current;
     if (!element) return;
     let frameId = 0;
     const updateThumb = () => {
-      const { clientHeight, scrollHeight, scrollTop } = element;
+      const { clientHeight, scrollHeight, scrollTop, offsetWidth, clientWidth } = element;
+      setScrollGutterWidth(Math.max(0, offsetWidth - clientWidth));
       if (scrollHeight <= clientHeight + 1) {
         setScrollThumb({ height: 0, top: 0, visible: false });
         return;
@@ -789,15 +873,7 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
         <div className="min-w-0 flex-1">
           <PageSearchInput value={globalFilter} onChange={setGlobalFilter} placeholder="Search contacts..." />
         </div>
-        <HeaderActionButton
-          data-assistant-id="new-contact-button"
-          ref={newContactButtonRef}
-          onClick={openAddPanel}
-          variant="primary"
-          icon={<Plus className="w-3.5 h-3.5" />}
-        >
-          New Contact
-        </HeaderActionButton>
+        <div ref={setViewportControlsTarget} className="flex h-8 w-14 shrink-0 items-center justify-center" />
       </div>
       {selectedCount > 0 ? (
         <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -874,6 +950,14 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
 
   return (
     <>
+      {viewportControlsTarget && typeof document !== 'undefined'
+        ? createPortal(
+            <div className="flex h-full w-full items-center justify-center">
+              {viewportControls}
+            </div>,
+            viewportControlsTarget,
+          )
+        : null}
       <WorkspacePageShell
         title="Contacts"
         subtitle={`${contacts.length} contacts · ${emailCount} with emails${filteredCount !== contacts.length ? ` · ${filteredCount} shown` : ''}`}
@@ -889,7 +973,7 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
           />
         }
         preHeaderAffectsLayout
-        preHeaderClassName="-mt-3 md:-mt-4 h-14 flex items-end"
+        preHeaderClassName="h-14 flex items-end"
       >
         <div className="flex h-full min-h-0 flex-col bg-surface">
           <div className="shrink-0 bg-surface">
@@ -906,7 +990,7 @@ export default function Contacts({ openAddModal, onModalOpened }: { openAddModal
             ) : (
               <>
                 {!isCompact && (
-                  <div className="relative shrink-0">
+                  <div className="relative shrink-0" style={{ paddingRight: `${scrollGutterWidth}px` }}>
                     <table className="w-full border-collapse" style={desktopTableStyle}>
                       <SharedTableColGroupWithWidths table={table} columnWidths={desktopColumnWidths} visibleColumnIds={desktopVisibleColumnIds} fillerWidth={desktopFillWidth} controlWidth={CONTACTS_VIEWPORT_CONTROL_WIDTH} />
                       <SharedTableHeader

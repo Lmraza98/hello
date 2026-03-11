@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -9,8 +10,9 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 import {
+  ChevronRight,
   Edit3,
-  Ellipsis,
+  MoreHorizontal,
   Mail,
   Pause,
   Play,
@@ -34,6 +36,8 @@ import {
 } from '../shared/resizableDataTable';
 import { usePersistentColumnPreferences } from '../shared/usePersistentColumnPreferences';
 
+const CAMPAIGN_ACTIONS_COLUMN_WIDTH = 56;
+
 type CampaignsViewProps = {
   campaigns: EmailCampaign[];
   campaignScheduleSummary: CampaignScheduleSummary[];
@@ -51,6 +55,8 @@ type CampaignsViewProps = {
   onSendEmails: (campaignId: number) => void;
   onUploadToSalesforce: (campaignId: number) => void;
   uploadingCampaignId: number | null;
+  viewportControlsTarget?: HTMLElement | null;
+  renderHeaderActionsMenu?: ((closeMenu: () => void) => ReactNode) | null;
 };
 
 function formatNextSend(value: string | null | undefined): string {
@@ -82,6 +88,178 @@ function SortableCampaignHeader({ column, label }: { column: Column<EmailCampaig
   );
 }
 
+function CampaignRowActionsMenu({
+  campaign,
+  uploadingCampaignId,
+  onEditTemplates,
+  onUploadToSalesforce,
+  onPause,
+  onActivate,
+  onSendEmails,
+  onViewContacts,
+  onDelete,
+}: {
+  campaign: EmailCampaign;
+  uploadingCampaignId: number | null;
+  onEditTemplates: (campaign: EmailCampaign) => void;
+  onUploadToSalesforce: (campaignId: number) => void;
+  onPause: (campaignId: number) => void;
+  onActivate: (campaignId: number) => void;
+  onSendEmails: (campaignId: number) => void;
+  onViewContacts: () => void;
+  onDelete: (campaignId: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+  const isActive = campaign.status === 'active';
+  const isUploading = uploadingCampaignId === campaign.id;
+
+  useEffect(() => {
+    if (!open) return;
+    const updatePosition = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPosition({
+        top: rect.top + rect.height / 2,
+        left: rect.left - 4,
+      });
+    };
+    updatePosition();
+    const onPointerDown = (event: globalThis.MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onScrollOrResize = () => updatePosition();
+    document.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <div className="relative flex items-center justify-center">
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-label={`Open actions for ${campaign.name}`}
+          data-row-control
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen((value) => !value);
+          }}
+          className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {open && menuPosition && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={ref}
+              className="fixed z-[120] w-44 -translate-x-full -translate-y-1/2 rounded-none border border-border bg-surface p-1 shadow-lg"
+              style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button type="button" onClick={() => { onEditTemplates(campaign); setOpen(false); }} className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover">
+                Edit templates
+              </button>
+              <button type="button" onClick={() => { onUploadToSalesforce(campaign.id); setOpen(false); }} disabled={isUploading} className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover disabled:opacity-50">
+                Upload to Salesforce
+              </button>
+              <button type="button" onClick={() => { (isActive ? onPause : onActivate)(campaign.id); setOpen(false); }} className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover">
+                {isActive ? 'Pause campaign' : 'Activate campaign'}
+              </button>
+              <button type="button" onClick={() => { onSendEmails(campaign.id); setOpen(false); }} className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover">
+                Launch next emails
+              </button>
+              <button type="button" onClick={() => { onViewContacts(); setOpen(false); }} className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-text hover:bg-surface-hover">
+                View contacts
+              </button>
+              <button type="button" onClick={() => { onDelete(campaign.id); setOpen(false); }} className="block h-8 w-full rounded-none px-2 text-left text-[11px] text-rose-700 hover:bg-rose-50">
+                Delete
+              </button>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
+function CampaignHeaderActionsMenu({
+  renderMenu,
+}: {
+  renderMenu: (closeMenu: () => void) => ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const updatePosition = () => {
+      const rect = buttonRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      setMenuPosition({
+        top: rect.top + rect.height / 2,
+        left: rect.left - 4,
+      });
+    };
+    updatePosition();
+    const onPointerDown = (event: globalThis.MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onScrollOrResize = () => updatePosition();
+    document.addEventListener('mousedown', onPointerDown);
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <div className="relative flex h-full w-full items-center justify-center">
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-label="Open campaign table actions"
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen((value) => !value);
+          }}
+          className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        >
+          <MoreHorizontal className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {open && menuPosition && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              ref={ref}
+              className="fixed z-[120] w-44 -translate-x-full -translate-y-1/2 rounded-none border border-border bg-surface p-1 shadow-lg"
+              style={{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }}
+              onClick={(event) => event.stopPropagation()}
+            >
+              {renderMenu(() => setOpen(false))}
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
 export function CampaignsView({
   campaigns,
   campaignScheduleSummary,
@@ -99,15 +277,21 @@ export function CampaignsView({
   onSendEmails,
   onUploadToSalesforce,
   uploadingCampaignId,
+  viewportControlsTarget = null,
+  renderHeaderActionsMenu = null,
 }: CampaignsViewProps) {
   const isPhone = useIsMobile(640);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [deleteIds, setDeleteIds] = useState<number[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [openActionsMenuId, setOpenActionsMenuId] = useState<number | null>(null);
   const [sorting, setSorting] = useState<SortingState>([{ id: 'name', desc: false }]);
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const filterRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<any>(null);
+  const canShiftLeftRef = useRef(false);
+  const canShiftRightRef = useRef(false);
+  const shiftLeftRef = useRef<() => void>(() => {});
+  const shiftRightRef = useRef<() => void>(() => {});
 
   const isInteractiveTarget = (target: EventTarget | null) => {
     if (!(target instanceof Element)) return false;
@@ -122,19 +306,101 @@ export function CampaignsView({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showFilters]);
 
-  useEffect(() => {
-    function handleMenuOutsideClick(e: MouseEvent) {
-      const target = e.target as HTMLElement;
-      if (!target.closest('[data-campaign-actions]')) setOpenActionsMenuId(null);
-    }
-    if (openActionsMenuId === null) return;
-    document.addEventListener('mousedown', handleMenuOutsideClick);
-    return () => document.removeEventListener('mousedown', handleMenuOutsideClick);
-  }, [openActionsMenuId]);
-
   const summaryMap = useMemo(
     () => new Map(campaignScheduleSummary.map((s) => [s.campaign_id, s])),
     [campaignScheduleSummary],
+  );
+
+  const columnLabelMap: Record<string, string> = {
+    name: 'Campaign',
+    status: 'Status',
+    contacts: 'Contacts',
+    sent: 'Sent',
+    pending_review: 'Pending Review',
+    scheduled_count: 'Scheduled',
+    next_send: 'Next Send',
+  };
+  const managedColumnIds = useMemo(() => ['name', 'status', 'contacts', 'sent', 'pending_review', 'scheduled_count', 'next_send'], []);
+  const { columnOrder: managedColumnOrder, setColumnOrder: setManagedColumnOrder, columnVisibility, setColumnVisibility } = usePersistentColumnPreferences({
+    storageKey: 'campaigns-table',
+    columnIds: managedColumnIds,
+    initialVisibility: { name: true },
+  });
+
+  const moveManagedColumn = (columnId: string, delta: -1 | 1) => {
+    setManagedColumnOrder((prev) => {
+      const index = prev.indexOf(columnId);
+      const nextIndex = index + delta;
+      if (index < 0 || nextIndex < 0 || nextIndex >= prev.length) return prev;
+      const next = [...prev];
+      const [item] = next.splice(index, 1);
+      next.splice(nextIndex, 0, item);
+      return next;
+    });
+  };
+
+  const viewportControls = useMemo(() => (
+    <div className="relative flex h-full w-full items-center justify-center gap-0.5 bg-surface" ref={filterRef}>
+      <button
+        type="button"
+        onClick={() => setShowFilters((v) => !v)}
+        className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
+        title="Columns"
+        aria-label="Open visible columns menu"
+      >
+        <SlidersHorizontal className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        onClick={() => shiftLeftRef.current()}
+        disabled={!canShiftLeftRef.current}
+        aria-label="Show previous columns"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text disabled:opacity-30"
+      >
+        <ChevronRight className="h-3.5 w-3.5 rotate-180" />
+      </button>
+      <button
+        type="button"
+        onClick={() => shiftRightRef.current()}
+        disabled={!canShiftRightRef.current}
+        aria-label="Show more columns"
+        className="inline-flex h-4 w-4 items-center justify-center rounded-sm text-text-muted transition-colors hover:bg-surface-hover hover:text-text disabled:opacity-30"
+      >
+        <ChevronRight className="h-3.5 w-3.5" />
+      </button>
+      {showFilters ? (
+        <div className="absolute right-0 top-7 z-20 w-[260px] rounded-none border border-border bg-surface p-3 shadow-lg">
+          <ColumnVisibilityMenu
+            items={managedColumnOrder.map((columnId, index) => ({
+              id: columnId,
+              label: columnLabelMap[columnId] ?? columnId,
+              visible: tableRef.current?.getColumn(columnId)?.getIsVisible() ?? true,
+              canHide: columnId !== 'name',
+              canMoveUp: index > 0,
+              canMoveDown: index < managedColumnOrder.length - 1,
+            }))}
+            onToggle={(columnId, visible) => {
+              if (columnId === 'name') return;
+              tableRef.current?.getColumn(columnId)?.toggleVisibility(visible);
+            }}
+            onMoveUp={(columnId) => moveManagedColumn(columnId, -1)}
+            onMoveDown={(columnId) => moveManagedColumn(columnId, 1)}
+          />
+        </div>
+      ) : null}
+    </div>
+  ), [columnLabelMap, managedColumnOrder, showFilters]);
+
+  const actionsHeader = useMemo(
+    () =>
+      renderHeaderActionsMenu ? (
+        <CampaignHeaderActionsMenu renderMenu={renderHeaderActionsMenu} />
+      ) : viewportControlsTarget ? (
+        <div className="h-full w-full" />
+      ) : (
+        viewportControls
+      ),
+    [renderHeaderActionsMenu, viewportControls, viewportControlsTarget],
   );
 
   const columns = useMemo<ColumnDef<EmailCampaign>[]>(
@@ -323,75 +589,42 @@ export function CampaignsView({
       },
       {
         id: 'actions',
-        header: () => <div className="text-right">Actions</div>,
+        header: () => actionsHeader,
         cell: ({ row }) => {
           const campaign = row.original;
-          const isActive = campaign.status === 'active';
-          const isUploading = uploadingCampaignId === campaign.id;
           return (
-            <div className="flex items-center justify-end gap-1 whitespace-nowrap">
-              <button
-                onClick={() => onEditTemplates(campaign)}
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
-                title="Edit templates"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => onUploadToSalesforce(campaign.id)}
-                disabled={isUploading}
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover disabled:opacity-50"
-                title="Upload to Salesforce"
-              >
-                <Upload className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => (isActive ? onPause(campaign.id) : onActivate(campaign.id))}
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
-                title={isActive ? 'Pause campaign' : 'Activate campaign'}
-              >
-                {isActive ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              </button>
-              <button
-                onClick={() => onSendEmails(campaign.id)}
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
-                title="Launch next emails in review tabs"
-              >
-                <Send className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={onViewContacts}
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
-                title="View contacts"
-              >
-                <Mail className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => setDeleteId(campaign.id)}
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50"
-                title="Delete campaign"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <CampaignRowActionsMenu
+              campaign={campaign}
+              uploadingCampaignId={uploadingCampaignId}
+              onEditTemplates={onEditTemplates}
+              onUploadToSalesforce={onUploadToSalesforce}
+              onPause={onPause}
+              onActivate={onActivate}
+              onSendEmails={onSendEmails}
+              onViewContacts={onViewContacts}
+              onDelete={(id) => setDeleteId(id)}
+            />
           );
         },
         enableSorting: false,
-        size: 198,
-        minSize: 198,
-        maxSize: Number.MAX_SAFE_INTEGER,
+        size: CAMPAIGN_ACTIONS_COLUMN_WIDTH,
+        minSize: CAMPAIGN_ACTIONS_COLUMN_WIDTH,
+        maxSize: CAMPAIGN_ACTIONS_COLUMN_WIDTH,
         enableResizing: false,
         meta: {
           label: 'Actions',
-          minWidth: 198,
-          defaultWidth: 198,
-          maxWidth: 198,
+          minWidth: CAMPAIGN_ACTIONS_COLUMN_WIDTH,
+          defaultWidth: CAMPAIGN_ACTIONS_COLUMN_WIDTH,
+          maxWidth: CAMPAIGN_ACTIONS_COLUMN_WIDTH,
           resizable: false,
           align: 'right',
+          headerClassName: 'sticky right-0 z-20 bg-surface px-0',
+          cellClassName: 'sticky right-0 z-40 overflow-visible bg-surface px-0 text-center',
         },
       },
     ],
     [
+      actionsHeader,
       onActivate,
       onEditTemplates,
       onPause,
@@ -409,22 +642,6 @@ export function CampaignsView({
     rows: tableData,
     storageKey: 'campaigns-table',
   });
-  const columnLabelMap: Record<string, string> = {
-    name: 'Campaign',
-    status: 'Status',
-    contacts: 'Contacts',
-    sent: 'Sent',
-    pending_review: 'Pending Review',
-    scheduled_count: 'Scheduled',
-    next_send: 'Next Send',
-  };
-  const managedColumnIds = useMemo(() => ['name', 'status', 'contacts', 'sent', 'pending_review', 'scheduled_count', 'next_send'], []);
-  const { columnOrder: managedColumnOrder, setColumnOrder: setManagedColumnOrder, columnVisibility, setColumnVisibility } = usePersistentColumnPreferences({
-    storageKey: 'campaigns-table',
-    columnIds: managedColumnIds,
-    initialVisibility: { name: true },
-  });
-
   const handleColumnOrderChange = (updater: string[] | ((old: string[]) => string[])) => {
     setManagedColumnOrder((prev) => {
       const current = [...prev, 'actions'];
@@ -434,18 +651,6 @@ export function CampaignsView({
         if (!orderedManaged.includes(id)) orderedManaged.push(id);
       });
       return orderedManaged;
-    });
-  };
-
-  const moveManagedColumn = (columnId: string, delta: -1 | 1) => {
-    setManagedColumnOrder((prev) => {
-      const index = prev.indexOf(columnId);
-      const nextIndex = index + delta;
-      if (index < 0 || nextIndex < 0 || nextIndex >= prev.length) return prev;
-      const next = [...prev];
-      const [item] = next.splice(index, 1);
-      next.splice(nextIndex, 0, item);
-      return next;
     });
   };
 
@@ -481,90 +686,6 @@ export function CampaignsView({
         .filter((id): id is number => typeof id === 'number'),
     [table],
   );
-  const renderActionsMenu = (campaign: EmailCampaign) => {
-    const isActive = campaign.status === 'active';
-    const isUploading = uploadingCampaignId === campaign.id;
-    const menuOpen = openActionsMenuId === campaign.id;
-
-    return (
-      <div className="relative" data-campaign-actions>
-        <div className="inline-flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => onEditTemplates(campaign)}
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
-            title="Edit templates"
-          >
-            <Edit3 className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => setOpenActionsMenuId((prev) => (prev === campaign.id ? null : campaign.id))}
-            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-text-muted hover:bg-surface-hover"
-            title="More actions"
-          >
-            <Ellipsis className="w-3.5 h-3.5" />
-          </button>
-        </div>
-        {menuOpen ? (
-          <div className="absolute right-0 top-8 z-20 w-44 rounded-md border border-border bg-surface p-1 shadow-lg">
-            <button
-              type="button"
-              onClick={() => {
-                onUploadToSalesforce(campaign.id);
-                setOpenActionsMenuId(null);
-              }}
-              disabled={isUploading}
-              className="w-full rounded px-2 py-1.5 text-left text-xs text-text hover:bg-surface-hover disabled:opacity-50"
-            >
-              Upload to Salesforce
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                (isActive ? onPause : onActivate)(campaign.id);
-                setOpenActionsMenuId(null);
-              }}
-              className="w-full rounded px-2 py-1.5 text-left text-xs text-text hover:bg-surface-hover"
-            >
-              {isActive ? 'Pause campaign' : 'Activate campaign'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onSendEmails(campaign.id);
-                setOpenActionsMenuId(null);
-              }}
-              className="w-full rounded px-2 py-1.5 text-left text-xs text-text hover:bg-surface-hover"
-            >
-              Launch next emails
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onViewContacts();
-                setOpenActionsMenuId(null);
-              }}
-              className="w-full rounded px-2 py-1.5 text-left text-xs text-text hover:bg-surface-hover"
-            >
-              View contacts
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setDeleteId(campaign.id);
-                setOpenActionsMenuId(null);
-              }}
-              className="w-full rounded px-2 py-1.5 text-left text-xs text-red-600 hover:bg-red-50"
-            >
-              Delete
-            </button>
-          </div>
-        ) : null}
-      </div>
-    );
-  };
-
   const renderCompactCampaignRow = (campaign: EmailCampaign, isSelected: boolean) => (
     <div className={`p-3 ${isSelected ? 'bg-accent/10' : ''}`}>
       <div className="flex items-center gap-2 min-w-0">
@@ -580,45 +701,21 @@ export function CampaignsView({
             <span className={statusBadge(String(campaign.status || 'draft'))}>{campaign.status || 'draft'}</span>
           </div>
         </div>
-        {renderActionsMenu(campaign)}
+        <CampaignRowActionsMenu
+          campaign={campaign}
+          uploadingCampaignId={uploadingCampaignId}
+          onEditTemplates={onEditTemplates}
+          onUploadToSalesforce={onUploadToSalesforce}
+          onPause={onPause}
+          onActivate={onActivate}
+          onSendEmails={onSendEmails}
+          onViewContacts={onViewContacts}
+          onDelete={(id) => setDeleteId(id)}
+        />
       </div>
       <div className="mt-2 text-[11px] text-text-muted tabular-nums">
         Contacts {campaign.stats?.total_contacts || 0}  Sent {campaign.stats?.total_sent || 0}  Review {summaryMap.get(campaign.id)?.pending_review_count || 0}
       </div>
-    </div>
-  );
-
-  const viewportLeadingControl = (
-    <div className="relative" ref={filterRef}>
-      <button
-        type="button"
-        onClick={() => setShowFilters((v) => !v)}
-        className="inline-flex h-5 w-5 items-center justify-center rounded-none text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
-        title="Columns"
-        aria-label="Open visible columns menu"
-      >
-        <SlidersHorizontal className="h-3.5 w-3.5" />
-      </button>
-      {showFilters ? (
-        <div className="absolute right-0 top-7 z-20 w-[260px] rounded-none border border-border bg-surface p-3 shadow-lg">
-          <ColumnVisibilityMenu
-            items={managedColumnOrder.map((columnId, index) => ({
-              id: columnId,
-              label: columnLabelMap[columnId] ?? columnId,
-              visible: table.getColumn(columnId)?.getIsVisible() ?? true,
-              canHide: columnId !== 'name',
-              canMoveUp: index > 0,
-              canMoveDown: index < managedColumnOrder.length - 1,
-            }))}
-            onToggle={(columnId, visible) => {
-              if (columnId === 'name') return;
-              table.getColumn(columnId)?.toggleVisibility(visible);
-            }}
-            onMoveUp={(columnId) => moveManagedColumn(columnId, -1)}
-            onMoveDown={(columnId) => moveManagedColumn(columnId, 1)}
-          />
-        </div>
-      ) : null}
     </div>
   );
 
@@ -639,6 +736,14 @@ export function CampaignsView({
 
   return (
     <>
+      {viewportControlsTarget && typeof document !== 'undefined'
+        ? createPortal(
+            <div className="flex h-full w-full items-center justify-center">
+              {viewportControls}
+            </div>,
+            viewportControlsTarget,
+          )
+        : null}
       {selectedCampaignIds.length > 0 && (
         <div className="mt-2 mb-2 flex items-center justify-between rounded-md border border-border bg-surface px-3 py-1.5">
           <p className="text-xs text-text-muted">
@@ -685,7 +790,15 @@ export function CampaignsView({
               isCompact={isPhone}
               onAutoFitColumn={autoFitColumn}
               viewportControlWidth={FILTERABLE_VIEWPORT_CONTROL_WIDTH}
-              viewportLeadingControl={viewportLeadingControl}
+              suppressViewportOverlay
+              onViewportStateChange={({ canShiftLeft, canShiftRight, shiftLeft, shiftRight }) => {
+                canShiftLeftRef.current = canShiftLeft;
+                canShiftRightRef.current = canShiftRight;
+                shiftLeftRef.current = shiftLeft;
+                shiftRightRef.current = shiftRight;
+                tableRef.current = table;
+              }}
+              bodyClassName="no-scrollbar"
               rowClassName={(_, isSelected) => (onSelectCampaign ? (isSelected ? 'cursor-pointer bg-accent/12' : 'cursor-pointer hover:bg-surface-hover/60') : isSelected ? 'bg-accent/12' : 'hover:bg-surface-hover/60')}
             />
           )}

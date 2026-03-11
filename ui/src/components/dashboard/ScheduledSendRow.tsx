@@ -21,14 +21,14 @@ export function ScheduledSendRow({ email }: ScheduledSendRowProps) {
   }, [email.scheduled_send_time]);
 
   return (
-    <div className="flex items-center gap-3 px-3 py-2 bg-bg rounded-lg hover:bg-surface-hover transition-colors">
-      <div className="shrink-0 w-16">
-        <div className="text-xs font-medium text-accent tabular-nums">{time}</div>
+    <div className="flex items-center gap-2.5 border-b border-border px-2.5 py-2 transition-colors hover:bg-surface-hover">
+      <div className="w-16 shrink-0">
+        <div className="text-[11px] font-medium text-accent tabular-nums">{time}</div>
         <div className="text-[10px] text-text-dim tabular-nums">{countdown}</div>
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="font-medium text-text text-xs truncate">{email.contact_name}</span>
+          <span className="truncate text-[11px] font-medium text-text">{email.contact_name}</span>
           <span className="text-text-dim text-[10px]">@</span>
           <span className="text-text-muted text-[10px] truncate">{email.company_name}</span>
         </div>
@@ -36,7 +36,7 @@ export function ScheduledSendRow({ email }: ScheduledSendRowProps) {
           {email.rendered_subject || email.subject}
         </p>
       </div>
-      <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded shrink-0">
+      <span className="hidden shrink-0 border border-accent/20 bg-accent/10 px-1.5 py-0.5 text-[10px] text-accent md:inline-flex">
         {email.campaign_name}
       </span>
     </div>

@@ -1,4 +1,4 @@
-﻿---
+---
 summary: "Tiered prompt and tool preselection system for the chat tool planner, reducing latency from ~12s to ~2-4s for simple queries."
 read_when:
   - You are debugging why tool planning is slow or fast for a given query

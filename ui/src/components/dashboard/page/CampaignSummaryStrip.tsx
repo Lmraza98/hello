@@ -32,7 +32,7 @@ export function CampaignSummaryStrip({
 }: CampaignSummaryStripProps) {
   if (!summary) return null;
   return (
-    <div className="mb-1.5 rounded-md border border-border/70 bg-bg/60 px-2 py-1.5">
+    <div className="border border-border bg-bg/60 px-2 py-1.5">
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
@@ -52,16 +52,16 @@ export function CampaignSummaryStrip({
         </button>
       </div>
       {!collapsed ? (
-        <div className="mt-1.5 grid grid-cols-3 gap-1 text-[11px]">
-          <div className="rounded bg-surface px-1.5 py-1">
+        <div className="mt-1.5 grid grid-cols-3 gap-px border border-border bg-border text-[11px]">
+          <div className="bg-surface px-1.5 py-1">
             <p className="text-text-dim">Reply rate</p>
             <p className="font-semibold text-text">{summary.replyRate.toFixed(1)}%</p>
           </div>
-          <div className="rounded bg-surface px-1.5 py-1">
+          <div className="bg-surface px-1.5 py-1">
             <p className="text-text-dim">Sent</p>
             <p className="font-semibold text-text tabular-nums">{summary.sent}</p>
           </div>
-          <div className="rounded bg-surface px-1.5 py-1">
+          <div className="bg-surface px-1.5 py-1">
             <p className="text-text-dim">Replies</p>
             <p className="font-semibold text-text tabular-nums">{summary.replies}</p>
           </div>
